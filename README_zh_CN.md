@@ -1,8 +1,8 @@
-# Thunderbolt Core Reborn
+# 雷电核心：重生
 
 [English](README.md)
 
-Thunderbolt Core Reborn 是 AE2 Lightning Tech Reborn 使用的 AE2 优化与底层基础设施模组，也可以单独安装为 AE2 自动合成加速器。
+雷电核心：重生 是 AE2 闪电科技：重生 使用的 AE2 优化与底层基础设施模组，也可以单独安装为 AE2 自动合成加速器。
 
 当前是 **Minecraft Forge 1.20.1** 分支。如需 Minecraft 1.21.1 与 NeoForge 版本，请查看 [`main`](https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/tree/main) 分支。
 
@@ -13,7 +13,7 @@ Thunderbolt Core Reborn 是 AE2 Lightning Tech Reborn 使用的 AE2 优化与底
 - Java `17`
 - Applied Energistics 2 `15.4.10`–`15.x`
 
-客户端和服务端均需将 Thunderbolt Core Reborn 与 AE2 放入 `mods` 目录。
+客户端和服务端均需将 雷电核心：重生 与 AE2 放入 `mods` 目录。
 
 ## 主要功能
 
