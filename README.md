@@ -1,13 +1,13 @@
-# Thunderbolt Core
+# Thunderbolt Core Reborn
 
 [简体中文](README_zh_CN.md)
 
-Thunderbolt Core is the shared AE2 optimization and infrastructure layer for
-AE2 Lightning Tech. It can also be installed as a standalone AE2 autocrafting
+Thunderbolt Core Reborn is the shared AE2 optimization and infrastructure layer for
+AE2 Lightning Tech Reborn. It can also be installed as a standalone AE2 autocrafting
 accelerator.
 
 This is the **Minecraft Forge 1.20.1** branch. For Minecraft 1.21.1 and
-NeoForge, see the [`main`](https://github.com/ae2lt/Thunderbolt-Core/tree/main)
+NeoForge, see the [`main`](https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/tree/main)
 branch.
 
 ## Requirements
@@ -17,7 +17,7 @@ branch.
 - Java `17`
 - Applied Energistics 2 `15.4.10`–`15.x`
 
-Install Thunderbolt Core and AE2 in the `mods` directory on both the client and
+Install Thunderbolt Core Reborn and AE2 in the `mods` directory on both the client and
 server.
 
 ## Features
@@ -81,5 +81,5 @@ Publish it to the local Maven repository:
 The `-slim.jar` artifact does not contain the required MixinExtras jar-in-jar
 dependency and is only an intermediate development artifact.
 
-Issues: [GitHub Issues](https://github.com/ae2lt/Thunderbolt-Core/issues) ·
+Issues: [GitHub Issues](https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/issues) ·
 License: [GNU LGPL 3.0](LICENSE)

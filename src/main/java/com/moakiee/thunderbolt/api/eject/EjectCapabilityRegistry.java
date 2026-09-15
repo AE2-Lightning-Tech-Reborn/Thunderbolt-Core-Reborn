@@ -42,7 +42,7 @@ public final class EjectCapabilityRegistry {
         return runtime.isBypassed();
     }
 
-    /** Installed once by Thunderbolt Core; not an extension point for content mods. */
+    /** Installed once by Thunderbolt Core Reborn; not an extension point for content mods. */
     public static void installRuntime(Runtime implementation) {
         runtime = Objects.requireNonNull(implementation, "implementation");
     }

@@ -143,7 +143,7 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
                 }
             } catch (RuntimeException failure) {
                 ThunderboltCore.LOGGER.warn(
-                        "[Thunderbolt Core] planning candidate preparation failed; skipping: "
+                        "[Thunderbolt Core Reborn] planning candidate preparation failed; skipping: "
                                 + "engine={} output={}",
                         choice.engineId(), output, failure);
             }
@@ -163,7 +163,7 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
         thunderbolt$selectedVanilla = false;
 
         ThunderboltCore.LOGGER.debug(
-                "[Thunderbolt Core][crafting-planner] started: output={} requested={} candidates={}",
+                "[Thunderbolt Core Reborn][crafting-planner] started: output={} requested={} candidates={}",
                 output, requestedAmount,
                 thunderbolt$candidates.stream().map(CapturedPlanningChoice::choice).toList());
     }
@@ -256,7 +256,7 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
                 thunderbolt$declinedEngines.incrementAndGet();
                 if (!(failure instanceof PlanningCandidateDeclinedException)) {
                     ThunderboltCore.LOGGER.warn(
-                            "[Thunderbolt Core] planning candidate failed; trying next: "
+                            "[Thunderbolt Core Reborn] planning candidate failed; trying next: "
                                     + "engine={} output={} timeout={}",
                             engineId, output, timedOut, failure);
                 }
@@ -282,7 +282,7 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
         double wallMs = TimeUnit.NANOSECONDS.toMicros(Math.max(
                 0L, System.nanoTime() - thunderbolt$calculationStartedNanos)) / 1_000.0D;
         ThunderboltCore.LOGGER.debug(
-                "[Thunderbolt Core][crafting-planner] finished: output={} requested={} wallMs={} "
+                "[Thunderbolt Core Reborn][crafting-planner] finished: output={} requested={} wallMs={} "
                         + "selected={} attempts={} handled={} declinedEngines={} result={}",
                 output, requestedAmount, wallMs,
                 thunderbolt$selectedVanilla ? "vanilla" : thunderbolt$selectedEngine,

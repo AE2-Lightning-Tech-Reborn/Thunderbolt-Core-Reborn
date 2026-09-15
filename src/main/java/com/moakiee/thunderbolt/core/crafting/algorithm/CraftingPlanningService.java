@@ -39,14 +39,14 @@ public final class CraftingPlanningService implements ICraftingPlanningService, 
                 var selection = provider.snapshot();
                 if (!provider.canSelectAlgorithm(selection.algorithmId())) {
                     ThunderboltCore.LOGGER.warn(
-                            "[Thunderbolt Core] ignored algorithm {} selected by provider for {}",
+                            "[Thunderbolt Core Reborn] ignored algorithm {} selected by provider for {}",
                             selection.algorithmId(), provider.getProvidedAlgorithms());
                     continue;
                 }
                 selections.add(selection);
             } catch (RuntimeException failure) {
                 ThunderboltCore.LOGGER.warn(
-                        "[Thunderbolt Core] ignored invalid crafting algorithm provider on grid {}",
+                        "[Thunderbolt Core Reborn] ignored invalid crafting algorithm provider on grid {}",
                         grid, failure);
             }
         }

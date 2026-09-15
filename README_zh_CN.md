@@ -1,10 +1,10 @@
-# Thunderbolt Core
+# Thunderbolt Core Reborn
 
 [English](README.md)
 
-Thunderbolt Core 是 AE2 Lightning Tech 使用的 AE2 优化与底层基础设施模组，也可以单独安装为 AE2 自动合成加速器。
+Thunderbolt Core Reborn 是 AE2 Lightning Tech Reborn 使用的 AE2 优化与底层基础设施模组，也可以单独安装为 AE2 自动合成加速器。
 
-当前是 **Minecraft Forge 1.20.1** 分支。如需 Minecraft 1.21.1 与 NeoForge 版本，请查看 [`main`](https://github.com/ae2lt/Thunderbolt-Core/tree/main) 分支。
+当前是 **Minecraft Forge 1.20.1** 分支。如需 Minecraft 1.21.1 与 NeoForge 版本，请查看 [`main`](https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/tree/main) 分支。
 
 ## 环境要求
 
@@ -13,7 +13,7 @@ Thunderbolt Core 是 AE2 Lightning Tech 使用的 AE2 优化与底层基础设�
 - Java `17`
 - Applied Energistics 2 `15.4.10`–`15.x`
 
-客户端和服务端均需将 Thunderbolt Core 与 AE2 放入 `mods` 目录。
+客户端和服务端均需将 Thunderbolt Core Reborn 与 AE2 放入 `mods` 目录。
 
 ## 主要功能
 
@@ -59,5 +59,5 @@ Thunderbolt Core 是 AE2 Lightning Tech 使用的 AE2 优化与底层基础设�
 
 带 `-slim.jar` 后缀的 JAR 不含运行时必需的 MixinExtras 内嵌依赖，只作为开发过程的中间产物。
 
-问题反馈：[GitHub Issues](https://github.com/ae2lt/Thunderbolt-Core/issues) ·
+问题反馈：[GitHub Issues](https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/issues) ·
 许可证：[GNU LGPL 3.0](LICENSE)

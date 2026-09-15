@@ -31,7 +31,7 @@ import com.moakiee.thunderbolt.core.eject.ThunderboltBlockEntities;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedCellStorageRegistry;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedStorageCellHandler;
 
-/** Entry point for Thunderbolt Core's shared AE2 optimization and extension layer. */
+/** Entry point for Thunderbolt Core Reborn's shared AE2 optimization and extension layer. */
 @Mod(ThunderboltCore.MODID)
 public final class ThunderboltCore {
     public static final String MODID = "thunderbolt";
@@ -51,7 +51,7 @@ public final class ThunderboltCore {
                 ModConfig.Type.COMMON, ThunderboltCommonConfig.SPEC, "thunderbolt-common.toml");
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopped);
-        LOGGER.info("[Thunderbolt Core] initialized");
+        LOGGER.info("[Thunderbolt Core Reborn] initialized");
     }
 
     private void onServerStarting(ServerStartingEvent event) {
@@ -70,7 +70,7 @@ public final class ThunderboltCore {
             CraftingPlanningEngines.register(
                     ThunderboltV2PlanningEngine.INSTANCE, 1_000, false);
             if (ThunderboltCommonConfig.enableCpSatPlanner()) {
-                LOGGER.info("[Thunderbolt Core] CP-SAT enabled; preparing native runtime");
+                LOGGER.info("[Thunderbolt Core Reborn] CP-SAT enabled; preparing native runtime");
                 var cacheRoot = FMLPaths.GAMEDIR.get()
                         .resolve(".cache")
                         .resolve(MODID)
@@ -78,10 +78,10 @@ public final class ThunderboltCore {
                 if (CpSatPlanningEngine.INSTANCE.initialize(cacheRoot)) {
                     CraftingPlanningEngines.register(
                             CpSatPlanningEngine.INSTANCE, 900, false);
-                    LOGGER.info("[Thunderbolt Core] CP-SAT planner ready");
+                    LOGGER.info("[Thunderbolt Core Reborn] CP-SAT planner ready");
                 } else {
                     LOGGER.warn(
-                            "[Thunderbolt Core] CP-SAT native runtime unavailable; "
+                            "[Thunderbolt Core Reborn] CP-SAT native runtime unavailable; "
                                     + "continuing without the CP-SAT planner",
                             CpSatPlanningEngine.INSTANCE.availabilityFailure());
                 }
