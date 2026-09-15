@@ -245,7 +245,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
             return;
         }
         runDiagnostic(() -> LOG.warn(
-                "[Thunderbolt Core] slow planning candidate: engine={} elapsedMs={} {}\n{}",
+                "[Thunderbolt Core Reborn] slow planning candidate: engine={} elapsedMs={} {}\n{}",
                 engineId, elapsedMillis(), label, diagnosticDump(true)));
     }
 
@@ -255,7 +255,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
         }
         timeoutObserved = true;
         runDiagnostic(() -> LOG.warn(
-                "[Thunderbolt Core] planning candidate exhausted its computation budget; "
+                "[Thunderbolt Core Reborn] planning candidate exhausted its computation budget; "
                         + "waiting for cooperative exit: engine={} elapsedMs={} {}\n{}",
                 engineId, elapsedMillis(), label, diagnosticDump(true)));
     }
@@ -265,7 +265,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
             return;
         }
         runDiagnostic(() -> LOG.warn(
-                "[Thunderbolt Core] planning candidate did not exit after cooperative grace; "
+                "[Thunderbolt Core Reborn] planning candidate did not exit after cooperative grace; "
                         + "interrupting without quarantine: engine={} elapsedMs={} {}\n{}",
                 engineId, elapsedMillis(), label, diagnosticDump(true)));
     }
@@ -294,7 +294,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
             return;
         }
         runDiagnostic(() -> LOG.error(
-                "[Thunderbolt Core] planning candidate did not exit after interrupt grace; "
+                "[Thunderbolt Core Reborn] planning candidate did not exit after interrupt grace; "
                         + "quarantining it now: engine={} elapsedMs={} {}\n{}",
                 engineId, elapsedMillis(), label, diagnosticDump(true)));
     }
