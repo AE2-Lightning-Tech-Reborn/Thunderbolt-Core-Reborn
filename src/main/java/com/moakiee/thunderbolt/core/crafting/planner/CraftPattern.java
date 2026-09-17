@@ -30,6 +30,7 @@ public final class CraftPattern<K> {
     private final List<CraftInput<K>> inputs;
     private final List<CraftOutput<K>> byproducts;
     private final Object source;
+    private final List<List<CraftInput<K>>> executionSlots;
 
     public CraftPattern(K output, long outputAmount, List<CraftInput<K>> inputs, Object source) {
         this(output, outputAmount, inputs, List.of(), source);
@@ -42,6 +43,12 @@ public final class CraftPattern<K> {
 
     public CraftPattern(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
                         List<CraftOutput<K>> byproducts, Object source) {
+        this(output, outputAmount, inputs, byproducts, source, List.of());
+    }
+
+    public CraftPattern(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
+                        List<CraftOutput<K>> byproducts, Object source,
+                        List<List<CraftInput<K>>> executionSlots) {
         this.output = Objects.requireNonNull(output, "output");
         if (outputAmount.signum() <= 0) {
             throw new IllegalArgumentException("outputAmount must be > 0, was " + outputAmount);
@@ -51,6 +58,7 @@ public final class CraftPattern<K> {
         this.inputs = List.copyOf(inputs);
         this.byproducts = normalizeByproducts(this.inputs, byproducts);
         this.source = source;
+        this.executionSlots = executionSlots.stream().map(List::copyOf).toList();
     }
 
     /**
@@ -101,6 +109,11 @@ public final class CraftPattern<K> {
     /** Opaque handle to the originating recipe; may be {@code null} in tests. */
     public Object source() {
         return source;
+    }
+
+    /** Per-slot concrete allocations; an empty slot retains its dynamic runtime semantics. */
+    public List<List<CraftInput<K>>> executionSlots() {
+        return executionSlots;
     }
 
     @Override

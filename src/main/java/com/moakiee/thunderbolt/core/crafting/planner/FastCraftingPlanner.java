@@ -80,15 +80,12 @@ import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
  * </ul>
  *
  * <p><b>Execution-time contract (fuzzy substitution).</b> For a hard-fuzzy slot the planner commits to a
- * <em>concrete</em> substitute (the most-available option in the chosen combination) and charges that exact
- * key as used. AE2 still fires the single real {@link IPatternDetails}, and at extraction time its fuzzy
- * matcher may pull a <em>different</em> acceptable stack than the one the plan charged (e.g. a different
- * NBT/damage variant, or a different tag member that happened to be in the same slot). The plan stays
- * mass-balanced for the key it charged, but the network can end up consuming a sibling substitute instead.
- * This is an <b>execution-time</b> concern, not a planning one: reconciling "what the plan charged" with
- * "what the fuzzy slot actually resolved" is the responsibility of the executing CPU (the batch crafting
- * CPU logic), which sees the real extraction. The planner intentionally does not try to predict AE2's
- * runtime fuzzy resolution here — see the batch CPU logic for the execution-side fix.
+ * <em>concrete</em> allocation, including mixed substitutes within a slot, and charges those exact keys.
+ * The registered pattern counts remain available to native CPUs. A separate weakly held execution
+ * manifest preserves each chosen slot allocation for integrating CPUs such as Tianshu. Its task wrappers
+ * constrain extraction while delegating physical execution to the original pattern. Durability carriers
+ * and late-bound same-id slots retain their dynamic semantics; contracted macros retain their own
+ * expansion and seed routing contract.
  *
  * <p><b>Planning-side input discovery.</b> Every input follows AE2's native contract: each
  * {@link IPatternDetails.IInput#getPossibleInputs()} entry anchors one primary-identity candidate
@@ -671,7 +668,7 @@ public final class FastCraftingPlanner {
                         // simply produces a chain whose length is the firings a full tool survives.
                         slotOptions.add(List.of(new SlotChoice(List.of(
                                 CraftInput.of(chain.carrier(), Math.max(1, in.getPossibleInputs()[0].amount()))
-                                        .scaled(Math.max(1, in.getMultiplier()))))));
+                                        .scaled(Math.max(1, in.getMultiplier()))), false)));
                         // A durability carrier means one exact full tool. An ID_ONLY producer is
                         // late-bound and must never be priced as that full carrier.
                         slotRequirementModes.add(RequirementMode.STRICT);
@@ -752,6 +749,10 @@ public final class FastCraftingPlanner {
                             (CraftInput<AEKey> o) -> availability.get(o.key())).reversed());
                     }
                     List<SlotChoice> choices = expandSlotChoices(opts, in.getMultiplier(), availability);
+                    if (sameIdClosure) {
+                        // A late-bound output can return any accepted same-id variant.
+                        choices = choices.stream().map(choice -> new SlotChoice(choice.inputs(), false)).toList();
+                    }
                     slotOptions.add(choices);
                     slotRequirementModes.add(
                             sameIdClosure ? RequirementMode.ID_ONLY : RequirementMode.STRICT);
@@ -1305,9 +1306,9 @@ public final class FastCraftingPlanner {
     /**
      * Emit up to {@link #FUZZY_NONCYCLE_STEPS} {@link CraftPattern}s for the per-slot substitute options,
      * choosing the lowest rank-sum (most-available-first) combinations when the full cartesian product
-     * exceeds the budget. All share the same {@code source} {@link IPatternDetails} (so AE2 fires the one
-     * real pattern and resolves the fuzzy slot from whatever the plan charged as used); the v2 planner
-     * treats them as competing recipes and picks per availability.
+     * exceeds the budget. All share the same {@code source} {@link IPatternDetails}; the v2 planner
+     * treats them as competing recipes and picks per availability. Each keeps its slot allocation
+     * separately so integrating CPUs can dispatch the chosen materials without changing provider identity.
      */
     private static void emitBestCombinations(
             CraftGraph.Builder<AEKey> builder,
@@ -1351,12 +1352,18 @@ public final class FastCraftingPlanner {
                     }
                 }
             }
-            builder.pattern(new CraftPattern<>(key, outputAmount, coreInputs, combo, source));
+            var executionSlots = selectedSlots.stream()
+                    .map(choice -> choice.exact() ? choice.inputs() : List.<CraftInput<AEKey>>of())
+                    .toList();
+            builder.pattern(new CraftPattern<>(key, outputAmount, coreInputs, combo, source, executionSlots));
         }
     }
 
     /** One concrete integer allocation of a fuzzy slot across its accepted substitutes. */
-    private record SlotChoice(List<CraftInput<AEKey>> inputs) {
+    private record SlotChoice(List<CraftInput<AEKey>> inputs, boolean exact) {
+        private SlotChoice(List<CraftInput<AEKey>> inputs) {
+            this(inputs, true);
+        }
         private SlotChoice {
             inputs = List.copyOf(inputs);
         }
@@ -1510,7 +1517,7 @@ public final class FastCraftingPlanner {
 
         long bytes = computeBytes(plan, durability, patternSources);
 
-        return new CraftingPlan(
+        var result = new CraftingPlan(
                 new GenericStack(output, amount),
                 bytes,
                 simulation,
@@ -1519,6 +1526,10 @@ public final class FastCraftingPlanner {
                 emittedItems,
                 missingItems,
                 patternTimes);
+        if (!simulation) {
+            com.moakiee.thunderbolt.core.crafting.plan.PlannedInputAssignments.record(result, plan);
+        }
+        return result;
     }
 
     private static void chargeAvailableFuzzyStock(

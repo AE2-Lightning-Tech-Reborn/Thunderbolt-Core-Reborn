@@ -21,6 +21,7 @@ import appeng.crafting.inv.ICraftingInventory;
 import appeng.crafting.inv.ListCraftingInventory;
 
 import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
+import com.moakiee.thunderbolt.core.crafting.pattern.PlannedInputPattern;
 
 public final class ParallelBatchCpuHelper {
     private ParallelBatchCpuHelper() {
@@ -34,6 +35,9 @@ public final class ParallelBatchCpuHelper {
     @Nullable
     public static BulkResult bulkExtract(IPatternDetails details, ListCraftingInventory inv, long maxCraft,
                                          boolean allowSharedInputs, Map<AEKey, Long> reservedStock) {
+        if (details instanceof PlannedInputPattern) {
+            return bulkExtract(details, inv, maxCraft, allowSharedInputs, reservedStock, null);
+        }
         if (maxCraft <= 0) return null;
 
         var inputs = details.getInputs();
@@ -188,6 +192,19 @@ public final class ParallelBatchCpuHelper {
     }
 
     @Nullable
+    public static KeyCounter[] extractPatternInputs(IPatternDetails details, ICraftingInventory inventory,
+                                                    Level level, KeyCounter outputs, KeyCounter containers) {
+        if (!(details instanceof PlannedInputPattern)) {
+            return CraftingCpuHelper.extractPatternInputs(details, inventory, level, outputs, containers);
+        }
+        var resolved = extractOneCopy(details, inventory, false, level);
+        if (resolved == null) return null;
+        for (var output : details.getOutputs()) outputs.add(output.what(), output.amount());
+        for (var remainder : resolved.remainders) containers.add(remainder.key, remainder.count);
+        return resolved.inputs;
+    }
+
+    @Nullable
     private static ResolvedCopy extractOneCopy(IPatternDetails details,
                                                ICraftingInventory inventory,
                                                boolean allowSharedInputs,
@@ -198,10 +215,12 @@ public final class ParallelBatchCpuHelper {
         for (int slot = 0; slot < inputs.length; slot++) {
             var input = inputs[slot];
             var holder = resolved[slot] = new KeyCounter();
+            var slotInventory = details instanceof PlannedInputPattern planned
+                    ? planned.inventoryForSlot(slot, inventory) : inventory;
             long remainingMultiplier = input.getMultiplier();
-            for (var template : CraftingCpuHelper.getValidItemTemplates(inventory, input, level)) {
+            for (var template : CraftingCpuHelper.getValidItemTemplates(slotInventory, input, level)) {
                 long extracted = CraftingCpuHelper.extractTemplates(
-                        inventory, template, remainingMultiplier);
+                        slotInventory, template, remainingMultiplier);
                 if (extracted <= 0) continue;
 
                 holder.add(template.key(), saturatingMultiply(extracted, template.amount()));
@@ -214,7 +233,8 @@ public final class ParallelBatchCpuHelper {
                 remainingMultiplier -= extracted;
                 if (remainingMultiplier == 0) break;
             }
-            if (remainingMultiplier > 0) {
+            if (remainingMultiplier > 0 || (details instanceof PlannedInputPattern planned
+                    && !planned.matchesAllocation(slot, holder))) {
                 CraftingCpuHelper.reinjectPatternInputs(inventory, resolved);
                 return null;
             }
