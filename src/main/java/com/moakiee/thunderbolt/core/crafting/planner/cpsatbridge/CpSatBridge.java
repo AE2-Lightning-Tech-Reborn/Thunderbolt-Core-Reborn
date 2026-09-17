@@ -533,6 +533,8 @@ public final class CpSatBridge {
         // amount*firings-(amount-1)*active. Express it inline rather than with another long-domain
         // variable: besides being exact, this keeps OR-Tools' sum-of-domains overflow guard
         // independent of recipe ratios.
+        int[] demandRows = new int[itemCount];
+        java.util.Arrays.fill(demandRows, -1);
         for (int item = 0; item < itemCount; item++) {
             var demandVariables = new java.util.ArrayList<IntVar>();
             var demandCoefficients = new java.util.ArrayList<Long>();
@@ -562,6 +564,7 @@ public final class CpSatBridge {
                 demandCoefficients.add(-1L);
             }
             long directDemand = item == targetItem ? targetAmount : 0L;
+            demandRows[item] = model.getBuilder().getConstraintsCount();
             model.addLessOrEqual(
                     LinearExpr.weightedSum(
                             demandVariables.toArray(IntVar[]::new),
@@ -569,6 +572,7 @@ public final class CpSatBridge {
                     directDemand);
         }
 
+        int[] balanceRows = new int[itemCount];
         for (int item = 0; item < itemCount; item++) {
             long[] coefficients = new long[recipeCount];
             var finiteVariables = new java.util.ArrayList<IntVar>();
@@ -594,6 +598,7 @@ public final class CpSatBridge {
             }
             balanceVariables[recipeCount + finiteCount] = missing[item];
             balanceCoefficients[recipeCount + finiteCount] = 1L;
+            balanceRows[item] = model.getBuilder().getConstraintsCount();
             model.addGreaterOrEqual(
                     LinearExpr.weightedSum(balanceVariables, balanceCoefficients), minimumNet);
 
@@ -619,6 +624,7 @@ public final class CpSatBridge {
         addGroupBalances(model, firings, finiteUseBatches, missing, consumed, produced,
                 finiteUseAmounts, rankGroups, stocks, firingUpperBounds, missingUpperBound,
                 targetItem, targetAmount);
+        CpSatBalanceCuts.add(model, firings, rankGroups, demandRows, balanceRows);
         addEmptySiphonSeeds(model, active, missing, consumed, produced, rankGroups, stocks);
         if (!addPetriRefinement(model, firings, active, missing, consumed, stocks,
                 missingCaps, unreachable, enforceStartup)) {
