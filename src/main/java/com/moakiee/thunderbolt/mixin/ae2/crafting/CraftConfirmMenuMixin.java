@@ -39,6 +39,14 @@ public abstract class CraftConfirmMenuMixin implements CraftingAlgorithmNameMenu
     @Shadow
     private Future<ICraftingPlan> job;
 
+    @Shadow
+    private ICraftingPlan result;
+
+    @Inject(method = "startJob", at = @At("HEAD"), cancellable = true)
+    private void thunderbolt$blockExactPreview(CallbackInfo ci) {
+        if (com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(result)) ci.cancel();
+    }
+
     @Unique
     @GuiSync(30_000)
     public Component thunderbolt$craftingAlgorithmName = Component.empty();
@@ -97,7 +105,8 @@ public abstract class CraftConfirmMenuMixin implements CraftingAlgorithmNameMenu
             ICraftingPlan result,
             Operation<CraftingPlanSummary> original) {
         var selected = CraftingAlgorithmCalculationStatus.selected(job);
-        if (!ThunderboltCraftingPlanSummary.handles(selected)) {
+        if (!ThunderboltCraftingPlanSummary.handles(selected)
+                && !com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(result)) {
             return original.call(grid, source, result);
         }
         return ThunderboltCraftingPlanSummary.fromPlan(result);

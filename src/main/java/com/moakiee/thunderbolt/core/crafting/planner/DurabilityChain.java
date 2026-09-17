@@ -1,5 +1,6 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -51,6 +52,25 @@ public final class DurabilityChain<K> {
     }
 
     /** Aggregate uses available from stock across all links (链长×数量, saturating). */
+    public BigInteger exactTotalUses() {
+        BigInteger total = BigInteger.ZERO;
+        for (int i = 0; i < stockPerLink.length; i++) {
+            total = total.add(BigInteger.valueOf(stockPerLink[i]).multiply(BigInteger.valueOf(n - i)));
+        }
+        return total;
+    }
+
+    public void chargeFromStockExact(BigInteger uses, java.util.function.BiConsumer<K, BigInteger> sink) {
+        for (int i = links.size() - 1; i >= 0 && uses.signum() > 0; i--) {
+            PlanningCancellation.check();
+            BigInteger perTool = BigInteger.valueOf(n - i);
+            BigInteger count = ExactDiagnosticPlanner.ceilDiv(uses, perTool)
+                    .min(BigInteger.valueOf(stockPerLink[i]));
+            if (count.signum() > 0) sink.accept(links.get(i), count);
+            uses = uses.subtract(count.multiply(perTool));
+        }
+    }
+
     public long totalUses() {
         return totalUses;
     }

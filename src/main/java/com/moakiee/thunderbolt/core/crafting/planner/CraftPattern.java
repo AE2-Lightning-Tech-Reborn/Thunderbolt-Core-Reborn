@@ -1,5 +1,6 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -25,6 +26,7 @@ public final class CraftPattern<K> {
 
     private final K output;
     private final long outputAmount;
+    private final BigInteger exactOutputAmount;
     private final List<CraftInput<K>> inputs;
     private final List<CraftOutput<K>> byproducts;
     private final Object source;
@@ -35,11 +37,17 @@ public final class CraftPattern<K> {
 
     public CraftPattern(K output, long outputAmount, List<CraftInput<K>> inputs,
                         List<CraftOutput<K>> byproducts, Object source) {
+        this(output, BigInteger.valueOf(outputAmount), inputs, byproducts, source);
+    }
+
+    public CraftPattern(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
+                        List<CraftOutput<K>> byproducts, Object source) {
         this.output = Objects.requireNonNull(output, "output");
-        if (outputAmount <= 0) {
+        if (outputAmount.signum() <= 0) {
             throw new IllegalArgumentException("outputAmount must be > 0, was " + outputAmount);
         }
-        this.outputAmount = outputAmount;
+        this.exactOutputAmount = outputAmount;
+        this.outputAmount = outputAmount.min(BigInteger.valueOf(Long.MAX_VALUE)).longValueExact();
         this.inputs = List.copyOf(inputs);
         this.byproducts = normalizeByproducts(this.inputs, byproducts);
         this.source = source;
@@ -58,19 +66,23 @@ public final class CraftPattern<K> {
         List<CraftOutput<K>> result = new ArrayList<>(declared);
         Set<K> explicitKeys = new LinkedHashSet<>();
         for (CraftOutput<K> output : declared) explicitKeys.add(output.key());
-        Map<K, Long> inferred = new LinkedHashMap<>();
+        Map<K, BigInteger> inferred = new LinkedHashMap<>();
         for (CraftInput<K> input : inputs) {
             K remainder = input.remainder();
             if (remainder != null && !explicitKeys.contains(remainder)) {
-                inferred.merge(remainder, input.amount(), Sat::add);
+                inferred.merge(remainder, input.exactAmount(), BigInteger::add);
             }
         }
-        inferred.forEach((key, amount) -> result.add(CraftOutput.of(key, amount)));
+        inferred.forEach((key, amount) -> result.add(CraftOutput.exact(key, amount)));
         return List.copyOf(result);
     }
 
     public K output() {
         return output;
+    }
+
+    public BigInteger exactOutputAmount() {
+        return exactOutputAmount;
     }
 
     public long outputAmount() {

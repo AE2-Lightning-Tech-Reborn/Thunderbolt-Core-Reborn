@@ -7,6 +7,7 @@
   "mixins": [
     "ae2.crafting.CraftingCalculationMixin",
     "ae2.crafting.CraftConfirmMenuMixin",
+    "ae2.crafting.ExactCraftConfirmPacketMixin",
     "ae2.crafting.Ae2CraftingTreeCompatibilityMixin",
     "ae2.crafting.CraftingLinkNexusMixin",
     "ae2.crafting.ExtendedCraftingCpuServiceMixin",
@@ -34,6 +35,7 @@
   ],
   "client": [
     "ae2.client.CraftConfirmScreenMixin",
+    "ae2.client.ExactCraftConfirmTableMixin",
     "ae2.client.CPUSelectionListStorageMixin",
     "ae2.client.CraftConfirmScreenCpuStatusMixin",
     "ae2.client.TooltipsByteAmountMixin"

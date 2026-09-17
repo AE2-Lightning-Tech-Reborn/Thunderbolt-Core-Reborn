@@ -1,5 +1,6 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -308,6 +309,14 @@ public final class FastCraftingPlanner {
             return FastAttempt.decline();
         }
         boolean multi = compiled.multiplePaths;
+        if (session.solverKind == CalculationSession.SolverKind.V2
+                && (amount >= Sat.SAT || ExactPlanPreview.needsExact(plan)
+                    || computeBytes(plan, compiled.durability, compiled.patternSources) == Long.MAX_VALUE)) {
+            var exact = CraftPlannerV2.planExactDiagnostic(compiled.graph, output,
+                    BigInteger.valueOf(amount), session.plannerSession, compiled.emittable);
+            return FastAttempt.handled(ExactPlanPreview.create(output, amount, multi,
+                    exact, compiled.durability, compiled.emittable), Map.of());
+        }
         // Emittable shortfalls are supplied by emitters, not crafted, so they don't make a plan
         // infeasible — only a non-emittable shortfall does.
         if (plan.feasible() || noNonEmittableMissing(plan, compiled.emittable)) {
@@ -660,11 +669,9 @@ public final class FastCraftingPlanner {
                         // already encodes this slot's per-craft durability cost (the chain was built
                         // from this slot's own getRemainingKey), so a 2-durability-per-craft recipe
                         // simply produces a chain whose length is the firings a full tool survives.
-                        long usesPerFiring = Sat.mul(
-                                Math.max(1, in.getPossibleInputs()[0].amount()),
-                                Math.max(1, in.getMultiplier()));
                         slotOptions.add(List.of(new SlotChoice(List.of(
-                                CraftInput.of(chain.carrier(), usesPerFiring)))));
+                                CraftInput.of(chain.carrier(), Math.max(1, in.getPossibleInputs()[0].amount()))
+                                        .scaled(Math.max(1, in.getMultiplier()))))));
                         // A durability carrier means one exact full tool. An ID_ONLY producer is
                         // late-bound and must never be priced as that full carrier.
                         slotRequirementModes.add(RequirementMode.STRICT);
@@ -760,7 +767,7 @@ public final class FastCraftingPlanner {
                     multiplePaths[0] = true; // fuzzy expanded into competing recipes
                 }
                 // For a craftable durability tool, one firing makes one full tool = n uses.
-                long outAmount = Sat.mul(primary.amount(), outputScale);
+                BigInteger outAmount = BigInteger.valueOf(primary.amount()).multiply(BigInteger.valueOf(outputScale));
                 // Keep the best (lowest rank-sum) up to FUZZY_NONCYCLE_STEPS combinations; when the
                 // product is within budget this emits all of them, otherwise it greedily keeps the front.
                 emitBestCombinations(
@@ -1204,7 +1211,7 @@ public final class FastCraftingPlanner {
             exportBudget.consume();
             linkOwner.put(link, chain);
         }
-        builder.stock(full, chain.totalUses()); // carrier stock = aggregate uses (set once)
+        builder.stockExact(full, chain.exactTotalUses()); // carrier stock = aggregate uses (set once)
         return new ChainLookup(chain, null);
     }
 
@@ -1307,7 +1314,7 @@ public final class FastCraftingPlanner {
             Set<AEKey> seen,
             Deque<AEKey> queue,
             AEKey key,
-            long outputAmount,
+            BigInteger outputAmount,
             List<CraftOutput<AEKey>> byproducts,
             List<List<SlotChoice>> slotOptions,
             List<RequirementMode> slotRequirementModes,
@@ -1338,7 +1345,7 @@ public final class FastCraftingPlanner {
                     if (combo == byproducts) {
                         combo = new ArrayList<>(byproducts);
                     }
-                    combo.add(CraftOutput.of(opt.remainder(), opt.amount()));
+                    combo.add(CraftOutput.exact(opt.remainder(), opt.exactAmount()));
                     if (seen.add(opt.remainder())) {
                         queue.add(opt.remainder());
                     }
@@ -1430,9 +1437,7 @@ public final class FastCraftingPlanner {
     }
 
     private static CraftInput<AEKey> scaleInput(CraftInput<AEKey> input, long units) {
-        return new CraftInput<>(
-                input.key(), Sat.mul(input.amount(), units), input.returned(), input.uses(),
-                input.remainder(), input.reusableStockSource());
+        return input.scaled(units);
     }
 
     private static long immediatelySupportedFirings(

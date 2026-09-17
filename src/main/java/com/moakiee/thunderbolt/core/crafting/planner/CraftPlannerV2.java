@@ -399,6 +399,37 @@ public final class CraftPlannerV2<K> {
                 scaledSearchWorkBudget(reachableWork), reachableWork, session);
     }
 
+    /** Exact display-only continuation using this session's normalized V2 graph. */
+    public static <K> ExactCraftPlan<K> planExactDiagnostic(CraftGraph<K> graph, K target,
+            BigInteger amount, PlanningSession<K> session, Set<K> emitted) {
+        if (amount.signum() <= 0) throw new IllegalArgumentException("amount");
+        ExactDiagnosticPlanner.checked(amount);
+        PreparedGraph<K> prepared = session.preparedByOrientation.get(List.of());
+        if (prepared == null) {
+            planDetailed(graph, target, amount.min(BigInteger.valueOf(Sat.SAT)).longValueExact(), session);
+            prepared = session.preparedByOrientation.get(List.of());
+        }
+        if (prepared == null) {
+            return new ExactCraftPlan<>(Map.of(), Map.of(), Map.of(target, amount),
+                    Map.of(target, amount), true);
+        }
+        Map<CraftPattern<K>, Set<K>> reusable = new IdentityHashMap<>();
+        for (var candidates : prepared.patternsByOutput.values()) {
+            for (var pattern : candidates) {
+                Set<K> keys = new HashSet<>();
+                for (var output : pattern.byproducts()) {
+                    if (!prepared.suppressedPositiveFeedbackOutputs
+                            .getOrDefault(pattern, Set.of()).contains(output.key())) keys.add(output.key());
+                }
+                reusable.put(pattern, Set.copyOf(keys));
+            }
+        }
+        return new ExactDiagnosticPlanner<>(graph, prepared.byproductSchedule.order(),
+                prepared.patternsByOutput, reusable, prepared.linearContainerBootstrapReserves, emitted)
+                .plan(target, amount, prepared.seedOrdered || !prepared.cutOutputs.isEmpty()
+                        || prepared.contendedOutputCount > 0);
+    }
+
     static <K> PlanningResult<K> planDetailed(
             CraftGraph<K> graph,
             K target,

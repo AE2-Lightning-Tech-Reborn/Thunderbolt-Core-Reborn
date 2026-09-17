@@ -2,6 +2,7 @@ package com.moakiee.thunderbolt.core.crafting.planner;
 
 import com.moakiee.thunderbolt.core.crafting.pattern.ReusableStockSource;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.HashMap;
@@ -19,14 +20,16 @@ public final class CraftGraph<K> {
 
     private final Map<K, List<CraftPattern<K>>> patternsByOutput;
     private final Map<K, Long> stock;
+    private final Map<K, BigInteger> exactStock;
     private final Map<ReusableStockKey<K>, Long> reusableStock;
     private final Map<ReusableStockRouteKey<K>, List<K>> reusableStockRoutes;
 
     private CraftGraph(Map<K, List<CraftPattern<K>>> patternsByOutput, Map<K, Long> stock,
                        Map<ReusableStockKey<K>, Long> reusableStock,
-                       Map<ReusableStockRouteKey<K>, List<K>> reusableStockRoutes) {
+                       Map<ReusableStockRouteKey<K>, List<K>> reusableStockRoutes, Map<K, BigInteger> exactStock) {
         this.patternsByOutput = patternsByOutput;
         this.stock = stock;
+        this.exactStock = exactStock;
         this.reusableStock = reusableStock;
         this.reusableStockRoutes = reusableStockRoutes;
     }
@@ -37,6 +40,10 @@ public final class CraftGraph<K> {
     }
 
     /** Available amount of {@code key} in the snapshot (0 if none). */
+    public BigInteger exactStock(K key) {
+        return exactStock.getOrDefault(key, BigInteger.ZERO).max(BigInteger.ZERO);
+    }
+
     public long stock(K key) {
         Long v = stock.get(key);
         return v == null ? 0L : Math.max(0L, v);
@@ -71,13 +78,15 @@ public final class CraftGraph<K> {
      */
     public CraftGraph<K> withAdditionalStock(Map<K, Long> additionalStock) {
         var merged = new HashMap<>(stock);
+        var exactMerged = new HashMap<>(exactStock);
         additionalStock.forEach((key, amount) -> {
             if (key != null && amount != null && amount > 0) {
                 merged.merge(key, amount, Sat::add);
+                exactMerged.merge(key, BigInteger.valueOf(amount), BigInteger::add);
             }
         });
         return new CraftGraph<>(patternsByOutput, Map.copyOf(merged), reusableStock,
-                reusableStockRoutes);
+                reusableStockRoutes, Map.copyOf(exactMerged));
     }
 
     Map<ReusableStockKey<K>, Long> reusableStock() {
@@ -91,6 +100,7 @@ public final class CraftGraph<K> {
     public static final class Builder<K> {
         private final Map<K, List<CraftPattern<K>>> patterns = new HashMap<>();
         private final Map<K, Long> stock = new HashMap<>();
+        private final Map<K, BigInteger> exactStock = new HashMap<>();
         private final Map<ReusableStockKey<K>, Long> reusableStock = new HashMap<>();
         private final Map<ReusableStockRouteKey<K>, LinkedHashSet<K>> reusableStockRoutes =
                 new HashMap<>();
@@ -114,7 +124,16 @@ public final class CraftGraph<K> {
             // Saturating: a durability carrier's aggregate uses can already sit at the saturation
             // cap; a plain Long::sum could overflow negative and stock() would clamp it to zero,
             // turning a huge supply into a false shortfall.
+            exactStock.merge(key, BigInteger.valueOf(amount), BigInteger::add);
             stock.merge(key, amount, Sat::add);
+            return this;
+        }
+
+        public Builder<K> stockExact(K key, BigInteger amount) {
+            if (amount.signum() < 0) throw new IllegalArgumentException("negative stock");
+            ExactDiagnosticPlanner.checked(amount);
+            exactStock.merge(key, amount, BigInteger::add);
+            stock.merge(key, amount.min(BigInteger.valueOf(Sat.SAT)).longValueExact(), Sat::add);
             return this;
         }
 
@@ -153,7 +172,7 @@ public final class CraftGraph<K> {
                 frozenRoutes.put(entry.getKey(), List.copyOf(entry.getValue()));
             }
             return new CraftGraph<>(frozen, Map.copyOf(stock), Map.copyOf(reusableStock),
-                    Map.copyOf(frozenRoutes));
+                    Map.copyOf(frozenRoutes), Map.copyOf(exactStock));
         }
     }
 }

@@ -200,6 +200,11 @@ public abstract class ExtendedCraftingCpuServiceMixin {
                                                                  boolean prioritizePower,
                                                                  IActionSource src,
                                                                  CallbackInfoReturnable<ICraftingSubmitResult> cir) {
+        if (com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(job)) {
+            cir.setReturnValue(CraftingSubmitResult.simpleError(
+                    appeng.api.networking.crafting.CraftingSubmitErrorCode.INCOMPLETE_PLAN));
+            return;
+        }
         if (job.simulation()) {
             return;
         }

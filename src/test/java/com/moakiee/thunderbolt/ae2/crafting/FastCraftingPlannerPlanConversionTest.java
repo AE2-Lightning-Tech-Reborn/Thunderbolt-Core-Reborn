@@ -99,6 +99,53 @@ class FastCraftingPlannerPlanConversionTest {
         assertEquals(1L, exported.missingItems().get(B));
     }
 
+    @Test
+    void wideAttemptReturnsNonExecutableFullPreviewAndExactSummary() {
+        var batch = new FakePattern(A, new IPatternDetails.IInput[] {
+                new FakeInput(new GenericStack(B, Long.MAX_VALUE))});
+        var service = service(Map.of(A, List.of(batch)));
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new EmptyInventory()), null, A, 3L, false);
+        assertTrue(attempt.handled());
+        assertTrue(attempt.plan().simulation(), "even the non-simulated probe must be preview-only");
+        assertEquals(3L, attempt.plan().finalOutput().amount(), "do not replace the requested amount with a smaller job");
+        assertTrue(attempt.plan().patternTimes().isEmpty(), "do not export executable truncated firing counts");
+        var summary = com.moakiee.thunderbolt.ae2.crafting.ThunderboltCraftingPlanSummary.fromPlan(attempt.plan());
+        var report = com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.get(summary);
+        assertTrue(summary.isSimulation());
+        assertEquals(java.math.BigInteger.valueOf(Long.MAX_VALUE).multiply(java.math.BigInteger.valueOf(3)),
+                report.entries().get(B).missing());
+        assertTrue(report.bytes().compareTo(java.math.BigInteger.valueOf(Long.MAX_VALUE)) > 0);
+        var raw = summary.getEntries().stream().filter(entry -> entry.getWhat().equals(B)).findFirst().orElseThrow();
+        assertEquals(Long.MAX_VALUE, raw.getMissingAmount());
+        assertEquals(report.entries().get(B), com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.amounts(raw));
+    }
+
+    @Test
+    void ordinaryAttemptKeepsItsExistingExecutionPath() {
+        var batch = new FakePattern(A, new IPatternDetails.IInput[0]);
+        var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(A, List.of(batch))),
+                new ChildCraftingSimulationState(new EmptyInventory()), null, A, 3L, false);
+        assertTrue(attempt.handled());
+        assertFalse(attempt.plan().simulation());
+        assertEquals(3L, attempt.plan().patternTimes().get(batch));
+        assertFalse(com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(attempt.plan()));
+    }
+
+    private static appeng.api.networking.crafting.ICraftingService service(
+            Map<AEKey, List<IPatternDetails>> patterns) {
+        return (appeng.api.networking.crafting.ICraftingService) java.lang.reflect.Proxy.newProxyInstance(
+                FastCraftingPlannerPlanConversionTest.class.getClassLoader(),
+                new Class<?>[] {appeng.api.networking.crafting.ICraftingService.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getCraftingFor" -> patterns.getOrDefault(args[0], List.of());
+                    case "getCraftables" -> patterns.keySet();
+                    case "canEmitFor" -> false;
+                    case "getFuzzyCraftable" -> null;
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+    }
+
     private static CraftingPlan convert(CraftPlan<AEKey> internal) throws Exception {
         Method method = FastCraftingPlanner.class.getDeclaredMethod(
                 "toAe2Plan", AEKey.class, long.class, CraftPlan.class,
