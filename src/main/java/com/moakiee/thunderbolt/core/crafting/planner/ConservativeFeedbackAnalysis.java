@@ -87,10 +87,12 @@ final class ConservativeFeedbackAnalysis<K> {
     }
 
     record Analysis<K>(List<Component<K>> components,
-                       List<FallbackComponent<K>> fallbacks) {
+                       List<FallbackComponent<K>> fallbacks,
+                       List<Set<K>> cyclicComponents) {
         Analysis {
             components = List.copyOf(components);
             fallbacks = List.copyOf(fallbacks);
+            cyclicComponents = cyclicComponents.stream().map(Set::copyOf).toList();
         }
     }
 
@@ -144,12 +146,16 @@ final class ConservativeFeedbackAnalysis<K> {
 
         List<Component<K>> result = new ArrayList<>();
         List<FallbackComponent<K>> fallbacks = new ArrayList<>();
+        List<Set<K>> cyclicComponents = new ArrayList<>();
         for (Set<K> states : stronglyConnected) {
             PlanningCancellation.check();
             boolean selfLoop = states.size() == 1
                     && adjacency.getOrDefault(states.iterator().next(), List.of())
                             .contains(states.iterator().next());
             if (states.size() <= 1 && !selfLoop) continue;
+            // Keep structural membership even when non-growth cannot be proved. Such a component
+            // still admits external cut leaves; membership itself never admits cyclic execution.
+            cyclicComponents.add(states);
             Component<K> component = classify(states, patterns, itemRank);
             if (component != null) {
                 result.add(component);
@@ -159,7 +165,7 @@ final class ConservativeFeedbackAnalysis<K> {
                 if (fallback != null) fallbacks.add(fallback);
             }
         }
-        return new Analysis<>(result, fallbacks);
+        return new Analysis<>(result, fallbacks, cyclicComponents);
     }
 
     private static <K> List<CraftPattern<K>> stablePatterns(

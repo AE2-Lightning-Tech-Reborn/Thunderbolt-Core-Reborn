@@ -12,7 +12,7 @@ final class PetriExecutionVerifier {
     enum Status { EXECUTABLE, UNREACHABLE, UNKNOWN }
 
     /** A compositional execution certificate, including the final target withdrawal. */
-    record Certificate(BigInteger[] required, BigInteger[] delta) { }
+    record Certificate(BigInteger[] required, BigInteger[] delta, PetriExecutionTrace.Node trace) { }
     record Result(Status status, Certificate certificate) { }
 
     /** Shared across candidates and amount probes; an exhausted search is never a negative proof. */
@@ -30,7 +30,8 @@ final class PetriExecutionVerifier {
         int remainingNodes() { return nodes; }
     }
 
-    private record Block(long[] firings, BigInteger[] required, BigInteger[] delta) { }
+    private record Block(long[] firings, BigInteger[] required, BigInteger[] delta,
+                         PetriExecutionTrace.Node trace) { }
     private static final class Frame {
         final long[] remaining;
         final BigInteger[] marking;
@@ -141,7 +142,7 @@ final class PetriExecutionVerifier {
     private static Certificate finish(Block proof, int target, long amount) {
         BigInteger[] required = proof.required.clone();
         required[target] = required[target].max(BigInteger.valueOf(amount).subtract(proof.delta[target]));
-        return new Certificate(required, proof.delta.clone());
+        return new Certificate(required, proof.delta.clone(), proof.trace);
     }
 
     private static boolean sameStates(BigInteger[] left, BigInteger[] right, int[] items) {
@@ -152,7 +153,7 @@ final class PetriExecutionVerifier {
     private static Block empty(int recipes, int items) {
         BigInteger[] zero = new BigInteger[items];
         Arrays.fill(zero, BigInteger.ZERO);
-        return new Block(new long[recipes], zero, zero);
+        return new Block(new long[recipes], zero, zero, new PetriExecutionTrace.Sequence(List.of()));
     }
 
     private static Block run(long[][] pre, long[][] post, int recipe, long copies) {
@@ -164,7 +165,7 @@ final class PetriExecutionVerifier {
             required[i] = BigInteger.valueOf(pre[recipe][i]);
             delta[i] = BigInteger.valueOf(post[recipe][i]).subtract(required[i]);
         }
-        Block one = new Block(firings, required, delta);
+        Block one = new Block(firings, required, delta, new PetriExecutionTrace.Fire(recipe, 1L));
         return copies == 1L ? one : repeat(one, copies);
     }
 
@@ -177,7 +178,8 @@ final class PetriExecutionVerifier {
             required[i] = required[i].max(right.required[i].subtract(delta[i]));
             delta[i] = delta[i].add(right.delta[i]);
         }
-        return new Block(counts, required, delta);
+        return new Block(counts, required, delta,
+                new PetriExecutionTrace.Sequence(List.of(left.trace, right.trace)));
     }
 
     private static Block repeat(Block block, long copies) {
@@ -190,7 +192,7 @@ final class PetriExecutionVerifier {
             if (delta[i].signum() < 0) required[i] = required[i].subtract(delta[i].multiply(n.subtract(BigInteger.ONE)));
             delta[i] = delta[i].multiply(n);
         }
-        return new Block(counts, required, delta);
+        return new Block(counts, required, delta, new PetriExecutionTrace.Repeat(block.trace, copies));
     }
 
     private static long repetitions(Block block, long[] remaining, BigInteger[] marking) {

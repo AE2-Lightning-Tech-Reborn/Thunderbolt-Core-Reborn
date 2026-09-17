@@ -166,7 +166,7 @@ public final class CpSatBridge {
      * @param reusableCandidatePhysicals accepted physical-stock indices for each private route
      * @param reusablePhysicalStocks capacity of every host + actual-variant physical stock
      * @return {@code [status, branches, x0..xN, rank0..rankM, selectedCycleStart0..K,
-     * missing0..missingM, reusableMissing0..G]}
+     * missing0..missingM, reusableMissing0..G, blockRepetitions(stage-major)]}
      */
     public static long[] solveRankedPlan(
             long[][] consumed,
@@ -194,6 +194,10 @@ public final class CpSatBridge {
             long[] missingCaps,
             long[][] unreachable,
             boolean enforceStartup,
+            boolean[] missingAllowed,
+            int[][] missingCutProducers,
+            long[][] executionBlocks,
+            int blockStages,
             double maxSeconds) {
         int recipeCount = consumed.length;
         int itemCount = stocks.length;
@@ -209,6 +213,8 @@ public final class CpSatBridge {
                 || recipeCount != firingUpperBounds.length
                 || rankGroups.length != itemCount
                 || itemDistances.length != itemCount
+                || missingAllowed.length != itemCount
+                || missingCutProducers.length != itemCount
                 || cycleRecipes.length != cycleInputItems.length
                 || cycleRecipes.length != cycleInputAmounts.length
                 || cycleRecipes.length != cyclePrimitiveFirings.length
@@ -233,7 +239,7 @@ public final class CpSatBridge {
             }
             ranks[item] = model.newIntVar(0L, Math.max(0, itemCount - 1L), "rank_" + item);
             used[item] = model.newIntVar(0L, stocks[item], "used_" + item);
-            missing[item] = model.newIntVar(0L, missingUpperBound, "missing_" + item);
+            missing[item] = model.newIntVar(0L, missingAllowed[item] ? missingUpperBound : 0L, "missing_" + item);
         }
         var representativeByGroup = new java.util.HashMap<Integer, Integer>();
         for (int item = 0; item < itemCount; item++) {
@@ -254,7 +260,7 @@ public final class CpSatBridge {
                     || primaryOutputItems[recipe] < 0
                     || primaryOutputItems[recipe] >= itemCount
                     || primaryOutputAmounts[recipe] <= 0L
-                    || firingUpperBounds[recipe] <= 0L) {
+                    || firingUpperBounds[recipe] < 0L) {
                 return new long[] {MODEL_INVALID, 0L};
             }
             firings[recipe] = model.newIntVar(
@@ -339,6 +345,12 @@ public final class CpSatBridge {
         }
         // Create the complete variable vector before building any weighted sum: a catalyst may be
         // supplied by a producer that appears later in the caller's stable recipe order.
+        for (int i = 0; i < itemCount; i++) for (int producer : missingCutProducers[i]) {
+            if (producer < 0 || producer >= recipeCount) return new long[]{MODEL_INVALID, 0};
+            // A non-contracted cycle can use this point as an external leaf only after cutting
+            // its incoming cyclic producers. Retained, proven SCC seed ports have no such rows.
+            model.addEquality(missing[i], 0).onlyEnforceIf(active[producer]);
+        }
         for (int recipe = 0; recipe < recipeCount; recipe++) {
             model.addGreaterThan(firings[recipe], 0L).onlyEnforceIf(active[recipe]);
             model.addEquality(firings[recipe], 0L).onlyEnforceIf(active[recipe].not());
@@ -607,10 +619,13 @@ public final class CpSatBridge {
         addGroupBalances(model, firings, finiteUseBatches, missing, consumed, produced,
                 finiteUseAmounts, rankGroups, stocks, firingUpperBounds, missingUpperBound,
                 targetItem, targetAmount);
+        addEmptySiphonSeeds(model, active, missing, consumed, produced, rankGroups, stocks);
         if (!addPetriRefinement(model, firings, active, missing, consumed, stocks,
                 missingCaps, unreachable, enforceStartup)) {
             return new long[] {MODEL_INVALID, 0L};
         }
+        IntVar[] blockRepetitions = CpSatExecutionBlocks.add(model, firings, used, missing,
+                produced, outputItems, rankGroups, firingUpperBounds, executionBlocks, blockStages);
         model.addDecisionStrategy(
                 firings,
                 DecisionStrategyProto.VariableSelectionStrategy.CHOOSE_FIRST,
@@ -629,7 +644,7 @@ public final class CpSatBridge {
         long branches = optimum.branches;
         boolean hasWitness = statusCode == SOLVED || statusCode == SOLVED_PARTIAL;
         int valueCount = recipeCount + itemCount + cycleStarts.length + itemCount
-                + reusableCount;
+                + reusableCount + blockRepetitions.length;
         long[] result = new long[2 + (hasWitness ? valueCount : 0)];
         result[0] = statusCode;
         result[1] = branches;
@@ -660,11 +675,37 @@ public final class CpSatBridge {
             for (int group = 0; group < reusableCount; group++) {
                 result[reusableMissingOffset + group] = solver.value(reusableMissing[group]);
             }
+            int blockOffset = reusableMissingOffset + reusableCount;
+            for (int b = 0; b < blockRepetitions.length; b++)
+                result[blockOffset + b] = solver.value(blockRepetitions[b]);
         }
         return result;
     }
 
     private record RankedOptimum(SolveAttempt attempt, long status, long branches) { }
+
+    /** An initially empty set with no transition entering it without consuming it stays empty. */
+    private static void addEmptySiphonSeeds(CpModel model, BoolVar[] active, IntVar[] missing,
+            long[][] pre, long[][] post, int[] groups, long[] stocks) {
+        var members = new java.util.LinkedHashMap<Integer, java.util.List<Integer>>();
+        for (int i = 0; i < groups.length; i++) members.computeIfAbsent(
+                groups[i], ignored -> new java.util.ArrayList<>()).add(i);
+        for (var places : members.values()) {
+            if (places.stream().anyMatch(i -> stocks[i] > 0)) continue;
+            boolean siphon = true, internal = false;
+            var consumers = new java.util.ArrayList<Integer>();
+            for (int r = 0; r < pre.length; r++) {
+                boolean consumes = false, produces = false;
+                for (int i : places) { consumes |= pre[r][i] > 0; produces |= post[r][i] > 0; }
+                if (produces && !consumes) { siphon = false; break; }
+                internal |= produces && consumes;
+                if (consumes) consumers.add(r);
+            }
+            if (!siphon || !internal) continue;
+            IntVar[] seeds = places.stream().map(i -> missing[i]).toArray(IntVar[]::new);
+            for (int r : consumers) model.addGreaterOrEqual(LinearExpr.sum(seeds), 1).onlyEnforceIf(active[r]);
+        }
+    }
 
     private static RankedOptimum keepWitness(SolveAttempt latest, SolveAttempt incumbent, long branches) {
         if (latest.status == CpSolverStatus.MODEL_INVALID) return new RankedOptimum(latest, MODEL_INVALID, branches);

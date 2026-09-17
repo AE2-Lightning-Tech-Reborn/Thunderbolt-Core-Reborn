@@ -66,13 +66,14 @@ class CpSatPetriRefinementTest {
     }
 
     @Test void amountProbesShareNativeRefinementAndVerificationBudgets() {
-        var graph = unseededCycle();
+        var graph = CpSatExecutionBlocksTest.seedFromStock(12);
         var session = new CpSatRankedFlowSolver.PlanningSession(1, 4096, 1_000_000_000L);
         var first = CpSatRankedFlowSolver.solve(graph, "T", 1, session);
         assertEquals(CpSatRankedFlowSolver.Status.SOLVED, first.status());
-        assertFalse(first.plan().feasible());
+        assertTrue(first.plan().feasible());
         assertEquals(1, session.refinementCalls());
-        assertTrue(session.learnedCuts() > 0);
+        assertEquals(1, session.blockSolves());
+        assertEquals(0, session.learnedCuts());
         for (int q = 2; q <= 12; q++) {
             var result = CpSatRankedFlowSolver.solve(graph, "T", q, session);
             assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
@@ -86,19 +87,21 @@ class CpSatPetriRefinementTest {
     }
 
     @Test void unknownVerificationKeepsTheExecutableSupplyAndNeverLearnsAnExclusion() {
-        var graph = unseededCycle();
+        // The set is marked, but no recipe has enough tokens. The empty-siphon theorem cannot
+        // decide this case; zero verifier budget must still remain UNKNOWN, never an exclusion.
+        var graph = markedDeadlock();
         var session = new CpSatRankedFlowSolver.PlanningSession(16, 0, 1_000_000_000L);
-        var result = CpSatRankedFlowSolver.solve(graph, "T", 2, session);
+        var result = CpSatRankedFlowSolver.solve(graph, "C", 1, session);
         assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
         assertTrue(result.plan().budgetExhausted());
         assertEquals(0, session.learnedCuts());
-        assertEquals(0, session.refinementCalls());
-        assertTrue(CpSatRankedFlowSolver.solve(graph.withAdditionalStock(result.plan().missing()), "T", 2)
+        assertEquals(session.blockSolves(), session.refinementCalls());
+        assertTrue(CpSatRankedFlowSolver.solve(graph.withAdditionalStock(result.plan().missing()), "C", 1)
                 .plan().feasible());
     }
 
     @Test void optionalDeadlineRestoresTheCheckpointAndKeepsTheWitness() {
-        var graph = unseededCycle();
+        var graph = CpSatExecutionBlocksTest.seedFromStock(2);
         var session = new CpSatRankedFlowSolver.PlanningSession(16, 4096, 1L);
         var result = CpSatRankedFlowSolver.solve(graph, "T", 2, session);
         assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
@@ -120,7 +123,7 @@ class CpSatPetriRefinementTest {
         };
         try (var ignored = PlanningCancellation.bind(context)) {
             assertThrows(com.moakiee.thunderbolt.api.crafting.PlanningExitException.class,
-                    () -> CpSatRankedFlowSolver.solve(unseededCycle(), "T", 2, session));
+                    () -> CpSatRankedFlowSolver.solve(CpSatExecutionBlocksTest.seedFromStock(2), "T", 2, session));
         }
         assertDoesNotThrow(PlanningCancellation::check);
     }
@@ -160,10 +163,11 @@ class CpSatPetriRefinementTest {
         }
     }
 
-    private static CraftGraph<String> unseededCycle() {
+    private static CraftGraph<String> markedDeadlock() {
         return CraftGraph.<String>builder()
-                .pattern(new CraftPattern<>("B", 1, List.of(CraftInput.of("A", 1)), "ab"))
-                .pattern(new CraftPattern<>("T", 1, List.of(CraftInput.of("B", 1)),
-                        List.of(CraftOutput.of("A", 1)), "bt")).build();
+                .pattern(new CraftPattern<>("B", 1, List.of(CraftInput.of("A", 2)), List.of(CraftOutput.of("C", 1)), "ab"))
+                .pattern(new CraftPattern<>("C", 1, List.of(CraftInput.of("B", 2)), List.of(CraftOutput.of("A", 1)), "bc"))
+                .pattern(new CraftPattern<>("A", 1, List.of(CraftInput.of("C", 2)), List.of(CraftOutput.of("B", 1)), "ca"))
+                .stock("A", 1).stock("B", 1).build();
     }
 }
