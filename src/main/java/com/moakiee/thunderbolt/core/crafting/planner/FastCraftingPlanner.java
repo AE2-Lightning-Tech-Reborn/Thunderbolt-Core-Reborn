@@ -155,6 +155,7 @@ public final class FastCraftingPlanner {
         private final SolverKind solverKind;
         @Nullable
         private final CraftPlannerV2.PlanningSession<AEKey> plannerSession;
+        private final CpSatRankedFlowSolver.PlanningSession cpSatSession = new CpSatRankedFlowSolver.PlanningSession();
 
         public CalculationSession() {
             this(SolverKind.V2);
@@ -290,7 +291,7 @@ public final class FastCraftingPlanner {
         CraftPlan<AEKey> plan;
         if (session.solverKind == CalculationSession.SolverKind.CP_SAT) {
             CpSatRankedFlowSolver.Result<AEKey> solved =
-                    CpSatRankedFlowSolver.solve(compiled.graph, output, amount);
+                    CpSatRankedFlowSolver.solve(compiled.graph, output, amount, session.cpSatSession);
             if (solved.status() != CpSatRankedFlowSolver.Status.SOLVED
                     || solved.plan() == null) {
                 return FastAttempt.decline();

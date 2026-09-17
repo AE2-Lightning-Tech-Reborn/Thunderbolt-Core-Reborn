@@ -23,9 +23,10 @@ import com.moakiee.thunderbolt.core.crafting.pattern.ReusableStockSource;
  * dependencies must point from a lower item rank to a higher output rank, so the selected support
  * is a DAG after every proven ratio-conservative strict conversion SCC is contracted. Such an SCC
  * shares one rank and gets an explicit, amount-independent family of grouped startup-prefix
- * certificates. Aggregate balances plus the selected prefix therefore have a concrete replay; no
- * request-sized horizon, per-firing Boolean, no-good enumeration or speculative cycle relaxation is
- * involved.</p>
+ * certificates. Aggregate balances plus the selected prefix therefore have a concrete replay.
+ * Ordinary non-growing cyclic graphs additionally refine false startup shortages with an exact,
+ * bounded Petri search and proof-derived cuts. Repeated blocks retain compressed firing counts;
+ * there is no request-sized time horizon or per-firing Boolean expansion.</p>
  *
  * <p>Unchanged infinite-use catalysts are admitted as presence conditions. Finite-use tools use an
  * exact {@code ceil(firings / lifetime)} integer variable, and independent host-private fuzzy seed
@@ -60,26 +61,92 @@ public final class CpSatRankedFlowSolver<K> {
     private final CraftGraph<K> graph;
     private final K target;
     private final long targetAmount;
+    private final PlanningSession session;
 
-    private CpSatRankedFlowSolver(CraftGraph<K> graph, K target, long targetAmount) {
+    /** Shared optional reachability/refinement budget for one immutable calculation snapshot. */
+    public static final class PlanningSession {
+        private int remainingCalls;
+        private long remainingNanos;
+        private final PetriExecutionVerifier.Budget verifier;
+        private Object graph;
+        private Object target;
+        private Thread owner;
+        private int refinementCalls;
+        private int learnedCuts;
+        private int improvements;
+        private boolean incomplete;
+
+        public PlanningSession() { this(16, 4096, 250_000_000L); }
+        PlanningSession(int calls, int nodes, long nanos) {
+            remainingCalls = Math.max(0, calls);
+            remainingNanos = Math.max(0L, nanos);
+            verifier = new PetriExecutionVerifier.Budget(Math.max(0, nodes), 2_097_152L);
+        }
+        private void bind(Object candidateGraph, Object candidateTarget) {
+            if (owner == null) {
+                owner = Thread.currentThread(); graph = candidateGraph; target = candidateTarget;
+            } else if (owner != Thread.currentThread() || graph != candidateGraph
+                    || !java.util.Objects.equals(target, candidateTarget)) {
+                throw new IllegalArgumentException("CP-SAT session belongs to another calculation");
+            }
+        }
+        int refinementCalls() { return refinementCalls; }
+        int learnedCuts() { return learnedCuts; }
+        int improvements() { return improvements; }
+        boolean incomplete() { return incomplete; }
+    }
+
+    private CpSatRankedFlowSolver(CraftGraph<K> graph, K target, long targetAmount, PlanningSession session) {
         this.graph = graph;
         this.target = target;
         this.targetAmount = targetAmount;
+        this.session = session;
     }
 
     public static <K> Result<K> solve(CraftGraph<K> graph, K target, long targetAmount) {
+        return solve(graph, target, targetAmount, new PlanningSession());
+    }
+
+    public static <K> Result<K> solve(CraftGraph<K> graph, K target, long targetAmount, PlanningSession session) {
+        session.bind(graph, target);
         if (!CpSatRuntime.isAvailable()) return Result.status(Status.UNSUPPORTED);
         if (targetAmount <= 0L || Sat.isSaturated(targetAmount)) {
             return Result.status(Status.UNSUPPORTED);
         }
-        return new CpSatRankedFlowSolver<>(graph, target, targetAmount).solve();
+        return new CpSatRankedFlowSolver<>(graph, target, targetAmount, session).solve();
+    }
+
+    private record Candidate<K>(Status status, CraftPlan<K> plan, long branches,
+                                long[] firings, long[] missing, boolean partial) {
+        static <K> Candidate<K> status(Status status) {
+            return new Candidate<>(status, null, 0L, null, null, false);
+        }
     }
 
     private Result<K> solve() {
         Compilation<K> compilation = compile();
         if (compilation == null) return Result.status(Status.UNSUPPORTED);
-        long remainingNanos = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
-        if (remainingNanos <= 0L) return Result.status(Status.UNKNOWN);
+        Candidate<K> first = solveCandidate(compilation, new long[0], List.of(), false);
+        if (first.status != Status.SOLVED) return new Result<>(first.status, null, first.branches);
+        if (first.plan != null && first.plan.feasible()) return new Result<>(Status.SOLVED, first.plan, first.branches);
+        boolean ordinary = !compilation.conversionCycles.isEmpty() || !compilation.feedbackMacros.isEmpty();
+        for (var pattern : compilation.patterns) {
+            for (var input : pattern.inputs()) {
+                if (input.returned() || input.reusableStockSource() != null) ordinary = false;
+            }
+        }
+        if (!ordinary) return first.plan == null ? Result.status(Status.INVALID)
+                : new Result<>(Status.SOLVED, first.plan, first.branches);
+        return refine(compilation, first);
+    }
+
+    private Candidate<K> solveCandidate(Compilation<K> compilation, long[] missingCaps,
+                                        List<long[]> cuts, boolean enforceStartup) {
+        // Direct callers have no router deadline. Never let a native proof run without a bound.
+        long remainingNanos = PlanningCancellation.remainingNanos(
+                PlanningCancellation.checkpointIfBound() ? Long.MAX_VALUE : 3_000_000_000L);
+        remainingNanos -= remainingNanos / 4L; // Leave time to certify the native incumbent.
+        if (remainingNanos <= 0L) return Candidate.status(Status.UNKNOWN);
 
         long[] raw;
         try {
@@ -106,19 +173,23 @@ public final class CpSatRankedFlowSolver<K> {
                     compilation.targetItem,
                     targetAmount,
                     compilation.firingUpperBounds,
+                    missingCaps,
+                    cuts.toArray(long[][]::new),
+                    enforceStartup,
                     remainingNanos / 1_000_000_000.0D);
         } catch (RuntimeException | LinkageError failure) {
-            return Result.status(Status.INVALID);
+            return Candidate.status(Status.INVALID);
         }
-        if (raw.length < 2) return Result.status(Status.INVALID);
+        PlanningCancellation.check();
+        if (raw.length < 2) return Candidate.status(Status.INVALID);
         Status status = switch ((int) raw[0]) {
-            case 0 -> Status.SOLVED;
+            case 0, 4 -> Status.SOLVED;
             case 1 -> Status.INFEASIBLE;
             case 2 -> Status.INVALID;
             default -> Status.UNKNOWN;
         };
         long branches = Math.max(0L, raw[1]);
-        if (status != Status.SOLVED) return new Result<>(status, null, branches);
+        if (status != Status.SOLVED) return new Candidate<>(status, null, branches, null, null, false);
 
         int recipeCount = compilation.patterns.size();
         int itemCount = compilation.items.size();
@@ -126,7 +197,7 @@ public final class CpSatRankedFlowSolver<K> {
         int reusableCount = compilation.reusableGroups.size();
         if (raw.length != 2 + recipeCount + itemCount + cycleCount + itemCount
                 + reusableCount) {
-            return Result.status(Status.INVALID);
+            return Candidate.status(Status.INVALID);
         }
         long[] firings = new long[recipeCount];
         long[] ranks = new long[itemCount];
@@ -136,7 +207,7 @@ public final class CpSatRankedFlowSolver<K> {
         for (int recipe = 0; recipe < recipeCount; recipe++) {
             long quantity = raw[2 + recipe];
             if (quantity < 0L || quantity > compilation.firingUpperBounds[recipe]) {
-                return Result.status(Status.INVALID);
+                return Candidate.status(Status.INVALID);
             }
             firings[recipe] = quantity;
         }
@@ -145,7 +216,7 @@ public final class CpSatRankedFlowSolver<K> {
         for (int cycle = 0; cycle < cycleCount; cycle++) {
             long start = raw[cycleOffset + cycle];
             if (start < 0L || start >= compilation.conversionCycles.get(cycle).recipes.length) {
-                return Result.status(Status.INVALID);
+                return Candidate.status(Status.INVALID);
             }
             cycleStarts[cycle] = (int) start;
         }
@@ -153,7 +224,7 @@ public final class CpSatRankedFlowSolver<K> {
         for (int item = 0; item < itemCount; item++) {
             long quantity = raw[missingOffset + item];
             if (quantity < 0L || Sat.isSaturated(quantity)) {
-                return Result.status(Status.INVALID);
+                return Candidate.status(Status.INVALID);
             }
             missing[item] = quantity;
         }
@@ -161,15 +232,151 @@ public final class CpSatRankedFlowSolver<K> {
         for (int group = 0; group < reusableCount; group++) {
             long quantity = raw[reusableMissingOffset + group];
             if (quantity < 0L || Sat.isSaturated(quantity)) {
-                return Result.status(Status.INVALID);
+                return Candidate.status(Status.INVALID);
             }
             reusableMissing[group] = quantity;
         }
         CraftPlan<K> plan = replay(
                 compilation, firings, ranks, cycleStarts, missing, reusableMissing);
-        return plan == null
-                ? Result.status(Status.INVALID)
-                : new Result<>(Status.SOLVED, plan, branches);
+        if (plan != null && raw[0] == 4L) plan = withBudget(plan);
+        return new Candidate<>(Status.SOLVED, plan, branches, firings, missing, raw[0] == 4L);
+    }
+
+    private Result<K> refine(Compilation<K> c, Candidate<K> first) {
+        CraftPlan<K> best = first.plan;
+        if (best == null) {
+            var proof = PetriExecutionVerifier.orderedCertificate(
+                    c.consumed, c.produced, first.firings, c.targetItem, targetAmount);
+            long[] supply = new long[c.items.size()];
+            for (int i = 0; i < supply.length; i++) {
+                Long needed = plannerLong(proof.required()[i].subtract(BigInteger.valueOf(c.stocks[i]))
+                        .max(BigInteger.ZERO));
+                if (needed == null) return Result.status(Status.INVALID);
+                supply[i] = needed;
+            }
+            best = certifiedPlan(c, first.firings, supply, proof);
+            if (best != null && first.partial) best = withBudget(best);
+        }
+        if (best == null) return Result.status(Status.INVALID);
+        if (best.feasible()) return new Result<>(Status.SOLVED, best, first.branches);
+        long branches = first.branches;
+        long started = System.nanoTime();
+        boolean incomplete = false;
+        if (session.remainingCalls <= 0 || session.remainingNanos <= 0L) {
+            session.incomplete = true;
+            return new Result<>(Status.SOLVED, withBudget(best), branches);
+        }
+        long allowed = Math.min(session.remainingNanos,
+                PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
+        try (var ignored = PlanningCancellation.limitOptionalWork(allowed)) {
+            List<long[]> cuts = new ArrayList<>();
+            Candidate<K> candidate = first;
+            var cyclic = new LinkedHashSet<Integer>();
+            for (var cycle : c.conversionCycles) for (int item : cycle.replayMacro.stateItems) cyclic.add(item);
+            for (var macro : c.feedbackMacros) for (int item : macro.stateItems) cyclic.add(item);
+            int[] cyclicItems = cyclic.stream().mapToInt(Integer::intValue).toArray();
+            while (true) {
+                PlanningCancellation.check();
+                CraftPlan<K> executable = candidate.plan;
+                boolean witnessed = executable != null;
+                if (witnessed) {
+                    for (int i = 0; i < c.items.size(); i++) {
+                        if (executable.missing().getOrDefault(c.items.get(i), 0L) > candidate.missing[i]) {
+                            witnessed = false;
+                            break;
+                        }
+                    }
+                }
+                if (!witnessed) {
+                    BigInteger[] initial = new BigInteger[c.items.size()];
+                    for (int i = 0; i < initial.length; i++) initial[i] = BigInteger.valueOf(c.stocks[i])
+                            .add(BigInteger.valueOf(candidate.missing[i]));
+                    var checked = PetriExecutionVerifier.verify(c.consumed, c.produced, candidate.firings,
+                            initial, cyclicItems, c.targetItem, targetAmount, session.verifier);
+                    if (checked.status() == PetriExecutionVerifier.Status.EXECUTABLE) {
+                        executable = certifiedPlan(c, candidate.firings, candidate.missing, checked.certificate());
+                        if (executable != null && candidate.partial) executable = withBudget(executable);
+                        witnessed = executable != null;
+                    } else if (checked.status() == PetriExecutionVerifier.Status.UNREACHABLE) {
+                        long[] cut = Arrays.copyOf(candidate.firings, candidate.firings.length + candidate.missing.length);
+                        System.arraycopy(candidate.missing, 0, cut, candidate.firings.length, candidate.missing.length);
+                        cuts.add(cut);
+                        session.learnedCuts++;
+                    } else {
+                        incomplete = true;
+                        break;
+                    }
+                }
+                // The old macro's additional seed is still a valid witness and may itself improve
+                // the incumbent, even when this candidate's smaller algebraic supply was disproved.
+                if (candidate.plan != null && dominates(candidate.plan, best)) {
+                    best = candidate.plan;
+                    session.improvements++;
+                }
+                if (witnessed && dominates(executable, best)) {
+                    best = executable;
+                    session.improvements++;
+                }
+                if (best.feasible()) break;
+                if (session.remainingCalls <= 0) { incomplete = true; break; }
+                session.remainingCalls--;
+                session.refinementCalls++;
+                long[] caps = new long[c.items.size()];
+                for (int i = 0; i < caps.length; i++) caps[i] = best.missing().getOrDefault(c.items.get(i), 0L);
+                candidate = solveCandidate(c, caps, cuts, true);
+                branches = Sat.add(branches, candidate.branches);
+                // Infeasibility proves no improvement only inside this admitted, bounded model.
+                // It is not a global Petri-net infeasibility or Pareto-optimality claim.
+                if (candidate.status == Status.INFEASIBLE) break;
+                if (candidate.status != Status.SOLVED) { incomplete = true; break; }
+            }
+        } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            incomplete = true;
+        } finally {
+            session.remainingNanos = Math.max(0L, session.remainingNanos - (System.nanoTime() - started));
+        }
+        session.incomplete |= incomplete;
+        return new Result<>(Status.SOLVED, incomplete ? withBudget(best) : best, branches);
+    }
+
+    private CraftPlan<K> certifiedPlan(Compilation<K> c, long[] quantities, long[] supply,
+                                      PetriExecutionVerifier.Certificate proof) {
+        Map<CraftPattern<K>, Long> fired = new IdentityHashMap<>();
+        Map<K, Long> used = new LinkedHashMap<>();
+        Map<K, Long> missing = new LinkedHashMap<>();
+        Map<K, Long> gross = new LinkedHashMap<>();
+        for (int r = 0; r < quantities.length; r++) if (quantities[r] > 0) fired.put(c.patterns.get(r), quantities[r]);
+        for (int i = 0; i < c.items.size(); i++) {
+            BigInteger available = BigInteger.valueOf(c.stocks[i]).add(BigInteger.valueOf(supply[i]));
+            if (proof.required()[i].compareTo(available) > 0) return null;
+            long drawn = proof.required()[i].min(BigInteger.valueOf(c.stocks[i])).longValueExact();
+            if (drawn > 0) used.put(c.items.get(i), drawn);
+            if (supply[i] > 0) missing.put(c.items.get(i), supply[i]);
+            BigInteger demand = BigInteger.valueOf(i == c.targetItem ? targetAmount : 0L);
+            for (int r = 0; r < quantities.length; r++) demand = demand.add(
+                    BigInteger.valueOf(c.consumed[r][i]).multiply(BigInteger.valueOf(quantities[r])));
+            Long amount = plannerLong(demand);
+            if (amount == null) return null;
+            if (amount > 0) gross.put(c.items.get(i), amount);
+        }
+        return new CraftPlan<>(true, missing.isEmpty(), Map.copyOf(fired), Map.copyOf(used), Map.of(),
+                Map.copyOf(missing), Map.copyOf(gross), c.items.size(), false);
+    }
+
+    private static <K> boolean dominates(CraftPlan<K> candidate, CraftPlan<K> incumbent) {
+        boolean smaller = false;
+        for (var entry : candidate.missing().entrySet()) {
+            if (entry.getValue() > incumbent.missing().getOrDefault(entry.getKey(), 0L)) return false;
+        }
+        for (var entry : incumbent.missing().entrySet()) {
+            if (candidate.missing().getOrDefault(entry.getKey(), 0L) < entry.getValue()) smaller = true;
+        }
+        return smaller;
+    }
+
+    private static <K> CraftPlan<K> withBudget(CraftPlan<K> plan) {
+        return new CraftPlan<>(plan.supported(), plan.feasible(), plan.firings(), plan.usedStock(),
+                plan.usedReusableStock(), plan.missing(), plan.grossDemand(), plan.itemsProcessed(), true);
     }
 
     private Compilation<K> compile() {
