@@ -164,6 +164,27 @@ class PlannedInputDispatchTest {
     }
 
     @Test
+    void dynamicSlotFailureRestoresTheLaterExactSlotAndAllowsRetry() {
+        var source = pattern(input(1, A, B), input(1, A));
+        var planned = new PlannedInputPattern(source, List.of(Map.of(), Map.of(A, 1L)));
+        var inventory = inventory(1, 0);
+        assertNull(ParallelBatchCpuHelper.extractPatternInputs(
+                planned, inventory, null, new KeyCounter(), new KeyCounter()));
+        assertEquals(1, held(inventory, A));
+        assertNull(ParallelBatchCpuHelper.bulkExtract(planned, inventory, 10, false, Map.of(), null));
+        assertEquals(1, held(inventory, A));
+        inventory.insert(B, 1, Actionable.MODULATE);
+        var result = ParallelBatchCpuHelper.bulkExtract(planned, inventory, 10, false, Map.of(), null);
+        assertNotNull(result);
+        assertEquals(1, result.actualCopies);
+        assertEquals(1, result.scaledInputs[0].get(B));
+        assertEquals(1, result.scaledInputs[1].get(A));
+        ParallelBatchCpuHelper.reinject(result, 1, inventory);
+        assertEquals(1, held(inventory, A));
+        assertEquals(1, held(inventory, B));
+    }
+
+    @Test
     void persistedMixedAllocationStillProtectsItsSiblingAfterReload() throws Exception {
         if (net.neoforged.fml.loading.LoadingModList.get() == null) {
             net.neoforged.fml.loading.LoadingModList.of(List.of(), List.of(), List.of(), List.of(), Map.of());

@@ -105,10 +105,13 @@ public final class CraftPlannerV2<K> {
             1_024L,
             Long.getLong("thunderbolt.maxByproductScheduleWork", 16_384L));
     /**
-     * Maximum number of alternate roots tried for conversion cycles and stock-backed cycle cuts.
-     * This is a fixed bound, so orientation remains linear in graph size rather than enumerating cuts.
+     * Maximum number of alternate orientations tried for conversion and stock-backed cycle cuts.
+     * Each orientation may retain one priority root per SCC; the fixed attempt bound prevents
+     * enumerating the Cartesian product of all component directions.
      */
     static final int MAX_CONVERSION_ORIENTATION_RETRIES = 16;
+    static final int MAX_MISSING_REFINEMENT_PROBES = 24;
+    private static final long MAX_MISSING_REFINEMENT_NANOS = 100_000_000L;
 
     /**
      * Stack-overflow safety net for the bounded fallback search. {@link #obtain} recurses once per
@@ -142,6 +145,12 @@ public final class CraftPlannerV2<K> {
         private SharedCounterBudget resolutionWorkBudget;
         private SharedCounterBudget fallbackWorkBudget;
         private final Map<List<K>, PreparedGraph<K>> preparedByOrientation = new HashMap<>();
+        /** Default orientation only; recipe policy is independent of the probed quantity. */
+        private ConservativeReplenishment<K> replenishment;
+        private boolean replenishmentCompiled;
+        private boolean refineMissing = true;
+        private int missingRefinementProbes;
+        private long missingRefinementNanos;
         private int reachableWorkEstimate;
 
         public PlanningSession() {
@@ -204,6 +213,11 @@ public final class CraftPlannerV2<K> {
     private Map<K, Integer> objectiveDistances = Map.of();
     /** Immutable graph analysis shared by every quantity probe with the same cycle orientation. */
     private PreparedGraph<K> preparedGraph;
+    private ConservativeReplenishment<K> replenishment;
+    private boolean replenishmentCompiled;
+    private boolean replenishmentEvaluated;
+    private CraftPlan<K> replenishmentBaseline;
+    private PlanningSession<K> planningSession;
     /** Active producer-before-byproduct-row order for linear and aggregate sweeps in this run. */
     private List<K> activeReplayOrder = List.of();
     private final Set<K> cutOutputs = new LinkedHashSet<>();
@@ -500,96 +514,49 @@ public final class CraftPlannerV2<K> {
                         lowWidthWorkBudget,
                         diagnostics);
         firstPlanner.objectiveDistances = objectiveDistances;
+        firstPlanner.planningSession = session;
+        firstPlanner.replenishment = session.replenishment;
+        firstPlanner.replenishmentCompiled = session.replenishmentCompiled;
         CraftPlan<K> first = firstPlanner.run(target, amount, firstOrientation);
         preparedByOrientation.put(firstOrientation, firstPlanner.preparedGraph);
         if (first.feasible()) {
             return finish(first, diagnostics, budget, started);
         }
+        CraftPlan<K> baseline = firstPlanner.replenishmentPlan(target, amount);
+        session.replenishment = firstPlanner.replenishment;
+        session.replenishmentCompiled = firstPlanner.replenishmentCompiled;
+        if (baseline != null && baseline.feasible()) {
+            return finish(baseline, diagnostics, budget, started);
+        }
         if (first.budgetExhausted()) {
-            return finish(first, diagnostics, budget, started);
+            return finish(firstPlanner.guaranteeReplenishment(first, target, amount), diagnostics, budget, started);
         }
         CraftPlan<K> bestIncomplete = first;
 
         Deque<List<K>> frontier = new ArrayDeque<>();
-
-        // A cycle may still need a different cut orientation. This is bounded separately from
-        // ordinary recipe choice, which is resolved inside one integer-flow plan run.
-        if (!firstPlanner.cutOutputs.isEmpty()) {
-            CycleAnalysis<K> cycleAnalysis = CycleAnalysis.analyze(graph, target);
-            // The DFS cut position inside a cycle depends on sibling arrival order, so a bad cut can
-            // surface its shortfall on ANOTHER member of the same cycle instead of on the recorded
-            // cut output. Attribute missing at member granularity and try the most-starved
-            // orientation first, so the bounded retries go to the cuts that actually hurt.
-            List<Map.Entry<K, Long>> reorientCandidates = new ArrayList<>();
-            Map<K, Long> missingByCycleMember = new HashMap<>();
-            for (K cutOutput : firstPlanner.cutOutputs) {
-                Long attributedMissing = missingByCycleMember.get(cutOutput);
-                if (attributedMissing == null) {
-                    Set<K> members = cycleAnalysis.membersOf(cutOutput);
-                    attributedMissing = first.missing().getOrDefault(cutOutput, 0L);
-                    for (K member : members) {
-                        if (!member.equals(cutOutput)) {
-                            attributedMissing = Sat.add(
-                                    attributedMissing, first.missing().getOrDefault(member, 0L));
-                        }
-                    }
-                    // Many cut recipes can share one complex SCC. Attribute its deficit once,
-                    // instead of rescanning every member for each cut (quadratic in SCC size).
-                    for (K member : members) missingByCycleMember.put(member, attributedMissing);
-                    missingByCycleMember.put(cutOutput, attributedMissing);
-                }
-                if (attributedMissing > 0) {
-                    reorientCandidates.add(Map.entry(cutOutput, attributedMissing));
-                }
-            }
-            reorientCandidates.sort((left, right) -> Long.compare(right.getValue(), left.getValue()));
-            Set<K> orientationRoots = new LinkedHashSet<>();
-            Set<K> affectedCycleMembers = new HashSet<>();
-            for (Map.Entry<K, Long> candidate : reorientCandidates) {
-                K cutOutput = candidate.getKey();
-                if (cycleAnalysis.mayReorient(cutOutput)) {
-                    orientationRoots.add(cutOutput);
-                }
-                if (!affectedCycleMembers.contains(cutOutput)) {
-                    affectedCycleMembers.addAll(cycleAnalysis.membersOf(cutOutput));
-                }
-            }
-
-            // Structural DFS expands even an already-stocked intermediate's unused producers. A
-            // back-edge found below it must not be the only view available to another branch that
-            // really needs the discarded recipe (#53). Starting at an input of that stocked item
-            // offers an orientation with the cut at the inventory boundary instead. This is safe
-            // even for a complex SCC: each attempt still keeps an acyclic subset of real recipes,
-            // validates the whole demand against shared stock, and retains the positive-feedback
-            // guard. Stock is only an orientation hint, never a claim that its quantity is enough.
-            // Scan the existing traversal once, preserving caller order and the shared retry cap.
-            for (K stocked : firstPlanner.preparedGraph.order) {
-                if (orientationRoots.size() >= MAX_CONVERSION_ORIENTATION_RETRIES) break;
-                if (!affectedCycleMembers.contains(stocked) || graph.stock(stocked) <= 0L) continue;
-                Set<K> members = cycleAnalysis.membersOf(stocked);
-                for (CraftPattern<K> pattern : graph.patternsFor(stocked)) {
-                    for (CraftInput<K> input : pattern.inputs()) {
-                        if (orientationRoots.size() >= MAX_CONVERSION_ORIENTATION_RETRIES) break;
-                        if (!input.returned() && input.remainder() == null
-                                && members.contains(input.key()) && !input.key().equals(target)) {
-                            orientationRoots.add(input.key());
-                        }
-                    }
-                }
-            }
-            for (K root : orientationRoots) {
-                if (frontier.size() >= MAX_CONVERSION_ORIENTATION_RETRIES) break;
-                frontier.addLast(List.of(root));
-            }
-        }
+        Set<List<K>> seenOrientations = new HashSet<>();
+        seenOrientations.add(firstOrientation);
+        CycleAnalysis<K> cycleAnalysis = firstPlanner.cutOutputs.isEmpty()
+                ? null : CycleAnalysis.analyze(graph, target);
+        boolean orientationCutoff = cycleAnalysis != null && enqueueOrientations(
+                frontier, seenOrientations, firstOrientation,
+                firstPlanner.orientationRoots(first, cycleAnalysis, target), cycleAnalysis);
+        int orientationAttempts = 0;
 
         diagnostics.recordFrontierSize(frontier.size());
 
         while (!frontier.isEmpty()) {
+            if (orientationAttempts >= MAX_CONVERSION_ORIENTATION_RETRIES) {
+                diagnostics.recordSearchCutoff();
+                return finish(firstPlanner.guaranteeReplenishment(
+                        markBudgetExhausted(bestIncomplete), target, amount), diagnostics, budget, started);
+            }
             List<K> orientation = frontier.removeFirst();
             if (!budget.tryConsume(orientationCharge)) {
-                return finish(markBudgetExhausted(bestIncomplete), diagnostics, budget, started);
+                return finish(firstPlanner.guaranteeReplenishment(
+                        markBudgetExhausted(bestIncomplete), target, amount), diagnostics, budget, started);
             }
+            orientationAttempts++;
             PreparedGraph<K> prepared = preparedByOrientation.get(orientation);
             CraftPlannerV2<K> planner = prepared == null
                     ? new CraftPlannerV2<>(
@@ -612,14 +579,213 @@ public final class CraftPlannerV2<K> {
             }
             if (candidate.budgetExhausted()) {
                 return finish(
-                        markBudgetExhausted(betterPlan(
-                                bestIncomplete, candidate, objectiveDistances)),
+                        firstPlanner.guaranteeReplenishment(markBudgetExhausted(betterPlan(
+                                bestIncomplete, candidate, objectiveDistances)), target, amount),
                         diagnostics, budget, started);
             }
             bestIncomplete = betterPlan(bestIncomplete, candidate, objectiveDistances);
+            // Keep this attempt's other component choices while repairing its remaining shortfall.
+            // Every combination is replayed from the original stock; plans are never spliced.
+            orientationCutoff |= enqueueOrientations(
+                    frontier, seenOrientations, orientation,
+                    planner.orientationRoots(candidate, cycleAnalysis, target), cycleAnalysis);
             diagnostics.recordFrontierSize(frontier.size());
         }
-        return finish(bestIncomplete, diagnostics, budget, started);
+        if (orientationCutoff) {
+            diagnostics.recordSearchCutoff();
+            bestIncomplete = markBudgetExhausted(bestIncomplete);
+        }
+        return finish(firstPlanner.guaranteeReplenishment(bestIncomplete, target, amount), diagnostics, budget, started);
+    }
+
+    private CraftPlan<K> replenishmentPlan(K target, long amount) {
+        if (!replenishmentCompiled) {
+            replenishment = ConservativeReplenishment.compile(graph, preparedGraph.order, patternsByOutput);
+            replenishmentCompiled = true;
+        }
+        if (replenishment == null) return null;
+        if (!replenishmentEvaluated) {
+            replenishmentBaseline = replenishment.plan(target, amount, Map.of());
+            // An oversized probe declines only this quantity, not the session's reusable policy.
+            replenishmentEvaluated = true;
+        }
+        return replenishmentBaseline;
+    }
+
+    /** A cheaper diagnosis is retained only if its supplement also makes the stable policy ready. */
+    private CraftPlan<K> guaranteeReplenishment(CraftPlan<K> candidate, K target, long amount) {
+        if (candidate.feasible()) return candidate;
+        CraftPlan<K> baseline = replenishmentPlan(target, amount);
+        if (baseline == null) return candidate; // stateful components retain ordered bootstrap replay
+        CraftPlan<K> selected;
+        if (baseline.missing().entrySet().stream().allMatch(entry ->
+                candidate.missing().getOrDefault(entry.getKey(), 0L) >= entry.getValue())) {
+            selected = MissingRefinement.strictlyDominates(baseline.missing(), candidate.missing())
+                    ? baseline : candidate;
+        } else {
+            CraftPlan<K> supplied = replenishment.plan(target, amount, candidate.missing());
+            selected = supplied != null && supplied.feasible() ? candidate : baseline;
+        }
+        if (candidate.budgetExhausted()) selected = markBudgetExhausted(selected);
+        if (cutOutputs.isEmpty() && (preparedGraph.contendedOutputCount == 0
+                || replenishment.provesMinimumMissing(target, amount, selected.missing()))) {
+            return selected;
+        }
+        return refineMissing(selected, target, amount);
+    }
+
+    private CraftPlan<K> refineMissing(CraftPlan<K> plan, K target, long amount) {
+        PlanningSession<K> session = planningSession;
+        if (!session.refineMissing || plan.feasible() || plan.missing().isEmpty()
+                || session.missingRefinementProbes >= MAX_MISSING_REFINEMENT_PROBES) return plan;
+        long remaining = MAX_MISSING_REFINEMENT_NANOS - session.missingRefinementNanos;
+        // Reserve time for the original caller to finish adapting its already-valid plan.
+        remaining = Math.min(remaining, PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 4L);
+        if (remaining <= 0L) return plan;
+        long started = System.nanoTime();
+        try (var ignored = PlanningCancellation.limitOptionalWork(remaining)) {
+            return MissingRefinement.refine(graph, plan, preparedGraph.order,
+                    current -> cutOutputs.isEmpty()
+                            && replenishment.provesMinimumMissing(target, amount, current.missing()), supplied -> {
+                int charge = diagnostics.reachableWorkEstimate;
+                if (session.missingRefinementProbes >= MAX_MISSING_REFINEMENT_PROBES
+                        || searchBudget.remaining < charge
+                        || session.searchWorkBudget.remaining < charge) return null;
+                if (!searchBudget.tryConsume(charge)) return null;
+                session.missingRefinementProbes++;
+                diagnostics.missingRefinementProbes++;
+                var probeSession = new PlanningSession<K>();
+                probeSession.refineMissing = false;
+                probeSession.lowWidthWorkBudget = session.lowWidthWorkBudget;
+                probeSession.searchWorkBudget = session.searchWorkBudget;
+                probeSession.resolutionWorkBudget = session.resolutionWorkBudget;
+                probeSession.fallbackWorkBudget = session.fallbackWorkBudget;
+                // The stock-sensitive capacities are recompiled. Reusing PreparedGraph here would
+                // silently reuse the old stock limits; only immutable patterns and budgets are shared.
+                // Require the supplement to survive the smallest ordinary search/visit allowance,
+                // including later quantity probes whose shared alternative budget is already spent.
+                return planDetailed(graph.withAdditionalStock(supplied), target, amount, 1,
+                        1, charge, probeSession).plan();
+            }, count -> diagnostics.missingRefinementImprovements++);
+        } finally {
+            long elapsed = Math.max(0L, System.nanoTime() - started);
+            session.missingRefinementNanos += elapsed;
+            diagnostics.missingRefinementNanos += elapsed;
+        }
+    }
+
+    /** At most one more than the retry limit, so omitted directions remain an explicit cutoff. */
+    private List<K> orientationRoots(CraftPlan<K> plan, CycleAnalysis<K> cycleAnalysis, K target) {
+        // The DFS cut position inside a cycle depends on sibling arrival order, so a bad cut can
+        // surface its shortfall on ANOTHER member of the same cycle instead of on the recorded
+        // cut output. Attribute missing at member granularity and try the most-starved
+        // orientation first, so the bounded retries go to the cuts that actually hurt.
+        List<Map.Entry<K, Long>> reorientCandidates = new ArrayList<>();
+        Map<K, Long> causalMissing = new HashMap<>(plan.missing());
+        // A cut may force an otherwise unnecessary raw route. Its deficit then lives outside the
+        // SCC (D -> E), so retain the selected route's causal chain back to the cut output E.
+        for (int i = preparedGraph.order.size() - 1; i >= 0; i--) {
+            K output = preparedGraph.order.get(i);
+            long shortfall = causalMissing.getOrDefault(output, 0L);
+            for (var pattern : patternsByOutput.getOrDefault(output, List.of())) {
+                if (plan.firings().getOrDefault(pattern, 0L) <= 0L) continue;
+                for (var input : pattern.inputs()) {
+                    shortfall = Sat.add(shortfall, causalMissing.getOrDefault(input.key(), 0L));
+                }
+            }
+            if (shortfall > 0L) causalMissing.put(output, shortfall);
+        }
+        Map<K, Long> missingByCycleMember = new HashMap<>();
+        for (K cutOutput : cutOutputs) {
+            Long attributedMissing = missingByCycleMember.get(cutOutput);
+            if (attributedMissing == null) {
+                Set<K> members = cycleAnalysis.membersOf(cutOutput);
+                attributedMissing = causalMissing.getOrDefault(cutOutput, 0L);
+                for (K member : members) {
+                    if (!member.equals(cutOutput)) {
+                        attributedMissing = Sat.add(
+                                attributedMissing, causalMissing.getOrDefault(member, 0L));
+                    }
+                }
+                // Many cut recipes can share one complex SCC. Attribute its deficit once,
+                // instead of rescanning every member for each cut (quadratic in SCC size).
+                for (K member : members) missingByCycleMember.put(member, attributedMissing);
+                missingByCycleMember.put(cutOutput, attributedMissing);
+            }
+            if (attributedMissing > 0) {
+                reorientCandidates.add(Map.entry(cutOutput, attributedMissing));
+            }
+        }
+        reorientCandidates.sort((left, right) -> Long.compare(right.getValue(), left.getValue()));
+        Set<K> orientationRoots = new LinkedHashSet<>();
+        Set<K> affectedCycleMembers = new HashSet<>();
+        for (Map.Entry<K, Long> candidate : reorientCandidates) {
+            K cutOutput = candidate.getKey();
+            if (cycleAnalysis.mayReorient(cutOutput)) {
+                orientationRoots.add(cutOutput);
+                if (orientationRoots.size() > MAX_CONVERSION_ORIENTATION_RETRIES) {
+                    return List.copyOf(orientationRoots);
+                }
+            }
+            if (!affectedCycleMembers.contains(cutOutput)) {
+                affectedCycleMembers.addAll(cycleAnalysis.membersOf(cutOutput));
+            }
+        }
+
+        // Structural DFS expands even an already-stocked intermediate's unused producers. A
+        // back-edge found below it must not be the only view available to another branch that
+        // really needs the discarded recipe (#53). Starting at an input of that stocked item
+        // offers an orientation with the cut at the inventory boundary instead. This is safe
+        // even for a complex SCC: each attempt still keeps an acyclic subset of real recipes,
+        // validates the whole demand against shared stock, and retains the positive-feedback
+        // guard. Stock is only an orientation hint, never a claim that its quantity is enough.
+        // Scan the existing traversal once, preserving caller order and the shared retry cap.
+        for (K stocked : preparedGraph.order) {
+            if (orientationRoots.size() >= MAX_CONVERSION_ORIENTATION_RETRIES + 1) break;
+            if (!affectedCycleMembers.contains(stocked) || graph.stock(stocked) <= 0L) continue;
+            Set<K> members = cycleAnalysis.membersOf(stocked);
+            for (CraftPattern<K> pattern : graph.patternsFor(stocked)) {
+                for (CraftInput<K> input : pattern.inputs()) {
+                    if (orientationRoots.size() >= MAX_CONVERSION_ORIENTATION_RETRIES + 1) break;
+                    if (!input.returned() && input.remainder() == null
+                            && members.contains(input.key()) && !input.key().equals(target)) {
+                        orientationRoots.add(input.key());
+                    }
+                }
+            }
+        }
+        return List.copyOf(orientationRoots);
+    }
+
+    /**
+     * Depth-first extensions preserve progress in other SCCs instead of restarting every cut alone.
+     * Replacing a root in the same SCC is necessary: the first DFS root already fixes its direction.
+     * The new root runs first because another component's DFS may also reach this upstream SCC.
+     * Only direction hints are combined; shared raw stock, seeds and byproducts are validated anew.
+     */
+    private static <K> boolean enqueueOrientations(
+            Deque<List<K>> frontier,
+            Set<List<K>> seen,
+            List<K> previous,
+            List<K> roots,
+            CycleAnalysis<K> cycleAnalysis) {
+        int count = Math.min(roots.size(), MAX_CONVERSION_ORIENTATION_RETRIES);
+        // Reverse insertion retains missing-priority order at the front of the deque.
+        for (int i = count - 1; i >= 0; i--) {
+            PlanningCancellation.check();
+            K root = roots.get(i);
+            Set<K> members = cycleAnalysis.membersOf(root);
+            List<K> combined = new ArrayList<>(previous.size() + 1);
+            combined.add(root);
+            for (K retained : previous) {
+                if (!root.equals(retained) && !members.contains(retained)) combined.add(retained);
+            }
+            List<K> orientation = List.copyOf(combined);
+            if (seen.add(orientation)) frontier.addFirst(orientation);
+        }
+        // The initial run plus at most 16 retries each enqueue at most 16 states. No full product
+        // is materialized, even when many components or many roots in one component are eligible.
+        return roots.size() > count;
     }
 
     private static <K> PlanningResult<K> finish(
@@ -5407,6 +5573,9 @@ public final class CraftPlannerV2<K> {
         private int lowWidthInfeasible;
         private int lowWidthCutoffs;
         private int lowWidthIntegerNodes;
+        private int missingRefinementProbes;
+        private int missingRefinementImprovements;
+        private long missingRefinementNanos;
         private boolean searchCutoff;
         private int consumedResolutionBudget;
         private boolean resolutionCutoff;
@@ -5568,7 +5737,10 @@ public final class CraftPlannerV2<K> {
                     lowWidthSolved,
                     lowWidthInfeasible,
                     lowWidthCutoffs,
-                    lowWidthIntegerNodes);
+                    lowWidthIntegerNodes,
+                    missingRefinementProbes,
+                    missingRefinementImprovements,
+                    missingRefinementNanos);
         }
 
         private static int increment(int value) {
@@ -5593,6 +5765,7 @@ public final class CraftPlannerV2<K> {
      */
     private static final class SearchBudget {
         private final int initial;
+        private final int sharedAtStart;
         private int remaining;
         private final SharedCounterBudget shared;
         private final DiagnosticsCollector diagnostics;
@@ -5605,6 +5778,7 @@ public final class CraftPlannerV2<K> {
             this.initial = Math.max(1, work);
             this.remaining = initial;
             this.shared = shared;
+            this.sharedAtStart = shared.remaining;
             this.diagnostics = diagnostics;
         }
 
@@ -5630,7 +5804,7 @@ public final class CraftPlannerV2<K> {
         }
 
         private int consumed() {
-            return initial - remaining;
+            return Math.min(initial, sharedAtStart - shared.remaining);
         }
     }
 
