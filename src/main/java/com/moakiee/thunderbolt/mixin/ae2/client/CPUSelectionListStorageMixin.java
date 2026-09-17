@@ -10,7 +10,10 @@ import appeng.menu.me.crafting.CraftingStatusMenu;
 
 import com.moakiee.thunderbolt.core.storage.InfiniteCpuStorageFormat;
 
-@Mixin(value = CPUSelectionList.class, remap = false)
+// GTLCore also injects this HEAD (unconditionally, priority 1000). Higher priority is
+// applied later, so this callback runs after GTLCore and can restore ∞ for Long.MAX_VALUE
+// without replacing GTLCore's compact formatting of finite sizes.
+@Mixin(value = CPUSelectionList.class, priority = 1100, remap = false)
 public abstract class CPUSelectionListStorageMixin {
     @Inject(method = "formatStorage", at = @At("HEAD"), cancellable = true)
     private void thunderbolt$formatInfiniteStorage(

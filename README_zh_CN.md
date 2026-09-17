@@ -22,6 +22,9 @@
 - 为合成供应器、高容量频道、索引存储单元和弹出端点提供扩展 API
 - 为兼容的高容量网络提供基于最大流的频道分配
 - 包含 Advanced AE、NeoECO、AE2 Crafting Tree 和 ExtendedAE Plus 的可选兼容钩子；仅在对应模组存在时加载
+- 与 GTLCore（`gtlcore`）共存：CPU 派发让位给 GTLCore，规划器挂在 `CraftingCalculation#computePlan`，其余子系统保持启用
+
+让位边界、`-Dthunderbolt.gtlCompat` 开关与验证步骤见 `docs/gtl-core-coexistence.zh-CN.md`。
 
 ## 配置
 
@@ -53,9 +56,9 @@
 .\gradlew.bat publishToMavenLocal
 ```
 
-- 版本：`2.0.0-beta.3`
-- Maven 坐标：`com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.3`
-- 可分发 JAR：`build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.3.jar`
+- 版本：`2.0.0-beta.5`
+- Maven 坐标：`com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.5`
+- 可分发 JAR：`build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.5.jar`
 
 带 `-slim.jar` 后缀的 JAR 不含运行时必需的 MixinExtras 内嵌依赖，只作为开发过程的中间产物。
 

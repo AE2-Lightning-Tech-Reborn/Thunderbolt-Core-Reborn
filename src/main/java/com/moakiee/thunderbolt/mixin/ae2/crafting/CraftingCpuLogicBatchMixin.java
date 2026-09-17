@@ -93,7 +93,7 @@ public abstract class CraftingCpuLogicBatchMixin {
         }
 
         var jobAccessor = (ExecutingCraftingJobAccessor) job;
-        var timeTracker = (ElapsedTimeTrackerAccessor) jobAccessor.getTimeTracker();
+        var timeTracker = (ElapsedTimeTrackerAccessor) jobAccessor.thunderbolt$getTimeTracker();
         var batchResult = BatchExecutor.runBatchOnly(
                 remainingOps,
                 BatchCpuAccounting.Mode.LINEAR,
@@ -101,14 +101,14 @@ public abstract class CraftingCpuLogicBatchMixin {
                 energyService,
                 new DefaultBatchJobView(
                         level,
-                        jobAccessor.getLink().getCraftingID(),
-                        jobAccessor.getTasks(),
-                        jobAccessor.getWaitingFor(),
-                        task -> ((TaskProgressAccessor) task).getValue(),
-                        (task, value) -> ((TaskProgressAccessor) task).setValue(value),
+                        jobAccessor.thunderbolt$getLink().getCraftingID(),
+                        jobAccessor.thunderbolt$getTasks(),
+                        jobAccessor.thunderbolt$getWaitingFor(),
+                        task -> ((TaskProgressAccessor) task).thunderbolt$getValue(),
+                        (task, value) -> ((TaskProgressAccessor) task).thunderbolt$setValue(value),
                         timeTracker,
                         (tracker, count, type) -> ((ElapsedTimeTrackerAccessor) tracker)
-                                .invokeAddMaxItems(count, type)),
+                                .thunderbolt$invokeAddMaxItems(count, type)),
                 getInventory(),
                 batchedByTask,
                 cluster::markDirty);

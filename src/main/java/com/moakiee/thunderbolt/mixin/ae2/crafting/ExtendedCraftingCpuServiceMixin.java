@@ -48,6 +48,7 @@ import com.moakiee.thunderbolt.ae2.crafting.CraftingPlanningControl;
 import com.moakiee.thunderbolt.api.crafting.ICraftingPlanningService;
 import com.moakiee.thunderbolt.api.crafting.cpu.ExtendedCraftingCpuCluster;
 import com.moakiee.thunderbolt.api.crafting.cpu.ExtendedCraftingCpuClusterProvider;
+import com.moakiee.thunderbolt.compat.gtl.GtlCompat;
 import com.moakiee.thunderbolt.core.crafting.cpu.CraftingCpuSelectionOrder;
 import com.moakiee.thunderbolt.core.crafting.cpu.DynamicCraftingCpuClusterIndex;
 
@@ -216,14 +217,24 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
 
         if (!(job instanceof CraftingPlan)) {
             if (target != null) {
+                if (GtlCompat.isCraftingHandoverActive()) {
+                    return;
+                }
                 cir.setReturnValue(CraftingSubmitResult.CPU_OFFLINE);
                 return;
             }
             var cluster = thunderbolt$findSuitableExtendedCpuCluster(
                     job, prioritizePower, src, new MutableObject<>());
-            cir.setReturnValue(cluster != null
-                    ? cluster.submitJob(this.grid, job, src, requestingMachine)
-                    : CraftingSubmitResult.CPU_OFFLINE);
+            if (cluster != null) {
+                cir.setReturnValue(cluster.submitJob(this.grid, job, src, requestingMachine));
+                return;
+            }
+            if (GtlCompat.isCraftingHandoverActive()) {
+                // Thunderbolt's planner may emit LoopCraftingPlan. If no extended CPU can take
+                // it, leave the ICraftingPlan to GTLCore / vanilla instead of CPU_OFFLINE.
+                return;
+            }
+            cir.setReturnValue(CraftingSubmitResult.CPU_OFFLINE);
         }
     }
 
@@ -246,6 +257,13 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
             CallbackInfoReturnable<ICraftingSubmitResult> cir,
             @Local CraftingCPUCluster cpuCluster,
             @Local MutableObject<UnsuitableCpus> unsuitableCpusResult) {
+        // Same INVOKE_ASSIGN as GTLCore's transfinite submit. Mixin runs every injector at
+        // that point; a later setReturnValue overwrites an earlier one. If GTLCore already
+        // claimed the job, leave it. If it did not, Thunderbolt can still pick an extended CPU.
+        if (cir.isCancelled()) {
+            return;
+        }
+
         // A non-null target may belong to another crafting CPU add-on. Leave explicit requests
         // to that add-on's submit hook instead of turning them back into automatic selection.
         if (target != null) {

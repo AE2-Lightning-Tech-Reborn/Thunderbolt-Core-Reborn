@@ -31,6 +31,12 @@ server.
 - max-flow channel allocation for compatible high-capacity networks
 - optional compatibility hooks for Advanced AE, NeoECO, AE2 Crafting Tree,
   and ExtendedAE Plus; hooks load only when the corresponding mod is present
+- coexistence with GTLCore (`gtlcore`): Thunderbolt yields CPU dispatch to
+  GTLCore, attaches the planner at `CraftingCalculation#computePlan`,
+  and keeps its other subsystems active
+
+The hand-over boundary, the `-Dthunderbolt.gtlCompat` switch and the
+verification steps are described in `docs/gtl-core-coexistence.zh-CN.md`.
 
 ## Configuration
 
@@ -72,11 +78,11 @@ Publish it to the local Maven repository:
 .\gradlew.bat publishToMavenLocal
 ```
 
-- Version: `2.0.0-beta.3`
+- Version: `2.0.0-beta.5`
 - Maven coordinate:
-  `com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.3`
+  `com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.5`
 - Distributable JAR:
-  `build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.3.jar`
+  `build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.5.jar`
 
 The `-slim.jar` artifact does not contain the required MixinExtras jar-in-jar
 dependency and is only an intermediate development artifact.

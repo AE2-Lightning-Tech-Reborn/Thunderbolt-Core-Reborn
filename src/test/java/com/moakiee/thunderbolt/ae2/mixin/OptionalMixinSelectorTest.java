@@ -31,6 +31,8 @@ class OptionalMixinSelectorTest {
 
     @Test
     void neverGatesRequiredMixins() {
+        assertTrue(OptionalMixinSelector.shouldApply("CraftConfirmMenuMixin", ignored -> false));
+        assertTrue(OptionalMixinSelector.shouldApply("ExtendedCraftingCpuServiceMixin", ignored -> false));
         assertTrue(OptionalMixinSelector.shouldApply("CraftingCalculationMixin", ignored -> false));
     }
 

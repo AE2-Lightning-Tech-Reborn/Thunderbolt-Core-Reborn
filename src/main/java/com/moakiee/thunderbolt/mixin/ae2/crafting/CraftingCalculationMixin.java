@@ -5,10 +5,11 @@ import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 import com.google.common.base.Stopwatch;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,6 +32,7 @@ import appeng.crafting.inv.NetworkCraftingSimulationState;
 import com.moakiee.thunderbolt.ThunderboltCore;
 import com.moakiee.thunderbolt.ae2.crafting.CapturedPlanningChoice;
 import com.moakiee.thunderbolt.ae2.crafting.CraftingPlanningControl;
+import com.moakiee.thunderbolt.compat.gtl.GtlCompat;
 import com.moakiee.thunderbolt.api.crafting.CraftingPlanningEngines;
 import com.moakiee.thunderbolt.api.crafting.PlanningAttempt;
 import com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext;
@@ -46,7 +48,14 @@ import com.moakiee.thunderbolt.core.crafting.algorithm.PlanningFailurePlans;
 import com.moakiee.thunderbolt.core.crafting.plan.LoopCraftingPlan;
 import com.moakiee.thunderbolt.core.crafting.planner.PlanningMetadataStore;
 
-/** Runs complete calculations in policy order and locks the first successful candidate. */
+/**
+ * Runs complete calculations in policy order and locks the first successful candidate.
+ *
+ * <p>The wrap is on {@code computePlan()} rather than {@code run()}. GTLCore {@code @Overwrite}s
+ * {@code run()} but still calls {@code computePlan()} from that body, so wrapping the private
+ * method keeps Thunderbolt's engines inside GTLCore's job (MAX_FAST metrics, logging,
+ * {@code finish()}) instead of fighting the overwrite.
+ */
 @Mixin(value = CraftingCalculation.class, remap = false)
 public abstract class CraftingCalculationMixin implements CraftingPlanningControl {
     @Shadow
@@ -152,8 +161,16 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
         this.thunderbolt$candidates = List.copyOf(captured);
     }
 
-    @Inject(method = "run", at = @At("HEAD"), remap = false)
-    private void thunderbolt$startCalculation(CallbackInfoReturnable<ICraftingPlan> cir) {
+    @WrapMethod(method = "computePlan")
+    private ICraftingPlan thunderbolt$routeCompleteCalculation(Operation<ICraftingPlan> original)
+            throws InterruptedException {
+        thunderbolt$beginCalculation();
+        ICraftingPlan result = thunderbolt$selectPlan(original);
+        return thunderbolt$finishCalculation(result);
+    }
+
+    @Unique
+    private void thunderbolt$beginCalculation() {
         thunderbolt$calculationStartedNanos = System.nanoTime();
         thunderbolt$attempts.set(0);
         thunderbolt$handledAttempts.set(0);
@@ -168,14 +185,8 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
                 thunderbolt$candidates.stream().map(CapturedPlanningChoice::choice).toList());
     }
 
-    @WrapOperation(
-            method = "run",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lappeng/crafting/CraftingCalculation;"
-                            + "computePlan()Lappeng/api/networking/crafting/ICraftingPlan;"))
-    private ICraftingPlan thunderbolt$routeCompleteCalculation(
-            CraftingCalculation instance, Operation<ICraftingPlan> original) {
+    @Unique
+    private ICraftingPlan thunderbolt$selectPlan(Operation<ICraftingPlan> original) {
         for (var candidate : thunderbolt$candidates) {
             var choice = candidate.choice();
             if (choice.kind() == PlanningChoice.Kind.VANILLA) {
@@ -184,7 +195,7 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
                 // thread computes, commonly adding a whole tick before the result is observed.
                 thunderbolt$activeVanilla = true;
                 try {
-                    ICraftingPlan result = original.call(instance);
+                    ICraftingPlan result = original.call();
                     if (result == null) {
                         thunderbolt$declinedEngines.incrementAndGet();
                         break;
@@ -271,14 +282,12 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
         return PlanningFailurePlans.allFailed(output, requestedAmount);
     }
 
-    @Inject(method = "run", at = @At("RETURN"), cancellable = true, remap = false)
-    private void thunderbolt$finishCalculation(CallbackInfoReturnable<ICraftingPlan> cir) {
-        var result = cir.getReturnValue();
+    @Unique
+    private ICraftingPlan thunderbolt$finishCalculation(ICraftingPlan result) {
         if (result instanceof CraftingPlan craftingPlan) {
             result = LoopCraftingPlan.wrapIfNeeded(
                     craftingPlan, PlanningMetadataStore.take(craftingPlan));
         }
-        cir.setReturnValue(result);
         double wallMs = TimeUnit.NANOSECONDS.toMicros(Math.max(
                 0L, System.nanoTime() - thunderbolt$calculationStartedNanos)) / 1_000.0D;
         ThunderboltCore.LOGGER.debug(
@@ -292,6 +301,7 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
         thunderbolt$activeVanilla = false;
         thunderbolt$request = null;
         thunderbolt$candidates = List.of(CapturedPlanningChoice.vanilla());
+        return result;
     }
 
     @Inject(method = "runCraftAttempt", at = @At("HEAD"), cancellable = true, remap = false)
@@ -411,6 +421,19 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
 
     @Unique
     private void thunderbolt$pauseUntilNextTick() throws InterruptedException {
+        if (Thread.interrupted()) {
+            throw new InterruptedException("crafting calculation cancelled");
+        }
+        if (GtlCompat.isCraftingHandoverActive()) {
+            // GTLCore's simulateFor is a no-op (return !done). The AE2 monitor protocol would
+            // park this thread until a later simulateFor flipped running back on, which never
+            // happens. Park a millisecond and poll the isolated candidate instead.
+            LockSupport.parkNanos(1_000_000L);
+            if (Thread.interrupted()) {
+                throw new InterruptedException("crafting calculation cancelled");
+            }
+            return;
+        }
         synchronized (monitor) {
             // The real planning work runs on an isolated candidate thread. Waiting for it must not
             // spend AE2's per-job microsecond budget: publish one incomplete observation, wake the
