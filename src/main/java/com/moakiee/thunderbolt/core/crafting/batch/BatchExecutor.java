@@ -21,6 +21,7 @@ import appeng.me.service.CraftingService;
 
 import com.moakiee.thunderbolt.api.crafting.batch.BatchDispatchMode;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
+import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapter;
 import com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider;
 import com.moakiee.thunderbolt.core.crafting.batch.BatchCopyLimitPattern;
 import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
@@ -169,6 +170,25 @@ public final class BatchExecutor {
                                               long maxCopies,
                                               boolean unboundedCpuBatch,
                                               TickProviderDispatchSchedule dispatchSchedule) {
+        return runBatchOnly(remainingOps, accountingMode, cs, es, job, inv, batchedByTask,
+                markDirty, reservedStock, maxBatchOps, maxCopies, unboundedCpuBatch,
+                dispatchSchedule, null);
+    }
+
+    public static BatchRunResult runBatchOnly(int remainingOps,
+                                              BatchCpuAccounting.Mode accountingMode,
+                                              CraftingService cs,
+                                              IEnergyService es,
+                                              BatchJobView job,
+                                              ListCraftingInventory inv,
+                                              Map<IPatternDetails, IdentityHashMap<ICraftingProvider, Boolean>> batchedByTask,
+                                              Runnable markDirty,
+                                              Map<appeng.api.stacks.AEKey, Long> reservedStock,
+                                              int maxBatchOps,
+                                              long maxCopies,
+                                              boolean unboundedCpuBatch,
+                                              TickProviderDispatchSchedule dispatchSchedule,
+                                              BatchProviderAdapter providerAdapter) {
         if (job == null) return BatchRunResult.EMPTY;
 
         var taskIter = job.taskIterator();
@@ -183,6 +203,9 @@ public final class BatchExecutor {
         if (accountingMode == null) accountingMode = BatchCpuAccounting.Mode.LINEAR;
         boolean dirty = false;
         boolean sawBatchProvider = false;
+
+        var batchProviders = dispatchSchedule != null
+                ? dispatchSchedule.batchProviders() : new BatchProviderResolutionCache();
 
         while (taskIter.hasNext()) {
             var task = taskIter.next();
@@ -209,7 +232,9 @@ public final class BatchExecutor {
                     ? dispatchSchedule.candidates(cs, providerPattern, providerPattern)
                     : cs.getProviders(providerPattern);
             for (var provider : providerCandidates) {
-                if (!(provider instanceof IBatchCraftingProvider batch)) continue;
+                IBatchCraftingProvider batch = batchProviders.resolve(
+                        provider, executionDetails, job, providerAdapter);
+                if (batch == null) continue;
                 sawBatchProvider = true;
                 if (perTaskBatched != null && perTaskBatched.containsKey(provider)) continue;
                 long capacity;

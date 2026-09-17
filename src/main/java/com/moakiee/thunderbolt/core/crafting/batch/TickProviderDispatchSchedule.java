@@ -18,11 +18,17 @@ import appeng.me.service.CraftingService;
 public final class TickProviderDispatchSchedule {
     private final IdentityHashMap<IPatternDetails, PatternSchedule> patterns = new IdentityHashMap<>();
     private long tick = Long.MIN_VALUE;
+    private final BatchProviderResolutionCache batchProviders = new BatchProviderResolutionCache();
 
     public void beginTick(long currentTick) {
         if (tick == currentTick) return;
         tick = currentTick;
         patterns.clear();
+        batchProviders.clear();
+    }
+
+    BatchProviderResolutionCache batchProviders() {
+        return batchProviders;
     }
 
     public Iterable<ICraftingProvider> candidates(
