@@ -357,103 +357,114 @@ public final class BatchExecutor {
             long leftover = realCraft;
             KeyCounter[] oneCopy = ParallelBatchCpuHelper.cloneSingleCopy(result);
 
-            for (int i = 0; i < eligible.size() && leftover > 0; i++) {
-                var eligibleProvider = eligible.get(i);
-                var batch = eligibleProvider.provider();
-                boolean unbounded = unboundedCpuBatch
-                        || eligibleProvider.mode() == BatchDispatchMode.UNBOUNDED;
-                long sliceCap = unbounded
-                        || accountingMode == BatchCpuAccounting.Mode.SUCCESSFUL_DISPATCH
-                        ? copiesBudget
-                        : BatchCpuAccounting.maxCopiesForBatch(
-                                opsBudget, maxBatchOps, copiesBudget, accountingMode);
-                if (sliceCap <= 0) break;
-                long slice;
-                if (unbounded) {
-                    slice = leftover;
-                } else {
-                    int remainingProviders = eligible.size() - i;
-                    slice = Math.max(1L, leftover / remainingProviders);
-                }
-                slice = Math.min(slice, leftover);
-                slice = Math.min(slice, sliceCap);
-                slice = Math.min(slice, eligibleProvider.capacity());
+            try {
+                for (int i = 0; i < eligible.size() && leftover > 0; i++) {
+                    var eligibleProvider = eligible.get(i);
+                    var batch = eligibleProvider.provider();
+                    boolean unbounded = unboundedCpuBatch
+                            || eligibleProvider.mode() == BatchDispatchMode.UNBOUNDED;
+                    long sliceCap = unbounded
+                            || accountingMode == BatchCpuAccounting.Mode.SUCCESSFUL_DISPATCH
+                            ? copiesBudget
+                            : BatchCpuAccounting.maxCopiesForBatch(
+                                    opsBudget, maxBatchOps, copiesBudget, accountingMode);
+                    if (sliceCap <= 0) break;
+                    long slice;
+                    if (unbounded) {
+                        slice = leftover;
+                    } else {
+                        int remainingProviders = eligible.size() - i;
+                        slice = Math.max(1L, leftover / remainingProviders);
+                    }
+                    slice = Math.min(slice, leftover);
+                    slice = Math.min(slice, sliceCap);
+                    slice = Math.min(slice, eligibleProvider.capacity());
 
-                long subLeftover;
-                try {
-                    subLeftover = batch.pushBatch(executionDetails, oneCopy, slice, job);
-                } catch (Throwable t) {
-                    appeng.core.AELog.warn("[thunderbolt] IBatchCraftingProvider %s threw during pushBatch; treating as full leftover. %s",
-                            batch, t);
-                    subLeftover = slice;
-                }
-                if (subLeftover < 0 || subLeftover > slice) {
-                    appeng.core.AELog.warn("[thunderbolt] IBatchCraftingProvider %s returned out-of-range leftover %d for slice=%d; treating as full leftover.",
-                            batch, subLeftover, slice);
-                    subLeftover = slice;
-                }
+                    long subLeftover;
+                    try {
+                        subLeftover = batch.pushBatch(executionDetails, oneCopy, slice, job);
+                    } catch (Throwable t) {
+                        // The provider may already own the whole slice. Only untouched copies
+                        // are returned by finally; never replay this ambiguous submission.
+                        leftover -= slice;
+                        ParallelBatchCpuHelper.markDispatched(result, slice);
+                        job.failDispatch("AMBIGUOUS_BATCH_PROVIDER_OWNERSHIP", t);
+                        return new BatchRunResult(totalPushed, consumedOps, sawBatchProvider);
+                    }
+                    if (subLeftover < 0 || subLeftover > slice) {
+                        leftover -= slice;
+                        ParallelBatchCpuHelper.markDispatched(result, slice);
+                        job.failDispatch("INVALID_BATCH_PROVIDER_RESULT",
+                                new IllegalStateException("leftover=" + subLeftover + ", slice=" + slice));
+                        return new BatchRunResult(totalPushed, consumedOps, sawBatchProvider);
+                    }
 
-                long dispatched = slice - subLeftover;
-                if (dispatched <= 0) {
+                    long dispatched = slice - subLeftover;
+                    if (dispatched <= 0) {
+                        if (dispatchSchedule != null) {
+                            dispatchSchedule.recordFailure(providerPattern, eligibleProvider.identity());
+                        }
+                        continue;
+                    }
+                    leftover -= dispatched;
+                    ParallelBatchCpuHelper.markDispatched(result, dispatched);
                     if (dispatchSchedule != null) {
-                        dispatchSchedule.recordFailure(providerPattern, eligibleProvider.identity());
+                        dispatchSchedule.recordSuccess(providerPattern, eligibleProvider.identity());
                     }
-                    continue;
-                }
-                if (dispatchSchedule != null) {
-                    dispatchSchedule.recordSuccess(providerPattern, eligibleProvider.identity());
-                }
 
-                ParallelBatchCpuHelper.markDispatched(result, dispatched);
-                es.extractAEPower(powerOne * dispatched, Actionable.MODULATE, PowerMultiplier.CONFIG);
-                ParallelBatchCpuHelper.registerExpectedOutputs(job, details, result, dispatched);
-                dirty = true;
+                    es.extractAEPower(powerOne * dispatched, Actionable.MODULATE, PowerMultiplier.CONFIG);
+                    ParallelBatchCpuHelper.registerExpectedOutputs(job, details, result, dispatched);
+                    dirty = true;
 
-                int opsCost = unbounded
-                        || accountingMode == BatchCpuAccounting.Mode.SUCCESSFUL_DISPATCH
-                        ? 1
-                        : BatchCpuAccounting.cpuOpsForCopies(dispatched, accountingMode);
-                consumedOps += opsCost;
-                opsBudget -= opsCost;
+                    int opsCost = unbounded
+                            || accountingMode == BatchCpuAccounting.Mode.SUCCESSFUL_DISPATCH
+                            ? 1
+                            : BatchCpuAccounting.cpuOpsForCopies(dispatched, accountingMode);
+                    consumedOps += opsCost;
+                    opsBudget -= opsCost;
 
-                long newValue = task.getValue() - dispatched;
-                task.setValue(newValue);
-                totalPushed = saturatingAdd(totalPushed, dispatched);
-                copiesBudget -= dispatched;
-                leftover -= dispatched;
+                    long newValue = task.getValue() - dispatched;
+                    task.setValue(newValue);
+                    totalPushed = saturatingAdd(totalPushed, dispatched);
+                    copiesBudget -= dispatched;
 
-                if (initialRealCraft > 1) {
-                    if (perTaskBatched == null) {
-                        perTaskBatched = batchedByTask.computeIfAbsent(details, key -> new IdentityHashMap<>());
+                    if (initialRealCraft > 1) {
+                        if (perTaskBatched == null) {
+                            perTaskBatched = batchedByTask.computeIfAbsent(details, key -> new IdentityHashMap<>());
+                        }
+                        perTaskBatched.put(eligibleProvider.identity(), Boolean.TRUE);
                     }
-                    perTaskBatched.put(eligibleProvider.identity(), Boolean.TRUE);
-                }
 
-                if (newValue <= 0) {
-                    taskIter.remove();
-                    if (leftover > 0) {
-                        ParallelBatchCpuHelper.reinject(result, leftover, inv);
-                        leftover = 0;
+                    if (newValue <= 0) {
+                        taskIter.remove();
+                        if (leftover > 0) {
+                            ParallelBatchCpuHelper.reinject(result, leftover, inv);
+                            leftover = 0;
+                        }
+                        if (opsBudget <= 0 || copiesBudget <= 0) {
+                            if (dirty) markDirty.run();
+                            return new BatchRunResult(totalPushed, consumedOps, sawBatchProvider);
+                        }
+                        break;
                     }
+
                     if (opsBudget <= 0 || copiesBudget <= 0) {
+                        if (leftover > 0) {
+                            ParallelBatchCpuHelper.reinject(result, leftover, inv);
+                            leftover = 0;
+                        }
                         if (dirty) markDirty.run();
                         return new BatchRunResult(totalPushed, consumedOps, sawBatchProvider);
                     }
-                    break;
                 }
 
-                if (opsBudget <= 0 || copiesBudget <= 0) {
-                    if (leftover > 0) {
-                        ParallelBatchCpuHelper.reinject(result, leftover, inv);
-                        leftover = 0;
-                    }
-                    if (dirty) markDirty.run();
-                    return new BatchRunResult(totalPushed, consumedOps, sawBatchProvider);
+            } catch (RuntimeException failure) {
+                job.failDispatch("BATCH_DISPATCH_ACCOUNTING_FAILURE", failure);
+                return new BatchRunResult(totalPushed, consumedOps, sawBatchProvider);
+            } finally {
+                if (leftover > 0) {
+                    ParallelBatchCpuHelper.reinject(result, leftover, inv);
                 }
-            }
-
-            if (leftover > 0) {
-                ParallelBatchCpuHelper.reinject(result, leftover, inv);
             }
         }
 

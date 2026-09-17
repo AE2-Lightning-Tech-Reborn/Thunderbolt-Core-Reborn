@@ -41,9 +41,14 @@ public final class PlannedInputAssignments {
             assignments.computeIfAbsent(source, ignored -> new ArrayList<>())
                     .add(new Task(new PlannedInputPattern(source, slots), entry.getValue()));
         }
-        // Never partially replace a source's firings if only some graph branches have metadata.
-        assignments.entrySet().removeIf(entry -> entry.getValue().stream().mapToLong(Task::copies).sum()
-                != exported.patternTimes().getOrDefault(entry.getKey(), 0L));
+        // A partially bound source must not silently become an unrestricted task.
+        for (var entry : assignments.entrySet()) {
+            long copies = 0;
+            for (var task : entry.getValue()) copies = Math.addExact(copies, task.copies());
+            if (copies != exported.patternTimes().getOrDefault(entry.getKey(), 0L)) {
+                throw new IllegalStateException("Incomplete planned input assignments");
+            }
+        }
         assignments.replaceAll((source, tasks) -> List.copyOf(tasks));
         if (!assignments.isEmpty()) PLANS.put(exported, Map.copyOf(assignments));
     }

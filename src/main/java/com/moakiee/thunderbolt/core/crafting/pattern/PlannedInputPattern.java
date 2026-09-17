@@ -149,6 +149,7 @@ public final class PlannedInputPattern implements IPatternDetails, IProviderLook
             this.delegate = delegate;
             this.allocation = allocation;
             var templates = new ArrayList<GenericStack>();
+            var allocatedUnits = java.math.BigInteger.ZERO;
             for (var key : allocation.keySet()) {
                 GenericStack anchor = null;
                 for (var candidate : delegate.getPossibleInputs()) {
@@ -158,7 +159,15 @@ public final class PlannedInputPattern implements IPatternDetails, IProviderLook
                     }
                 }
                 if (anchor == null) throw new IllegalArgumentException("planned input no longer matches pattern");
+                long amount = allocation.get(key);
+                if (anchor.amount() <= 0 || amount % anchor.amount() != 0) {
+                    throw new IllegalArgumentException("planned input has invalid template units");
+                }
+                allocatedUnits = allocatedUnits.add(java.math.BigInteger.valueOf(amount / anchor.amount()));
                 templates.add(new GenericStack(key, anchor.amount()));
+            }
+            if (!allocatedUnits.equals(java.math.BigInteger.valueOf(delegate.getMultiplier()))) {
+                throw new IllegalArgumentException("planned input quantity no longer matches pattern");
             }
             this.possible = templates.toArray(GenericStack[]::new);
         }

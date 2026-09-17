@@ -29,6 +29,79 @@ class PlannedInputDispatchTest {
     private static final TestKey B = new TestKey("b");
 
     @Test
+    void changedInputCountsCannotRestoreAnUnexecutableAllocation() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new PlannedInputPattern(pattern(input(2, A, B)), List.of(Map.of(A, 1L))));
+        assertThrows(IllegalArgumentException.class,
+                () -> new PlannedInputPattern(pattern(input(1, A, B)), List.of(Map.of(A, 1L, B, 1L))));
+    }
+
+    @Test
+    void ambiguousBatchDoesNotReplayAndReturnsOnlyUntouchedCopies() throws Exception {
+        for (String mode : List.of("throw", "invalid", "accounting")) {
+            var source = pattern(input(1, A));
+            var planned = new PlannedInputPattern(source, List.of(Map.of(A, 1L)));
+            var stock = inventory(10, 0);
+            long[] progress = {10};
+            int[] calls = {0};
+            String[] error = {null};
+            var providerType = com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider.class;
+            var provider = (com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider)
+                    java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[] {providerType},
+                            (proxy, method, args) -> switch (method.getName()) {
+                                case "getBatchCapacity" -> 10L;
+                                case "getBatchDispatchMode" -> com.moakiee.thunderbolt.api.crafting.batch.BatchDispatchMode.NORMAL;
+                                case "isBusy", "supportsSharedBatchInputs" -> false;
+                                case "pushBatch" -> {
+                                    calls[0]++;
+                                    if (mode.equals("throw")) throw new IllegalStateException("accepted then failed");
+                                    yield mode.equals("invalid") ? -1L : 0L;
+                                }
+                                default -> null;
+                            });
+            var schedule = new TickProviderDispatchSchedule();
+            var scheduleClass = Class.forName(TickProviderDispatchSchedule.class.getName() + "$PatternSchedule");
+            var constructor = scheduleClass.getDeclaredConstructor(List.class);
+            constructor.setAccessible(true);
+            var schedules = TickProviderDispatchSchedule.class.getDeclaredField("patterns");
+            schedules.setAccessible(true);
+            // Two providers reserve ten copies; the first receives five. Failure must leave
+            // the second half available without attempting the second provider.
+            var secondProvider = java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),
+                    new Class<?>[] {providerType}, java.lang.reflect.Proxy.getInvocationHandler(provider));
+            ((Map) schedules.get(schedule)).put(source, constructor.newInstance(List.of(provider, secondProvider)));
+            var handle = new com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle() {
+                public IPatternDetails details() { return planned; }
+                public long getValue() { return progress[0]; }
+                public void setValue(long value) {
+                    if (mode.equals("accounting")) throw new IllegalStateException("accounting failed");
+                    progress[0] = value;
+                }
+            };
+            var job = new com.moakiee.thunderbolt.api.crafting.batch.BatchJobView() {
+                public Level level() { return null; }
+                public java.util.UUID craftingId() { return null; }
+                public java.util.Iterator<com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle> taskIterator() {
+                    return List.<com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle>of(handle).iterator();
+                }
+                public ListCraftingInventory waitingFor() { return new ListCraftingInventory(key -> {}); }
+                public void addContainerMaxItems(long count, AEKeyType type) { }
+                public void failDispatch(String reason, Throwable cause) { error[0] = reason; }
+            };
+            var energyType = appeng.api.networking.energy.IEnergyService.class;
+            var energy = (appeng.api.networking.energy.IEnergyService)
+                    java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[] {energyType},
+                            (proxy, method, args) -> method.getName().equals("extractAEPower") ? args[0] : null);
+            BatchExecutor.runBatchOnly(10, BatchCpuAccounting.Mode.SUCCESSFUL_DISPATCH, null, energy,
+                    job, stock, new java.util.HashMap<>(), () -> {}, Map.of(), 10, 10, false, schedule);
+            assertNotNull(error[0], mode);
+            assertEquals(1, calls[0], mode);
+            assertEquals(5, held(stock, A), mode);
+            assertEquals(10, progress[0], mode);
+        }
+    }
+
+    @Test
     void concreteInputArrayCanBeWrappedWithoutChangingTheSource() {
         Input[] sourceInputs = {input(1, B, A)};
         var source = pattern(sourceInputs);
