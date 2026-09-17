@@ -668,11 +668,18 @@ final class BoundedIntegerLinearSolver {
             if (denominator.signum() == 0) {
                 throw new ArithmeticException("zero denominator");
             }
+            // Sparse simplex rows contain mostly zero and integer cells.
+            if (numerator.signum() == 0) {
+                this.numerator = BigInteger.ZERO;
+                this.denominator = BigInteger.ONE;
+                return;
+            }
             if (denominator.signum() < 0) {
                 numerator = numerator.negate();
                 denominator = denominator.negate();
             }
-            BigInteger gcd = numerator.gcd(denominator);
+            BigInteger gcd = denominator.equals(BigInteger.ONE)
+                    ? BigInteger.ONE : numerator.gcd(denominator);
             this.numerator = numerator.divide(gcd);
             this.denominator = denominator.divide(gcd);
         }
@@ -691,23 +698,40 @@ final class BoundedIntegerLinearSolver {
         }
 
         Rational add(Rational other) {
+            if (other.signum() == 0) return this;
+            if (signum() == 0) return other;
+            if (denominator.equals(other.denominator)) {
+                return new Rational(numerator.add(other.numerator), denominator);
+            }
             return new Rational(
                     numerator.multiply(other.denominator).add(other.numerator.multiply(denominator)),
                     denominator.multiply(other.denominator));
         }
 
         Rational subtract(Rational other) {
+            if (other.signum() == 0) return this;
+            if (equals(other)) return ZERO;
+            if (denominator.equals(other.denominator)) {
+                return new Rational(numerator.subtract(other.numerator), denominator);
+            }
             return new Rational(
                     numerator.multiply(other.denominator).subtract(other.numerator.multiply(denominator)),
                     denominator.multiply(other.denominator));
         }
 
         Rational multiply(Rational other) {
+            if (signum() == 0 || other.signum() == 0) return ZERO;
+            if (equals(ONE)) return other;
+            if (other.equals(ONE)) return this;
             return new Rational(
                     numerator.multiply(other.numerator), denominator.multiply(other.denominator));
         }
 
         Rational divide(Rational other) {
+            if (other.signum() == 0) throw new ArithmeticException("zero denominator");
+            if (signum() == 0) return ZERO;
+            if (other.equals(ONE)) return this;
+            if (equals(other)) return ONE;
             return new Rational(
                     numerator.multiply(other.denominator), denominator.multiply(other.numerator));
         }
