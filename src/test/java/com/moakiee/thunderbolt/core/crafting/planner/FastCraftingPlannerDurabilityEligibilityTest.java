@@ -144,6 +144,176 @@ class FastCraftingPlannerDurabilityEligibilityTest {
         assertEquals(2L, attempt.simulationFallback().patternTimes().get(makeD));
     }
 
+    @Test
+    void exhaustedToolIsReplacedOnlyAfterItsLastUsableCraft() {
+        int life = B.toStack().getMaxDamage();
+        for (int amount : new int[]{life - 1, life, life + 1, 2 * life, 2 * life + 1}) {
+            long replacements = (amount - 1L) / life;
+            var result = durabilityAttempt(B, amount, Map.of(B, 1L, A, replacements, C, (long) amount));
+            assertNotNull(result.plan(), "amount=" + amount);
+            assertTrue(result.plan().missingItems().isEmpty());
+            assertEquals(1L, result.plan().usedItems().get(B));
+            assertEquals(replacements, result.plan().usedItems().get(A));
+        }
+    }
+
+    @Test
+    void oneCraftPastBreakageReportsTheNextToolsRawMaterial() {
+        long amount = B.toStack().getMaxDamage() + 1L;
+        var result = durabilityAttempt(B, amount, Map.of(B, 1L, C, amount));
+        assertNull(result.plan());
+        assertNotNull(result.simulationFallback());
+        assertEquals(1L, result.simulationFallback().missingItems().get(A));
+        assertEquals(0L, result.simulationFallback().missingItems().get(B));
+    }
+
+    @Test
+    void lastDurabilityStockAndLastDurabilityTemplateBothStillAllowReplacement() {
+        ItemStack last = B.toStack();
+        last.setDamageValue(last.getMaxDamage() - 1);
+        AEItemKey lastKey = AEItemKey.of(last);
+        for (AEItemKey template : List.of(B, lastKey)) {
+            var lastUse = durabilityAttempt(template, 1, Map.of(lastKey, 1L, C, 1L));
+            assertNotNull(lastUse.plan());
+            assertEquals(1L, lastUse.plan().usedItems().get(lastKey));
+            var replaced = durabilityAttempt(template, 2, Map.of(lastKey, 1L, A, 1L, C, 2L));
+            assertNotNull(replaced.plan());
+            assertEquals(1L, replaced.plan().usedItems().get(lastKey));
+            assertEquals(1L, replaced.plan().usedItems().get(A));
+        }
+    }
+
+    @Test
+    void finalUseDoesNotRegisterAPhantomRemainderInCpuExtraction() {
+        ItemStack last = B.toStack();
+        last.setDamageValue(last.getMaxDamage() - 1);
+        AEItemKey lastKey = AEItemKey.of(last);
+        IPatternDetails base = TestCraftingPattern.create(D, new IPatternDetails.IInput[]{
+                new DurabilityInput(B, true), new ExactInput(C)});
+        var allocated = new com.moakiee.thunderbolt.core.crafting.pattern.PlannedInputPattern(
+                base, List.of(Map.of(), Map.of(C, 1L)));
+        for (var pattern : List.of(base, allocated)) {
+            var inventory = new StockInventory(Map.of(lastKey, 1L, C, 1L));
+            var outputs = new appeng.api.stacks.KeyCounter();
+            var containers = new appeng.api.stacks.KeyCounter();
+            var extracted = com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper
+                    .extractPatternInputs(pattern, inventory, null, outputs, containers);
+            assertNotNull(extracted);
+            assertEquals(1L, outputs.get(D));
+            assertTrue(containers.isEmpty(), "broken tool must have no awaited remainder");
+            assertEquals(0L, inventory.extract(lastKey, 1, Actionable.SIMULATE));
+        }
+    }
+
+    @Test
+    void parallelUseMayLeaveOneDurabilityOnEachToolButTheNextCraftConsumesIt() {
+        var input = new DurabilityInput(B, true);
+        IPatternDetails pattern = TestCraftingPattern.create(D, new IPatternDetails.IInput[]{input});
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        int tools = 8, life = B.toStack().getMaxDamage();
+        inventory.insert(B, tools, Actionable.MODULATE);
+        long remaining = (long) tools * (life - 1);
+        while (remaining > 0) {
+            var batch = com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper
+                    .bulkExtract(pattern, inventory, remaining, true, Map.of(), null);
+            assertNotNull(batch);
+            for (var entry : batch.scaledInputs[0]) {
+                var returned = input.getRemainingKey(entry.getKey());
+                if (returned != null) inventory.insert(returned, entry.getLongValue(), Actionable.MODULATE);
+            }
+            remaining -= batch.actualCopies;
+        }
+        ItemStack last = B.toStack();
+        last.setDamageValue(life - 1);
+        AEItemKey lastKey = AEItemKey.of(last);
+        assertEquals(tools, inventory.extract(lastKey, Long.MAX_VALUE, Actionable.SIMULATE));
+        var next = com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper
+                .bulkExtract(pattern, inventory, tools, true, Map.of(), null);
+        assertNotNull(next, "all of the remaining one-use tools are still accepted");
+        assertEquals(tools, next.actualCopies);
+        assertEquals(tools, next.scaledInputs[0].get(lastKey));
+        assertNull(input.getRemainingKey(lastKey));
+    }
+
+    @Test
+    void nativeStyleFuzzyAnchorsDoNotReserveOneWholeToolForEveryUse() {
+        assertFuzzyToolReservation(B, B.toStack().getMaxDamage());
+    }
+
+    @Test
+    void twoUsesOfOneDamagedToolDoNotReserveTwoToolsAndLeaveBothAtOneDurability() {
+        ItemStack twoUses = B.toStack();
+        twoUses.setDamageValue(twoUses.getMaxDamage() - 2);
+        assertFuzzyToolReservation(AEItemKey.of(twoUses), 2);
+    }
+
+    @Test
+    void lastUseStockDoesNotPullInAFreshToolThatCpuCanChooseInstead() {
+        ItemStack last = B.toStack();
+        last.setDamageValue(last.getMaxDamage() - 1);
+        AEItemKey lastKey = AEItemKey.of(last);
+        IPatternDetails pattern = TestCraftingPattern.create(D,
+                new IPatternDetails.IInput[]{nativeStyleDurabilityInput(B)});
+        var service = new FakeCraftingService().pattern(D, pattern).craftable(D);
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(B, 100L, lastKey, 1L))),
+                null, D, 1, false);
+        assertNotNull(attempt.plan());
+        assertEquals(1L, attempt.plan().usedItems().get(lastKey));
+        assertEquals(0L, attempt.plan().usedItems().get(B), "the old tool's last use already covers this job");
+    }
+
+    private static IPatternDetails.IInput nativeStyleDurabilityInput(AEItemKey template) {
+        var source = new DurabilityInput(template, true);
+        return new IPatternDetails.IInput() {
+            // AECraftingPattern lists its captured input and the recipe ingredient separately.
+            public GenericStack[] getPossibleInputs() {
+                return new GenericStack[]{new GenericStack(template, 1), new GenericStack(B, 1)};
+            }
+            public long getMultiplier() { return 1; }
+            public boolean isValid(AEKey key, Level level) { return source.isValid(key, level); }
+            public AEKey getRemainingKey(AEKey key) { return source.getRemainingKey(key); }
+        };
+    }
+
+    private static void assertFuzzyToolReservation(AEItemKey template, long amount) {
+        IPatternDetails pattern = TestCraftingPattern.create(D,
+                new IPatternDetails.IInput[]{nativeStyleDurabilityInput(template)});
+        var service = new FakeCraftingService().pattern(D, pattern).craftable(D);
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(template, 100L))),
+                null, D, amount, false);
+        assertNotNull(attempt.plan());
+        assertEquals(1L, attempt.plan().usedItems().get(template), "one tool covers the requested uses");
+        // Feed precisely the exported stock through native AE2 extraction: it must use the same
+        // tool until it disappears, instead of spreading those crafts across surplus tools.
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(template, attempt.plan().usedItems().get(template), Actionable.MODULATE);
+        for (long craft = 0; craft < amount; craft++) {
+            var outputs = new appeng.api.stacks.KeyCounter();
+            var containers = new appeng.api.stacks.KeyCounter();
+            assertNotNull(com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper
+                    .extractPatternInputs(pattern, inventory, null, outputs, containers));
+            assertEquals(1L, outputs.get(D));
+            for (var entry : containers) {
+                if (craft + 1 == amount) assertEquals(0L, entry.getLongValue());
+                if (entry.getLongValue() > 0)
+                    inventory.insert(entry.getKey(), entry.getLongValue(), Actionable.MODULATE);
+            }
+        }
+    }
+
+    private static FastCraftingPlanner.FastAttempt durabilityAttempt(
+            AEItemKey template, long amount, Map<AEKey, Long> stock) {
+        IPatternDetails makeB = new FakePattern(B, new IPatternDetails.IInput[]{new ExactInput(A)});
+        IPatternDetails makeD = TestCraftingPattern.create(D, new IPatternDetails.IInput[]{
+                new DurabilityInput(template, true), new ExactInput(C)});
+        var service = new FakeCraftingService().pattern(B, makeB).pattern(D, makeD)
+                .craftable(B).craftable(D);
+        return FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(stock)), null, D, amount, false);
+    }
+
     private record TestInput(boolean allowVariants) implements IPatternDetails.IInput {
         @Override public GenericStack[] getPossibleInputs() {
             return new GenericStack[] {new GenericStack(FULL_TOOL, 1)};

@@ -1528,7 +1528,7 @@ public final class FastCraftingPlanner {
             }
         }
 
-        // AE2 extracts fuzzy-slot stock before it decides how much of the remainder must be crafted.
+        // AE2 extracts ordinary fuzzy-slot stock before deciding how much must be crafted.
         // Preserve that observable behavior: charge any still-unused accepted stock up to the slot's
         // aggregate demand, even when the compact planner found a more economical concrete mix.
         chargeAvailableFuzzyStock(plan, usedItems, snapshot, reservedStock);
@@ -1585,6 +1585,17 @@ public final class FastCraftingPlanner {
             for (IPatternDetails.IInput slot : sourceEntry.getKey().getInputs()) {
                 GenericStack[] possible = slot.getPossibleInputs();
                 if (possible.length <= 1) continue;
+                // Stock-first padding is only meaningful for ordinary consumable slots. Tool uses
+                // and returned seeds have already been translated to physical items above. Charging
+                // them once per firing again can reserve many tools that one chain already covers.
+                boolean returnsItem = false;
+                for (GenericStack option : possible) {
+                    if (slot.getRemainingKey(option.what()) != null) {
+                        returnsItem = true;
+                        break;
+                    }
+                }
+                if (returnsItem) continue;
                 long remainingUnits = Sat.mul(times, Math.max(1, slot.getMultiplier()));
                 for (GenericStack option : possible) {
                     long unitAmount = Math.max(1, option.amount());
