@@ -49,11 +49,11 @@ class FastCraftingPlannerPlanConversionTest {
 
     @Test
     void feasiblePlanKeepsConcreteAllocationThroughExportAndDispatch() {
-        var flexible = new FakePattern(D, new IPatternDetails.IInput[] {
+        var flexible = new FakePattern(D, new FakeInput[] {
                 new FakeInput(new GenericStack(B, 1), new GenericStack(A, 1))});
-        var strict = new FakePattern(E, new IPatternDetails.IInput[] {
+        var strict = new FakePattern(E, new FakeInput[] {
                 new FakeInput(new GenericStack(B, 1))});
-        var target = new FakePattern(TARGET, new IPatternDetails.IInput[] {
+        var target = new FakePattern(TARGET, new FakeInput[] {
                 new FakeInput(new GenericStack(D, 1)), new FakeInput(new GenericStack(E, 1))});
         var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
         inventory.insert(A, 1, Actionable.MODULATE);

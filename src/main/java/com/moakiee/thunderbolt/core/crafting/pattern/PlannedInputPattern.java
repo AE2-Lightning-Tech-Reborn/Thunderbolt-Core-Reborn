@@ -33,7 +33,10 @@ public final class PlannedInputPattern implements IPatternDetails, IProviderLook
 
     public PlannedInputPattern(IPatternDetails delegate, List<Map<AEKey, Long>> slots) {
         this.delegate = Objects.requireNonNull(delegate);
-        this.inputs = delegate.getInputs().clone();
+        var sourceInputs = delegate.getInputs();
+        // clone() preserves concrete array types such as AEProcessingPattern.Input[].
+        // Allocate an interface array so replacement inputs can use our allocation wrapper.
+        this.inputs = java.util.Arrays.copyOf(sourceInputs, sourceInputs.length, IInput[].class);
         if (slots.size() != inputs.length) throw new IllegalArgumentException("input slot count changed");
         var copied = new ArrayList<Map<AEKey, Long>>(slots.size());
         for (int slot = 0; slot < slots.size(); slot++) {

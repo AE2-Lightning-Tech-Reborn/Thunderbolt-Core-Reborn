@@ -29,6 +29,22 @@ class PlannedInputDispatchTest {
     private static final TestKey B = new TestKey("b");
 
     @Test
+    void concreteInputArrayCanBeWrappedWithoutChangingTheSource() {
+        Input[] sourceInputs = {input(1, B, A)};
+        var source = pattern(sourceInputs);
+        var planned = new PlannedInputPattern(source, List.of(Map.of(A, 1L)));
+        assertSame(sourceInputs, source.getInputs());
+        assertSame(sourceInputs[0], source.getInputs()[0]);
+        assertEquals(Input.class, source.getInputs().getClass().getComponentType());
+        var inventory = inventory(1, 1);
+        var extracted = ParallelBatchCpuHelper.extractPatternInputs(
+                planned, inventory, null, new KeyCounter(), new KeyCounter());
+        assertNotNull(extracted);
+        assertEquals(1, extracted[0].get(A));
+        assertEquals(1, held(inventory, B));
+    }
+
+    @Test
     void singleDispatchLeavesTheFirstCandidateForItsStrictConsumer() {
         var inventory = inventory(1, 1);
         var source = pattern(input(1, B, A));
