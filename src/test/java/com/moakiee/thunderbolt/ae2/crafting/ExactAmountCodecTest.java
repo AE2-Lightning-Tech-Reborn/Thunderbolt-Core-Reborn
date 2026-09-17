@@ -39,9 +39,24 @@ class ExactAmountCodecTest {
     void fullDisplayPreservesEveryDigitAndFluidFraction() {
         BigInteger value = new BigInteger("123456789012345678901234567890001");
         assertEquals("123,456,789,012,345,678,901,234,567.890001", ExactAmountFormatter.full(value, 1000000));
-        assertEquals("123.5E+24", ExactAmountFormatter.compact(value, 1000000));
+        assertEquals("123.5Y", ExactAmountFormatter.compact(value, 1000000));
         assertEquals(Long.MAX_VALUE, ExactPlanReport.project(value));
         BigInteger thousandDigits = BigInteger.TEN.pow(1000).add(BigInteger.ONE);
         assertEquals(thousandDigits.toString(), ExactAmountFormatter.full(thousandDigits, 1).replace(",", ""));
+    }
+
+    @Test
+    void compactDisplayUsesPrefixesAndPromotesRoundedBoundaries() {
+        String[] suffixes = {"", "K", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q", "KQ"};
+        for (int group = 0; group < suffixes.length; group++) {
+            assertEquals("1" + suffixes[group], ExactAmountFormatter.compact(BigInteger.TEN.pow(group * 3), 1));
+        }
+        assertEquals("0", ExactAmountFormatter.compact(BigInteger.ZERO, 1));
+        assertEquals("999", ExactAmountFormatter.compact(BigInteger.valueOf(999), 1));
+        assertEquals("1M", ExactAmountFormatter.compact(BigInteger.valueOf(999950), 1));
+        assertEquals("0.001", ExactAmountFormatter.compact(BigInteger.ONE, 1000));
+        assertEquals("30.37Z", ExactAmountFormatter.compact(new BigInteger("30369403858680023055848"), 1));
+        assertEquals("1QQ", ExactAmountFormatter.compact(BigInteger.TEN.pow(60), 1));
+        assertEquals("10K" + "Q".repeat(33), ExactAmountFormatter.compact(BigInteger.TEN.pow(994), 1));
     }
 }

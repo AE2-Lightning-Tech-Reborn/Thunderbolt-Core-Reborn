@@ -9,13 +9,18 @@ import java.util.Locale;
 
 /** Formats exact base-unit amounts without a double conversion, including fluid unit scaling. */
 public final class ExactAmountFormatter {
+    private static final String[] PREFIXES = {"", "K", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"};
+
     private ExactAmountFormatter() {}
 
     public static String compact(BigInteger amount, long units) {
         BigDecimal scaled = new BigDecimal(amount).divide(BigDecimal.valueOf(Math.max(1, units)),
                 new MathContext(4, RoundingMode.HALF_UP)).stripTrailingZeros();
-        if (scaled.precision() - scaled.scale() <= 7) return scaled.toPlainString();
-        return scaled.toEngineeringString();
+        int group = Math.max(0, (scaled.precision() - scaled.scale() - 1) / 3);
+        if (group == 0) return scaled.toPlainString();
+        // Continue beyond quetta with KQ, MQ, ... QQ, KQQ, etc.
+        String suffix = PREFIXES[group % 10] + "Q".repeat(group / 10);
+        return scaled.movePointLeft(group * 3).toPlainString() + suffix;
     }
 
     public static String full(BigInteger amount, long units) {
