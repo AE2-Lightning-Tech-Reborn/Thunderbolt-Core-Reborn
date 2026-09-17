@@ -119,6 +119,25 @@ final class ConservativeFeedbackAnalysis<K> {
             List<K> itemOrder,
             Map<K, List<CraftPattern<K>>> patternsByOutput) {
         List<CraftPattern<K>> patterns = stablePatterns(itemOrder, patternsByOutput);
+        Map<K, Integer> itemRank = new HashMap<>();
+        for (int i = 0; i < itemOrder.size(); i++) itemRank.putIfAbsent(itemOrder.get(i), i);
+        List<Component<K>> result = new ArrayList<>();
+        List<FallbackComponent<K>> fallbacks = new ArrayList<>();
+        List<Set<K>> cyclicComponents = cyclicComponents(patterns);
+        for (Set<K> states : cyclicComponents) {
+            Component<K> component = classify(states, patterns, itemRank);
+            if (component != null) {
+                result.add(component);
+            } else {
+                FallbackComponent<K> fallback = classifyFallback(states, patterns, itemRank);
+                if (fallback != null) fallbacks.add(fallback);
+            }
+        }
+        return new Analysis<>(result, fallbacks, cyclicComponents);
+    }
+
+    /** Structural membership alone never admits cyclic execution or a growing feedback route. */
+    static <K> List<Set<K>> cyclicComponents(List<CraftPattern<K>> patterns) {
         Map<K, LinkedHashSet<K>> mutableAdjacency = new LinkedHashMap<>();
         Set<K> nodes = new LinkedHashSet<>();
 
@@ -141,11 +160,6 @@ final class ConservativeFeedbackAnalysis<K> {
         Map<K, List<K>> adjacency = new LinkedHashMap<>();
         mutableAdjacency.forEach((key, value) -> adjacency.put(key, List.copyOf(value)));
         List<Set<K>> stronglyConnected = stronglyConnectedComponents(nodes, adjacency);
-        Map<K, Integer> itemRank = new HashMap<>();
-        for (int i = 0; i < itemOrder.size(); i++) itemRank.putIfAbsent(itemOrder.get(i), i);
-
-        List<Component<K>> result = new ArrayList<>();
-        List<FallbackComponent<K>> fallbacks = new ArrayList<>();
         List<Set<K>> cyclicComponents = new ArrayList<>();
         for (Set<K> states : stronglyConnected) {
             PlanningCancellation.check();
@@ -156,16 +170,8 @@ final class ConservativeFeedbackAnalysis<K> {
             // Keep structural membership even when non-growth cannot be proved. Such a component
             // still admits external cut leaves; membership itself never admits cyclic execution.
             cyclicComponents.add(states);
-            Component<K> component = classify(states, patterns, itemRank);
-            if (component != null) {
-                result.add(component);
-            } else {
-                FallbackComponent<K> fallback = classifyFallback(
-                        states, patterns, itemRank);
-                if (fallback != null) fallbacks.add(fallback);
-            }
         }
-        return new Analysis<>(result, fallbacks, cyclicComponents);
+        return List.copyOf(cyclicComponents);
     }
 
     private static <K> List<CraftPattern<K>> stablePatterns(
@@ -575,8 +581,17 @@ final class ConservativeFeedbackAnalysis<K> {
      */
     static <K> List<ScheduleOption<K>> scheduleOptions(
             FallbackComponent<K> component, Map<CraftPattern<K>, Long> fired) {
+        return fixedCountSchedules(component.states(), component.patterns(), fired);
+    }
+
+    /**
+     * Prefix evidence for already selected, finite firing counts. This does not admit a new route:
+     * non-growth is needed when choosing counts, not when checking a concrete sequence's inputs.
+     */
+    static <K> List<ScheduleOption<K>> fixedCountSchedules(
+            Set<K> states, List<CraftPattern<K>> patterns, Map<CraftPattern<K>, Long> fired) {
         List<CraftPattern<K>> active = new ArrayList<>();
-        for (CraftPattern<K> pattern : component.patterns()) {
+        for (CraftPattern<K> pattern : patterns) {
             if (fired.getOrDefault(pattern, 0L) > 0L) active.add(pattern);
         }
         if (active.isEmpty()) return List.of();
@@ -589,7 +604,7 @@ final class ConservativeFeedbackAnalysis<K> {
         for (int start = 0; start < starts; start++) {
             PlanningCancellation.check();
             ScheduleOption<K> option = replayFallback(
-                    component.states(), active, fired, start, replaySteps);
+                    states, active, fired, start, replaySteps);
             if (seen.add(option.required())) result.add(option);
         }
         return List.copyOf(result);
