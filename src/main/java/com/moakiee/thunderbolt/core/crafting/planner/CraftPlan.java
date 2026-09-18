@@ -22,11 +22,12 @@ import java.util.Map;
  * @param itemsProcessed number of items visited by the linear demand pass, or recursive node
  *                       invocations performed by the bounded fallback. Request magnitude does not
  *                       affect this value because every firing count is handled in closed form.
- * @param budgetExhausted {@code true} only when the plan-wide fallback-search work budget denied more
- *                       work before global feasibility or infeasibility was proven. The plan still
- *                       carries a bounded, concrete best-effort route and actionable missing items;
- *                       callers must treat those items as a heuristic replenishment target, not as a
- *                       proof that every alternate route needs them. A hot-node visit threshold merely
+ * @param budgetExhausted {@code true} when a shared work budget or cycle-orientation limit prevented
+ *                       further search. This is an internal search diagnostic, not a separate user
+ *                       result. Missing items describe the selected route; even a completed search
+ *                       does not prove that every possible route needs those items. Ordinary material
+ *                       DAGs within the executable amount range additionally validate replenishment
+ *                       against a stock-independent recipe policy. A hot-node visit threshold merely
  *                       changes route ordering and does not set this flag.
  * @param <K> item key type
  */

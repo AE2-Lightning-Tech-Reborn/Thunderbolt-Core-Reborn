@@ -117,6 +117,13 @@ final class CpSatRuntime {
             int targetItem,
             long targetAmount,
             long[] firingUpperBounds,
+            long[] missingCaps,
+            long[][] unreachable,
+            boolean enforceStartup,
+            boolean[] missingAllowed,
+            int[][] missingCutProducers,
+            long[][] executionBlocks,
+            int blockStages,
             double maxSeconds) {
         Bridge loaded = bridge;
         if (loaded == null) {
@@ -147,6 +154,13 @@ final class CpSatRuntime {
                     targetItem,
                     targetAmount,
                     firingUpperBounds,
+                    missingCaps,
+                    unreachable,
+                    enforceStartup,
+                    missingAllowed,
+                    missingCutProducers,
+                    executionBlocks,
+                    blockStages,
                     maxSeconds);
         } catch (IllegalAccessException impossible) {
             throw new IllegalStateException("CP-SAT bridge is inaccessible", impossible);
@@ -265,6 +279,13 @@ final class CpSatRuntime {
                     int.class,
                     long.class,
                     long[].class,
+                    long[].class,
+                    long[][].class,
+                    boolean.class,
+                    boolean[].class,
+                    int[][].class,
+                    long[][].class,
+                    int.class,
                     double.class);
             Method chooseFeedbackOption = bridgeClass.getMethod(
                     "chooseFeedbackOption",

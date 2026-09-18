@@ -58,7 +58,7 @@ final class ExactPlanPreview {
             if (emittable.contains(key)) emitted.merge(key, value, BigInteger::add);
             else {
                 var chain = durability.get(key);
-                missing.merge(key, chain == null ? value
+                missing.merge(LateBoundOutputKey.physical(key), chain == null ? value
                         : ExactDiagnosticPlanner.ceilDiv(value, BigInteger.valueOf(chain.n())), BigInteger::add);
             }
         });

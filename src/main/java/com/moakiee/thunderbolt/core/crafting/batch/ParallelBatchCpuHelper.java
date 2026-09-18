@@ -212,7 +212,21 @@ public final class ParallelBatchCpuHelper {
         var inputs = details.getInputs();
         var resolved = new KeyCounter[inputs.length];
         var remainders = new ArrayList<RemainderSpec>();
-        for (int slot = 0; slot < inputs.length; slot++) {
+        int[] extractionOrder = new int[inputs.length];
+        int next = 0;
+        if (details instanceof PlannedInputPattern planned) {
+            // Resolve fixed allocations before dynamic slots, which may also accept those keys.
+            // Keep the result indexed by the original slot so provider semantics do not change.
+            for (int slot = 0; slot < inputs.length; slot++) {
+                if (!planned.allocations().get(slot).isEmpty()) extractionOrder[next++] = slot;
+            }
+            for (int slot = 0; slot < inputs.length; slot++) {
+                if (planned.allocations().get(slot).isEmpty()) extractionOrder[next++] = slot;
+            }
+        } else {
+            for (int slot = 0; slot < inputs.length; slot++) extractionOrder[next++] = slot;
+        }
+        for (int slot : extractionOrder) {
             var input = inputs[slot];
             var holder = resolved[slot] = new KeyCounter();
             var slotInventory = details instanceof PlannedInputPattern planned

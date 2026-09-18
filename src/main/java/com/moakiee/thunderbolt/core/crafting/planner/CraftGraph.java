@@ -89,6 +89,19 @@ public final class CraftGraph<K> {
                 reusableStockRoutes, Map.copyOf(exactMerged));
     }
 
+    /** Residual ordinary stock for a prefix plan; committed draws cannot be spent a second time. */
+    CraftGraph<K> withoutStock(Map<K, Long> withdrawn) {
+        var remaining = new HashMap<>(stock);
+        var exactRemaining = new HashMap<>(exactStock);
+        withdrawn.forEach((key, amount) -> {
+            if (amount < 0 || amount > stock(key)) throw new IllegalArgumentException("invalid stock draw");
+            remaining.put(key, stock(key) - amount);
+            exactRemaining.put(key, exactStock(key).subtract(BigInteger.valueOf(amount)));
+        });
+        return new CraftGraph<>(patternsByOutput, Map.copyOf(remaining), reusableStock,
+                reusableStockRoutes, Map.copyOf(exactRemaining));
+    }
+
     Map<ReusableStockKey<K>, Long> reusableStock() {
         return reusableStock;
     }

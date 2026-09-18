@@ -69,8 +69,8 @@ import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
  *   <li><b>Recursion / cycle</b> → handled in-engine: the v2 planner breaks back-edges ("去头尾") so a
  *       compress/decompress pair (1 block ⇄ 9 ingots) is planned directly instead of declining. The
  *       reverse side resolves from stock/missing; cuts only remove options, never overstate feasibility.</li>
- *   <li>A <b>feasible</b> plan is always safe to return (mass-balanced ⇒ executable), even with
- *       byproducts and multiple recipe choices.</li>
+ *   <li>A <b>feasible</b> plan must satisfy both material accounting and the solver's ordered
+ *       execution/startup checks; aggregate balance alone is not a cycle reachability proof.</li>
  *   <li><b>Proven infeasible</b>: best-effort, never declined (Policy A).
  *       {@code simulate=false}→null, {@code simulate=true}→partial plan with missing items.</li>
  *   <li><b>Search budget exhausted</b>: stop enumerating alternatives and finish the current route
@@ -155,6 +155,7 @@ public final class FastCraftingPlanner {
         private final SolverKind solverKind;
         @Nullable
         private final CraftPlannerV2.PlanningSession<AEKey> plannerSession;
+        private final CpSatRankedFlowSolver.PlanningSession cpSatSession = new CpSatRankedFlowSolver.PlanningSession();
 
         public CalculationSession() {
             this(SolverKind.V2);
@@ -290,7 +291,7 @@ public final class FastCraftingPlanner {
         CraftPlan<AEKey> plan;
         if (session.solverKind == CalculationSession.SolverKind.CP_SAT) {
             CpSatRankedFlowSolver.Result<AEKey> solved =
-                    CpSatRankedFlowSolver.solve(compiled.graph, output, amount);
+                    CpSatRankedFlowSolver.solve(compiled.graph, output, amount, session.cpSatSession);
             if (solved.status() != CpSatRankedFlowSolver.Status.SOLVED
                     || solved.plan() == null) {
                 return FastAttempt.decline();
@@ -494,6 +495,7 @@ public final class FastCraftingPlanner {
         // Memoized "how much is already in the network" per key (SIMULATE probe), used to rank fuzzy
         // substitutes most-available-first so the bounded keep-best-32 picks the cheapest routes.
         Map<AEKey, Long> availability = new HashMap<>();
+        Map<AEKey, Boolean> lateBoundOutputs = new HashMap<>();
         RequirementModes requirementModes = new RequirementModes(root, forcedRequirementModes);
         Map<AEKey, Long> supplementalSelfSeedStock = new HashMap<>();
         // Unit-system bookkeeping. A durability chain prices its links in USES (carrier pool); every
@@ -516,6 +518,8 @@ public final class FastCraftingPlanner {
         while (!queue.isEmpty()) {
             exportBudget.consume();
             AEKey key = queue.poll();
+            AEKey catalogKey = LateBoundOutputKey.physical(key);
+            boolean lateBound = key instanceof LateBoundOutputKey;
             requirementModes.markProcessed(key);
 
             // Durability carrier: a finite-use token resource. Its stock (= aggregate uses over the
@@ -526,7 +530,7 @@ public final class FastCraftingPlanner {
             long outputScale = 1;
             if (carrier != null) {
                 outputScale = carrier.n();
-            } else {
+            } else if (!lateBound) {
                 long available = usableStock(snapshot, key, reservedStock);
                 if (available > 0) {
                     builder.stock(key, available);
@@ -537,13 +541,13 @@ public final class FastCraftingPlanner {
             // Emitable items (e.g. via level/energy emitters) are an infinite on-demand source: keep
             // them as a leaf with their current real stock, and treat any shortfall as emitted (handled
             // in toAe2Plan) rather than crafted. Never decline just because an item is emittable.
-            if (craftingService.canEmitFor(key)) {
+            if (!lateBound && craftingService.canEmitFor(key)) {
                 emittable.add(key);
                 builder.stock(key, Sat.SAT);
                 continue;
             }
 
-            Collection<IPatternDetails> patterns = craftingService.getCraftingFor(key);
+            Collection<IPatternDetails> patterns = craftingService.getCraftingFor(catalogKey);
             // Count only the primary-output views we actually register (see restriction below); the raw
             // getCraftingFor count would over-report "multiple paths" for secondary-output aliases.
             int registeredForKey = 0;
@@ -561,11 +565,12 @@ public final class FastCraftingPlanner {
                 // pattern of its own, surfaces as missing (Policy A best-effort) rather than being
                 // made by deliberately over-producing the primary.
                 GenericStack primaryStack = details.getPrimaryOutput();
-                if (primaryStack == null || !key.equals(primaryStack.what())) {
+                if (primaryStack == null || !catalogKey.equals(primaryStack.what())) {
                     continue;
                 }
-                if (!producerMatchesRequirement(
-                        details, key, requirementModes.modeFor(key), exportBudget)) {
+                if (lateBound ? !isLateBoundOutput(details, catalogKey, exportBudget)
+                        : !producerMatchesRequirement(
+                                details, key, requirementModes.modeFor(key), exportBudget)) {
                     continue;
                 }
                 patternSources.computeIfAbsent(key,
@@ -576,10 +581,14 @@ public final class FastCraftingPlanner {
                 List<CraftOutput<AEKey>> byproducts = new ArrayList<>(Math.max(0, outputs.size() - 1));
                 for (GenericStack out : outputs) {
                     exportBudget.consume();
-                    if (primary == null && key.equals(out.what())) {
+                    if (primary == null && catalogKey.equals(out.what())) {
                         primary = out;
                     } else {
-                        byproducts.add(CraftOutput.of(out.what(), out.amount()));
+                        // An uncertain secondary output must not leak into a strict resource pool,
+                        // including when its primary becomes reachable through the new mixed route.
+                        AEKey byproductKey = isLateBoundOutput(details, out.what(), exportBudget)
+                                ? new LateBoundOutputKey(out.what()) : out.what();
+                        byproducts.add(CraftOutput.of(byproductKey, out.amount()));
                     }
                 }
                 if (primary == null) {
@@ -699,6 +708,19 @@ public final class FastCraftingPlanner {
                         AEKey remaining = in.getRemainingKey(inputKey) instanceof AEKey r ? r : null;
                         if (remaining == null) {
                             opts.add(CraftInput.of(inputKey, template.amount()));
+                            // Exact stock/outputs remain shared by both consumers. Only the unknown
+                            // producer output gets its own resource, never a duplicate stock pool.
+                            if (sameIdClosure
+                                    && forcedRequirementModes.get(inputKey) == RequirementMode.MIXED
+                                    && lateBoundOutputs.computeIfAbsent(inputKey, candidate -> {
+                                        for (var producer : craftingService.getCraftingFor(candidate)) {
+                                            exportBudget.consume();
+                                            if (isLateBoundOutput(producer, candidate, exportBudget)) return true;
+                                        }
+                                        return false;
+                                    })) {
+                                opts.add(CraftInput.of(new LateBoundOutputKey(inputKey), template.amount()));
+                            }
                         } else if (remaining.equals(inputKey)) {
                             // Returned unchanged: a true catalyst / non-degrading container. One seed
                             // serves the whole batch (AE2's limitQty), modelled as a returned input.
@@ -743,7 +765,8 @@ public final class FastCraftingPlanner {
                     if (opts.size() > 1) {
                         for (CraftInput<AEKey> o : opts) {
                             availability.computeIfAbsent(o.key(),
-                                k -> usableStock(snapshot, k, reservedStock));
+                                k -> k instanceof LateBoundOutputKey ? 0L
+                                        : usableStock(snapshot, k, reservedStock));
                         }
                         opts.sort(Comparator.comparingLong(
                             (CraftInput<AEKey> o) -> availability.get(o.key())).reversed());
@@ -883,6 +906,19 @@ public final class FastCraftingPlanner {
         return true;
     }
 
+    private static boolean isLateBoundOutput(
+            IPatternDetails details, AEKey key, GraphExportBudget budget) {
+        var provider = CraftingPatternDelegates.forProviderLookup(details);
+        if (!(provider instanceof FuzzyPatternInputs fuzzy)) return false;
+        var outputs = provider.getOutputs();
+        for (int slot = 0; slot < outputs.size(); slot++) {
+            budget.consume();
+            var output = outputs.get(slot);
+            if (output != null && key.equals(output.what()) && fuzzy.producesSameIdVariants(slot)) return true;
+        }
+        return false;
+    }
+
     enum RequirementMode {
         // A direct order selects a concrete catalog entry, including the entry advertised by a
         // late-bound producer. It is not a downstream ingredient's promise about components.
@@ -910,9 +946,9 @@ public final class FastCraftingPlanner {
     }
 
     /**
-     * Tracks the demand capability attached to each concrete graph key. If a key has already been
-     * expanded and a later edge tightens its mode, the current graph is discarded and rebuilt with
-     * that mode forced from the start. This makes producer eligibility independent of BFS order.
+     * Tracks the demand capability attached to each concrete graph key. Late changes to producer
+     * eligibility, or any newly mixed demand requiring split consumer options, rebuild the graph
+     * with that mode forced from the start. This makes the split independent of BFS order.
      */
     static final class RequirementModes {
         private final Map<AEKey, RequirementMode> modes;
@@ -939,7 +975,9 @@ public final class FastCraftingPlanner {
                 return;
             }
             modes.put(key, merged);
-            if (processed.contains(key)) {
+            // A mixed demand also changes already-emitted consumer choices, even if BFS has not
+            // expanded the material itself yet. Rebuild once with the split known from the start.
+            if (processed.contains(key) || merged == RequirementMode.MIXED) {
                 lateChanges.merge(key, merged, RequirementMode::merge);
             }
         }
@@ -1490,7 +1528,7 @@ public final class FastCraftingPlanner {
             }
         }
 
-        // AE2 extracts fuzzy-slot stock before it decides how much of the remainder must be crafted.
+        // AE2 extracts ordinary fuzzy-slot stock before deciding how much must be crafted.
         // Preserve that observable behavior: charge any still-unused accepted stock up to the slot's
         // aggregate demand, even when the compact planner found a more economical concrete mix.
         chargeAvailableFuzzyStock(plan, usedItems, snapshot, reservedStock);
@@ -1508,7 +1546,7 @@ public final class FastCraftingPlanner {
                 // accepted by a fuzzy slot must therefore remain visible even when another accepted
                 // candidate happens to be produced by some fired pattern. Suppressing the whole slot
                 // here could otherwise export simulation=true with an empty missingItems counter.
-                missingItems.add(e.getKey(), e.getValue());
+                missingItems.add(LateBoundOutputKey.physical(e.getKey()), e.getValue());
             } else {
                 // Missing uses become full tools to craft/supply: ceil(uses / n).
                 missingItems.add(chain.carrier(), Sat.ceilDiv(e.getValue(), chain.n()));
@@ -1547,6 +1585,17 @@ public final class FastCraftingPlanner {
             for (IPatternDetails.IInput slot : sourceEntry.getKey().getInputs()) {
                 GenericStack[] possible = slot.getPossibleInputs();
                 if (possible.length <= 1) continue;
+                // Stock-first padding is only meaningful for ordinary consumable slots. Tool uses
+                // and returned seeds have already been translated to physical items above. Charging
+                // them once per firing again can reserve many tools that one chain already covers.
+                boolean returnsItem = false;
+                for (GenericStack option : possible) {
+                    if (slot.getRemainingKey(option.what()) != null) {
+                        returnsItem = true;
+                        break;
+                    }
+                }
+                if (returnsItem) continue;
                 long remainingUnits = Sat.mul(times, Math.max(1, slot.getMultiplier()));
                 for (GenericStack option : possible) {
                     long unitAmount = Math.max(1, option.amount());

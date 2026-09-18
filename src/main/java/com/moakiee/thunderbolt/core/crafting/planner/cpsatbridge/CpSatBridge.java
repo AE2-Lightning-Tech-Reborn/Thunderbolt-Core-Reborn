@@ -20,6 +20,7 @@ public final class CpSatBridge {
     public static final long INFEASIBLE = 1L;
     public static final long MODEL_INVALID = 2L;
     public static final long UNKNOWN = 3L;
+    public static final long SOLVED_PARTIAL = 4L;
 
     private CpSatBridge() {
     }
@@ -165,7 +166,7 @@ public final class CpSatBridge {
      * @param reusableCandidatePhysicals accepted physical-stock indices for each private route
      * @param reusablePhysicalStocks capacity of every host + actual-variant physical stock
      * @return {@code [status, branches, x0..xN, rank0..rankM, selectedCycleStart0..K,
-     * missing0..missingM, reusableMissing0..G]}
+     * missing0..missingM, reusableMissing0..G, blockRepetitions(stage-major)]}
      */
     public static long[] solveRankedPlan(
             long[][] consumed,
@@ -190,6 +191,13 @@ public final class CpSatBridge {
             int targetItem,
             long targetAmount,
             long[] firingUpperBounds,
+            long[] missingCaps,
+            long[][] unreachable,
+            boolean enforceStartup,
+            boolean[] missingAllowed,
+            int[][] missingCutProducers,
+            long[][] executionBlocks,
+            int blockStages,
             double maxSeconds) {
         int recipeCount = consumed.length;
         int itemCount = stocks.length;
@@ -205,6 +213,8 @@ public final class CpSatBridge {
                 || recipeCount != firingUpperBounds.length
                 || rankGroups.length != itemCount
                 || itemDistances.length != itemCount
+                || missingAllowed.length != itemCount
+                || missingCutProducers.length != itemCount
                 || cycleRecipes.length != cycleInputItems.length
                 || cycleRecipes.length != cycleInputAmounts.length
                 || cycleRecipes.length != cyclePrimitiveFirings.length
@@ -229,7 +239,7 @@ public final class CpSatBridge {
             }
             ranks[item] = model.newIntVar(0L, Math.max(0, itemCount - 1L), "rank_" + item);
             used[item] = model.newIntVar(0L, stocks[item], "used_" + item);
-            missing[item] = model.newIntVar(0L, missingUpperBound, "missing_" + item);
+            missing[item] = model.newIntVar(0L, missingAllowed[item] ? missingUpperBound : 0L, "missing_" + item);
         }
         var representativeByGroup = new java.util.HashMap<Integer, Integer>();
         for (int item = 0; item < itemCount; item++) {
@@ -250,7 +260,7 @@ public final class CpSatBridge {
                     || primaryOutputItems[recipe] < 0
                     || primaryOutputItems[recipe] >= itemCount
                     || primaryOutputAmounts[recipe] <= 0L
-                    || firingUpperBounds[recipe] <= 0L) {
+                    || firingUpperBounds[recipe] < 0L) {
                 return new long[] {MODEL_INVALID, 0L};
             }
             firings[recipe] = model.newIntVar(
@@ -335,6 +345,12 @@ public final class CpSatBridge {
         }
         // Create the complete variable vector before building any weighted sum: a catalyst may be
         // supplied by a producer that appears later in the caller's stable recipe order.
+        for (int i = 0; i < itemCount; i++) for (int producer : missingCutProducers[i]) {
+            if (producer < 0 || producer >= recipeCount) return new long[]{MODEL_INVALID, 0};
+            // A non-contracted cycle can use this point as an external leaf only after cutting
+            // its incoming cyclic producers. Retained, proven SCC seed ports have no such rows.
+            model.addEquality(missing[i], 0).onlyEnforceIf(active[producer]);
+        }
         for (int recipe = 0; recipe < recipeCount; recipe++) {
             model.addGreaterThan(firings[recipe], 0L).onlyEnforceIf(active[recipe]);
             model.addEquality(firings[recipe], 0L).onlyEnforceIf(active[recipe].not());
@@ -517,6 +533,8 @@ public final class CpSatBridge {
         // amount*firings-(amount-1)*active. Express it inline rather than with another long-domain
         // variable: besides being exact, this keeps OR-Tools' sum-of-domains overflow guard
         // independent of recipe ratios.
+        int[] demandRows = new int[itemCount];
+        java.util.Arrays.fill(demandRows, -1);
         for (int item = 0; item < itemCount; item++) {
             var demandVariables = new java.util.ArrayList<IntVar>();
             var demandCoefficients = new java.util.ArrayList<Long>();
@@ -546,6 +564,7 @@ public final class CpSatBridge {
                 demandCoefficients.add(-1L);
             }
             long directDemand = item == targetItem ? targetAmount : 0L;
+            demandRows[item] = model.getBuilder().getConstraintsCount();
             model.addLessOrEqual(
                     LinearExpr.weightedSum(
                             demandVariables.toArray(IntVar[]::new),
@@ -553,6 +572,7 @@ public final class CpSatBridge {
                     directDemand);
         }
 
+        int[] balanceRows = new int[itemCount];
         for (int item = 0; item < itemCount; item++) {
             long[] coefficients = new long[recipeCount];
             var finiteVariables = new java.util.ArrayList<IntVar>();
@@ -578,6 +598,7 @@ public final class CpSatBridge {
             }
             balanceVariables[recipeCount + finiteCount] = missing[item];
             balanceCoefficients[recipeCount + finiteCount] = 1L;
+            balanceRows[item] = model.getBuilder().getConstraintsCount();
             model.addGreaterOrEqual(
                     LinearExpr.weightedSum(balanceVariables, balanceCoefficients), minimumNet);
 
@@ -600,6 +621,17 @@ public final class CpSatBridge {
             model.addGreaterOrEqual(
                     LinearExpr.weightedSum(stockUseVariables, stockUseCoefficients), demand);
         }
+        addGroupBalances(model, firings, finiteUseBatches, missing, consumed, produced,
+                finiteUseAmounts, rankGroups, stocks, firingUpperBounds, missingUpperBound,
+                targetItem, targetAmount);
+        CpSatBalanceCuts.add(model, firings, rankGroups, demandRows, balanceRows);
+        addEmptySiphonSeeds(model, active, missing, consumed, produced, rankGroups, stocks);
+        if (!addPetriRefinement(model, firings, active, missing, consumed, stocks,
+                missingCaps, unreachable, enforceStartup)) {
+            return new long[] {MODEL_INVALID, 0L};
+        }
+        IntVar[] blockRepetitions = CpSatExecutionBlocks.add(model, firings, used, missing,
+                produced, outputItems, rankGroups, firingUpperBounds, executionBlocks, blockStages);
         model.addDecisionStrategy(
                 firings,
                 DecisionStrategyProto.VariableSelectionStrategy.CHOOSE_FIRST,
@@ -608,97 +640,21 @@ public final class CpSatBridge {
         if (!validation.isEmpty()) {
             throw new IllegalArgumentException("invalid CP-SAT ranked model: " + validation);
         }
-        long deadlineNanos = deadlineNanos(maxSeconds);
-        long branches = 0L;
-        CpSolver solver = null;
-
         var allUsed = new java.util.ArrayList<IntVar>();
-        for (int item = 0; item < itemCount; item++) {
-            if (stocks[item] > 0L) {
-                allUsed.add(used[item]);
-            }
-        }
+        for (int item = 0; item < itemCount; item++) if (stocks[item] > 0L) allUsed.add(used[item]);
         allUsed.addAll(reusableUsed);
-
-        // The overwhelmingly common case has no shortage. Prove that once on a clone while already
-        // minimizing executions; this avoids one optimization round per dependency depth on deep
-        // Fibonacci DAGs. Only a genuinely starved graph pays for the graded Missing objectives.
-        CpModel zeroMissingModel = model.getClone();
-        zeroMissingModel.addEquality(LinearExpr.sum(missing), 0L);
-        zeroMissingModel.minimize(LinearExpr.sum(firings));
-        SolveAttempt zeroMissingAttempt = solveOptimal(zeroMissingModel, deadlineNanos);
-        branches = saturatedAdd(branches, zeroMissingAttempt.branches());
-
-        SolveAttempt executionAttempt;
-        if (zeroMissingAttempt.status() == CpSolverStatus.OPTIMAL) {
-            model.addEquality(LinearExpr.sum(missing), 0L);
-            executionAttempt = zeroMissingAttempt;
-        } else if (zeroMissingAttempt.status() == CpSolverStatus.INFEASIBLE) {
-            var missingByDistance = new java.util.TreeMap<Integer, java.util.List<IntVar>>();
-            for (int item = 0; item < itemCount; item++) {
-                missingByDistance.computeIfAbsent(
-                        itemDistances[item], ignored -> new java.util.ArrayList<>())
-                        .add(missing[item]);
-            }
-            for (java.util.List<IntVar> tier : missingByDistance.values()) {
-                IntVar[] tierVariables = tier.toArray(IntVar[]::new);
-                model.minimize(LinearExpr.sum(tierVariables));
-                SolveAttempt attempt = solveOptimal(model, deadlineNanos);
-                branches = saturatedAdd(branches, attempt.branches());
-                if (attempt.status() != CpSolverStatus.OPTIMAL) {
-                    return new long[] {optimalStatusCode(attempt.status()), branches};
-                }
-                long optimum = 0L;
-                try {
-                    for (IntVar variable : tierVariables) {
-                        optimum = Math.addExact(optimum, attempt.solver().value(variable));
-                    }
-                } catch (ArithmeticException overflow) {
-                    return new long[] {MODEL_INVALID, branches};
-                }
-                model.addEquality(LinearExpr.sum(tierVariables), optimum);
-                model.clearObjective();
-            }
-            model.minimize(LinearExpr.sum(firings));
-            executionAttempt = solveOptimal(model, deadlineNanos);
-            branches = saturatedAdd(branches, executionAttempt.branches());
-        } else {
-            return new long[] {
-                    optimalStatusCode(zeroMissingAttempt.status()), branches
-            };
-        }
-        branches = saturatedAdd(branches, executionAttempt.branches());
-        if (executionAttempt.status() != CpSolverStatus.OPTIMAL) {
-            return new long[] {
-                    optimalStatusCode(executionAttempt.status()), branches
-            };
-        }
-        long executionOptimum = 0L;
-        try {
-            for (IntVar firing : firings) {
-                executionOptimum = Math.addExact(
-                        executionOptimum, executionAttempt.solver().value(firing));
-            }
-        } catch (ArithmeticException overflow) {
-            return new long[] {MODEL_INVALID, branches};
-        }
-        model.addEquality(LinearExpr.sum(firings), executionOptimum);
-        model.clearObjective();
-
-        SolveAttempt finalAttempt = executionAttempt;
-        if (!allUsed.isEmpty()) {
-            model.minimize(LinearExpr.sum(allUsed.toArray(IntVar[]::new)));
-            finalAttempt = solveOptimal(model, deadlineNanos);
-            branches = saturatedAdd(branches, finalAttempt.branches());
-        }
-        solver = finalAttempt.solver();
-        long statusCode = optimalStatusCode(finalAttempt.status());
+        RankedOptimum optimum = optimizeRanked(model, firings, missing, itemDistances,
+                allUsed, representativeByGroup.size() < itemCount, maxSeconds);
+        CpSolver solver = optimum.attempt.solver();
+        long statusCode = optimum.status;
+        long branches = optimum.branches;
+        boolean hasWitness = statusCode == SOLVED || statusCode == SOLVED_PARTIAL;
         int valueCount = recipeCount + itemCount + cycleStarts.length + itemCount
-                + reusableCount;
-        long[] result = new long[2 + (statusCode == SOLVED ? valueCount : 0)];
+                + reusableCount + blockRepetitions.length;
+        long[] result = new long[2 + (hasWitness ? valueCount : 0)];
         result[0] = statusCode;
         result[1] = branches;
-        if (statusCode == SOLVED) {
+        if (hasWitness) {
             for (int recipe = 0; recipe < recipeCount; recipe++) {
                 result[2 + recipe] = solver.value(firings[recipe]);
             }
@@ -725,8 +681,209 @@ public final class CpSatBridge {
             for (int group = 0; group < reusableCount; group++) {
                 result[reusableMissingOffset + group] = solver.value(reusableMissing[group]);
             }
+            int blockOffset = reusableMissingOffset + reusableCount;
+            for (int b = 0; b < blockRepetitions.length; b++)
+                result[blockOffset + b] = solver.value(blockRepetitions[b]);
         }
         return result;
+    }
+
+    private record RankedOptimum(SolveAttempt attempt, long status, long branches) { }
+
+    /** An initially empty set with no transition entering it without consuming it stays empty. */
+    private static void addEmptySiphonSeeds(CpModel model, BoolVar[] active, IntVar[] missing,
+            long[][] pre, long[][] post, int[] groups, long[] stocks) {
+        var members = new java.util.LinkedHashMap<Integer, java.util.List<Integer>>();
+        for (int i = 0; i < groups.length; i++) members.computeIfAbsent(
+                groups[i], ignored -> new java.util.ArrayList<>()).add(i);
+        for (var places : members.values()) {
+            if (places.stream().anyMatch(i -> stocks[i] > 0)) continue;
+            boolean siphon = true, internal = false;
+            var consumers = new java.util.ArrayList<Integer>();
+            for (int r = 0; r < pre.length; r++) {
+                boolean consumes = false, produces = false;
+                for (int i : places) { consumes |= pre[r][i] > 0; produces |= post[r][i] > 0; }
+                if (produces && !consumes) { siphon = false; break; }
+                internal |= produces && consumes;
+                if (consumes) consumers.add(r);
+            }
+            if (!siphon || !internal) continue;
+            IntVar[] seeds = places.stream().map(i -> missing[i]).toArray(IntVar[]::new);
+            for (int r : consumers) model.addGreaterOrEqual(LinearExpr.sum(seeds), 1).onlyEnforceIf(active[r]);
+        }
+    }
+
+    private static RankedOptimum keepWitness(SolveAttempt latest, SolveAttempt incumbent, long branches) {
+        if (latest.status == CpSolverStatus.MODEL_INVALID) return new RankedOptimum(latest, MODEL_INVALID, branches);
+        if (latest.status == CpSolverStatus.FEASIBLE || latest.status == CpSolverStatus.OPTIMAL) {
+            return new RankedOptimum(latest, SOLVED_PARTIAL, branches);
+        }
+        if (incumbent != null) return new RankedOptimum(incumbent, SOLVED_PARTIAL, branches);
+        return new RankedOptimum(latest, optimalStatusCode(latest.status), branches);
+    }
+
+    /** Optimal objectives are fixed only with proof; an unfinished objective retains its witness. */
+    private static RankedOptimum optimizeRanked(CpModel model, IntVar[] firings, IntVar[] missing,
+            int[] distances, java.util.List<IntVar> allUsed, boolean cyclic, double maxSeconds) {
+        long deadline = deadlineNanos(maxSeconds);
+        CpModel zero = model.getClone();
+        zero.addEquality(LinearExpr.sum(missing), 0L);
+        zero.minimize(LinearExpr.sum(firings));
+        // Zero-missing is a shortcut, not a prerequisite for returning a replenishment plan.
+        long zeroDeadline = cyclic ? Math.min(deadline,
+                deadlineNanos(Math.min(0.05D, maxSeconds / 4.0D))) : deadline;
+        SolveAttempt attempt = solveOptimal(zero, zeroDeadline, cyclic);
+        long branches = attempt.branches;
+        if (attempt.status == CpSolverStatus.FEASIBLE || attempt.status == CpSolverStatus.MODEL_INVALID) {
+            return keepWitness(attempt, null, branches);
+        }
+        SolveAttempt incumbent = null;
+        if (attempt.status == CpSolverStatus.OPTIMAL) {
+            model.addEquality(LinearExpr.sum(missing), 0L);
+            incumbent = attempt;
+        } else {
+            var tiers = new java.util.TreeMap<Integer, java.util.List<IntVar>>();
+            for (int i = 0; i < missing.length; i++) tiers.computeIfAbsent(
+                    distances[i], ignored -> new java.util.ArrayList<>()).add(missing[i]);
+            for (var tier : tiers.values()) {
+                IntVar[] variables = tier.toArray(IntVar[]::new);
+                model.minimize(LinearExpr.sum(variables));
+                attempt = solveOptimal(model, deadline, cyclic);
+                branches = saturatedAdd(branches, attempt.branches);
+                if (attempt.status != CpSolverStatus.OPTIMAL) return keepWitness(attempt, incumbent, branches);
+                long value = 0L;
+                for (IntVar variable : variables) value = Math.addExact(value, attempt.solver.value(variable));
+                model.addEquality(LinearExpr.sum(variables), value);
+                model.clearObjective();
+                incumbent = attempt;
+            }
+            model.minimize(LinearExpr.sum(firings));
+            attempt = solveOptimal(model, deadline, cyclic);
+            branches = saturatedAdd(branches, attempt.branches);
+            if (attempt.status != CpSolverStatus.OPTIMAL) return keepWitness(attempt, incumbent, branches);
+            incumbent = attempt;
+        }
+        long executionOptimum = 0L;
+        for (IntVar firing : firings) executionOptimum = Math.addExact(executionOptimum, attempt.solver.value(firing));
+        model.addEquality(LinearExpr.sum(firings), executionOptimum);
+        model.clearObjective();
+        if (!allUsed.isEmpty()) {
+            model.minimize(LinearExpr.sum(allUsed.toArray(IntVar[]::new)));
+            attempt = solveOptimal(model, deadline, cyclic);
+            branches = saturatedAdd(branches, attempt.branches);
+            if (attempt.status != CpSolverStatus.OPTIMAL) return keepWitness(attempt, incumbent, branches);
+        }
+        return new RankedOptimum(attempt, SOLVED, branches);
+    }
+
+    /**
+     * Redundant sums of the existing balance rows. Cancelling internal circulation explicitly
+     * avoids enormous one-unit-at-a-time domain propagation around a deficient conservative SCC.
+     * No bound on the number of valid firings is invented; unsafe int64 rows are simply omitted.
+     */
+    private static void addGroupBalances(
+            CpModel model, IntVar[] firings, IntVar[][] finiteUseBatches, IntVar[] missing,
+            long[][] consumed, long[][] produced, long[][] finiteUseAmounts, int[] groups,
+            long[] stocks, long[] firingUpperBounds, long missingUpperBound,
+            int targetItem, long targetAmount) {
+        var members = new java.util.LinkedHashMap<Integer, java.util.List<Integer>>();
+        for (int i = 0; i < groups.length; i++) members.computeIfAbsent(
+                groups[i], ignored -> new java.util.ArrayList<>()).add(i);
+        var safe = java.math.BigInteger.valueOf(Long.MAX_VALUE / 2L);
+        for (var group : members.values()) {
+            if (group.size() < 2) continue;
+            var variables = new java.util.ArrayList<IntVar>();
+            var coefficients = new java.util.ArrayList<Long>();
+            var magnitude = java.math.BigInteger.valueOf(missingUpperBound)
+                    .multiply(java.math.BigInteger.valueOf(group.size()));
+            var rhs = java.math.BigInteger.ZERO;
+            for (int i : group) {
+                variables.add(missing[i]); coefficients.add(1L);
+                rhs = rhs.add(java.math.BigInteger.valueOf(i == targetItem ? targetAmount : 0L))
+                        .subtract(java.math.BigInteger.valueOf(stocks[i]));
+            }
+            boolean valid = rhs.abs().compareTo(safe) <= 0;
+            for (int r = 0; r < firings.length && valid; r++) {
+                var net = java.math.BigInteger.ZERO;
+                for (int i : group) {
+                    net = net.add(java.math.BigInteger.valueOf(produced[r][i]))
+                            .subtract(java.math.BigInteger.valueOf(consumed[r][i]));
+                    if (finiteUseBatches[r][i] != null) {
+                        variables.add(finiteUseBatches[r][i]);
+                        coefficients.add(-finiteUseAmounts[r][i]);
+                        magnitude = magnitude.add(java.math.BigInteger.valueOf(finiteUseAmounts[r][i])
+                                .multiply(java.math.BigInteger.valueOf(firingUpperBounds[r])));
+                    }
+                }
+                magnitude = magnitude.add(net.abs().multiply(java.math.BigInteger.valueOf(firingUpperBounds[r])));
+                valid = magnitude.compareTo(safe) <= 0;
+                if (valid && net.signum() != 0) {
+                    variables.add(firings[r]); coefficients.add(net.longValueExact());
+                }
+            }
+            if (valid) model.addGreaterOrEqual(LinearExpr.weightedSum(variables.toArray(IntVar[]::new),
+                    coefficients.stream().mapToLong(Long::longValue).toArray()), rhs.longValueExact());
+        }
+    }
+
+    /** Necessary startup and proof-derived cuts, plus a componentwise improvement query. */
+    private static boolean addPetriRefinement(
+            CpModel model, IntVar[] firings, BoolVar[] active, IntVar[] missing,
+            long[][] consumed, long[] stocks, long[] caps, long[][] unreachable,
+            boolean enforceStartup) {
+        if (caps.length != 0 && caps.length != missing.length) return false;
+        if (caps.length > 0) {
+            var smaller = new java.util.ArrayList<com.google.ortools.sat.Literal>();
+            for (int i = 0; i < caps.length; i++) {
+                if (caps[i] < 0L) return false;
+                model.addLessOrEqual(missing[i], caps[i]);
+                if (caps[i] > 0L) {
+                    BoolVar reduced = model.newBoolVar("reduced_" + i);
+                    model.addLessThan(missing[i], caps[i]).onlyEnforceIf(reduced);
+                    smaller.add(reduced);
+                }
+            }
+            model.addBoolOr(smaller);
+        }
+        for (int cut = 0; cut < unreachable.length; cut++) {
+            long[] row = unreachable[cut];
+            if (row.length != firings.length + missing.length) return false;
+            var escape = new java.util.ArrayList<com.google.ortools.sat.Literal>();
+            for (int r = 0; r < firings.length; r++) {
+                if (row[r] < 0L) return false;
+                BoolVar different = model.newBoolVar("cut_" + cut + "_x_" + r);
+                model.addDifferent(firings[r], row[r]).onlyEnforceIf(different);
+                escape.add(different);
+            }
+            for (int i = 0; i < missing.length; i++) {
+                long testedSupply = row[firings.length + i];
+                if (testedSupply < 0L || testedSupply == Long.MAX_VALUE) return false;
+                BoolVar more = model.newBoolVar("cut_" + cut + "_supply_" + i);
+                model.addGreaterThan(missing[i], testedSupply).onlyEnforceIf(more);
+                escape.add(more);
+            }
+            // An exactly disproved firing vector remains unreachable with any smaller supply.
+            // No greedy failure, timeout or bounded-depth failure is allowed to create this row.
+            model.addBoolOr(escape);
+        }
+        if (enforceStartup) {
+            var starts = new java.util.ArrayList<com.google.ortools.sat.Literal>();
+            BoolVar idle = model.newBoolVar("no_firing");
+            model.addEquality(LinearExpr.sum(firings), 0L).onlyEnforceIf(idle);
+            starts.add(idle);
+            for (int r = 0; r < firings.length; r++) {
+                BoolVar first = model.newBoolVar("first_" + r);
+                model.addEquality(active[r], 1L).onlyEnforceIf(first);
+                for (int i = 0; i < missing.length; i++) {
+                    if (consumed[r][i] > stocks[i]) {
+                        model.addGreaterOrEqual(missing[i], consumed[r][i] - stocks[i]).onlyEnforceIf(first);
+                    }
+                }
+                starts.add(first);
+            }
+            model.addBoolOr(starts);
+        }
+        return true;
     }
 
     /**
@@ -815,6 +972,10 @@ public final class CpSatBridge {
     }
 
     private static SolveAttempt solveOptimal(CpModel model, long deadlineNanos) {
+        return solveOptimal(model, deadlineNanos, false);
+    }
+
+    private static SolveAttempt solveOptimal(CpModel model, long deadlineNanos, boolean cyclic) {
         long remaining = deadlineNanos == Long.MAX_VALUE
                 ? Long.MAX_VALUE
                 : deadlineNanos - System.nanoTime();
@@ -823,6 +984,12 @@ public final class CpSatBridge {
         }
         var solver = new CpSolver();
         solver.getParameters().setMaxTimeInSeconds(remaining / 1_000_000_000.0D);
+        if (cyclic) {
+            // OR-Tools 9.15's default propagation can remain inside a large-domain cyclic
+            // fixpoint past its wall-clock limit. This combination yields on deficient SCCs.
+            solver.getParameters().setNewLinearPropagation(false);
+            solver.getParameters().setCpModelProbingLevel(0);
+        }
         solver.getParameters().setNumWorkers(1);
         solver.getParameters().setRandomSeed(0);
         CpSolverStatus status = solver.solve(model);
@@ -830,14 +997,19 @@ public final class CpSatBridge {
     }
 
     private static long deadlineNanos(double maxSeconds) {
-        if (!(maxSeconds > 0.0D) || Double.isNaN(maxSeconds)) return System.nanoTime();
+        return deadlineNanos(maxSeconds, System.nanoTime());
+    }
+
+    static long deadlineNanos(double maxSeconds, long now) {
+        if (!(maxSeconds > 0.0D) || Double.isNaN(maxSeconds)) return now;
         double requestedNanos = maxSeconds * 1_000_000_000.0D;
         if (!Double.isFinite(requestedNanos) || requestedNanos >= Long.MAX_VALUE) {
             return Long.MAX_VALUE;
         }
-        long now = System.nanoTime();
         long budget = Math.max(1L, (long) requestedNanos);
-        return budget >= Long.MAX_VALUE - now ? Long.MAX_VALUE : now + budget;
+        // nanoTime has an arbitrary origin and may be negative. MAX_VALUE - now would
+        // overflow in that case and silently turn a short native deadline into infinity.
+        return now >= Long.MAX_VALUE - budget ? Long.MAX_VALUE : now + budget;
     }
 
     private static long saturatedAdd(long left, long right) {

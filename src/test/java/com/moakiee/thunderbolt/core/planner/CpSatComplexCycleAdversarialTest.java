@@ -139,6 +139,9 @@ class CpSatComplexCycleAdversarialTest {
         assertEquals(CpSatRankedFlowSolver.Status.SOLVED, solved.status());
         assertTrue(!solved.plan().feasible(), "positive raw feedback is not a proven macro");
         assertTrue(!solved.plan().missing().isEmpty());
+        assertTrue(!solved.plan().missing().containsKey("B"), "the target outside the feedback SCC is not a cut leaf");
+        assertTrue(CpSatRankedFlowSolver.solve(graph.withAdditionalStock(solved.plan().missing()), "B", 3)
+                .plan().feasible(), "a byproduct-cycle cut must be an executable replenishment promise");
     }
 
     @Test
