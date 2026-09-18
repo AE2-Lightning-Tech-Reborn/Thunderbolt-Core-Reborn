@@ -31,7 +31,9 @@
     "ae2.crafting.TaskProgressAccessor",
     "compat.advancedae.AaeExecutingCraftingJobAccessor",
     "compat.advancedae.AaeElapsedTimeTrackerAccessor",
-    "compat.advancedae.AaeTaskProgressAccessor"
+    "compat.advancedae.AaeTaskProgressAccessor",
+    "ae2.storage.NetworkBigStorageMixin",
+    "ae2.storage.DriveBigStorageMixin"
   ],
   "client": [
     "ae2.client.CraftConfirmScreenMixin",

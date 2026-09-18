@@ -46,6 +46,14 @@ class ExactAmountCodecTest {
     }
 
     @Test
+    void inventorySlotLabelsFitWithoutDroppingExactTooltipDigits() {
+        var amount = BigInteger.TEN.pow(100).add(BigInteger.valueOf(12345));
+        assertEquals("1e100", ExactAmountFormatter.slot(amount, 1));
+        assertEquals("1e4932", ExactAmountFormatter.slot(BigInteger.TEN.pow(4932), 1));
+        assertEquals(amount.toString(), ExactAmountFormatter.full(amount, 1).replace(",", ""));
+    }
+
+    @Test
     void compactDisplayUsesPrefixesAndPromotesRoundedBoundaries() {
         String[] suffixes = {"", "K", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q", "KQ"};
         for (int group = 0; group < suffixes.length; group++) {

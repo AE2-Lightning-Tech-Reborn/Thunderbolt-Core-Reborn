@@ -23,6 +23,9 @@ public interface IIndexedStorageCellItem {
     /** Returns a configured tracker whose total-type supplier points at the provided storage. */
     ByteTracker createByteTracker(ItemStack stack, IndexedStorage storage);
 
+    /** Opt-in for an unlimited, exact-quantity cell; ordinary cells retain their byte/type limits. */
+    default boolean supportsBigAmounts(ItemStack stack) { return false; }
+
     double idleDrain(ItemStack stack);
 
     default boolean accepts(ItemStack stack, AEKey key, IActionSource source) {
