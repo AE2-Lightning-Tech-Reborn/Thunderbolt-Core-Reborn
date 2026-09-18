@@ -690,6 +690,81 @@ public final class CpSatBridge {
 
     private record RankedOptimum(SolveAttempt attempt, long status, long branches) { }
 
+    /** Sparse ordinary DAG model; rows contain only incident recipes, never recipe-by-item grids. */
+    public static long[] solveSparseDag(int[][] variables, long[][] coefficients, int[][] producers,
+            long[] batches, long[] upper, long[] stocks, int[] distances, long amount, double maxSeconds) {
+        long deadline = deadlineNanos(maxSeconds);
+        int items = stocks.length, recipes = upper.length;
+        if (items == 0 || recipes == 0 || variables.length != items || coefficients.length != items
+                || producers.length != items || distances.length != items || batches.length != recipes
+                || amount <= 0) return new long[] {MODEL_INVALID, 0};
+        var model = new CpModel();
+        var firings = new IntVar[recipes];
+        var active = new BoolVar[recipes];
+        for (int r = 0; r < recipes; r++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
+            if (upper[r] < 0 || batches[r] <= 0) return new long[] {MODEL_INVALID, 0};
+            firings[r] = model.newIntVar(0, upper[r], "x_"+r);
+            if (batches[r] > 1) {
+                active[r] = model.newBoolVar("active_"+r);
+                model.addGreaterThan(firings[r], 0).onlyEnforceIf(active[r]);
+                model.addEquality(firings[r], 0).onlyEnforceIf(active[r].not());
+            }
+        }
+        var missing = new IntVar[items];
+        var leafMissing = new java.util.ArrayList<IntVar>();
+        var leafDistances = new java.util.ArrayList<Integer>();
+        var allUsed = new java.util.ArrayList<IntVar>();
+        long missingCap = (Long.MAX_VALUE / 4) / items;
+        for (int i = 0; i < items; i++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
+            if (variables[i].length != coefficients[i].length || stocks[i] < 0 || distances[i] < 0)
+                return new long[] {MODEL_INVALID, 0};
+            boolean leaf = i != 0 && producers[i].length == 0;
+            missing[i] = model.newIntVar(0, leaf ? missingCap : 0, "missing_"+i);
+            if (leaf) { leafMissing.add(missing[i]); leafDistances.add(distances[i]); }
+            var balance = LinearExpr.newBuilder();
+            var demand = LinearExpr.newBuilder();
+            for (int j = 0; j < variables[i].length; j++) {
+                int r = variables[i][j]; long coefficient = coefficients[i][j];
+                if (r < 0 || r >= recipes) return new long[] {MODEL_INVALID, 0};
+                balance.addTerm(firings[r], coefficient);
+                demand.addTerm(firings[r], coefficient);
+            }
+            long requested = i == 0 ? amount : 0;
+            if (producers[i].length > 0) {
+                for (int r : producers[i]) {
+                    if (r < 0 || r >= recipes) return new long[] {MODEL_INVALID, 0};
+                    if (batches[r] > 1) demand.addTerm(active[r], 1-batches[r]);
+                }
+                model.addLessOrEqual(demand, requested);
+            }
+            balance.addTerm(missing[i], 1);
+            model.addGreaterOrEqual(balance, requested-stocks[i]);
+            if (stocks[i] > 0) {
+                var used = model.newIntVar(0, stocks[i], "used_"+i);
+                allUsed.add(used);
+                balance.addTerm(used, 1);
+                model.addGreaterOrEqual(balance, requested);
+            }
+        }
+        if (System.nanoTime() >= deadline) return new long[] {UNKNOWN, 0};
+        String validation = model.validate();
+        if (!validation.isEmpty()) throw new IllegalArgumentException("invalid sparse DAG model: " + validation);
+        double seconds = Math.max(0, deadline-System.nanoTime()) / 1_000_000_000.0;
+        // Fixed-zero missing variables have no objective effect. Omitting them avoids a native
+        // re-solve per intermediate depth when only the final raw leaf can require replenishment.
+        var optimum = optimizeRanked(model, firings, leafMissing.toArray(IntVar[]::new),
+                leafDistances.stream().mapToInt(Integer::intValue).toArray(), allUsed, false, seconds);
+        if (optimum.status != SOLVED && optimum.status != SOLVED_PARTIAL)
+            return new long[] {optimum.status, optimum.branches};
+        long[] result = new long[2+recipes+items];
+        result[0] = optimum.status; result[1] = optimum.branches;
+        for (int r = 0; r < recipes; r++) result[2+r] = optimum.attempt.solver.value(firings[r]);
+        for (int i = 0; i < items; i++) result[2+recipes+i] = optimum.attempt.solver.value(missing[i]);
+        return result;
+    }
+
     /** An initially empty set with no transition entering it without consuming it stays empty. */
     private static void addEmptySiphonSeeds(CpModel model, BoolVar[] active, IntVar[] missing,
             long[][] pre, long[][] post, int[] groups, long[] stocks) {

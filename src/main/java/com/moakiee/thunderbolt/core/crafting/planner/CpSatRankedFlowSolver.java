@@ -122,6 +122,8 @@ public final class CpSatRankedFlowSolver<K> {
     }
 
     private Result<K> solve() {
+        Result<K> sparse = CpSatSparseDag.trySolve(graph, target, targetAmount, 1_000_000L);
+        if (sparse != null) return sparse;
         Compilation<K> compilation = compile();
         if (compilation == null) return Result.status(Status.UNSUPPORTED);
         Candidate<K> first = solveCandidate(compilation, new long[0], List.of(), false);

@@ -177,6 +177,23 @@ final class CpSatRuntime {
         }
     }
 
+    static long[] solveSparseDag(int[][] variables, long[][] coefficients, int[][] producers,
+            long[] batches, long[] upper, long[] stocks, int[] distances, long amount, double maxSeconds) {
+        Bridge loaded = bridge;
+        if (loaded == null) throw new IllegalStateException("CP-SAT runtime is not initialized", loadFailure);
+        try {
+            return (long[]) loaded.solveSparseDag().invoke(null, variables, coefficients, producers,
+                    batches, upper, stocks, distances, amount, maxSeconds);
+        } catch (IllegalAccessException impossible) {
+            throw new IllegalStateException("CP-SAT sparse bridge is inaccessible", impossible);
+        } catch (InvocationTargetException failure) {
+            Throwable cause = unwrap(failure);
+            if (cause instanceof RuntimeException runtime) throw runtime;
+            if (cause instanceof Error error) throw error;
+            throw new IllegalStateException("CP-SAT sparse bridge failed", cause);
+        }
+    }
+
     static long[] chooseFeedbackOption(
             long[][] requirements,
             long[] stocks,
@@ -293,8 +310,11 @@ final class CpSatRuntime {
                     long[].class,
                     long[].class,
                     double.class);
+            Method solveSparseDag = bridgeClass.getMethod("solveSparseDag",
+                    int[][].class, long[][].class, int[][].class, long[].class, long[].class,
+                    long[].class, int[].class, long.class, double.class);
             initialize.invoke(null);
-            bridge = new Bridge(loader, solve, solveRankedPlan, chooseFeedbackOption);
+            bridge = new Bridge(loader, solve, solveRankedPlan, chooseFeedbackOption, solveSparseDag);
             loadFailure = null;
         } catch (Throwable failure) {
             try {
@@ -319,7 +339,8 @@ final class CpSatRuntime {
             URLClassLoader loader,
             Method solve,
             Method solveRankedPlan,
-            Method chooseFeedbackOption) {
+            Method chooseFeedbackOption,
+            Method solveSparseDag) {
     }
 
     private static final class BridgeClassLoader extends URLClassLoader {
