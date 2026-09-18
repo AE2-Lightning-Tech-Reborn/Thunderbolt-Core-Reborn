@@ -1,6 +1,8 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import java.time.Duration;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -127,26 +129,67 @@ class CombinedCycleOrientationTest {
     }
 
     @Test
-    void unvisitedDirectionsAtTheRetryLimitAreReportedAsCutoff() {
-        var result = CraftPlannerV2.planDetailed(
-                rings(17, defaultInputs(17), false, 4, -1), "T", 1);
+    void manyIndependentDirectionsShareOneReplayedCandidate() {
+        for (int count : new int[] {17, 64, 1024}) {
+            var result = assertTimeoutPreemptively(Duration.ofSeconds(3), () -> CraftPlannerV2.planDetailed(
+                    rings(count, defaultInputs(count), false, 4, -1), "T", 1));
+            assertTrue(result.plan().feasible(), () -> "rings="+count+" "+result.plan().missing());
+            assertFalse(result.plan().budgetExhausted());
+            assertEquals(2, result.diagnostics().planRuns());
+            assertWitness(result.plan(), count, 1);
+        }
+    }
 
-        assertFalse(result.plan().feasible());
-        assertTrue(result.plan().budgetExhausted());
-        assertTrue(result.diagnostics().searchCutoff());
-        assertTrue(result.diagnostics().planRuns() <= 1 + CraftPlannerV2.MAX_CONVERSION_ORIENTATION_RETRIES);
+    @Test
+    void bulkDirectionsStillAccountForOneSharedRawInventory() {
+        for (long raw : new long[] {67, 68}) {
+            var result = CraftPlannerV2.planDetailed(rings(17, defaultInputs(17), false, 0, raw), "T", 1);
+            assertEquals(raw == 68, result.plan().feasible(), () -> result.toString());
+            assertTrue(result.plan().usedStock().getOrDefault("raw", 0L) <= raw);
+            if (raw == 68) assertWitness(result.plan(), 17, 1);
+        }
+    }
+
+    @Test
+    void bulkHintsLeaveAlreadyFundedComponentsInTheirWorkingDirection() {
+        var builder = CraftGraph.<String>builder();
+        for (int i = 0; i < 32; i++) {
+            String a = "A"+i, b = "B"+i;
+            builder.pattern(a, 1, List.of(CraftInput.of(b, 3)));
+            builder.pattern(b, 1, List.of(CraftInput.of(a, 3)));
+            builder.stock(i % 2 == 0 ? a : b, 4);
+        }
+        var graph = builder.pattern("T", 1, defaultInputs(32).stream()
+                .map(key -> CraftInput.of(key, 1)).toList()).build();
+        var result = CraftPlannerV2.planDetailed(graph, "T", 1);
+        assertTrue(result.plan().feasible(), () -> result.toString());
+        assertEquals(2, result.diagnostics().planRuns());
+        for (int i = 0; i < 32; i++)
+            assertEquals(4L, result.plan().usedStock().get((i % 2 == 0 ? "A" : "B")+i));
     }
 
     @Test
     void combinedRetriesStillRespectTheSharedWorkBudget() {
+        // Eight cyclic keys exceed the bounded material-DAG portfolio. Optional orientation
+        // search must still stop when its own shared allowance is exhausted.
         var result = CraftPlannerV2.planDetailed(
-                rings(2, defaultInputs(2), false, 4, -1), "T", 1,
+                rings(4, defaultInputs(4), false, 4, -1), "T", 1,
                 CraftPlannerV2.DEFAULT_VISIT_CAP, 1);
 
         assertFalse(result.plan().feasible());
         assertTrue(result.plan().budgetExhausted());
         assertTrue(result.diagnostics().searchCutoff());
         assertEquals(1, result.diagnostics().planRuns());
+    }
+
+    @Test
+    void smallDeterministicPoliciesRemainAvailableAfterSearchBudgetIsSpent() {
+        var result = CraftPlannerV2.planDetailed(
+                rings(2, defaultInputs(2), false, 4, -1), "T", 1, 1, 1);
+        assertTrue(result.plan().feasible());
+        assertEquals(1, result.diagnostics().planRuns());
+        assertTrue(result.diagnostics().consumedSearchBudget() <= 1);
+        assertWitness(result.plan(), 2, 1);
     }
 
     private static CraftGraph<String> rings(
