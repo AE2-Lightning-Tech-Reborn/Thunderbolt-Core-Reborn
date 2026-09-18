@@ -161,7 +161,7 @@ public final class CpSatBridge {
      * @param cycleInputItems internal input item aligned with every cycle recipe
      * @param cycleInputAmounts internal input amount aligned with every cycle recipe
      * @param cyclePrimitiveFirings one zero-net primitive firing vector per cycle
-     * @param reusableCatalysts per-recipe unchanged-catalyst amount for each private route
+     * @param reusableCatalystsWire sparse per-recipe unchanged-catalyst amount for each private route
      * @param reusableItems logical item represented by each private route
      * @param reusableCandidatePhysicals accepted physical-stock indices for each private route
      * @param reusablePhysicalStocks capacity of every host + actual-variant physical stock
@@ -169,11 +169,11 @@ public final class CpSatBridge {
      * missing0..missingM, reusableMissing0..G, blockRepetitions(stage-major)]}
      */
     public static long[] solveRankedPlan(
-            long[][] consumed,
-            long[][] produced,
-            long[][] catalysts,
-            long[][] finiteUseAmounts,
-            long[][] finiteUseLifetimes,
+            long[][] consumedWire,
+            long[][] producedWire,
+            long[][] catalystsWire,
+            long[][] finiteUseAmountsWire,
+            long[][] finiteUseLifetimesWire,
             int[] outputItems,
             int[] primaryOutputItems,
             long[] primaryOutputAmounts,
@@ -183,7 +183,7 @@ public final class CpSatBridge {
             long[][] cycleInputAmounts,
             long[][] cyclePrimitiveFirings,
             long[] stocks,
-            long[][] reusableCatalysts,
+            long[][] reusableCatalystsWire,
             int[] reusableItems,
             int[][] reusableCandidatePhysicals,
             long[] reusablePhysicalStocks,
@@ -199,14 +199,21 @@ public final class CpSatBridge {
             long[][] executionBlocks,
             int blockStages,
             double maxSeconds) {
-        int recipeCount = consumed.length;
+        long deadline = deadlineNanos(maxSeconds);
+        var consumed = SparseLongMatrix.fromWire(consumedWire);
+        var produced = SparseLongMatrix.fromWire(producedWire);
+        var catalysts = SparseLongMatrix.fromWire(catalystsWire);
+        var finiteUseAmounts = SparseLongMatrix.fromWire(finiteUseAmountsWire);
+        var finiteUseLifetimes = SparseLongMatrix.fromWire(finiteUseLifetimesWire);
+        var reusableCatalysts = SparseLongMatrix.fromWire(reusableCatalystsWire);
+        int recipeCount = consumed.rows();
         int itemCount = stocks.length;
         if (recipeCount == 0
-                || recipeCount != produced.length
-                || recipeCount != catalysts.length
-                || recipeCount != finiteUseAmounts.length
-                || recipeCount != finiteUseLifetimes.length
-                || recipeCount != reusableCatalysts.length
+                || recipeCount != produced.rows()
+                || recipeCount != catalysts.rows()
+                || recipeCount != finiteUseAmounts.rows()
+                || recipeCount != finiteUseLifetimes.rows()
+                || recipeCount != reusableCatalysts.rows()
                 || recipeCount != outputItems.length
                 || recipeCount != primaryOutputItems.length
                 || recipeCount != primaryOutputAmounts.length
@@ -228,12 +235,13 @@ public final class CpSatBridge {
         var model = new CpModel();
         var firings = new IntVar[recipeCount];
         var active = new BoolVar[recipeCount];
-        var finiteUseBatches = new IntVar[recipeCount][itemCount];
+        var finiteUseBatches = new java.util.HashMap<Integer, java.util.Map<Integer, IntVar>>();
         var ranks = new IntVar[itemCount];
         var used = new IntVar[itemCount];
         var missing = new IntVar[itemCount];
         long missingUpperBound = Math.max(1L, (Long.MAX_VALUE / 4L) / itemCount);
         for (int item = 0; item < itemCount; item++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
             if (rankGroups[item] < 0 || itemDistances[item] < 0 || stocks[item] < 0L) {
                 return new long[] {MODEL_INVALID, 0L};
             }
@@ -243,18 +251,20 @@ public final class CpSatBridge {
         }
         var representativeByGroup = new java.util.HashMap<Integer, Integer>();
         for (int item = 0; item < itemCount; item++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
             Integer representative = representativeByGroup.putIfAbsent(rankGroups[item], item);
             if (representative != null) {
                 model.addEquality(ranks[item], ranks[representative]);
             }
         }
         for (int recipe = 0; recipe < recipeCount; recipe++) {
-            if (consumed[recipe].length != itemCount
-                    || produced[recipe].length != itemCount
-                    || catalysts[recipe].length != itemCount
-                    || finiteUseAmounts[recipe].length != itemCount
-                    || finiteUseLifetimes[recipe].length != itemCount
-                    || reusableCatalysts[recipe].length != reusableItems.length
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
+            if (consumed.columns() != itemCount
+                    || produced.columns() != itemCount
+                    || catalysts.columns() != itemCount
+                    || finiteUseAmounts.columns() != itemCount
+                    || finiteUseLifetimes.columns() != itemCount
+                    || reusableCatalysts.columns() != reusableItems.length
                     || outputItems[recipe] < 0
                     || outputItems[recipe] >= itemCount
                     || primaryOutputItems[recipe] < 0
@@ -266,9 +276,9 @@ public final class CpSatBridge {
             firings[recipe] = model.newIntVar(
                     0L, firingUpperBounds[recipe], "x_" + recipe);
             active[recipe] = model.newBoolVar("active_" + recipe);
-            for (int item = 0; item < itemCount; item++) {
-                long amount = finiteUseAmounts[recipe][item];
-                long lifetime = finiteUseLifetimes[recipe][item];
+            for (int item : SparseLongMatrix.unionRow(recipe, finiteUseAmounts, finiteUseLifetimes)) {
+                long amount = finiteUseAmounts.get(recipe, item);
+                long lifetime = finiteUseLifetimes.get(recipe, item);
                 if ((amount == 0L) != (lifetime == 0L) || amount < 0L || lifetime < 0L) {
                     return new long[] {MODEL_INVALID, 0L};
                 }
@@ -276,7 +286,7 @@ public final class CpSatBridge {
                 long upper = Math.floorDiv(firingUpperBounds[recipe] - 1L, lifetime) + 1L;
                 IntVar batches = model.newIntVar(
                         0L, upper, "finite_" + recipe + "_" + item);
-                finiteUseBatches[recipe][item] = batches;
+                finiteUseBatches.computeIfAbsent(recipe, ignored -> new java.util.HashMap<>()).put(item, batches);
                 model.addGreaterOrEqual(
                         LinearExpr.weightedSum(
                                 new IntVar[] {batches, firings[recipe]},
@@ -352,60 +362,33 @@ public final class CpSatBridge {
             model.addEquality(missing[i], 0).onlyEnforceIf(active[producer]);
         }
         for (int recipe = 0; recipe < recipeCount; recipe++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
             model.addGreaterThan(firings[recipe], 0L).onlyEnforceIf(active[recipe]);
             model.addEquality(firings[recipe], 0L).onlyEnforceIf(active[recipe].not());
             int output = outputItems[recipe];
-            for (int input = 0; input < itemCount; input++) {
-                if ((consumed[recipe][input] > 0L
-                                || catalysts[recipe][input] > 0L
-                                || finiteUseAmounts[recipe][input] > 0L)
+            for (int input : SparseLongMatrix.unionRow(recipe, consumed, catalysts, finiteUseAmounts)) {
+                if ((consumed.get(recipe, input) > 0L
+                                || catalysts.get(recipe, input) > 0L
+                                || finiteUseAmounts.get(recipe, input) > 0L)
                         && rankGroups[input] != rankGroups[output]) {
                     model.addLessThan(ranks[input], ranks[output])
                             .onlyEnforceIf(active[recipe]);
                 }
-                if (catalysts[recipe][input] > 0L) {
-                    long shortage = catalysts[recipe][input] - stocks[input];
-                    long[] catalystProduction = new long[recipeCount];
-                    for (int producer = 0; producer < recipeCount; producer++) {
-                        catalystProduction[producer] = produced[producer][input];
-                    }
-                    if (shortage > 0L) {
-                        IntVar[] presenceVariables = java.util.Arrays.copyOf(
-                                firings, recipeCount + 1);
-                        long[] presenceCoefficients = java.util.Arrays.copyOf(
-                                catalystProduction, recipeCount + 1);
-                        presenceVariables[recipeCount] = missing[input];
-                        presenceCoefficients[recipeCount] = 1L;
-                        model.addGreaterOrEqual(
-                                        LinearExpr.weightedSum(
-                                                presenceVariables, presenceCoefficients),
-                                        shortage)
-                                .onlyEnforceIf(active[recipe]);
-                    }
+                if (catalysts.get(recipe, input) > 0L) {
+                    long shortage = catalysts.get(recipe, input) - stocks[input];
+                    var presence = LinearExpr.newBuilder();
+                    for (int producer : produced.columnKeys(input))
+                        presence.addTerm(firings[producer], produced.get(producer, input));
+                    presence.addTerm(missing[input], 1);
+                    if (shortage > 0L) model.addGreaterOrEqual(presence, shortage).onlyEnforceIf(active[recipe]);
+                    presence.addTerm(used[input], 1);
+                    presence.addTerm(active[recipe], -catalysts.get(recipe, input));
+                    model.addGreaterOrEqual(presence, 0);
 
-                    // Stock reserved for an unchanged catalyst is the part of its presence
-                    // requirement not supplied by earlier production. This lower bound becomes
-                    // exact because used[input] is minimized after the execution optimum is fixed.
-                    IntVar[] catalystUseVariables = new IntVar[recipeCount + 3];
-                    long[] catalystUseCoefficients = new long[recipeCount + 3];
-                    catalystUseVariables[0] = used[input];
-                    catalystUseCoefficients[0] = 1L;
-                    catalystUseVariables[1] = missing[input];
-                    catalystUseCoefficients[1] = 1L;
-                    for (int producer = 0; producer < recipeCount; producer++) {
-                        catalystUseVariables[2 + producer] = firings[producer];
-                        catalystUseCoefficients[2 + producer] = produced[producer][input];
-                    }
-                    catalystUseVariables[recipeCount + 2] = active[recipe];
-                    catalystUseCoefficients[recipeCount + 2] = -catalysts[recipe][input];
-                    model.addGreaterOrEqual(
-                            LinearExpr.weightedSum(
-                                    catalystUseVariables, catalystUseCoefficients),
-                            0L);
                 }
             }
-            for (int group = 0; group < reusableItems.length; group++) {
-                long amount = reusableCatalysts[recipe][group];
+            for (int group : reusableCatalysts.rowKeys(recipe)) {
+                long amount = reusableCatalysts.get(recipe, group);
                 int input = reusableItems[group];
                 if (amount < 0L || input < 0 || input >= itemCount) {
                     return new long[] {MODEL_INVALID, 0L};
@@ -418,8 +401,8 @@ public final class CpSatBridge {
             // A recipe is replayed at its anchor output rank. Every other material output must
             // become visible later unless it belongs to the same contracted SCC; otherwise a
             // byproduct consumer could be ranked before the recipe that creates it.
-            for (int producedItem = 0; producedItem < itemCount; producedItem++) {
-                if (produced[recipe][producedItem] > 0L
+            for (int producedItem : produced.rowKeys(recipe)) {
+                if (produced.get(recipe, producedItem) > 0L
                         && rankGroups[producedItem] != rankGroups[output]) {
                     model.addLessThan(ranks[output], ranks[producedItem])
                             .onlyEnforceIf(active[recipe]);
@@ -432,10 +415,11 @@ public final class CpSatBridge {
         // primary production.
         var catalystNeeds = new IntVar[itemCount];
         for (int item = 0; item < itemCount; item++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
             long maximum = 0L;
             var arguments = new java.util.ArrayList<com.google.ortools.sat.LinearArgument>();
-            for (int recipe = 0; recipe < recipeCount; recipe++) {
-                long amount = catalysts[recipe][item];
+            for (int recipe : catalysts.columnKeys(item)) {
+                long amount = catalysts.get(recipe, item);
                 if (amount <= 0L) continue;
                 maximum = Math.max(maximum, amount);
                 arguments.add(LinearExpr.affine(active[recipe], amount, 0L));
@@ -465,6 +449,7 @@ public final class CpSatBridge {
         }
         var reusableMissingByItem = new java.util.ArrayList<java.util.ArrayList<IntVar>>(itemCount);
         for (int item = 0; item < itemCount; item++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
             reusableMissingByItem.add(new java.util.ArrayList<>());
         }
         var reusableUsed = new java.util.ArrayList<IntVar>();
@@ -473,8 +458,8 @@ public final class CpSatBridge {
             if (item < 0 || item >= itemCount) return new long[] {MODEL_INVALID, 0L};
             long maximum = 0L;
             var needArguments = new java.util.ArrayList<com.google.ortools.sat.LinearArgument>();
-            for (int recipe = 0; recipe < recipeCount; recipe++) {
-                long amount = reusableCatalysts[recipe][group];
+            for (int recipe : reusableCatalysts.columnKeys(group)) {
+                long amount = reusableCatalysts.get(recipe, group);
                 if (amount < 0L) return new long[] {MODEL_INVALID, 0L};
                 if (amount > 0L) {
                     maximum = Math.max(maximum, amount);
@@ -522,6 +507,7 @@ public final class CpSatBridge {
             }
         }
         for (int item = 0; item < itemCount; item++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
             var shortages = reusableMissingByItem.get(item);
             if (!shortages.isEmpty()) {
                 model.addEquality(missing[item], LinearExpr.sum(shortages.toArray(IntVar[]::new)));
@@ -536,10 +522,11 @@ public final class CpSatBridge {
         int[] demandRows = new int[itemCount];
         java.util.Arrays.fill(demandRows, -1);
         for (int item = 0; item < itemCount; item++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
             var demandVariables = new java.util.ArrayList<IntVar>();
             var demandCoefficients = new java.util.ArrayList<Long>();
             boolean hasPrimaryProducer = false;
-            for (int recipe = 0; recipe < recipeCount; recipe++) {
+            for (int recipe : SparseLongMatrix.unionColumn(item, produced, consumed, finiteUseAmounts)) {
                 if (primaryOutputItems[recipe] == item) {
                     demandVariables.add(firings[recipe]);
                     demandCoefficients.add(primaryOutputAmounts[recipe]);
@@ -549,13 +536,13 @@ public final class CpSatBridge {
                     }
                     hasPrimaryProducer = true;
                 }
-                if (consumed[recipe][item] > 0L) {
+                if (consumed.get(recipe, item) > 0L) {
                     demandVariables.add(firings[recipe]);
-                    demandCoefficients.add(-consumed[recipe][item]);
+                    demandCoefficients.add(-consumed.get(recipe, item));
                 }
-                if (finiteUseBatches[recipe][item] != null) {
-                    demandVariables.add(finiteUseBatches[recipe][item]);
-                    demandCoefficients.add(-finiteUseAmounts[recipe][item]);
+                if (finiteUseBatches.getOrDefault(recipe, java.util.Map.of()).get(item) != null) {
+                    demandVariables.add(finiteUseBatches.getOrDefault(recipe, java.util.Map.of()).get(item));
+                    demandCoefficients.add(-finiteUseAmounts.get(recipe, item));
                 }
             }
             if (!hasPrimaryProducer) continue;
@@ -574,52 +561,20 @@ public final class CpSatBridge {
 
         int[] balanceRows = new int[itemCount];
         for (int item = 0; item < itemCount; item++) {
-            long[] coefficients = new long[recipeCount];
-            var finiteVariables = new java.util.ArrayList<IntVar>();
-            var finiteCoefficients = new java.util.ArrayList<Long>();
-            for (int recipe = 0; recipe < recipeCount; recipe++) {
-                long coefficient = produced[recipe][item] - consumed[recipe][item];
-                coefficients[recipe] = coefficient;
-                if (finiteUseBatches[recipe][item] != null) {
-                    finiteVariables.add(finiteUseBatches[recipe][item]);
-                    finiteCoefficients.add(-finiteUseAmounts[recipe][item]);
-                }
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
+            var balance = LinearExpr.newBuilder();
+            for (int recipe : SparseLongMatrix.unionColumn(item, consumed, produced, finiteUseAmounts)) {
+                long coefficient = produced.get(recipe, item)-consumed.get(recipe, item);
+                if (coefficient != 0) balance.addTerm(firings[recipe], coefficient);
+                var finite = finiteUseBatches.getOrDefault(recipe, java.util.Map.of()).get(item);
+                if (finite != null) balance.addTerm(finite, -finiteUseAmounts.get(recipe, item));
             }
             long demand = item == targetItem ? targetAmount : 0L;
-            long minimumNet = demand - stocks[item];
-            int finiteCount = finiteVariables.size();
-            IntVar[] balanceVariables = java.util.Arrays.copyOf(
-                    firings, recipeCount + finiteCount + 1);
-            long[] balanceCoefficients = java.util.Arrays.copyOf(
-                    coefficients, recipeCount + finiteCount + 1);
-            for (int finite = 0; finite < finiteCount; finite++) {
-                balanceVariables[recipeCount + finite] = finiteVariables.get(finite);
-                balanceCoefficients[recipeCount + finite] = finiteCoefficients.get(finite);
-            }
-            balanceVariables[recipeCount + finiteCount] = missing[item];
-            balanceCoefficients[recipeCount + finiteCount] = 1L;
+            balance.addTerm(missing[item], 1);
             balanceRows[item] = model.getBuilder().getConstraintsCount();
-            model.addGreaterOrEqual(
-                    LinearExpr.weightedSum(balanceVariables, balanceCoefficients), minimumNet);
-
-            // used[item] >= demand - missing[item] - netProduction. Once the missing vector and
-            // execution optimum are fixed, minimizing used is the exact initial-stock draw.
-            IntVar[] stockUseVariables = new IntVar[recipeCount + finiteCount + 2];
-            long[] stockUseCoefficients = new long[recipeCount + finiteCount + 2];
-            stockUseVariables[0] = used[item];
-            stockUseCoefficients[0] = 1L;
-            stockUseVariables[1] = missing[item];
-            stockUseCoefficients[1] = 1L;
-            for (int recipe = 0; recipe < recipeCount; recipe++) {
-                stockUseVariables[2 + recipe] = firings[recipe];
-                stockUseCoefficients[2 + recipe] = coefficients[recipe];
-            }
-            for (int finite = 0; finite < finiteCount; finite++) {
-                stockUseVariables[2 + recipeCount + finite] = finiteVariables.get(finite);
-                stockUseCoefficients[2 + recipeCount + finite] = finiteCoefficients.get(finite);
-            }
-            model.addGreaterOrEqual(
-                    LinearExpr.weightedSum(stockUseVariables, stockUseCoefficients), demand);
+            model.addGreaterOrEqual(balance, demand-stocks[item]);
+            balance.addTerm(used[item], 1);
+            model.addGreaterOrEqual(balance, demand);
         }
         addGroupBalances(model, firings, finiteUseBatches, missing, consumed, produced,
                 finiteUseAmounts, rankGroups, stocks, firingUpperBounds, missingUpperBound,
@@ -643,8 +598,17 @@ public final class CpSatBridge {
         var allUsed = new java.util.ArrayList<IntVar>();
         for (int item = 0; item < itemCount; item++) if (stocks[item] > 0L) allUsed.add(used[item]);
         allUsed.addAll(reusableUsed);
-        RankedOptimum optimum = optimizeRanked(model, firings, missing, itemDistances,
-                allUsed, representativeByGroup.size() < itemCount, maxSeconds);
+        var variableMissing = new java.util.ArrayList<IntVar>();
+        var variableMissingDistances = new java.util.ArrayList<Integer>();
+        // Constant-zero tiers cannot improve the objective; omit their repeated native solves.
+        for (int item = 0; item < itemCount; item++) if (missingAllowed[item]) {
+            variableMissing.add(missing[item]);
+            variableMissingDistances.add(itemDistances[item]);
+        }
+        RankedOptimum optimum = optimizeRanked(model, firings, variableMissing.toArray(IntVar[]::new),
+                variableMissingDistances.stream().mapToInt(Integer::intValue).toArray(),
+                allUsed, representativeByGroup.size() < itemCount,
+                Math.max(0L, deadline-System.nanoTime()) / 1_000_000_000.0);
         CpSolver solver = optimum.attempt.solver();
         long statusCode = optimum.status;
         long branches = optimum.branches;
@@ -654,11 +618,15 @@ public final class CpSatBridge {
         long[] result = new long[2 + (hasWitness ? valueCount : 0)];
         result[0] = statusCode;
         result[1] = branches;
+        // Optimization may exhaust its budget while retaining a valid incumbent. Always
+        // serialize that witness; the caller still performs its normal execution verification.
         if (hasWitness) {
             for (int recipe = 0; recipe < recipeCount; recipe++) {
+                if (Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
                 result[2 + recipe] = solver.value(firings[recipe]);
             }
             for (int item = 0; item < itemCount; item++) {
+                if (Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
                 result[2 + recipeCount + item] = solver.value(ranks[item]);
             }
             int cycleOffset = 2 + recipeCount + itemCount;
@@ -675,6 +643,7 @@ public final class CpSatBridge {
             }
             int missingOffset = cycleOffset + cycleStarts.length;
             for (int item = 0; item < itemCount; item++) {
+                if (Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
                 result[missingOffset + item] = solver.value(missing[item]);
             }
             int reusableMissingOffset = missingOffset + itemCount;
@@ -767,7 +736,7 @@ public final class CpSatBridge {
 
     /** An initially empty set with no transition entering it without consuming it stays empty. */
     private static void addEmptySiphonSeeds(CpModel model, BoolVar[] active, IntVar[] missing,
-            long[][] pre, long[][] post, int[] groups, long[] stocks) {
+            SparseLongMatrix pre, SparseLongMatrix post, int[] groups, long[] stocks) {
         var members = new java.util.LinkedHashMap<Integer, java.util.List<Integer>>();
         for (int i = 0; i < groups.length; i++) members.computeIfAbsent(
                 groups[i], ignored -> new java.util.ArrayList<>()).add(i);
@@ -775,9 +744,11 @@ public final class CpSatBridge {
             if (places.stream().anyMatch(i -> stocks[i] > 0)) continue;
             boolean siphon = true, internal = false;
             var consumers = new java.util.ArrayList<Integer>();
-            for (int r = 0; r < pre.length; r++) {
+            var related = new java.util.TreeSet<Integer>();
+            for (int i : places) for (int r : SparseLongMatrix.unionColumn(i, pre, post)) related.add(r);
+            for (int r : related) {
                 boolean consumes = false, produces = false;
-                for (int i : places) { consumes |= pre[r][i] > 0; produces |= post[r][i] > 0; }
+                for (int i : places) { consumes |= pre.get(r, i) > 0; produces |= post.get(r, i) > 0; }
                 if (produces && !consumes) { siphon = false; break; }
                 internal |= produces && consumes;
                 if (consumes) consumers.add(r);
@@ -857,8 +828,8 @@ public final class CpSatBridge {
      * No bound on the number of valid firings is invented; unsafe int64 rows are simply omitted.
      */
     private static void addGroupBalances(
-            CpModel model, IntVar[] firings, IntVar[][] finiteUseBatches, IntVar[] missing,
-            long[][] consumed, long[][] produced, long[][] finiteUseAmounts, int[] groups,
+            CpModel model, IntVar[] firings, java.util.Map<Integer, java.util.Map<Integer, IntVar>> finiteUseBatches, IntVar[] missing,
+            SparseLongMatrix consumed, SparseLongMatrix produced, SparseLongMatrix finiteUseAmounts, int[] groups,
             long[] stocks, long[] firingUpperBounds, long missingUpperBound,
             int targetItem, long targetAmount) {
         var members = new java.util.LinkedHashMap<Integer, java.util.List<Integer>>();
@@ -881,12 +852,12 @@ public final class CpSatBridge {
             for (int r = 0; r < firings.length && valid; r++) {
                 var net = java.math.BigInteger.ZERO;
                 for (int i : group) {
-                    net = net.add(java.math.BigInteger.valueOf(produced[r][i]))
-                            .subtract(java.math.BigInteger.valueOf(consumed[r][i]));
-                    if (finiteUseBatches[r][i] != null) {
-                        variables.add(finiteUseBatches[r][i]);
-                        coefficients.add(-finiteUseAmounts[r][i]);
-                        magnitude = magnitude.add(java.math.BigInteger.valueOf(finiteUseAmounts[r][i])
+                    net = net.add(java.math.BigInteger.valueOf(produced.get(r, i)))
+                            .subtract(java.math.BigInteger.valueOf(consumed.get(r, i)));
+                    if (finiteUseBatches.getOrDefault(r, java.util.Map.of()).get(i) != null) {
+                        variables.add(finiteUseBatches.getOrDefault(r, java.util.Map.of()).get(i));
+                        coefficients.add(-finiteUseAmounts.get(r, i));
+                        magnitude = magnitude.add(java.math.BigInteger.valueOf(finiteUseAmounts.get(r, i))
                                 .multiply(java.math.BigInteger.valueOf(firingUpperBounds[r])));
                     }
                 }
@@ -904,7 +875,7 @@ public final class CpSatBridge {
     /** Necessary startup and proof-derived cuts, plus a componentwise improvement query. */
     private static boolean addPetriRefinement(
             CpModel model, IntVar[] firings, BoolVar[] active, IntVar[] missing,
-            long[][] consumed, long[] stocks, long[] caps, long[][] unreachable,
+            SparseLongMatrix consumed, long[] stocks, long[] caps, long[][] unreachable,
             boolean enforceStartup) {
         if (caps.length != 0 && caps.length != missing.length) return false;
         if (caps.length > 0) {
@@ -949,9 +920,9 @@ public final class CpSatBridge {
             for (int r = 0; r < firings.length; r++) {
                 BoolVar first = model.newBoolVar("first_" + r);
                 model.addEquality(active[r], 1L).onlyEnforceIf(first);
-                for (int i = 0; i < missing.length; i++) {
-                    if (consumed[r][i] > stocks[i]) {
-                        model.addGreaterOrEqual(missing[i], consumed[r][i] - stocks[i]).onlyEnforceIf(first);
+                for (int i : consumed.rowKeys(r)) {
+                    if (consumed.get(r, i) > stocks[i]) {
+                        model.addGreaterOrEqual(missing[i], consumed.get(r, i) - stocks[i]).onlyEnforceIf(first);
                     }
                 }
                 starts.add(first);

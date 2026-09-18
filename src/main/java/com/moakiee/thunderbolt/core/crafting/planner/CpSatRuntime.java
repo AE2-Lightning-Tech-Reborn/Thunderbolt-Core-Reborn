@@ -1,5 +1,7 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.SparseLongMatrix;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -95,11 +97,11 @@ final class CpSatRuntime {
     }
 
     static long[] solveRankedPlan(
-            long[][] consumed,
-            long[][] produced,
-            long[][] catalysts,
-            long[][] finiteUseAmounts,
-            long[][] finiteUseLifetimes,
+            SparseLongMatrix consumed,
+            SparseLongMatrix produced,
+            SparseLongMatrix catalysts,
+            SparseLongMatrix finiteUseAmounts,
+            SparseLongMatrix finiteUseLifetimes,
             int[] outputItems,
             int[] primaryOutputItems,
             long[] primaryOutputAmounts,
@@ -109,7 +111,7 @@ final class CpSatRuntime {
             long[][] cycleInputAmounts,
             long[][] cyclePrimitiveFirings,
             long[] stocks,
-            long[][] reusableCatalysts,
+            SparseLongMatrix reusableCatalysts,
             int[] reusableItems,
             int[][] reusableCandidatePhysicals,
             long[] reusablePhysicalStocks,
@@ -132,11 +134,11 @@ final class CpSatRuntime {
         try {
             return (long[]) loaded.solveRankedPlan().invoke(
                     null,
-                    consumed,
-                    produced,
-                    catalysts,
-                    finiteUseAmounts,
-                    finiteUseLifetimes,
+                    consumed.wire(),
+                    produced.wire(),
+                    catalysts.wire(),
+                    finiteUseAmounts.wire(),
+                    finiteUseLifetimes.wire(),
                     outputItems,
                     primaryOutputItems,
                     primaryOutputAmounts,
@@ -146,7 +148,7 @@ final class CpSatRuntime {
                     cycleInputAmounts,
                     cyclePrimitiveFirings,
                     stocks,
-                    reusableCatalysts,
+                    reusableCatalysts.wire(),
                     reusableItems,
                     reusableCandidatePhysicals,
                     reusablePhysicalStocks,

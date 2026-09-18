@@ -1,5 +1,7 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.SparseLongMatrix;
+
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -415,7 +417,7 @@ public final class CpSatRankedFlowSolver<K> {
             if (actualMissing > 0) missing.put(c.items.get(i), actualMissing);
             BigInteger demand = BigInteger.valueOf(i == c.targetItem ? targetAmount : 0L);
             for (int r = 0; r < quantities.length; r++) demand = demand.add(
-                    BigInteger.valueOf(c.consumed[r][i]).multiply(BigInteger.valueOf(quantities[r])));
+                    BigInteger.valueOf(c.consumed.get(r, i)).multiply(BigInteger.valueOf(quantities[r])));
             Long amount = plannerLong(demand);
             if (amount == null) return null;
             if (amount > 0) gross.put(c.items.get(i), amount);
@@ -579,12 +581,12 @@ public final class CpSatRankedFlowSolver<K> {
         for (int group = 0; group < reusableGroups.size(); group++) {
             reusableGroupIndex.put(reusableGroups.get(group).route, group);
         }
-        long[][] consumed = new long[recipeCount][itemCount];
-        long[][] produced = new long[recipeCount][itemCount];
-        long[][] catalysts = new long[recipeCount][itemCount];
-        long[][] reusableCatalysts = new long[recipeCount][reusableGroups.size()];
-        long[][] finiteUseAmounts = new long[recipeCount][itemCount];
-        long[][] finiteUseLifetimes = new long[recipeCount][itemCount];
+        var consumed = new SparseLongMatrix(recipeCount, itemCount);
+        var produced = new SparseLongMatrix(recipeCount, itemCount);
+        var catalysts = new SparseLongMatrix(recipeCount, itemCount);
+        var reusableCatalysts = new SparseLongMatrix(recipeCount, reusableGroups.size());
+        var finiteUseAmounts = new SparseLongMatrix(recipeCount, itemCount);
+        var finiteUseLifetimes = new SparseLongMatrix(recipeCount, itemCount);
         int[] outputItems = new int[recipeCount];
         int[] primaryOutputItems = new int[recipeCount];
         long[] primaryOutputAmounts = new long[recipeCount];
@@ -600,10 +602,10 @@ public final class CpSatRankedFlowSolver<K> {
             outputItems[recipe] = outputItem;
             primaryOutputItems[recipe] = outputItem;
             primaryOutputAmounts[recipe] = pattern.outputAmount();
-            if (!add(produced[recipe], outputItem, pattern.outputAmount())) return null;
+            if (!add(produced, recipe, outputItem, pattern.outputAmount())) return null;
             for (CraftOutput<K> byproduct : pattern.byproducts()) {
                 Integer item = itemIndex.get(byproduct.key());
-                if (item == null || !add(produced[recipe], item, byproduct.amount())) return null;
+                if (item == null || !add(produced, recipe, item, byproduct.amount())) return null;
             }
             for (CraftInput<K> input : pattern.inputs()) {
                 int item = itemIndex.get(input.key());
@@ -611,25 +613,25 @@ public final class CpSatRankedFlowSolver<K> {
                     if (input.uses() == CraftInput.INFINITE_USES) {
                         catalystSomewhere[item] = true;
                         if (input.reusableStockSource() == null) {
-                            if (!add(catalysts[recipe], item, input.amount())) return null;
+                            if (!add(catalysts, recipe, item, input.amount())) return null;
                             ordinaryCatalystSomewhere[item] = true;
                         } else {
                             reusableSomewhere[item] = true;
                             Integer group = reusableGroupIndex.get(new ReusableStockRouteKey<>(
                                     input.reusableStockSource(), input.key()));
                             if (group == null
-                                    || !add(reusableCatalysts[recipe], group, input.amount())) {
+                                    || !add(reusableCatalysts, recipe, group, input.amount())) {
                                 return null;
                             }
                         }
                     } else {
-                        if (finiteUseAmounts[recipe][item] != 0L) return null;
-                        finiteUseAmounts[recipe][item] = input.amount();
-                        finiteUseLifetimes[recipe][item] = input.uses();
+                        if (finiteUseAmounts.get(recipe, item) != 0L) return null;
+                        finiteUseAmounts.set(recipe, item, input.amount());
+                        finiteUseLifetimes.set(recipe, item, input.uses());
                         consumedSomewhere[item] = true;
                     }
                 } else {
-                    if (!add(consumed[recipe], item, input.amount())) return null;
+                    if (!add(consumed, recipe, item, input.amount())) return null;
                     consumedSomewhere[item] = true;
                 }
             }
@@ -649,7 +651,7 @@ public final class CpSatRankedFlowSolver<K> {
         for (ReusableGroup<K> group : reusableGroups) {
             int item = group.item;
             for (int recipe = 0; recipe < recipeCount; recipe++) {
-                if (produced[recipe][item] > 0L) return null;
+                if (produced.get(recipe, item) > 0L) return null;
             }
         }
 
@@ -692,9 +694,9 @@ public final class CpSatRankedFlowSolver<K> {
         long domainCap = Math.max(1L, Sat.SAT / Math.max(1, recipeCount));
         for (int recipe = 0; recipe < recipeCount; recipe++) {
             long maxCoefficient = 1L;
-            for (int item = 0; item < itemCount; item++) {
-                maxCoefficient = Math.max(maxCoefficient, consumed[recipe][item]);
-                maxCoefficient = Math.max(maxCoefficient, produced[recipe][item]);
+            for (int item : SparseLongMatrix.unionRow(recipe, consumed, produced)) {
+                maxCoefficient = Math.max(maxCoefficient, consumed.get(recipe, item));
+                maxCoefficient = Math.max(maxCoefficient, produced.get(recipe, item));
             }
             // Any one item row can contain every recipe variable. Give each variable at most an
             // equal share of the safe signed-long coefficient budget; bounding by coefficient or
@@ -842,8 +844,8 @@ public final class CpSatRankedFlowSolver<K> {
                 continue;
             }
             int owner = -1;
-            for (int recipe = 0; recipe < recipeCount; recipe++) {
-                if (catalysts[recipe][item] <= 0L) continue;
+            for (int recipe : catalysts.columnKeys(item)) {
+                if (catalysts.get(recipe, item) <= 0L) continue;
                 int macro = feedbackMacroByRecipe[recipe];
                 if (macro < 0 || !rankedFeedback.get(macro).states.contains(items.get(item))
                         || (owner >= 0 && owner != macro)) {
@@ -866,11 +868,11 @@ public final class CpSatRankedFlowSolver<K> {
             K key = items.get(i);
             Set<K> component = materialCycles.get(key);
             if (component == null || coveredCycleStates.contains(key)) continue;
-            for (int r = 0; r < recipeCount; r++) {
+            for (int r : produced.columnKeys(i)) {
                 long primary = primaryOutputItems[r] == i ? primaryOutputAmounts[r] : 0;
-                if (produced[r][i] <= primary) continue;
+                if (produced.get(r, i) <= primary) continue;
                 for (var input : patterns.get(r).inputs()) {
-                    if (component.contains(input.key())) { produced[r][i] = primary; break; }
+                    if (component.contains(input.key())) { produced.set(r, i, primary); break; }
                 }
             }
         }
@@ -884,8 +886,8 @@ public final class CpSatRankedFlowSolver<K> {
             var cutProducers = new ArrayList<Integer>();
             if (!graph.patternsFor(key).isEmpty() && !coveredCycleStates.contains(key)) {
                 Set<K> cycle = materialCycles.getOrDefault(key, cycleAnalysis.membersOf(key));
-                if (!cycle.isEmpty()) for (int r = 0; r < recipeCount; r++) {
-                    if (produced[r][i] == 0) continue;
+                if (!cycle.isEmpty()) for (int r : produced.columnKeys(i)) {
+                    if (produced.get(r, i) == 0) continue;
                     for (var input : patterns.get(r).inputs()) {
                         if (cycle.contains(input.key())) { cutProducers.add(r); break; }
                     }
@@ -895,8 +897,8 @@ public final class CpSatRankedFlowSolver<K> {
         }
         for (int r = 0; r < recipeCount; r++) {
             if (cycleRecipe[r]) continue;
-            for (int i = 0; i < itemCount; i++) {
-                if ((consumed[r][i] > 0 || catalysts[r][i] > 0 || finiteUseAmounts[r][i] > 0)
+            for (int i : SparseLongMatrix.unionRow(r, consumed, catalysts, finiteUseAmounts)) {
+                if ((consumed.get(r, i) > 0 || catalysts.get(r, i) > 0 || finiteUseAmounts.get(r, i) > 0)
                         && rankGroups[i] == rankGroups[outputItems[r]]) {
                     // A singleton self-loop is not made admissible merely because its ranks
                     // coincide. It must have the same non-growing proof as a larger SCC.
@@ -950,22 +952,22 @@ public final class CpSatRankedFlowSolver<K> {
             if (quantities[recipe] == 0L) continue;
             int output = c.outputItems[recipe];
             if (ranks[output] < 0L || ranks[output] >= c.items.size()) return null;
-            for (int item = 0; item < c.items.size(); item++) {
-                if ((c.consumed[recipe][item] > 0L
-                                || c.catalysts[recipe][item] > 0L
+            for (int item : incidentItems(c, recipe)) {
+                if ((c.consumed.get(recipe, item) > 0L
+                                || c.catalysts.get(recipe, item) > 0L
                                 || hasReusableCatalyst(c, recipe, item)
-                                || c.finiteUseAmounts[recipe][item] > 0L)
+                                || c.finiteUseAmounts.get(recipe, item) > 0L)
                         && c.rankGroups[item] != c.rankGroups[output]) {
                     if (ranks[item] >= ranks[output]) return null;
-                } else if ((c.consumed[recipe][item] > 0L
-                                || c.catalysts[recipe][item] > 0L
+                } else if ((c.consumed.get(recipe, item) > 0L
+                                || c.catalysts.get(recipe, item) > 0L
                                 || hasReusableCatalyst(c, recipe, item)
-                                || c.finiteUseAmounts[recipe][item] > 0L)
+                                || c.finiteUseAmounts.get(recipe, item) > 0L)
                         && c.conversionCycleByRecipe[recipe] < 0
                         && c.feedbackMacroByRecipe[recipe] < 0) {
                     return null;
                 }
-                if (c.produced[recipe][item] > 0L
+                if (c.produced.get(recipe, item) > 0L
                         && c.rankGroups[item] != c.rankGroups[output]
                         && ranks[output] >= ranks[item]) {
                     return null;
@@ -1036,8 +1038,15 @@ public final class CpSatRankedFlowSolver<K> {
         Map<CraftPattern<K>, Long> firingMap = new IdentityHashMap<>();
         boolean[] executed = new boolean[c.patterns.size()];
 
+        var recipesByGroup = new LinkedHashMap<Integer, List<Integer>>();
+        for (int recipe = 0; recipe < c.patterns.size(); recipe++) {
+            PlanningCancellation.check();
+            if (quantities[recipe] > 0 && c.conversionCycleByRecipe[recipe] < 0 && c.feedbackMacroByRecipe[recipe] < 0)
+                recipesByGroup.computeIfAbsent(c.rankGroups[c.outputItems[recipe]], ignored -> new ArrayList<>()).add(recipe);
+        }
         for (int group : groups) {
-            for (int recipe = 0; recipe < c.patterns.size(); recipe++) {
+            PlanningCancellation.check();
+            for (int recipe : recipesByGroup.getOrDefault(group, List.of())) {
                 if (quantities[recipe] == 0L
                         || c.conversionCycleByRecipe[recipe] >= 0
                         || c.feedbackMacroByRecipe[recipe] >= 0
@@ -1260,14 +1269,14 @@ public final class CpSatRankedFlowSolver<K> {
             for (int inputItem = 0; inputItem < c.items.size(); inputItem++) {
                 int inputState = stateByItem[inputItem];
                 if (inputState < 0
-                        || (c.consumed[recipe][inputItem] <= 0L
-                                && c.catalysts[recipe][inputItem] <= 0L
-                                && c.finiteUseAmounts[recipe][inputItem] <= 0L)) {
+                        || (c.consumed.get(recipe, inputItem) <= 0L
+                                && c.catalysts.get(recipe, inputItem) <= 0L
+                                && c.finiteUseAmounts.get(recipe, inputItem) <= 0L)) {
                     continue;
                 }
                 for (int outputItem = 0; outputItem < c.items.size(); outputItem++) {
                     int outputState = stateByItem[outputItem];
-                    if (outputState < 0 || c.produced[recipe][outputItem] <= 0L) continue;
+                    if (outputState < 0 || c.produced.get(recipe, outputItem) <= 0L) continue;
                     if (edges.get(inputState).add(outputState)) indegree[outputState]++;
                 }
             }
@@ -1298,7 +1307,7 @@ public final class CpSatRankedFlowSolver<K> {
         int first = Integer.MAX_VALUE;
         for (int item = 0; item < c.items.size(); item++) {
             int state = stateByItem[item];
-            if (state >= 0 && c.produced[recipe][item] > 0L) {
+            if (state >= 0 && c.produced.get(recipe, item) > 0L) {
                 first = Math.min(first, position[state]);
             }
         }
@@ -1319,8 +1328,8 @@ public final class CpSatRankedFlowSolver<K> {
             long[] replayMissing,
             long[] gross) {
         int itemCount = c.items.size();
-        for (int item = 0; item < itemCount; item++) {
-            long required = c.catalysts[recipe][item];
+        for (int item : c.catalysts.rowKeys(recipe)) {
+            long required = c.catalysts.get(recipe, item);
             if (required <= 0L) continue;
             gross[item] = Math.max(gross[item], required);
             if (internalStates.contains(c.items.get(item))) continue;
@@ -1330,13 +1339,13 @@ public final class CpSatRankedFlowSolver<K> {
                 return false;
             }
         }
-        for (int item = 0; item < itemCount; item++) {
-            long demand = Sat.mul(c.consumed[recipe][item], quantity);
-            if (c.finiteUseAmounts[recipe][item] > 0L) {
-                long batches = Sat.ceilDiv(quantity, c.finiteUseLifetimes[recipe][item]);
+        for (int item : SparseLongMatrix.unionRow(recipe, c.consumed, c.finiteUseAmounts)) {
+            long demand = Sat.mul(c.consumed.get(recipe, item), quantity);
+            if (c.finiteUseAmounts.get(recipe, item) > 0L) {
+                long batches = Sat.ceilDiv(quantity, c.finiteUseLifetimes.get(recipe, item));
                 demand = Sat.add(
                         demand,
-                        Sat.mul(c.finiteUseAmounts[recipe][item], batches));
+                        Sat.mul(c.finiteUseAmounts.get(recipe, item), batches));
             }
             if (Sat.isSaturated(demand) || !add(gross, item, demand)) return false;
             if (!internalStates.contains(c.items.get(item))
@@ -1345,9 +1354,9 @@ public final class CpSatRankedFlowSolver<K> {
                 return false;
             }
         }
-        for (int item = 0; item < itemCount; item++) {
+        for (int item : c.produced.rowKeys(recipe)) {
             if (internalStates.contains(c.items.get(item))) continue;
-            long output = Sat.mul(c.produced[recipe][item], quantity);
+            long output = Sat.mul(c.produced.get(recipe, item), quantity);
             if (Sat.isSaturated(output) || !add(generated, item, output)) return false;
         }
         return true;
@@ -1471,8 +1480,8 @@ public final class CpSatRankedFlowSolver<K> {
             long[] gross,
             Map<CraftPattern<K>, Long> firingMap) {
         int itemCount = c.items.size();
-        for (int item = 0; item < itemCount; item++) {
-            long required = c.catalysts[recipe][item];
+        for (int item : c.catalysts.rowKeys(recipe)) {
+            long required = c.catalysts.get(recipe, item);
             if (required > 0L
                     && available(original[item], virtual[item], generated[item]) < required) {
                 return false;
@@ -1488,13 +1497,13 @@ public final class CpSatRankedFlowSolver<K> {
                 gross[item] = Math.max(gross[item], required);
             }
         }
-        for (int item = 0; item < itemCount; item++) {
-            long demand = Sat.mul(c.consumed[recipe][item], quantity);
-            if (c.finiteUseAmounts[recipe][item] > 0L) {
-                long batches = Sat.ceilDiv(quantity, c.finiteUseLifetimes[recipe][item]);
+        for (int item : SparseLongMatrix.unionRow(recipe, c.consumed, c.finiteUseAmounts)) {
+            long demand = Sat.mul(c.consumed.get(recipe, item), quantity);
+            if (c.finiteUseAmounts.get(recipe, item) > 0L) {
+                long batches = Sat.ceilDiv(quantity, c.finiteUseLifetimes.get(recipe, item));
                 demand = Sat.add(
                         demand,
-                        Sat.mul(c.finiteUseAmounts[recipe][item], batches));
+                        Sat.mul(c.finiteUseAmounts.get(recipe, item), batches));
             }
             if (Sat.isSaturated(demand)
                     || !add(gross, item, demand)
@@ -1502,8 +1511,8 @@ public final class CpSatRankedFlowSolver<K> {
                 return false;
             }
         }
-        for (int item = 0; item < itemCount; item++) {
-            long output = Sat.mul(c.produced[recipe][item], quantity);
+        for (int item : c.produced.rowKeys(recipe)) {
+            long output = Sat.mul(c.produced.get(recipe, item), quantity);
             if (Sat.isSaturated(output) || !add(generated, item, output)) return false;
         }
         firingMap.put(c.patterns.get(recipe), quantity);
@@ -1679,11 +1688,18 @@ public final class CpSatRankedFlowSolver<K> {
         return result;
     }
 
+    private static <K> int[] incidentItems(Compilation<K> c, int recipe) {
+        var items = new java.util.TreeSet<Integer>();
+        for (int i : SparseLongMatrix.unionRow(recipe, c.consumed, c.produced, c.catalysts, c.finiteUseAmounts)) items.add(i);
+        for (int group : c.reusableCatalysts.rowKeys(recipe)) items.add(c.reusableGroups.get(group).item);
+        return items.stream().mapToInt(Integer::intValue).toArray();
+    }
+
     private static <K> boolean hasReusableCatalyst(
             Compilation<K> compilation, int recipe, int item) {
-        for (int group = 0; group < compilation.reusableGroups.size(); group++) {
+        for (int group : compilation.reusableCatalysts.rowKeys(recipe)) {
             if (compilation.reusableGroups.get(group).item == item
-                    && compilation.reusableCatalysts[recipe][group] > 0L) {
+                    && compilation.reusableCatalysts.get(recipe, group) > 0L) {
                 return true;
             }
         }
@@ -1694,9 +1710,9 @@ public final class CpSatRankedFlowSolver<K> {
         long[] result = new long[compilation.reusableGroups.size()];
         for (int recipe = 0; recipe < compilation.patterns.size(); recipe++) {
             if (quantities[recipe] <= 0L) continue;
-            for (int group = 0; group < result.length; group++) {
+            for (int group : compilation.reusableCatalysts.rowKeys(recipe)) {
                 result[group] = Math.max(
-                        result[group], compilation.reusableCatalysts[recipe][group]);
+                        result[group], compilation.reusableCatalysts.get(recipe, group));
             }
         }
         return result;
@@ -1761,6 +1777,13 @@ public final class CpSatRankedFlowSolver<K> {
         return false;
     }
 
+    private static boolean add(SparseLongMatrix values, int row, int column, long amount) {
+        long next = Sat.add(values.get(row, column), amount);
+        if (Sat.isSaturated(next)) return false;
+        values.set(row, column, next);
+        return true;
+    }
+
     private static boolean add(long[] values, int index, long amount) {
         if (amount == 0L) return true;
         long next = Sat.add(values[index], amount);
@@ -1780,12 +1803,12 @@ public final class CpSatRankedFlowSolver<K> {
     private record Compilation<K>(
             List<K> items,
             List<CraftPattern<K>> patterns,
-            long[][] consumed,
-            long[][] produced,
-            long[][] catalysts,
-            long[][] finiteUseAmounts,
-            long[][] finiteUseLifetimes,
-            long[][] reusableCatalysts,
+            SparseLongMatrix consumed,
+            SparseLongMatrix produced,
+            SparseLongMatrix catalysts,
+            SparseLongMatrix finiteUseAmounts,
+            SparseLongMatrix finiteUseLifetimes,
+            SparseLongMatrix reusableCatalysts,
             int[] outputItems,
             int[] primaryOutputItems,
             long[] primaryOutputAmounts,

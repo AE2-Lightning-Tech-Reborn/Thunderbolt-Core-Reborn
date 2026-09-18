@@ -1,5 +1,7 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.SparseLongMatrix;
+
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -24,8 +26,8 @@ final class PetriExecutionTrace {
     private PetriExecutionTrace() { }
 
     /** Rebuilds prefixes from the compiled recipe arcs, without trusting any solver summary. */
-    static Summary summarize(Node root, long[][] pre, long[][] post) {
-        int recipes = pre.length, items = pre[0].length;
+    static Summary summarize(Node root, SparseLongMatrix pre, SparseLongMatrix post) {
+        int recipes = pre.rows(), items = pre.columns();
         var values = new IdentityHashMap<Node, Summary>();
         var stack = new ArrayDeque<Visit>();
         stack.push(new Visit(root, false));
@@ -50,8 +52,8 @@ final class PetriExecutionTrace {
                 result = empty(recipes, items);
                 result.firings[fire.recipe] = 1L;
                 for (int i = 0; i < items; i++) {
-                    result.required[i] = BigInteger.valueOf(pre[fire.recipe][i]);
-                    result.delta[i] = BigInteger.valueOf(post[fire.recipe][i]).subtract(result.required[i]);
+                    result.required[i] = BigInteger.valueOf(pre.get(fire.recipe, i));
+                    result.delta[i] = BigInteger.valueOf(post.get(fire.recipe, i)).subtract(result.required[i]);
                 }
                 result = repeat(result, fire.copies);
             } else if (node instanceof Repeat repeat) {
@@ -69,7 +71,7 @@ final class PetriExecutionTrace {
         return values.get(root);
     }
 
-    static PetriExecutionVerifier.Certificate certificate(Node trace, long[][] pre, long[][] post,
+    static PetriExecutionVerifier.Certificate certificate(Node trace, SparseLongMatrix pre, SparseLongMatrix post,
                                                           long[] expected, int target, long amount) {
         Summary summary = summarize(trace, pre, post);
         if (summary == null || !Arrays.equals(summary.firings, expected)) return null;
@@ -115,4 +117,13 @@ final class PetriExecutionTrace {
         }
         return result;
     }
+    static Summary summarize(Node root, long[][] pre, long[][] post) {
+        return summarize(root, SparseLongMatrix.fromDense(pre), SparseLongMatrix.fromDense(post));
+    }
+
+    static PetriExecutionVerifier.Certificate certificate(Node trace, long[][] pre, long[][] post,
+                                                          long[] expected, int target, long amount) {
+        return certificate(trace, SparseLongMatrix.fromDense(pre), SparseLongMatrix.fromDense(post), expected, target, amount);
+    }
+
 }

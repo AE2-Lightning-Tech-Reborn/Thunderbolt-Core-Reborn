@@ -1,5 +1,7 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.SparseLongMatrix;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,12 +24,12 @@ final class PetriReplenishmentSearch {
 
     private PetriReplenishmentSearch() { }
 
-    static Result search(long[][] pre, long[][] post, long[] firings, long[] stock,
+    static Result search(SparseLongMatrix pre, SparseLongMatrix post, long[] firings, long[] stock,
                          boolean[] allowed, int[] distances, int target, long amount,
                          List<PetriBlockCatalog.Block> blocks, PetriExecutionVerifier.Budget budget,
                          int nodeLimit) {
         var steps = new ArrayList<Step>();
-        for (int r = 0; r < pre.length; r++) {
+        for (int r = 0; r < pre.rows(); r++) {
             if (firings[r] == 0) continue;
             var trace = new PetriExecutionTrace.Fire(r, 1);
             var summary = PetriExecutionTrace.summarize(trace, pre, post);
@@ -120,4 +122,11 @@ final class PetriReplenishmentSearch {
         for (var value : tiers.values()) if (value.signum() != 0) return value.signum() < 0;
         return false;
     }
+    static Result search(long[][] pre, long[][] post, long[] firings, long[] stock,
+                         boolean[] allowed, int[] distances, int target, long amount,
+                         List<PetriBlockCatalog.Block> blocks, PetriExecutionVerifier.Budget budget,
+                         int nodeLimit) {
+        return search(SparseLongMatrix.fromDense(pre), SparseLongMatrix.fromDense(post), firings, stock, allowed, distances, target, amount, blocks, budget, nodeLimit);
+    }
+
 }
