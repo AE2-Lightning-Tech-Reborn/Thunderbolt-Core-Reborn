@@ -40,11 +40,6 @@ import com.moakiee.thunderbolt.core.crafting.pattern.ReusableStockSource;
  * one physical stack.</p>
  */
 public final class CpSatRankedFlowSolver<K> {
-    private static final int MAX_ITEMS = Math.max(
-            8, Integer.getInteger("thunderbolt.maxCpSatRankItems", 256));
-    private static final int MAX_PATTERNS = Math.max(
-            4, Integer.getInteger("thunderbolt.maxCpSatRankPatterns", 192));
-
     public enum Status {
         SOLVED,
         INFEASIBLE,
@@ -555,7 +550,6 @@ public final class CpSatRankedFlowSolver<K> {
                     if (reachableOutputs.add(input.key())) queue.addLast(input.key());
                 }
             }
-            if (patterns.size() > MAX_PATTERNS || allItems.size() > MAX_ITEMS) return null;
         }
         if (patterns.isEmpty()) return null;
 

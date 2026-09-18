@@ -13,6 +13,18 @@ import org.junit.jupiter.api.Test;
 
 class WideOrdinaryAllocationTest {
     @Test
+    void allEightyKnownFeasibleWideAssignmentsStayWithinThreeSeconds() {
+        for (int outputs : new int[] {8, 16, 32, 64}) for (int seed = 0; seed < 10; seed++)
+            for (long n : new long[] {1, 1_000_000_000_000L}) {
+                var graph = assignment(outputs, n, seed);
+                var result = assertTimeoutPreemptively(Duration.ofSeconds(3),
+                        () -> CraftPlannerV2.planDetailed(graph, "T", n));
+                assertTrue(result.plan().feasible(), outputs + ":" + seed + ":" + n);
+                check(graph, result.plan(), n);
+            }
+    }
+
+    @Test
     void actualMatrixSizeAllowsWidthSixteenTwoInputAssignments() {
         for (int outputs : new int[] {16, 32}) for (int seed : new int[] {6, 7, 8})
             for (long n : new long[] {1, 1_000_000_000_000L}) {

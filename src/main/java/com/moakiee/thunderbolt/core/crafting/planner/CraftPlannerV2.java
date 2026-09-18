@@ -1372,6 +1372,9 @@ public final class CraftPlannerV2<K> {
                         component.externalDemand(), component.externalSupply(), lowWidthWorkBudget);
                 if (unit == null) unit = CommonInputFlow.trySolve(graph, component.items(), component.patterns(),
                         component.externalDemand(), component.externalSupply(), lowWidthWorkBudget);
+                if (unit == null && !capacityProvedInfeasible)
+                    unit = WholeBatchAllocation.trySolve(graph, component.items(), component.patterns(),
+                            component.externalDemand(), component.externalSupply(), lowWidthWorkBudget);
                 if (unit != null) {
                     if (unit.leafSupplyFirings() != null) {
                         leafSupplyFirings.putAll(unit.leafSupplyFirings());
