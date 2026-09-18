@@ -25,6 +25,16 @@ public interface BatchProviderResolver extends BatchProviderAdapter {
         return true;
     }
 
+    /**
+     * Opts into bounded cross-tick caching by provider identity. Both hits and misses must remain
+     * valid until AE2 refreshes the provider set. Endpoints must not retain jobs; temporary dispatch
+     * state is reset lazily through {@link IBatchCraftingProvider#beginDispatchTick(long)}.
+     * Existing resolvers remain tick-scoped. Dynamic capabilities should leave this disabled.
+     */
+    default boolean cacheResolutionAcrossTicks() {
+        return false;
+    }
+
     @Override
     default @Nullable IBatchCraftingProvider adapt(
             ICraftingProvider provider, IPatternDetails pattern, BatchJobView job) {

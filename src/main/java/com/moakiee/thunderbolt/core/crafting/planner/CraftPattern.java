@@ -58,7 +58,8 @@ public final class CraftPattern<K> {
         this.inputs = List.copyOf(inputs);
         this.byproducts = normalizeByproducts(this.inputs, byproducts);
         this.source = source;
-        this.executionSlots = executionSlots.stream().map(List::copyOf).toList();
+        this.executionSlots = executionSlots.isEmpty() ? List.of()
+                : executionSlots.stream().map(List::copyOf).toList();
     }
 
     /**
@@ -111,7 +112,8 @@ public final class CraftPattern<K> {
         return source;
     }
 
-    /** Per-slot concrete allocations; an empty slot retains its dynamic runtime semantics. */
+    /** Legacy opt-in allocation metadata. Built-in planners no longer populate this field. */
+    @Deprecated
     public List<List<CraftInput<K>>> executionSlots() {
         return executionSlots;
     }
