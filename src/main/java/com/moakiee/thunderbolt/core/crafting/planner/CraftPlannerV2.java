@@ -152,6 +152,9 @@ public final class CraftPlannerV2<K> {
         private boolean replenishmentCompiled;
         private List<ConservativeReplenishment<K>> cutPolicies = List.of();
         private boolean refineMissing = true;
+        boolean optimizeFeasible = true;
+        private int consumptionOptimizationProbes;
+        private long consumptionOptimizationNanos;
         private int missingRefinementProbes;
         private List<MaterialDagOrders.Candidate<K>> materialDagOrders;
         private final Map<Integer, PreparedGraph<K>> preparedMaterialDagOrders = new HashMap<>();
@@ -486,6 +489,50 @@ public final class CraftPlannerV2<K> {
             int searchWorkBudget,
             int reachableWork,
             PlanningSession<K> session) {
+        long started = System.nanoTime();
+        PlanningResult<K> initial = planCore(graph, target, amount, visitCap, searchWorkBudget, reachableWork, session);
+        if (!session.optimizeFeasible || !initial.plan().feasible() || amount <= 0
+                || amount >= Sat.SAT || initial.plan().usedStock().isEmpty()
+                || session.consumptionOptimizationProbes >= FeasibleConsumptionOptimizer.MAX_PROBES)
+            return initial;
+        // Fixed ordinary chains need no optional scan or second planning pass.
+        if (initial.diagnostics().contendedOutputs() == 0) return initial;
+        long remaining = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
+        long reserve = Math.max(FeasibleConsumptionOptimizer.EXPORT_RESERVE_NANOS, remaining / 10);
+        long allowance = Math.min(FeasibleConsumptionOptimizer.MAX_NANOS - session.consumptionOptimizationNanos,
+                remaining - reserve);
+        if (allowance <= 0 || session.searchWorkBudget.remaining < reachableWork) return initial;
+        long optimizationStarted = System.nanoTime();
+        FeasibleConsumptionOptimizer.Result<K> optimized;
+        try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
+            optimized = FeasibleConsumptionOptimizer.optimize(graph, target, amount, initial.plan(),
+                    FeasibleConsumptionOptimizer.MAX_PROBES - session.consumptionOptimizationProbes,
+                    candidateGraph -> {
+                        if (!session.searchWorkBudget.tryConsume(reachableWork)) return null;
+                        var probe = new PlanningSession<K>();
+                        probe.optimizeFeasible = false;
+                        probe.refineMissing = false;
+                        probe.lowWidthWorkBudget = session.lowWidthWorkBudget;
+                        probe.searchWorkBudget = session.searchWorkBudget;
+                        probe.resolutionWorkBudget = session.resolutionWorkBudget;
+                        probe.fallbackWorkBudget = session.fallbackWorkBudget;
+                        // Stock-dependent capacities are rebuilt; sharing PreparedGraph would reuse
+                        // the incumbent's larger stock. Patterns and all work limits remain shared.
+                        return planCore(candidateGraph, target, amount, visitCap, searchWorkBudget,
+                                reachableWork, probe).plan();
+                    });
+        } finally {
+            session.consumptionOptimizationNanos += Math.max(0L, System.nanoTime() - optimizationStarted);
+        }
+        session.consumptionOptimizationProbes += optimized.probes();
+        return new PlanningResult<>(optimized.plan(), initial.diagnostics().withConsumptionOptimization(
+                optimized.probes(), optimized.improvements(), System.nanoTime() - optimizationStarted,
+                System.nanoTime() - started));
+    }
+
+    private static <K> PlanningResult<K> planCore(
+            CraftGraph<K> graph, K target, long amount, int visitCap, int searchWorkBudget,
+            int reachableWork, PlanningSession<K> session) {
         long started = System.nanoTime();
         int fallbackLimit = fallbackWorkBudget(reachableWork);
         session.bind(
@@ -836,6 +883,7 @@ public final class CraftPlannerV2<K> {
         diagnostics.missingRefinementProbes++;
         var probeSession = new PlanningSession<K>();
         probeSession.refineMissing = false;
+        probeSession.optimizeFeasible = false;
         probeSession.lowWidthWorkBudget = session.lowWidthWorkBudget;
         probeSession.searchWorkBudget = session.searchWorkBudget;
         probeSession.resolutionWorkBudget = session.resolutionWorkBudget;
