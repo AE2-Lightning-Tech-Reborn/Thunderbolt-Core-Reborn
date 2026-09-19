@@ -1,0 +1,8 @@
+def measurementAgent = gradle.startParameter.projectProperties.get('comparisonSizeAgent')
+if (!measurementAgent) throw new GradleException('Set -PcomparisonSizeAgent to the measurement-only agent jar')
+allprojects { afterEvaluate {
+ neoForge.runs.configureEach {
+  jvmArgument '-javaagent:' + measurementAgent
+  systemProperty 'plainCost.measureSize', 'true'
+ }
+} }

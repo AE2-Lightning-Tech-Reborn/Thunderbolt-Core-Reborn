@@ -33,8 +33,8 @@ public final class ThunderboltCommonConfig {
         builder.pop();
         builder.push("objects");
         REUSE_AE_KEYS = builder.comment(
-                        "Reuse AE2 item/fluid keys in a bounded cache (experimental).",
-                        "Keeps value equality, counts, animation state and native stack copying.",
+                        "Reuse item keys through per-Item and weak component caches, plus a bounded fluid cache (experimental).",
+                        "Keeps value equality and caller stack state; key-owned stacks use count=1 and popTime=0.",
                         "Disable if another addon requires a fresh key or constructor side effects on every call.")
                 .define("reuseAeKeys", true);
         REUSE_COMPONENT_KEYS = builder.comment("Also reuse component keys after repeated copying of a native copy-on-write patch snapshot.",

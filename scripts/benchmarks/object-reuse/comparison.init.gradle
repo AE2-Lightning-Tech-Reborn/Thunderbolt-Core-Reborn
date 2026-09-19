@@ -1,0 +1,22 @@
+// External benchmark injection only; no benchmark classes are added to a release source set in TB.
+def comparisonRoot = gradle.startParameter.projectProperties.get('comparisonHarnessDir')
+if (!comparisonRoot) throw new GradleException('Set -PcomparisonHarnessDir to this harness directory')
+allprojects { afterEvaluate {
+ def root = file(comparisonRoot)
+ def mode = providers.gradleProperty('comparisonMode').getOrElse('BASE')
+ def target = sourceSets.findByName('gameTest') ?: sourceSets.main
+ target.java.srcDir(new File(root, 'java'))
+ target.resources.srcDir(new File(root, 'resources'))
+ if (mode == 'LEAN') {
+  def leanJar = providers.gradleProperty('comparisonLeanJar').get()
+  dependencies { runtimeOnly files(leanJar) }
+ }
+ neoForge.runs.create('comparisonGameTestServer') {
+  type = 'gameTestServer'
+  systemProperty 'neoforge.enabledGameTestNamespaces', 'lean_comparison'
+  systemProperty 'comparison.mode', mode
+  systemProperty 'comparison.directFactoryOnly', providers.gradleProperty('comparisonDirectFactoryOnly').getOrElse('false')
+  systemProperty 'comparison.skipBenchmark', providers.gradleProperty('comparisonSkipBenchmark').getOrElse('false')
+  gameDirectory = project.layout.buildDirectory.dir('comparison-' + mode.toLowerCase()).get().asFile
+ }
+} }

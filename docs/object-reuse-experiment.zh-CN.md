@@ -1,5 +1,7 @@
 # 对象复用实验：移植范围与 AE 附属兼容性
 
+最新三方实测见[原始基线／Lean 最新／当前 TB 对照](object-reuse-three-way.zh-CN.md)。
+
 本实验基于 Thunderbolt `3798e5b0300eddb19706cd9352ba0a29f957048b`，目标是减少重复构造、组件 hash 和 NBT 复制分配，保留 AE2 及附属的物品身份、编解码、存储与样板语义。没有改变 V2 的搜索算法。
 
 后续迭代已加入 Item 字段快路与双层弱缓存，设计、最新性能与兼容边界见 [Item 字段与双层弱规范化缓存](weak-canonical-cache.zh-CN.md)。下方性能表保留初版测量，不能当作当前结果。

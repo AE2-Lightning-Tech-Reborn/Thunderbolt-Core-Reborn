@@ -1,0 +1,1762 @@
+{
+  "modes": {
+    "BASE": {
+      "direct": {
+        "1": {
+          "median_ns": 43.409,
+          "range_ns": [
+            42.324,
+            44.353
+          ],
+          "median_bytes": 144.0,
+          "range_bytes": [
+            144.0,
+            144.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 42.324,
+              "bytes": 144.0
+            },
+            {
+              "run": 2,
+              "ns": 43.409,
+              "bytes": 144.0
+            },
+            {
+              "run": 3,
+              "ns": 44.353,
+              "bytes": 144.0
+            }
+          ]
+        },
+        "64": {
+          "median_ns": 43.661,
+          "range_ns": [
+            42.283,
+            46.553
+          ],
+          "median_bytes": 144.0,
+          "range_bytes": [
+            144.0,
+            144.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 42.283,
+              "bytes": 144.0
+            },
+            {
+              "run": 2,
+              "ns": 46.553,
+              "bytes": 144.0
+            },
+            {
+              "run": 3,
+              "ns": 43.661,
+              "bytes": 144.0
+            }
+          ]
+        }
+      },
+      "mixed": {
+        "item_count_1": {
+          "median_ns": 52.31,
+          "range_ns": [
+            49.05,
+            55.98
+          ],
+          "median_bytes": 144.0,
+          "range_bytes": [
+            144.0,
+            144.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 55.98,
+              "bytes": 144.0
+            },
+            {
+              "run": 2,
+              "ns": 49.05,
+              "bytes": 144.0
+            },
+            {
+              "run": 3,
+              "ns": 52.31,
+              "bytes": 144.0
+            }
+          ]
+        },
+        "item_count_64": {
+          "median_ns": 46.88,
+          "range_ns": [
+            45.5,
+            56.95
+          ],
+          "median_bytes": 144.0,
+          "range_bytes": [
+            144.0,
+            144.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 46.88,
+              "bytes": 144.0
+            },
+            {
+              "run": 2,
+              "ns": 56.95,
+              "bytes": 144.0
+            },
+            {
+              "run": 3,
+              "ns": 45.5,
+              "bytes": 144.0
+            }
+          ]
+        },
+        "item_components": {
+          "median_ns": 77.15,
+          "range_ns": [
+            73.69,
+            78.25
+          ],
+          "median_bytes": 288.0,
+          "range_bytes": [
+            288.0,
+            288.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 73.69,
+              "bytes": 288.0
+            },
+            {
+              "run": 2,
+              "ns": 77.15,
+              "bytes": 288.0
+            },
+            {
+              "run": 3,
+              "ns": 78.25,
+              "bytes": 288.0
+            }
+          ]
+        },
+        "item_deep_components": {
+          "median_ns": 543.39,
+          "range_ns": [
+            520.07,
+            551.19
+          ],
+          "median_bytes": 200.0,
+          "range_bytes": [
+            200.0,
+            200.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 543.39,
+              "bytes": 200.0
+            },
+            {
+              "run": 2,
+              "ns": 551.19,
+              "bytes": 200.0
+            },
+            {
+              "run": 3,
+              "ns": 520.07,
+              "bytes": 200.0
+            }
+          ]
+        },
+        "item_256_variants": {
+          "median_ns": 80.0,
+          "range_ns": [
+            75.31,
+            82.54
+          ],
+          "median_bytes": 288.0,
+          "range_bytes": [
+            288.0,
+            288.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 75.31,
+              "bytes": 288.0
+            },
+            {
+              "run": 2,
+              "ns": 82.54,
+              "bytes": 288.0
+            },
+            {
+              "run": 3,
+              "ns": 80.0,
+              "bytes": 288.0
+            }
+          ]
+        },
+        "equal_component_storage_lookup": {
+          "median_ns": 1073.95,
+          "range_ns": [
+            1051.12,
+            1094.6
+          ],
+          "median_bytes": 280.0,
+          "range_bytes": [
+            280.0,
+            280.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 1051.12,
+              "bytes": 280.0
+            },
+            {
+              "run": 2,
+              "ns": 1094.6,
+              "bytes": 280.0
+            },
+            {
+              "run": 3,
+              "ns": 1073.95,
+              "bytes": 280.0
+            }
+          ]
+        },
+        "item_fresh_components": {
+          "median_ns": 109.85,
+          "range_ns": [
+            109.61,
+            110.78
+          ],
+          "median_bytes": 624.0,
+          "range_bytes": [
+            624.0,
+            624.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 110.78,
+              "bytes": 624.0
+            },
+            {
+              "run": 2,
+              "ns": 109.85,
+              "bytes": 624.0
+            },
+            {
+              "run": 3,
+              "ns": 109.61,
+              "bytes": 624.0
+            }
+          ]
+        },
+        "fluid_plain": {
+          "median_ns": 10.8,
+          "range_ns": [
+            5.91,
+            12.93
+          ],
+          "median_bytes": 72.0,
+          "range_bytes": [
+            72.0,
+            72.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 5.91,
+              "bytes": 72.0
+            },
+            {
+              "run": 2,
+              "ns": 12.93,
+              "bytes": 72.0
+            },
+            {
+              "run": 3,
+              "ns": 10.8,
+              "bytes": 72.0
+            }
+          ]
+        },
+        "item_many_types_1699": {
+          "median_ns": 61.94,
+          "range_ns": [
+            58.98,
+            62.18
+          ],
+          "median_bytes": 144.04,
+          "range_bytes": [
+            144.04,
+            144.04
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 58.98,
+              "bytes": 144.04
+            },
+            {
+              "run": 2,
+              "ns": 62.18,
+              "bytes": 144.04
+            },
+            {
+              "run": 3,
+              "ns": 61.94,
+              "bytes": 144.04
+            }
+          ]
+        },
+        "resource_location": {
+          "median_ns": 43.73,
+          "range_ns": [
+            43.1,
+            43.82
+          ],
+          "median_bytes": 144.0,
+          "range_bytes": [
+            144.0,
+            144.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 43.82,
+              "bytes": 144.0
+            },
+            {
+              "run": 2,
+              "ns": 43.1,
+              "bytes": 144.0
+            },
+            {
+              "run": 3,
+              "ns": 43.73,
+              "bytes": 144.0
+            }
+          ]
+        },
+        "resource_unique": {
+          "median_ns": 20.75,
+          "range_ns": [
+            20.72,
+            22.55
+          ],
+          "median_bytes": 80.0,
+          "range_bytes": [
+            80.0,
+            80.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 22.55,
+              "bytes": 80.0
+            },
+            {
+              "run": 2,
+              "ns": 20.72,
+              "bytes": 80.0
+            },
+            {
+              "run": 3,
+              "ns": 20.75,
+              "bytes": 80.0
+            }
+          ]
+        },
+        "resource_lookup": {
+          "median_ns": 2.21,
+          "range_ns": [
+            2.08,
+            2.21
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 2.08,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 2.21,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 2.21,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "tag_key": {
+          "median_ns": 8.65,
+          "range_ns": [
+            8.64,
+            9.75
+          ],
+          "median_bytes": 24.0,
+          "range_bytes": [
+            24.0,
+            24.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 9.75,
+              "bytes": 24.0
+            },
+            {
+              "run": 2,
+              "ns": 8.64,
+              "bytes": 24.0
+            },
+            {
+              "run": 3,
+              "ns": 8.65,
+              "bytes": 24.0
+            }
+          ]
+        },
+        "nbt_compound_64": {
+          "median_ns": 1390.24,
+          "range_ns": [
+            1361.29,
+            1464.23
+          ],
+          "median_bytes": 4312.01,
+          "range_bytes": [
+            4312.01,
+            4312.01
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 1464.23,
+              "bytes": 4312.01
+            },
+            {
+              "run": 2,
+              "ns": 1390.24,
+              "bytes": 4312.01
+            },
+            {
+              "run": 3,
+              "ns": 1361.29,
+              "bytes": 4312.01
+            }
+          ]
+        },
+        "nbt_list_64": {
+          "median_ns": 3259.83,
+          "range_ns": [
+            3146.79,
+            3532.86
+          ],
+          "median_bytes": 18944.01,
+          "range_bytes": [
+            18944.01,
+            18944.01
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 3146.79,
+              "bytes": 18944.01
+            },
+            {
+              "run": 2,
+              "ns": 3532.86,
+              "bytes": 18944.01
+            },
+            {
+              "run": 3,
+              "ns": 3259.83,
+              "bytes": 18944.01
+            }
+          ]
+        }
+      },
+      "semantic_observations": [
+        {
+          "air_itemlike_returns_null": "true",
+          "potion_raw_matches_input": "true",
+          "potion_itemlike_equals_default_stack": "true",
+          "potion_raw_distinct_from_water": "true",
+          "potion_disk_roundtrip": "true",
+          "potion_packet_roundtrip": "true",
+          "potion_storage_lookup_after_packet": "42",
+          "concurrent_first_keys_equal": "true",
+          "concurrent_storage_type_count": "1",
+          "dynamic_limit_initial": "64",
+          "dynamic_limit_after_change": "16",
+          "native_stack_count_poptime": "64,5",
+          "registry_input_mismatches": "[]",
+          "registry_factory_inequality": "[]",
+          "equal_component_lookup_hits": "256/256"
+        },
+        {
+          "air_itemlike_returns_null": "true",
+          "potion_raw_matches_input": "true",
+          "potion_itemlike_equals_default_stack": "true",
+          "potion_raw_distinct_from_water": "true",
+          "potion_disk_roundtrip": "true",
+          "potion_packet_roundtrip": "true",
+          "potion_storage_lookup_after_packet": "42",
+          "concurrent_first_keys_equal": "true",
+          "concurrent_storage_type_count": "1",
+          "dynamic_limit_initial": "64",
+          "dynamic_limit_after_change": "16",
+          "native_stack_count_poptime": "64,5",
+          "registry_input_mismatches": "[]",
+          "registry_factory_inequality": "[]",
+          "equal_component_lookup_hits": "256/256"
+        },
+        {
+          "air_itemlike_returns_null": "true",
+          "potion_raw_matches_input": "true",
+          "potion_itemlike_equals_default_stack": "true",
+          "potion_raw_distinct_from_water": "true",
+          "potion_disk_roundtrip": "true",
+          "potion_packet_roundtrip": "true",
+          "potion_storage_lookup_after_packet": "42",
+          "concurrent_first_keys_equal": "true",
+          "concurrent_storage_type_count": "1",
+          "dynamic_limit_initial": "64",
+          "dynamic_limit_after_change": "16",
+          "native_stack_count_poptime": "64,5",
+          "registry_input_mismatches": "[]",
+          "registry_factory_inequality": "[]",
+          "equal_component_lookup_hits": "256/256"
+        }
+      ],
+      "ae_item_key_shallow_bytes": 32
+    },
+    "LEAN": {
+      "direct": {
+        "1": {
+          "median_ns": 0.827,
+          "range_ns": [
+            0.826,
+            1.036
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 0.826,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 1.036,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 0.827,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "64": {
+          "median_ns": 0.843,
+          "range_ns": [
+            0.83,
+            1.033
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 0.843,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 1.033,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 0.83,
+              "bytes": 0.0
+            }
+          ]
+        }
+      },
+      "mixed": {
+        "item_count_1": {
+          "median_ns": 2.58,
+          "range_ns": [
+            2.21,
+            3.23
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 3.23,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 2.58,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 2.21,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "item_count_64": {
+          "median_ns": 2.43,
+          "range_ns": [
+            2.41,
+            2.46
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 2.41,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 2.46,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 2.43,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "item_components": {
+          "median_ns": 33.72,
+          "range_ns": [
+            33.28,
+            36.83
+          ],
+          "median_bytes": 104.0,
+          "range_bytes": [
+            104.0,
+            104.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 36.83,
+              "bytes": 104.0
+            },
+            {
+              "run": 2,
+              "ns": 33.72,
+              "bytes": 104.0
+            },
+            {
+              "run": 3,
+              "ns": 33.28,
+              "bytes": 104.0
+            }
+          ]
+        },
+        "item_deep_components": {
+          "median_ns": 116.85,
+          "range_ns": [
+            116.46,
+            120.21
+          ],
+          "median_bytes": 16.0,
+          "range_bytes": [
+            16.0,
+            16.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 116.85,
+              "bytes": 16.0
+            },
+            {
+              "run": 2,
+              "ns": 120.21,
+              "bytes": 16.0
+            },
+            {
+              "run": 3,
+              "ns": 116.46,
+              "bytes": 16.0
+            }
+          ]
+        },
+        "item_256_variants": {
+          "median_ns": 43.25,
+          "range_ns": [
+            41.18,
+            47.08
+          ],
+          "median_bytes": 104.0,
+          "range_bytes": [
+            104.0,
+            104.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 41.18,
+              "bytes": 104.0
+            },
+            {
+              "run": 2,
+              "ns": 47.08,
+              "bytes": 104.0
+            },
+            {
+              "run": 3,
+              "ns": 43.25,
+              "bytes": 104.0
+            }
+          ]
+        },
+        "equal_component_storage_lookup": {
+          "median_ns": 567.64,
+          "range_ns": [
+            499.69,
+            592.32
+          ],
+          "median_bytes": 64.0,
+          "range_bytes": [
+            64.0,
+            64.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 567.64,
+              "bytes": 64.0
+            },
+            {
+              "run": 2,
+              "ns": 499.69,
+              "bytes": 64.0
+            },
+            {
+              "run": 3,
+              "ns": 592.32,
+              "bytes": 64.0
+            }
+          ]
+        },
+        "item_fresh_components": {
+          "median_ns": 235.09,
+          "range_ns": [
+            203.15,
+            271.92
+          ],
+          "median_bytes": 549.22,
+          "range_bytes": [
+            517.51,
+            575.77
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 235.09,
+              "bytes": 549.22
+            },
+            {
+              "run": 2,
+              "ns": 271.92,
+              "bytes": 575.77
+            },
+            {
+              "run": 3,
+              "ns": 203.15,
+              "bytes": 517.51
+            }
+          ]
+        },
+        "fluid_plain": {
+          "median_ns": 2.67,
+          "range_ns": [
+            2.63,
+            2.68
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 2.67,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 2.68,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 2.63,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "item_many_types_1699": {
+          "median_ns": 5.99,
+          "range_ns": [
+            5.85,
+            6.35
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 5.85,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 6.35,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 5.99,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "resource_location": {
+          "median_ns": 26.92,
+          "range_ns": [
+            26.39,
+            34.99
+          ],
+          "median_bytes": 120.0,
+          "range_bytes": [
+            120.0,
+            120.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 26.92,
+              "bytes": 120.0
+            },
+            {
+              "run": 2,
+              "ns": 26.39,
+              "bytes": 120.0
+            },
+            {
+              "run": 3,
+              "ns": 34.99,
+              "bytes": 120.0
+            }
+          ]
+        },
+        "resource_unique": {
+          "median_ns": 29.05,
+          "range_ns": [
+            28.38,
+            29.63
+          ],
+          "median_bytes": 56.0,
+          "range_bytes": [
+            56.0,
+            56.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 28.38,
+              "bytes": 56.0
+            },
+            {
+              "run": 2,
+              "ns": 29.63,
+              "bytes": 56.0
+            },
+            {
+              "run": 3,
+              "ns": 29.05,
+              "bytes": 56.0
+            }
+          ]
+        },
+        "resource_lookup": {
+          "median_ns": 2.01,
+          "range_ns": [
+            1.97,
+            2.02
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 2.01,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 2.02,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 1.97,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "tag_key": {
+          "median_ns": 9.36,
+          "range_ns": [
+            9.32,
+            9.37
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 9.32,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 9.36,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 9.37,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "nbt_compound_64": {
+          "median_ns": 443.84,
+          "range_ns": [
+            442.58,
+            454.33
+          ],
+          "median_bytes": 1696.01,
+          "range_bytes": [
+            1696.01,
+            1696.01
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 454.33,
+              "bytes": 1696.01
+            },
+            {
+              "run": 2,
+              "ns": 442.58,
+              "bytes": 1696.01
+            },
+            {
+              "run": 3,
+              "ns": 443.84,
+              "bytes": 1696.01
+            }
+          ]
+        },
+        "nbt_list_64": {
+          "median_ns": 898.63,
+          "range_ns": [
+            895.03,
+            1740.18
+          ],
+          "median_bytes": 12112.01,
+          "range_bytes": [
+            12096.01,
+            12112.01
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 898.63,
+              "bytes": 12112.01
+            },
+            {
+              "run": 2,
+              "ns": 1740.18,
+              "bytes": 12096.01
+            },
+            {
+              "run": 3,
+              "ns": 895.03,
+              "bytes": 12112.01
+            }
+          ]
+        }
+      },
+      "semantic_observations": [
+        {
+          "air_itemlike_returns_null": "IllegalArgumentException:stack is empty",
+          "potion_raw_matches_input": "false",
+          "potion_itemlike_equals_default_stack": "false",
+          "potion_raw_distinct_from_water": "true",
+          "potion_disk_roundtrip": "false",
+          "potion_packet_roundtrip": "false",
+          "potion_storage_lookup_after_packet": "null",
+          "concurrent_first_keys_equal": "false",
+          "concurrent_storage_type_count": "2",
+          "dynamic_limit_initial": "64",
+          "dynamic_limit_after_change": "64",
+          "native_stack_count_poptime": "1,0",
+          "registry_input_mismatches": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+          "registry_factory_inequality": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+          "equal_component_lookup_hits": "256/256"
+        },
+        {
+          "air_itemlike_returns_null": "IllegalArgumentException:stack is empty",
+          "potion_raw_matches_input": "false",
+          "potion_itemlike_equals_default_stack": "false",
+          "potion_raw_distinct_from_water": "true",
+          "potion_disk_roundtrip": "false",
+          "potion_packet_roundtrip": "false",
+          "potion_storage_lookup_after_packet": "null",
+          "concurrent_first_keys_equal": "false",
+          "concurrent_storage_type_count": "2",
+          "dynamic_limit_initial": "64",
+          "dynamic_limit_after_change": "64",
+          "native_stack_count_poptime": "1,0",
+          "registry_input_mismatches": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+          "registry_factory_inequality": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+          "equal_component_lookup_hits": "256/256"
+        },
+        {
+          "air_itemlike_returns_null": "IllegalArgumentException:stack is empty",
+          "potion_raw_matches_input": "false",
+          "potion_itemlike_equals_default_stack": "false",
+          "potion_raw_distinct_from_water": "true",
+          "potion_disk_roundtrip": "false",
+          "potion_packet_roundtrip": "false",
+          "potion_storage_lookup_after_packet": "null",
+          "concurrent_first_keys_equal": "false",
+          "concurrent_storage_type_count": "2",
+          "dynamic_limit_initial": "64",
+          "dynamic_limit_after_change": "64",
+          "native_stack_count_poptime": "1,0",
+          "registry_input_mismatches": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+          "registry_factory_inequality": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+          "equal_component_lookup_hits": "256/256"
+        }
+      ],
+      "ae_item_key_shallow_bytes": 32
+    },
+    "OURS": {
+      "direct": {
+        "1": {
+          "median_ns": 1.044,
+          "range_ns": [
+            0.999,
+            1.044
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 0.999,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 1.044,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 1.044,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "64": {
+          "median_ns": 1.044,
+          "range_ns": [
+            1.036,
+            1.064
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 1.064,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 1.044,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 1.036,
+              "bytes": 0.0
+            }
+          ]
+        }
+      },
+      "mixed": {
+        "item_count_1": {
+          "median_ns": 2.57,
+          "range_ns": [
+            2.28,
+            3.43
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 2.57,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 3.43,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 2.28,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "item_count_64": {
+          "median_ns": 2.61,
+          "range_ns": [
+            2.6,
+            2.61
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 2.6,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 2.61,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 2.61,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "item_components": {
+          "median_ns": 9.38,
+          "range_ns": [
+            9.33,
+            11.44
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 9.33,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 9.38,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 11.44,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "item_deep_components": {
+          "median_ns": 12.88,
+          "range_ns": [
+            12.31,
+            14.64
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 12.31,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 12.88,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 14.64,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "item_256_variants": {
+          "median_ns": 20.46,
+          "range_ns": [
+            19.29,
+            21.45
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 20.46,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 19.29,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 21.45,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "equal_component_storage_lookup": {
+          "median_ns": 18.8,
+          "range_ns": [
+            18.49,
+            19.94
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 18.49,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 18.8,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 19.94,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "item_fresh_components": {
+          "median_ns": 116.81,
+          "range_ns": [
+            116.3,
+            123.75
+          ],
+          "median_bytes": 656.0,
+          "range_bytes": [
+            656.0,
+            656.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 116.81,
+              "bytes": 656.0
+            },
+            {
+              "run": 2,
+              "ns": 116.3,
+              "bytes": 656.0
+            },
+            {
+              "run": 3,
+              "ns": 123.75,
+              "bytes": 656.0
+            }
+          ]
+        },
+        "fluid_plain": {
+          "median_ns": 6.16,
+          "range_ns": [
+            4.65,
+            6.33
+          ],
+          "median_bytes": 24.0,
+          "range_bytes": [
+            0.0,
+            24.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 4.65,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 6.16,
+              "bytes": 24.0
+            },
+            {
+              "run": 3,
+              "ns": 6.33,
+              "bytes": 24.0
+            }
+          ]
+        },
+        "item_many_types_1701": {
+          "median_ns": 5.13,
+          "range_ns": [
+            5.08,
+            5.37
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 5.37,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 5.08,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 5.13,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "resource_location": {
+          "median_ns": 47.53,
+          "range_ns": [
+            41.98,
+            51.49
+          ],
+          "median_bytes": 144.0,
+          "range_bytes": [
+            144.0,
+            144.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 47.53,
+              "bytes": 144.0
+            },
+            {
+              "run": 2,
+              "ns": 51.49,
+              "bytes": 144.0
+            },
+            {
+              "run": 3,
+              "ns": 41.98,
+              "bytes": 144.0
+            }
+          ]
+        },
+        "resource_unique": {
+          "median_ns": 23.35,
+          "range_ns": [
+            22.86,
+            23.51
+          ],
+          "median_bytes": 80.0,
+          "range_bytes": [
+            80.0,
+            80.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 23.51,
+              "bytes": 80.0
+            },
+            {
+              "run": 2,
+              "ns": 23.35,
+              "bytes": 80.0
+            },
+            {
+              "run": 3,
+              "ns": 22.86,
+              "bytes": 80.0
+            }
+          ]
+        },
+        "resource_lookup": {
+          "median_ns": 2.15,
+          "range_ns": [
+            2.07,
+            2.23
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            0.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 2.23,
+              "bytes": 0.0
+            },
+            {
+              "run": 2,
+              "ns": 2.15,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 2.07,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "tag_key": {
+          "median_ns": 9.59,
+          "range_ns": [
+            8.43,
+            10.65
+          ],
+          "median_bytes": 0.0,
+          "range_bytes": [
+            0.0,
+            16.0
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 9.59,
+              "bytes": 16.0
+            },
+            {
+              "run": 2,
+              "ns": 10.65,
+              "bytes": 0.0
+            },
+            {
+              "run": 3,
+              "ns": 8.43,
+              "bytes": 0.0
+            }
+          ]
+        },
+        "nbt_compound_64": {
+          "median_ns": 427.38,
+          "range_ns": [
+            416.0,
+            437.86
+          ],
+          "median_bytes": 2728.01,
+          "range_bytes": [
+            2728.01,
+            2728.01
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 416.0,
+              "bytes": 2728.01
+            },
+            {
+              "run": 2,
+              "ns": 437.86,
+              "bytes": 2728.01
+            },
+            {
+              "run": 3,
+              "ns": 427.38,
+              "bytes": 2728.01
+            }
+          ]
+        },
+        "nbt_list_64": {
+          "median_ns": 1329.49,
+          "range_ns": [
+            939.41,
+            1337.77
+          ],
+          "median_bytes": 13672.01,
+          "range_bytes": [
+            8000.01,
+            13672.01
+          ],
+          "runs": [
+            {
+              "run": 1,
+              "ns": 939.41,
+              "bytes": 8000.01
+            },
+            {
+              "run": 2,
+              "ns": 1329.49,
+              "bytes": 13672.01
+            },
+            {
+              "run": 3,
+              "ns": 1337.77,
+              "bytes": 13672.01
+            }
+          ]
+        }
+      },
+      "semantic_observations": [
+        {
+          "air_itemlike_returns_null": "true",
+          "potion_raw_matches_input": "true",
+          "potion_itemlike_equals_default_stack": "true",
+          "potion_raw_distinct_from_water": "true",
+          "potion_disk_roundtrip": "true",
+          "potion_packet_roundtrip": "true",
+          "potion_storage_lookup_after_packet": "42",
+          "concurrent_first_keys_equal": "true",
+          "concurrent_storage_type_count": "1",
+          "dynamic_limit_initial": "64",
+          "dynamic_limit_after_change": "16",
+          "native_stack_count_poptime": "1,0",
+          "registry_input_mismatches": "[]",
+          "registry_factory_inequality": "[]",
+          "equal_component_lookup_hits": "256/256"
+        },
+        {
+          "air_itemlike_returns_null": "true",
+          "potion_raw_matches_input": "true",
+          "potion_itemlike_equals_default_stack": "true",
+          "potion_raw_distinct_from_water": "true",
+          "potion_disk_roundtrip": "true",
+          "potion_packet_roundtrip": "true",
+          "potion_storage_lookup_after_packet": "42",
+          "concurrent_first_keys_equal": "true",
+          "concurrent_storage_type_count": "1",
+          "dynamic_limit_initial": "64",
+          "dynamic_limit_after_change": "16",
+          "native_stack_count_poptime": "1,0",
+          "registry_input_mismatches": "[]",
+          "registry_factory_inequality": "[]",
+          "equal_component_lookup_hits": "256/256"
+        },
+        {
+          "air_itemlike_returns_null": "true",
+          "potion_raw_matches_input": "true",
+          "potion_itemlike_equals_default_stack": "true",
+          "potion_raw_distinct_from_water": "true",
+          "potion_disk_roundtrip": "true",
+          "potion_packet_roundtrip": "true",
+          "potion_storage_lookup_after_packet": "42",
+          "concurrent_first_keys_equal": "true",
+          "concurrent_storage_type_count": "1",
+          "dynamic_limit_initial": "64",
+          "dynamic_limit_after_change": "16",
+          "native_stack_count_poptime": "1,0",
+          "registry_input_mismatches": "[]",
+          "registry_factory_inequality": "[]",
+          "equal_component_lookup_hits": "256/256"
+        }
+      ],
+      "ae_item_key_shallow_bytes": 40
+    }
+  },
+  "metadata": {
+    "date": "2026-09-19",
+    "environment": {
+      "minecraft": "1.21.1",
+      "neoforge": "21.1.219",
+      "ae2": "19.2.17",
+      "java": "Temurin 21.0.11+10",
+      "architecture": "arm64",
+      "compressed_references": true,
+      "object_alignment_bytes": 8
+    },
+    "sources": {
+      "BASE": {
+        "repository": "https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn",
+        "commit": "3798e5b0300eddb19706cd9352ba0a29f957048b",
+        "matched_tracked_files": 390
+      },
+      "LEAN": {
+        "repository": "https://github.com/nutant233/Lean-Object",
+        "branch": "neoforge/1.21.1",
+        "commit": "22d4c0930353b4904a75499f47f25d876e26b2ef",
+        "remote_verified": "git fetch and git ls-remote",
+        "neo_version_build_override": "21.1.219",
+        "jar_sha256": "0c1b690cab03866ad28fa6244cf6b7782fb6449c8ce7c83b7baa098db59cec6e"
+      },
+      "OURS": {
+        "repository": "https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn",
+        "branch": "experiment/object-reuse-20260919",
+        "commit": "2c9fd7581495e42414c4ba18182f4eb74fc94f97",
+        "measured_jar_sha256": "25f9a1a25df9387d8bccae05ce71a3d45b1b13c03aecccc8a1452b39725120d7",
+        "final_jar_after_config_description_fix_sha256": "deff345032f80f5d6522014c89479ff3b009b186487bf21fe5e49bfd4c386e7f",
+        "post_measurement_changes": "Benchmark/report files and configuration description strings only; cache logic unchanged."
+      }
+    },
+    "method": {
+      "jvms_per_mode_and_benchmark": 3,
+      "execution_orders": [
+        [
+          "BASE",
+          "LEAN",
+          "OURS"
+        ],
+        [
+          "LEAN",
+          "OURS",
+          "BASE"
+        ],
+        [
+          "OURS",
+          "BASE",
+          "LEAN"
+        ]
+      ],
+      "direct": {
+        "warmup_rounds": 8,
+        "measurement_rounds": 9,
+        "calls_per_round": 1000000
+      },
+      "mixed": {
+        "warmup_rounds": 6,
+        "measurement_rounds": 7,
+        "calls_per_round": 200000,
+        "nbt_calls_per_round": 5000
+      },
+      "allocation": "ThreadMXBean current-thread allocation",
+      "result_sink": "volatile",
+      "aggregate": "median of per-JVM medians",
+      "size_agents_used_for_timing": false
+    },
+    "our_default_object_options": {
+      "reuseAeKeys": true,
+      "reuseComponentKeys": true,
+      "reuseResourceLocations": false,
+      "reuseTagKeys": true,
+      "cacheResourceHashes": true,
+      "fastNbtCopies": true
+    },
+    "lean_options": "Default configuration; enabled=true, all feature enabled=true, safeMode=false, loggingInGC=true",
+    "ours_validation": {
+      "unit_tests": 861,
+      "unit_failures": 0,
+      "unit_errors": 0,
+      "unit_skipped": 0,
+      "seven_addon_gametests": 27,
+      "addon_item_types": 807
+    },
+    "harness_sha256": {
+      "scripts/benchmarks/object-reuse/README.zh-CN.md": "9d461e733185a8fc9ea533985dac4004bc651c193f5a676d1350c7d1bd6d2775",
+      "scripts/benchmarks/object-reuse/comparison.init.gradle": "c52637ea6c5f2207d15f98d78b58d0747bbd588f9859d8699d6e7997545f87cd",
+      "scripts/benchmarks/object-reuse/java/com/moakiee/thunderbolt/comparison/ComparisonBenchmark.java": "d4d4149ce95911d3c690cbe5f41c0653369bf8ff7a0d0d6e3915248b61933f40",
+      "scripts/benchmarks/object-reuse/java/com/moakiee/thunderbolt/comparison/ComparisonProbe.java": "435ac17e91d800b2af298ad1839503ceb26e5b639b89b7dc9b4d1e37fbdb2d36",
+      "scripts/benchmarks/object-reuse/java/com/moakiee/thunderbolt/comparison/DirectFactoryBenchmark.java": "c77f4b4f1bb390da061cddcaba64d570f0ae94cadb1a9f015cae7e31667ed69a",
+      "scripts/benchmarks/object-reuse/measurement-agent/MANIFEST.MF": "dd6a845167757925114ef633922b776bc2936acfadd8486782c9e2a758887587",
+      "scripts/benchmarks/object-reuse/measurement-agent/SizeAgent.java": "5fd52febc7fa12f2d78bad8a5abb876bfa1a34c6db5f09c4cfa8292d541670aa",
+      "scripts/benchmarks/object-reuse/resources/data/lean_comparison/structure/empty.nbt": "3d74d298c7c5506b965d60175926438528152037acc6737fd369877f9ecb33f8",
+      "scripts/benchmarks/object-reuse/size-agent.init.gradle": "64ed727da5b62a26827450b594141a7762be92a7c0f2084f9779a6599be9e340",
+      "scripts/benchmarks/object-reuse/summarize.py": "08a9d524f116f494fb52b3ad9273f84d267d81ec0d0f6f2d64b33da0cd114b5a"
+    }
+  }
+}
