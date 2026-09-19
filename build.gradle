@@ -33,6 +33,19 @@ tasks.register('printProjectVersion') {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+// Real transformed-runtime checks; these classes/resources are not included in the published jar.
+sourceSets {
+    gameTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += output + sourceSets.main.runtimeClasspath
+    }
+}
+configurations {
+    gameTestImplementation.extendsFrom implementation
+    gameTestCompileOnly.extendsFrom compileOnly
+    gameTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
 def thunderboltDevGameDirectory = providers.gradleProperty('thunderboltDevGameDirectory')
         .getOrElse('')
         .trim()
@@ -51,6 +64,13 @@ neoForge {
             programArgument '--nogui'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
+        keyReuseGameTestServer {
+            type = 'gameTestServer'
+            gameDirectory = project.layout.buildDirectory.dir('key-reuse-gametest').get().asFile
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'thunderbolt_keys'
+            systemProperty 'thunderbolt.keyReuseBenchmark',
+                    providers.gradleProperty('thunderboltKeyReuseBenchmark').getOrElse('false')
+        }
         configureEach {
             if (!thunderboltDevGameDirectory.isEmpty()) {
                 gameDirectory = project.file(thunderboltDevGameDirectory)
@@ -63,6 +83,7 @@ neoForge {
     mods {
         "${mod_id}" {
             sourceSet(sourceSets.main)
+            sourceSet(sourceSets.gameTest)
         }
     }
 }
@@ -119,6 +140,7 @@ dependencies {
     testImplementation platform("org.junit:junit-bom:5.10.2")
     testImplementation "org.junit.jupiter:junit-jupiter"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    testRuntimeOnly "io.github.llamalad7:mixinextras-neoforge:0.5.0"
     // AE2 API types exercised directly by unit tests (e.g. ByteTracker's AEKeyType);
     // compileOnly deps are absent from the test runtime classpath otherwise.
     testRuntimeOnly "curse.maven:applied-energistics-2-223794:7027323"

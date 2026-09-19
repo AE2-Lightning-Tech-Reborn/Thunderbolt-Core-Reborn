@@ -1,0 +1,17 @@
+// Supply a separately built, unmodified 1.21.1 Lean-Object jar for the same runtime contract tests:
+// -I scripts/key-reuse-compat.init.gradle -PleanObjectJar=/absolute/path/to/leanobject.jar
+allprojects {
+    afterEvaluate {
+        def candidate = providers.gradleProperty('leanObjectJar').get()
+        if (!file(candidate).isFile()) throw new GradleException('leanObjectJar must name an existing jar')
+        dependencies { runtimeOnly files(candidate) }
+        providers.gradleProperty('keyReuseExtraMods').getOrElse('')
+                .split(java.io.File.pathSeparator).findAll { !it.isBlank() }.each { path ->
+            if (!file(path).isFile()) throw new GradleException('keyReuseExtraMods contains a missing jar')
+            dependencies { runtimeOnly files(path) }
+        }
+        neoForge.runs.keyReuseGameTestServer {
+            gameDirectory = project.layout.buildDirectory.dir('key-reuse-compat-gametest').get().asFile
+        }
+    }
+}

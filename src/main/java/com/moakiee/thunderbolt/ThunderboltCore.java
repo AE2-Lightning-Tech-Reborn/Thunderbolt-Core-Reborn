@@ -11,6 +11,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -28,6 +29,9 @@ import com.moakiee.thunderbolt.core.eject.EjectEndpointIndex;
 import com.moakiee.thunderbolt.core.eject.ThunderboltBlockEntities;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedCellStorageRegistry;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedStorageCellHandler;
+import com.moakiee.thunderbolt.core.keys.KeyConstructionCache;
+import com.moakiee.thunderbolt.core.keys.ResourceConstructionCache;
+import com.moakiee.thunderbolt.core.keys.ObjectReuseOptions;
 
 /** Entry point for Thunderbolt Core Reborn's shared AE2 optimization and extension layer. */
 @Mod(ThunderboltCore.MODID)
@@ -40,6 +44,7 @@ public final class ThunderboltCore {
         ThunderboltBlockEntities.TYPES.register(modEventBus);
         ThunderboltMenus.TYPES.register(modEventBus);
         modEventBus.addListener(this::onCommonSetup);
+        modEventBus.addListener(this::onConfigChanged);
         modContainer.registerConfig(
                 ModConfig.Type.COMMON, ThunderboltCommonConfig.SPEC, "thunderbolt-common.toml");
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
@@ -54,6 +59,20 @@ public final class ThunderboltCore {
 
     private void onServerStopped(ServerStoppedEvent event) {
         EjectEndpointIndex.INSTANCE.onServerStop();
+        KeyConstructionCache.clear();
+        ResourceConstructionCache.clear();
+    }
+
+    private void onConfigChanged(ModConfigEvent event) {
+        if (event.getConfig().getSpec() == ThunderboltCommonConfig.SPEC) {
+            boolean loaded = !(event instanceof ModConfigEvent.Unloading);
+            KeyConstructionCache.configure(loaded && ThunderboltCommonConfig.reuseAeKeys(),
+                    loaded && ThunderboltCommonConfig.reuseComponentKeys());
+            ResourceConstructionCache.configure(loaded && ThunderboltCommonConfig.reuseResourceLocations(),
+                    loaded && ThunderboltCommonConfig.reuseTagKeys());
+            ObjectReuseOptions.cacheHashes = loaded && ThunderboltCommonConfig.cacheResourceHashes();
+            ObjectReuseOptions.fastNbtCopies = loaded && ThunderboltCommonConfig.fastNbtCopies();
+        }
     }
 
     private void onCommonSetup(FMLCommonSetupEvent event) {

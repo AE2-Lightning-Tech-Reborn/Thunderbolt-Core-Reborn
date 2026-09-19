@@ -1,0 +1,16 @@
+// Add real, separately supplied AE addon jars and their dependencies to the runtime contract tests.
+// -I scripts/object-reuse-compat.init.gradle -PobjectReuseCompatDir=/absolute/path/to/jars
+// Source jars are excluded; nothing from this directory is bundled in Thunderbolt's artifact.
+allprojects {
+    afterEvaluate {
+        def directory = file(providers.gradleProperty('objectReuseCompatDir').get())
+        if (!directory.isDirectory()) throw new GradleException('objectReuseCompatDir must name an existing directory')
+        def jars = fileTree(directory) { include '*.jar'; exclude '*-sources.jar' }
+        dependencies { runtimeOnly files(jars) }
+        neoForge.runs.keyReuseGameTestServer {
+            gameDirectory = project.layout.buildDirectory.dir('object-reuse-addon-gametest').get().asFile
+            systemProperty 'thunderbolt.expectedCompatMods', providers.gradleProperty('objectReuseExpectedMods')
+                    .getOrElse('extendedae,advanced_ae,neoecoae,ae2lt,data_energistics,extendedae_plus,useless_mod')
+        }
+    }
+}
