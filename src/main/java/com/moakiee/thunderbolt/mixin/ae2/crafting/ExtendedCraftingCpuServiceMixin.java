@@ -309,7 +309,7 @@ public abstract class ExtendedCraftingCpuServiceMixin {
             if (!cluster.isActive()) {
                 continue;
             }
-            for (var cpu : cluster.getActiveCpus()) {
+            for (var cpu : cluster.getVisibleCpus()) {
                 cpus.add(cpu);
             }
             if (cluster.getAvailableStorage() > 0L) {

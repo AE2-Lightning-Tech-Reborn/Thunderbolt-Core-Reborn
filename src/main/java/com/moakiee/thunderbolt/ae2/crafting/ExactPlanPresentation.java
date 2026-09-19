@@ -18,15 +18,15 @@ public final class ExactPlanPresentation {
         List<Component> lines = full ? new ArrayList<>(AEKeyRendering.getTooltip(entry.getWhat()))
                 : new ArrayList<>();
         long units = entry.getWhat().getAmountPerUnit();
-        append(lines, GuiText.FromStorage, amounts.stored(), units);
-        append(lines, GuiText.Missing, amounts.missing(), units);
-        append(lines, GuiText.ToCraft, amounts.crafting(), units);
+        append(lines, GuiText.FromStorage, amounts.stored(), units, full);
+        append(lines, GuiText.Missing, amounts.missing(), units, full);
+        append(lines, GuiText.ToCraft, amounts.crafting(), units, full);
         return lines;
     }
 
-    private static void append(List<Component> lines, GuiText label, BigInteger amount, long units) {
+    private static void append(List<Component> lines, GuiText label, BigInteger amount, long units, boolean full) {
         if (amount.signum() == 0) return;
-        String text = ExactAmountFormatter.compact(amount, units);
+        String text = full ? ExactAmountFormatter.full(amount, units) : ExactAmountFormatter.compact(amount, units);
         if (text.length() <= 72) {
             lines.add(label.text(text));
         } else {

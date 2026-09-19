@@ -23,6 +23,15 @@ public final class ExactAmountFormatter {
         return scaled.movePointLeft(group * 3).toPlainString() + suffix;
     }
 
+    /** Native 16px inventory slots have room for roughly five small-font characters. */
+    public static String slot(BigInteger amount, long units) {
+        String label = compact(amount, units);
+        if (label.length() <= 5) return label;
+        BigDecimal value = new BigDecimal(amount).divide(BigDecimal.valueOf(Math.max(1, units)),
+                new MathContext(1, RoundingMode.DOWN)).stripTrailingZeros();
+        return value.toString().replace("E+", "e").replace("E", "e");
+    }
+
     public static String full(BigInteger amount, long units) {
         BigDecimal scaled;
         try {
