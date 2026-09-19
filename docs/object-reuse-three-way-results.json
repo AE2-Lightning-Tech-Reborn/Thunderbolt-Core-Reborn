@@ -1752,7 +1752,7 @@
       "scripts/benchmarks/object-reuse/java/com/moakiee/thunderbolt/comparison/ComparisonBenchmark.java": "d4d4149ce95911d3c690cbe5f41c0653369bf8ff7a0d0d6e3915248b61933f40",
       "scripts/benchmarks/object-reuse/java/com/moakiee/thunderbolt/comparison/ComparisonProbe.java": "435ac17e91d800b2af298ad1839503ceb26e5b639b89b7dc9b4d1e37fbdb2d36",
       "scripts/benchmarks/object-reuse/java/com/moakiee/thunderbolt/comparison/DirectFactoryBenchmark.java": "c77f4b4f1bb390da061cddcaba64d570f0ae94cadb1a9f015cae7e31667ed69a",
-      "scripts/benchmarks/object-reuse/measurement-agent/MANIFEST.MF": "dd6a845167757925114ef633922b776bc2936acfadd8486782c9e2a758887587",
+      "scripts/benchmarks/object-reuse/measurement-agent/MANIFEST.MF": "0f175a5606f4507509d7273d31646e5204f4c1ad9647c9860bdfe03082214848",
       "scripts/benchmarks/object-reuse/measurement-agent/SizeAgent.java": "5fd52febc7fa12f2d78bad8a5abb876bfa1a34c6db5f09c4cfa8292d541670aa",
       "scripts/benchmarks/object-reuse/resources/data/lean_comparison/structure/empty.nbt": "3d74d298c7c5506b965d60175926438528152037acc6737fd369877f9ecb33f8",
       "scripts/benchmarks/object-reuse/size-agent.init.gradle": "64ed727da5b62a26827450b594141a7762be92a7c0f2084f9779a6599be9e340",
