@@ -42,7 +42,7 @@ GTLCore 的 `simulateFor(int)` 是空操作（`return !done`）。AE2 的每刻 
 
 `CraftingPlanningEngines` 仍注册 `ThunderboltV2PlanningEngine`（优先级 1000）。GTL 环境下该选择不再是惰性的：`CraftingCalculationMixin` 保持应用，`beginCraftingCalculation` 会把候选写入 `CraftingPlanningControl`，CP-SAT 原生运行时也会按配置初始化。引擎成功则返回 Thunderbolt 计划（可能包成 `LoopCraftingPlan`）；全部失败则回退到 GTL / AE2 原版树。
 
-`LoopCraftingPlan` 实现 `ICraftingPlan` 并包装 `CraftingPlan`。原版 / GTL CPU 不一定识别 Thunderbolt 的包装样板（`ReusableSeedPattern`、`CraftingCpuRestrictedPattern`），扩展 CPU 可以。提交策略：优先交给扩展 CPU；没有合适的扩展 CPU 且 handover 生效时，把剩余 `ICraftingPlan` 留给 GTLCore，而不是硬返回 `CPU_OFFLINE`。
+`LoopCraftingPlan` 实现 `ICraftingPlan` 并包装 `CraftingPlan`，包装当且仅当计划含时间轮受限样板（`CraftingCpuRestrictedPattern`）。AE2 1.20.1 的 `ICraftingPlan.patternTimes()` 以 `IPatternDetails` 为键、`ExecutingCraftingJob` 接收任意 `ICraftingPlan`，因此原版 / GTL CPU **会接受** Thunderbolt 的循环计划，但会把其中的样板当普通样板派发：可复用种子输入每循环重复扣料、CPU 限制被忽略，最坏情况任务卡死占住 CPU。只有 Thunderbolt 的扩展 CPU（如 AE2LT 时间轮池，覆写 `canHandle` 并按 `canRunOn(host)` 过滤）能正确执行。提交策略：优先交给扩展 CPU；`LoopCraftingPlan` 找不到兼容扩展 CPU 时返回 `CPU_OFFLINE`（显式指定非 Thunderbolt CPU 同样拒绝）；只有 Thunderbolt 不认识的第三方 `ICraftingPlan` 类型才在 handover 下留给 GTLCore。
 
 ## 开关与诊断
 
@@ -93,7 +93,7 @@ GTLCore 的 `simulateFor(int)` 是空操作（`return !done`）。AE2 的每刻 
 - `CraftConfirmMenu` / `CraftConfirmScreen`：注入点不同。算法被选中时走 Thunderbolt 摘要；未选中时回退到 AE2 原有摘要路径。
 - `CraftingPlanSummary`：`CraftingPlanSummaryAdapter.adapt()` 对 `CraftingPlan` 返回同一对象，GTLCore 的注入读到的是兼容数据。
 - `CraftingService`、`GridNode`、`Level`、`CPUSelectionList`、`Tooltips`、`ExecutingCraftingJob`（GTLCore 的 `ExecutingCraftingJobMixin`）：除 `submitJob` 的 `findSuitableCraftingCPU` `INVOKE_ASSIGN` 外，注入方法互不重叠。该同点注入上 Thunderbolt 在 `cir.isCancelled()` 时退出，让 GTLCore 已经选定的超限 CPU 不被覆盖；GTLCore 未接管时仍可由扩展 CPU 接手。`CPUSelectionList.formatStorage` 双方都在 HEAD 可取消注入：Thunderbolt 的 mixin `priority = 1100`，只在容量为 `Long.MAX_VALUE` 时写成 `∞`，有限容量仍走 GTLCore 的紧凑数字格式。
-- `ExtendedCraftingCpuServiceMixin.thunderbolt$configurePlanningSelection`：始终把 `CraftingCalculation` 转成 `CraftingPlanningControl`（该接口由保持应用的 `CraftingCalculationMixin` 提供）。非 `CraftingPlan` 的 `submitJob` HEAD：显式目标在 handover 下直接返回，把未知计划类型留给 GTLCore；自动路径先尝试扩展 CPU，没有合适目标且 handover 生效时同样返回而不是 `CPU_OFFLINE`。
+- `ExtendedCraftingCpuServiceMixin.thunderbolt$configurePlanningSelection`：始终把 `CraftingCalculation` 转成 `CraftingPlanningControl`（该接口由保持应用的 `CraftingCalculationMixin` 提供）。非 `CraftingPlan` 的 `submitJob` HEAD：`LoopCraftingPlan` 在两条路径上都拒绝给非 Thunderbolt CPU（`CPU_OFFLINE`）；未知第三方计划类型在 handover 下留给 GTLCore 的超限提交，非 handover 下维持 `CPU_OFFLINE`。
 - `CraftingCalculation`：Thunderbolt 不再注入被覆盖的 `run()`。`@WrapMethod computePlan` 包的是方法本身，GTLCore 覆盖后的 `run()` / `gTLCore$computeMaxFastPlan()` 调用它时都会进入包装。`runCraftAttempt` / `handlePausing` 上的 HEAD 注入仍然存在：原版回退路径会置 `thunderbolt$activeVanilla`，引擎候选路径用隔离线程，不会把 `PlanningCandidateDeclinedException` 抛进 GTLCore 的规划器。
 
 ## 回归验证
@@ -143,7 +143,7 @@ python tools/method_overlap.py     src/main/java <GTLCore>/src/main/java
 
 1. 启动到主菜单，确认日志出现 CPU 派发让位 INFO、**不**跳过 `CraftingCalculationMixin`，且无 `InjectionError`。
 2. 进入世界并合成一次普通配方与一次 GTL 专用配方（样板展开 / 催化剂），确认 Thunderbolt 规划器能在 GTL 的 `run()` 里给出计划；引擎失败时应回退到 GTL / AE2 原版树，而不是卡死或抛 `PlanningCandidateDeclinedException`。
-3. 确认 Thunderbolt 保留项可用：频道最大流、弹出、索引存储、扩展合成 CPU。扩展 CPU 能接下 `LoopCraftingPlan`；没有扩展 CPU 时剩余计划交给 GTL，而不是 `CPU_OFFLINE`。
+3. 确认 Thunderbolt 保留项可用：频道最大流、弹出、索引存储、扩展合成 CPU。扩展 CPU 能接下 `LoopCraftingPlan`；没有兼容扩展 CPU 时循环计划得到明确的 `CPU_OFFLINE`（不会卡死原版/GTL CPU），未知第三方计划类型交给 GTL。
 4. 以 `-Dthunderbolt.gtlCompat=never` 启动，确认能复现 CPU 派发侧的失败（预期为启动注入失败或派发异常），以便日后判断故障来源。
 5. AE2LT 同时在场时的连带验证见下节。
 

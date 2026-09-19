@@ -56,7 +56,10 @@ class PlannerPackageBoundaryTest {
                 "if (choice.kind() == PlanningChoice.Kind.VANILLA)");
         int isolatedExecution = source.indexOf("PlanningCandidateExecutor.execute(");
         assertTrue(vanillaBranch >= 0);
-        assertTrue(source.contains("ICraftingPlan result = original.call(instance);"));
+        // The wrap is a MixinExtras @WrapMethod on computePlan (GTLCore's overwritten run() still
+        // calls it), so the vanilla fallback invokes the original with no extra arguments.
+        assertTrue(source.contains("ICraftingPlan result = original.call();"));
+        assertTrue(source.contains("@WrapMethod(method = \"computePlan\")"));
         assertTrue(isolatedExecution > vanillaBranch,
                 "vanilla must return through AE2 before engine isolation begins");
         var vanillaSource = source.substring(vanillaBranch, isolatedExecution);

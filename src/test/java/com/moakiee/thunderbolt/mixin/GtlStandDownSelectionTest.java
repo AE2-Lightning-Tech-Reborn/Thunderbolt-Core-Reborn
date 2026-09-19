@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -83,5 +86,24 @@ class GtlStandDownSelectionTest {
         assertEquals(null, OptionalMixinSelector.requiredMod("CraftingCalculationMixin"));
         assertEquals("advanced_ae",
                 OptionalMixinSelector.requiredMod("AaeExecutingCraftingJobAccessor"));
+    }
+
+    @Test
+    void loopPlansNeverReachVanillaOrGtlCpus() throws Exception {
+        // Vanilla and GTLCore CPUs accept any ICraftingPlan (AE2 keys patternTimes by
+        // IPatternDetails), so a LoopCraftingPlan that slips past the extended-CPU selection
+        // would be mis-executed there: reusable seed inputs charged every cycle, time-wheel
+        // CPU restrictions ignored, or a stalled job holding the CPU. Only unknown
+        // third-party plan types may fall through to GTLCore.
+        var source = Files.readString(Path.of(
+                "src", "main", "java", "com", "moakiee", "thunderbolt",
+                "mixin", "ae2", "crafting", "ExtendedCraftingCpuServiceMixin.java"));
+        int guards = source.split("job instanceof LoopCraftingPlan", -1).length - 1;
+        assertTrue(guards >= 2,
+                () -> "both the explicit-target and auto-selection submitJob paths must reject "
+                        + "loop plans, found " + guards + " guard(s)");
+        assertFalse(source.contains(
+                "leave the ICraftingPlan to GTLCore / vanilla instead of CPU_OFFLINE"),
+                "the unguarded handover fall-through must stay removed");
     }
 }

@@ -51,6 +51,7 @@ import com.moakiee.thunderbolt.api.crafting.cpu.ExtendedCraftingCpuClusterProvid
 import com.moakiee.thunderbolt.compat.gtl.GtlCompat;
 import com.moakiee.thunderbolt.core.crafting.cpu.CraftingCpuSelectionOrder;
 import com.moakiee.thunderbolt.core.crafting.cpu.DynamicCraftingCpuClusterIndex;
+import com.moakiee.thunderbolt.core.crafting.plan.LoopCraftingPlan;
 
 @Mixin(value = CraftingService.class, remap = false)
 public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftingCpuInsertBridge {
@@ -217,7 +218,15 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
 
         if (!(job instanceof CraftingPlan)) {
             if (target != null) {
+                if (job instanceof LoopCraftingPlan) {
+                    // Restricted loop plans execute only on Thunderbolt's extended CPUs: vanilla
+                    // and GTLCore CPUs accept any ICraftingPlan and would charge the reusable
+                    // seed inputs every cycle, or stall the job while holding the CPU.
+                    cir.setReturnValue(CraftingSubmitResult.CPU_OFFLINE);
+                    return;
+                }
                 if (GtlCompat.isCraftingHandoverActive()) {
+                    // Unknown plan types go to GTLCore's transfinite submit instead.
                     return;
                 }
                 cir.setReturnValue(CraftingSubmitResult.CPU_OFFLINE);
@@ -229,12 +238,14 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
                 cir.setReturnValue(cluster.submitJob(this.grid, job, src, requestingMachine));
                 return;
             }
-            if (GtlCompat.isCraftingHandoverActive()) {
-                // Thunderbolt's planner may emit LoopCraftingPlan. If no extended CPU can take
-                // it, leave the ICraftingPlan to GTLCore / vanilla instead of CPU_OFFLINE.
+            if (job instanceof LoopCraftingPlan || !GtlCompat.isCraftingHandoverActive()) {
+                // A loop plan without a compatible extended CPU has nowhere correct to run;
+                // outside the handover every unknown plan type is rejected as before.
+                cir.setReturnValue(CraftingSubmitResult.CPU_OFFLINE);
                 return;
             }
-            cir.setReturnValue(CraftingSubmitResult.CPU_OFFLINE);
+            // Leave unknown ICraftingPlan types to GTLCore while it owns dispatch.
+            return;
         }
     }
 
