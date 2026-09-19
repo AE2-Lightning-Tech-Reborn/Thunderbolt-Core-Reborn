@@ -48,7 +48,7 @@ class FastCraftingPlannerPlanConversionTest {
     private static final AEKey TARGET = new TestKey("target");
 
     @Test
-    void feasiblePlanKeepsConcreteAllocationThroughExportAndDispatch() {
+    void feasiblePlanLeavesExecutionAllocationToTheCpu() {
         var flexible = new FakePattern(D, new FakeInput[] {
                 new FakeInput(new GenericStack(B, 1), new GenericStack(A, 1))});
         var strict = new FakePattern(E, new FakeInput[] {
@@ -65,21 +65,15 @@ class FastCraftingPlannerPlanConversionTest {
         assertFalse(attempt.plan().simulation());
         // Registered pattern identities remain intact for native CPUs and provider lookup.
         assertEquals(1L, attempt.plan().patternTimes().get(flexible));
-        var assignments = com.moakiee.thunderbolt.core.crafting.plan.PlannedInputAssignments.get(attempt.plan());
-        var flexibleTask = assignments.get(flexible).getFirst();
-        var strictTask = assignments.get(strict).getFirst();
-        var first = com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper.extractPatternInputs(
-                flexibleTask.pattern(), inventory, null, new appeng.api.stacks.KeyCounter(), new appeng.api.stacks.KeyCounter());
-        org.junit.jupiter.api.Assertions.assertNotNull(first);
-        assertEquals(1L, first[0].get(A));
-        var second = com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper.bulkExtract(
-                strictTask.pattern(), inventory, 1, false, Map.of(), null);
-        org.junit.jupiter.api.Assertions.assertNotNull(second);
-        assertEquals(1L, second.scaledInputs[0].get(B));
+        assertEquals(1L, attempt.plan().patternTimes().get(strict));
+        assertEquals(1L, attempt.plan().usedItems().get(A));
+        assertEquals(1L, attempt.plan().usedItems().get(B));
+        assertTrue(com.moakiee.thunderbolt.core.crafting.plan.PlannedInputAssignments
+                .get(attempt.plan()).isEmpty());
     }
 
     @Test
-    void oneSourceCanKeepDifferentAllocationsForDifferentCopies() {
+    void mixedCopiesRetainOneRegisteredPatternWithoutFixedBindings() {
         var source = new FakePattern(TARGET, new IPatternDetails.IInput[] {
                 new FakeInput(new GenericStack(B, 1), new GenericStack(A, 1))});
         var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
@@ -90,16 +84,10 @@ class FastCraftingPlannerPlanConversionTest {
         assertTrue(attempt.handled());
         assertFalse(attempt.plan().simulation());
         assertEquals(2L, attempt.plan().patternTimes().get(source));
-        var tasks = com.moakiee.thunderbolt.core.crafting.plan.PlannedInputAssignments.get(attempt.plan()).get(source);
-        assertEquals(2, tasks.size());
-        for (var task : tasks) {
-            assertEquals(1, task.copies());
-            org.junit.jupiter.api.Assertions.assertNotNull(
-                    com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper.bulkExtract(
-                            task.pattern(), inventory, task.copies(), false, Map.of(), null));
-        }
-        assertEquals(0, inventory.extract(A, Long.MAX_VALUE, Actionable.SIMULATE));
-        assertEquals(0, inventory.extract(B, Long.MAX_VALUE, Actionable.SIMULATE));
+        assertEquals(1L, attempt.plan().usedItems().get(A));
+        assertEquals(1L, attempt.plan().usedItems().get(B));
+        assertTrue(com.moakiee.thunderbolt.core.crafting.plan.PlannedInputAssignments
+                .get(attempt.plan()).isEmpty());
     }
 
     @Test

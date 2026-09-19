@@ -677,7 +677,7 @@ public final class FastCraftingPlanner {
                         // simply produces a chain whose length is the firings a full tool survives.
                         slotOptions.add(List.of(new SlotChoice(List.of(
                                 CraftInput.of(chain.carrier(), Math.max(1, in.getPossibleInputs()[0].amount()))
-                                        .scaled(Math.max(1, in.getMultiplier()))), false)));
+                                        .scaled(Math.max(1, in.getMultiplier()))))));
                         // A durability carrier means one exact full tool. An ID_ONLY producer is
                         // late-bound and must never be priced as that full carrier.
                         slotRequirementModes.add(RequirementMode.STRICT);
@@ -772,10 +772,6 @@ public final class FastCraftingPlanner {
                             (CraftInput<AEKey> o) -> availability.get(o.key())).reversed());
                     }
                     List<SlotChoice> choices = expandSlotChoices(opts, in.getMultiplier(), availability);
-                    if (sameIdClosure) {
-                        // A late-bound output can return any accepted same-id variant.
-                        choices = choices.stream().map(choice -> new SlotChoice(choice.inputs(), false)).toList();
-                    }
                     slotOptions.add(choices);
                     slotRequirementModes.add(
                             sameIdClosure ? RequirementMode.ID_ONLY : RequirementMode.STRICT);
@@ -1345,8 +1341,8 @@ public final class FastCraftingPlanner {
      * Emit up to {@link #FUZZY_NONCYCLE_STEPS} {@link CraftPattern}s for the per-slot substitute options,
      * choosing the lowest rank-sum (most-available-first) combinations when the full cartesian product
      * exceeds the budget. All share the same {@code source} {@link IPatternDetails}; the v2 planner
-     * treats them as competing recipes and picks per availability. Each keeps its slot allocation
-     * separately so integrating CPUs can dispatch the chosen materials without changing provider identity.
+     * treats them as competing recipes and picks per availability. Runtime input allocation belongs
+     * to the executing CPU; exported tasks retain their registered pattern identities.
      */
     private static void emitBestCombinations(
             CraftGraph.Builder<AEKey> builder,
@@ -1390,18 +1386,12 @@ public final class FastCraftingPlanner {
                     }
                 }
             }
-            var executionSlots = selectedSlots.stream()
-                    .map(choice -> choice.exact() ? choice.inputs() : List.<CraftInput<AEKey>>of())
-                    .toList();
-            builder.pattern(new CraftPattern<>(key, outputAmount, coreInputs, combo, source, executionSlots));
+            builder.pattern(new CraftPattern<>(key, outputAmount, coreInputs, combo, source));
         }
     }
 
     /** One concrete integer allocation of a fuzzy slot across its accepted substitutes. */
-    private record SlotChoice(List<CraftInput<AEKey>> inputs, boolean exact) {
-        private SlotChoice(List<CraftInput<AEKey>> inputs) {
-            this(inputs, true);
-        }
+    private record SlotChoice(List<CraftInput<AEKey>> inputs) {
         private SlotChoice {
             inputs = List.copyOf(inputs);
         }
@@ -1564,9 +1554,6 @@ public final class FastCraftingPlanner {
                 emittedItems,
                 missingItems,
                 patternTimes);
-        if (!simulation) {
-            com.moakiee.thunderbolt.core.crafting.plan.PlannedInputAssignments.record(result, plan);
-        }
         return result;
     }
 

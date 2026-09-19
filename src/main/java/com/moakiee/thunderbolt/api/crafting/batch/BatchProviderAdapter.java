@@ -14,7 +14,8 @@ import appeng.api.networking.crafting.ICraftingProvider;
  *
  * <p>Pattern/job-dependent adapters are evaluated on every dispatch. Implement
  * {@link BatchProviderResolver} for context-free capability resolution that can be cached
- * within a CPU tick. Never cache a job-bound provider wrapper across jobs.</p>
+ * within a CPU tick, or across ticks when explicitly opted in. Never cache a job-bound provider
+ * wrapper across jobs.</p>
  */
 @FunctionalInterface
 public interface BatchProviderAdapter {

@@ -13,7 +13,7 @@ final class CpSatExecutionBlocks {
 
     /** Wire row: group, original firing vector, required marking, net change. */
     static IntVar[] add(CpModel model, IntVar[] firings, IntVar[] used, IntVar[] missing,
-                        long[][] produced, int[] outputs, int[] groups, long[] firingBounds,
+                        SparseLongMatrix produced, int[] outputs, int[] groups, long[] firingBounds,
                         long[][] blocks, int stages) {
         if (blocks.length == 0) return new IntVar[0];
         if (stages < 1 || stages > 8 || blocks.length > 96) throw new IllegalArgumentException("block shape");
@@ -81,9 +81,9 @@ final class CpSatExecutionBlocks {
                     var prefix = LinearExpr.newBuilder().add(used[i]).add(missing[i]);
                     // Outside producers are earlier and outside consumers are later by the
                     // master's rank constraints. Internal seed producers are staged above.
-                    for (int r = 0; r < recipes; r++)
-                        if (groups[outputs[r]] != group && produced[r][i] > 0)
-                            prefix.addTerm(firings[r], produced[r][i]);
+                    for (int r : produced.columnKeys(i))
+                        if (groups[outputs[r]] != group && produced.get(r, i) > 0)
+                            prefix.addTerm(firings[r], produced.get(r, i));
                     for (int earlier = 0; earlier < stage; earlier++) for (int prior : members) {
                         long delta = blocks[prior][1+recipes+items+i];
                         if (delta != 0) prefix.addTerm(repeats[earlier*size+prior], delta);

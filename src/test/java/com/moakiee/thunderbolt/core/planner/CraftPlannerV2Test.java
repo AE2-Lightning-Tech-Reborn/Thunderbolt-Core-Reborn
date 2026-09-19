@@ -998,7 +998,7 @@ class CraftPlannerV2Test {
                 .pattern("side", 1, List.of(CraftInput.of("A", 5)))
                 .pattern("root", 1, List.of(
                         CraftInput.of("T", 1_000), CraftInput.of("side", 1)))
-                .stock("A", 505)
+                .stock("A", 510)
                 .build();
 
         CraftPlan<String> shortPlan = CraftPlannerV2.plan(shortGraph, "root", 1);
@@ -1008,7 +1008,8 @@ class CraftPlannerV2Test {
         assertEquals(Set.of("A"), shortPlan.missing().keySet());
         assertTrue(shortPlan.missing().get("A") > 0L);
         assertTrue(completePlan.feasible(), () -> "missing=" + completePlan.missing());
-        assertEquals(505L, completePlan.usedStock().get("A"));
+        // The side recipe can run first: retain its 5 A in addition to the 505-A loop prefix.
+        assertEquals(510L, completePlan.usedStock().get("A"));
     }
 
     @Test

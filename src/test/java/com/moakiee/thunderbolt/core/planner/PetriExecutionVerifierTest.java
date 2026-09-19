@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.math.BigInteger;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
@@ -89,20 +90,39 @@ class PetriExecutionVerifierTest {
         return Arrays.stream(values).mapToObj(BigInteger::valueOf).toArray(BigInteger[]::new);
     }
 
+    @Test void independentOracleHandlesDeepPlansAndStillRejectsInsufficientStock() {
+        long[][] pre = {{1, 0}}, post = {{0, 1}};
+        assertTrue(oracle(pre, post, new long[] {20_000}, new long[] {20_000, 0},
+                1, 20_000, new HashSet<>()));
+        assertFalse(oracle(pre, post, new long[] {20_000}, new long[] {19_999, 0},
+                1, 20_000, new HashSet<>()));
+    }
+
     /** One firing at a time, with no batching, prefix summaries, or production verifier calls. */
     static boolean oracle(long[][] pre, long[][] post, long[] remaining, long[] marking,
                                   int target, long amount, Set<String> seen) {
-        if (!seen.add(Arrays.toString(remaining))) return false;
-        if (Arrays.stream(remaining).allMatch(n -> n == 0)) return marking[target] >= amount;
-        for (int r = 0; r < remaining.length; r++) {
-            if (remaining[r] == 0) continue;
-            boolean enabled = true;
-            for (int i = 0; i < marking.length; i++) if (marking[i] < pre[r][i]) enabled = false;
-            if (!enabled) continue;
-            long[] next = marking.clone(), counts = remaining.clone();
-            counts[r]--;
-            for (int i = 0; i < next.length; i++) next[i] += post[r][i] - pre[r][i];
-            if (oracle(pre, post, counts, next, target, amount, seen)) return true;
+        record State(long[] remaining, long[] marking) {}
+        var pending = new ArrayDeque<State>();
+        pending.push(new State(remaining, marking));
+        while (!pending.isEmpty()) {
+            var state = pending.pop();
+            if (!seen.add(Arrays.toString(state.remaining()))) continue;
+            if (Arrays.stream(state.remaining()).allMatch(n -> n == 0)) {
+                if (state.marking()[target] >= amount) return true;
+                continue;
+            }
+            // Reverse push order preserves the recursive oracle's depth-first traversal.
+            for (int r = state.remaining().length - 1; r >= 0; r--) {
+                if (state.remaining()[r] == 0) continue;
+                boolean enabled = true;
+                for (int i = 0; i < state.marking().length; i++)
+                    if (state.marking()[i] < pre[r][i]) enabled = false;
+                if (!enabled) continue;
+                long[] next = state.marking().clone(), counts = state.remaining().clone();
+                counts[r]--;
+                for (int i = 0; i < next.length; i++) next[i] += post[r][i] - pre[r][i];
+                pending.push(new State(counts, next));
+            }
         }
         return false;
     }

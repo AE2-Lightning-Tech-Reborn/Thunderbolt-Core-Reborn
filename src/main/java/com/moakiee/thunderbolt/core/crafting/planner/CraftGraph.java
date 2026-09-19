@@ -89,6 +89,28 @@ public final class CraftGraph<K> {
                 reusableStockRoutes, Map.copyOf(exactMerged));
     }
 
+    /** Read-only recipe projection over exactly the same inventory snapshot. */
+    CraftGraph<K> withPatterns(Map<K, List<CraftPattern<K>>> selected) {
+        var frozen = new HashMap<K, List<CraftPattern<K>>>();
+        selected.forEach((key, patterns) -> frozen.put(key, List.copyOf(patterns)));
+        return new CraftGraph<>(Map.copyOf(frozen), stock, reusableStock, reusableStockRoutes, exactStock);
+    }
+
+    /** An optimization probe can only withdraw stock already used by its incumbent. */
+    CraftGraph<K> withStockLimits(Map<K, Long> limits) {
+        var limited = new HashMap<K, Long>();
+        var exact = new HashMap<K, BigInteger>();
+        limits.forEach((key, amount) -> {
+            if (amount < 0 || amount > stock(key)) throw new IllegalArgumentException("invalid stock limit");
+            if (amount > 0) {
+                limited.put(key, amount);
+                exact.put(key, BigInteger.valueOf(amount));
+            }
+        });
+        return new CraftGraph<>(patternsByOutput, Map.copyOf(limited), reusableStock,
+                reusableStockRoutes, Map.copyOf(exact));
+    }
+
     /** Residual ordinary stock for a prefix plan; committed draws cannot be spent a second time. */
     CraftGraph<K> withoutStock(Map<K, Long> withdrawn) {
         var remaining = new HashMap<>(stock);

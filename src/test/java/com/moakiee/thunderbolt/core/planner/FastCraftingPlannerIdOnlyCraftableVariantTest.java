@@ -356,35 +356,10 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
         assertEquals(1L, attempt.plan().usedItems().get(BASE));
         assertEquals(1L, attempt.plan().patternTimes().get(producer));
         assertEquals(1L, attempt.plan().patternTimes().get(consumer));
-        var tasks = com.moakiee.thunderbolt.core.crafting.plan.PlannedInputAssignments
-                .get(attempt.plan()).get(consumer);
-        assertNotNull(tasks, "the exact stock reservation must survive dispatch export");
-        assertEquals(1, tasks.size());
-        assertTrue(tasks.getFirst().pattern().getInputs()[strictFirst ? 0 : 1]
-                .isValid(MAT_CRAFTABLE, null));
-        assertFalse(tasks.getFirst().pattern().getInputs()[strictFirst ? 0 : 1]
-                .isValid(MAT_STOCKED, null));
-        for (boolean bulk : List.of(false, true)) {
-            var cpu = new appeng.crafting.inv.ListCraftingInventory(key -> {}) {
-                @Override public Iterable<AEKey> findFuzzyTemplates(AEKey key) {
-                    // Force the adverse enumeration; hash iteration order is not a reservation.
-                    return List.of(MAT_CRAFTABLE, MAT_STOCKED);
-                }
-            };
-            cpu.insert(MAT_CRAFTABLE, 1, Actionable.MODULATE);
-            // The actual produced component state differs from the advertised catalog entry.
-            cpu.insert(MAT_STOCKED, 1, Actionable.MODULATE);
-            var task = tasks.getFirst().pattern();
-            var extracted = bulk
-                    ? com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper
-                            .bulkExtract(task, cpu, 1, false, Map.of(), null)
-                    : com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper
-                            .extractPatternInputs(task, cpu, null,
-                                    new appeng.api.stacks.KeyCounter(), new appeng.api.stacks.KeyCounter());
-            assertNotNull(extracted, "dispatch must reserve the exact slot before matching the dynamic slot");
-            assertEquals(0L, cpu.extract(MAT_CRAFTABLE, 1, Actionable.SIMULATE));
-            assertEquals(0L, cpu.extract(MAT_STOCKED, 1, Actionable.SIMULATE));
-        }
+        assertTrue(com.moakiee.thunderbolt.core.crafting.plan.PlannedInputAssignments
+                .get(attempt.plan()).isEmpty(), "the CPU chooses live input assignments");
+        assertTrue(consumer.getInputs()[strictFirst ? 0 : 1].isValid(MAT_CRAFTABLE, null));
+        assertFalse(consumer.getInputs()[strictFirst ? 0 : 1].isValid(MAT_STOCKED, null));
     }
 
     @Test
