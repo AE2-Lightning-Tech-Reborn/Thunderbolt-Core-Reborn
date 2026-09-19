@@ -1,5 +1,7 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.SparseLongMatrix;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,13 +57,13 @@ final class PetriExecutionVerifier {
 
     private PetriExecutionVerifier() { }
 
-    static Result verify(long[][] pre, long[][] post, long[] firings, BigInteger[] initial,
+    static Result verify(SparseLongMatrix pre, SparseLongMatrix post, long[] firings, BigInteger[] initial,
                          int[] cyclicItems, int target, long amount, Budget budget) {
         PlanningCancellation.check();
         for (int i = 0; i < initial.length; i++) {
             BigInteger terminal = initial[i];
             for (int r = 0; r < firings.length; r++) terminal = terminal.add(
-                    BigInteger.valueOf(post[r][i]).subtract(BigInteger.valueOf(pre[r][i]))
+                    BigInteger.valueOf(post.get(r, i)).subtract(BigInteger.valueOf(pre.get(r, i)))
                             .multiply(BigInteger.valueOf(firings[r])));
             if (terminal.compareTo(BigInteger.valueOf(i == target ? amount : 0L)) < 0) {
                 return new Result(Status.UNREACHABLE, null);
@@ -75,14 +77,14 @@ final class PetriExecutionVerifier {
             PlanningCancellation.check();
             Frame frame = path.getLast();
             if (frame.choices == null) {
-                if (!budget.take((long) (pre.length + 32) * initial.length)
+                if (!budget.take((long) (pre.rows() + 32) * initial.length)
                         || path.size() > 512) return new Result(Status.UNKNOWN, null);
                 if (Arrays.stream(frame.remaining).allMatch(n -> n == 0L)) {
                     if (frame.marking[target].compareTo(BigInteger.valueOf(amount)) < 0) {
                         path.removeLast();
                         continue;
                     }
-                    Block proof = empty(pre.length, initial.length);
+                    Block proof = empty(pre.rows(), initial.length);
                     for (int i = 1; i < path.size(); i++) proof = compose(proof, path.get(i).incoming);
                     return new Result(Status.EXECUTABLE, finish(proof, target, amount));
                 }
@@ -92,7 +94,7 @@ final class PetriExecutionVerifier {
                 if (cyclicItems.length > 0) {
                     for (int start = path.size() - 2; start >= Math.max(0, path.size() - 17); start--) {
                         if (!sameStates(frame.marking, path.get(start).marking, cyclicItems)) continue;
-                        Block motif = empty(pre.length, initial.length);
+                        Block motif = empty(pre.rows(), initial.length);
                         for (int j = start + 1; j < path.size(); j++) motif = compose(motif, path.get(j).incoming);
                         long copies = repetitions(motif, frame.remaining, frame.marking);
                         if (copies > 1L) {
@@ -101,7 +103,7 @@ final class PetriExecutionVerifier {
                         }
                     }
                 }
-                for (int recipe = 0; recipe < pre.length; recipe++) {
+                for (int recipe = 0; recipe < pre.rows(); recipe++) {
                     if (frame.remaining[recipe] == 0L) continue;
                     Block one = run(pre, post, recipe, 1L);
                     long copies = repetitions(one, frame.remaining, frame.marking);
@@ -129,9 +131,9 @@ final class PetriExecutionVerifier {
     }
 
     /** Always gives a valid sufficient initial marking, without claiming it is minimal. */
-    static Certificate orderedCertificate(long[][] pre, long[][] post, long[] firings,
+    static Certificate orderedCertificate(SparseLongMatrix pre, SparseLongMatrix post, long[] firings,
                                           int target, long amount) {
-        Block proof = empty(pre.length, pre[0].length);
+        Block proof = empty(pre.rows(), pre.columns());
         for (int r = 0; r < firings.length; r++) {
             PlanningCancellation.check();
             if (firings[r] > 0) proof = compose(proof, run(pre, post, r, firings[r]));
@@ -156,14 +158,14 @@ final class PetriExecutionVerifier {
         return new Block(new long[recipes], zero, zero, new PetriExecutionTrace.Sequence(List.of()));
     }
 
-    private static Block run(long[][] pre, long[][] post, int recipe, long copies) {
-        long[] firings = new long[pre.length];
+    private static Block run(SparseLongMatrix pre, SparseLongMatrix post, int recipe, long copies) {
+        long[] firings = new long[pre.rows()];
         firings[recipe] = 1L;
-        BigInteger[] required = new BigInteger[pre[recipe].length];
+        BigInteger[] required = new BigInteger[pre.columns()];
         BigInteger[] delta = new BigInteger[required.length];
         for (int i = 0; i < required.length; i++) {
-            required[i] = BigInteger.valueOf(pre[recipe][i]);
-            delta[i] = BigInteger.valueOf(post[recipe][i]).subtract(required[i]);
+            required[i] = BigInteger.valueOf(pre.get(recipe, i));
+            delta[i] = BigInteger.valueOf(post.get(recipe, i)).subtract(required[i]);
         }
         Block one = new Block(firings, required, delta, new PetriExecutionTrace.Fire(recipe, 1L));
         return copies == 1L ? one : repeat(one, copies);
@@ -210,4 +212,14 @@ final class PetriExecutionVerifier {
         }
         return maximum;
     }
+    static Result verify(long[][] pre, long[][] post, long[] firings, BigInteger[] initial,
+                         int[] cyclicItems, int target, long amount, Budget budget) {
+        return verify(SparseLongMatrix.fromDense(pre), SparseLongMatrix.fromDense(post), firings, initial, cyclicItems, target, amount, budget);
+    }
+
+    static Certificate orderedCertificate(long[][] pre, long[][] post, long[] firings,
+                                          int target, long amount) {
+        return orderedCertificate(SparseLongMatrix.fromDense(pre), SparseLongMatrix.fromDense(post), firings, target, amount);
+    }
+
 }

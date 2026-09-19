@@ -1,5 +1,7 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.SparseLongMatrix;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -95,11 +97,11 @@ final class CpSatRuntime {
     }
 
     static long[] solveRankedPlan(
-            long[][] consumed,
-            long[][] produced,
-            long[][] catalysts,
-            long[][] finiteUseAmounts,
-            long[][] finiteUseLifetimes,
+            SparseLongMatrix consumed,
+            SparseLongMatrix produced,
+            SparseLongMatrix catalysts,
+            SparseLongMatrix finiteUseAmounts,
+            SparseLongMatrix finiteUseLifetimes,
             int[] outputItems,
             int[] primaryOutputItems,
             long[] primaryOutputAmounts,
@@ -109,7 +111,7 @@ final class CpSatRuntime {
             long[][] cycleInputAmounts,
             long[][] cyclePrimitiveFirings,
             long[] stocks,
-            long[][] reusableCatalysts,
+            SparseLongMatrix reusableCatalysts,
             int[] reusableItems,
             int[][] reusableCandidatePhysicals,
             long[] reusablePhysicalStocks,
@@ -132,11 +134,11 @@ final class CpSatRuntime {
         try {
             return (long[]) loaded.solveRankedPlan().invoke(
                     null,
-                    consumed,
-                    produced,
-                    catalysts,
-                    finiteUseAmounts,
-                    finiteUseLifetimes,
+                    consumed.wire(),
+                    produced.wire(),
+                    catalysts.wire(),
+                    finiteUseAmounts.wire(),
+                    finiteUseLifetimes.wire(),
                     outputItems,
                     primaryOutputItems,
                     primaryOutputAmounts,
@@ -146,7 +148,7 @@ final class CpSatRuntime {
                     cycleInputAmounts,
                     cyclePrimitiveFirings,
                     stocks,
-                    reusableCatalysts,
+                    reusableCatalysts.wire(),
                     reusableItems,
                     reusableCandidatePhysicals,
                     reusablePhysicalStocks,
@@ -174,6 +176,23 @@ final class CpSatRuntime {
                 throw error;
             }
             throw new IllegalStateException("CP-SAT ranked bridge failed", cause);
+        }
+    }
+
+    static long[] solveSparseDag(int[][] variables, long[][] coefficients, int[][] producers,
+            long[] batches, long[] upper, long[] stocks, int[] distances, long amount, double maxSeconds) {
+        Bridge loaded = bridge;
+        if (loaded == null) throw new IllegalStateException("CP-SAT runtime is not initialized", loadFailure);
+        try {
+            return (long[]) loaded.solveSparseDag().invoke(null, variables, coefficients, producers,
+                    batches, upper, stocks, distances, amount, maxSeconds);
+        } catch (IllegalAccessException impossible) {
+            throw new IllegalStateException("CP-SAT sparse bridge is inaccessible", impossible);
+        } catch (InvocationTargetException failure) {
+            Throwable cause = unwrap(failure);
+            if (cause instanceof RuntimeException runtime) throw runtime;
+            if (cause instanceof Error error) throw error;
+            throw new IllegalStateException("CP-SAT sparse bridge failed", cause);
         }
     }
 
@@ -293,8 +312,11 @@ final class CpSatRuntime {
                     long[].class,
                     long[].class,
                     double.class);
+            Method solveSparseDag = bridgeClass.getMethod("solveSparseDag",
+                    int[][].class, long[][].class, int[][].class, long[].class, long[].class,
+                    long[].class, int[].class, long.class, double.class);
             initialize.invoke(null);
-            bridge = new Bridge(loader, solve, solveRankedPlan, chooseFeedbackOption);
+            bridge = new Bridge(loader, solve, solveRankedPlan, chooseFeedbackOption, solveSparseDag);
             loadFailure = null;
         } catch (Throwable failure) {
             try {
@@ -319,7 +341,8 @@ final class CpSatRuntime {
             URLClassLoader loader,
             Method solve,
             Method solveRankedPlan,
-            Method chooseFeedbackOption) {
+            Method chooseFeedbackOption,
+            Method solveSparseDag) {
     }
 
     private static final class BridgeClassLoader extends URLClassLoader {
