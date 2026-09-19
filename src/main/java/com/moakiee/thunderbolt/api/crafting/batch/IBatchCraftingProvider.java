@@ -13,6 +13,14 @@ import appeng.api.stacks.KeyCounter;
  */
 public interface IBatchCraftingProvider extends ICraftingProvider {
 
+    /**
+     * Called before a cached adapter endpoint is first used in a physical server tick. Clear only
+     * tick-local dispatch hints here; capacity and machine availability must still be checked live.
+     * A cache eviction may create another endpoint in the same tick.
+     */
+    default void beginDispatchTick(long tick) {
+    }
+
     default BatchDispatchMode getBatchDispatchMode(IPatternDetails details) {
         return BatchDispatchMode.NORMAL;
     }

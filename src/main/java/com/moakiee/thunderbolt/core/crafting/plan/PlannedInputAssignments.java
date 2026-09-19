@@ -14,7 +14,11 @@ import com.moakiee.thunderbolt.core.crafting.loop.PatternFiringExpander;
 import com.moakiee.thunderbolt.core.crafting.pattern.PlannedInputPattern;
 import com.moakiee.thunderbolt.core.crafting.planner.CraftPlan;
 
-/** Optional execution metadata. Native CPUs still see the original registered patternTimes map. */
+/**
+ * Legacy opt-in metadata, retained for binary compatibility. Built-in planners no longer record
+ * fixed input bindings: CPUs allocate against their live inventory and remaining tasks.
+ */
+@Deprecated
 public final class PlannedInputAssignments {
     private static final Map<CraftingPlan, Map<IPatternDetails, List<Task>>> PLANS =
             new MapMaker().weakKeys().makeMap();

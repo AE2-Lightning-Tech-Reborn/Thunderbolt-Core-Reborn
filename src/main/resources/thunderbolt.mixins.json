@@ -12,6 +12,7 @@
     "ae2.crafting.CraftingLinkNexusMixin",
     "ae2.crafting.ExtendedCraftingCpuServiceMixin",
     "ae2.crafting.CraftingServiceAccessor",
+    "ae2.crafting.NetworkCraftingProvidersRevisionMixin",
     "ae2.key.AEFluidKeyComponentsMixin",
     "ae2.key.AEItemKeyComponentsMixin",
     "platform.eject.EjectCapabilityMixin",
