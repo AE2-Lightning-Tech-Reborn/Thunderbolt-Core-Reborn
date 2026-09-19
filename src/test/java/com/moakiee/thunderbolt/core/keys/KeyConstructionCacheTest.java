@@ -103,6 +103,44 @@ class KeyConstructionCacheTest {
         assertNotSame(named, KeyConstructionCache.fluid(stack, fluids));
     }
 
+    @Test void earlyFluidProbeKeepsAmountsEmptinessAndCallerMutationIndependent() {
+        var source = new FluidStack(Fluids.WATER, 1000);
+        assertNull(KeyConstructionCache.findFluid(source));
+        var key = KeyConstructionCache.fluid(source.copyWithAmount(1), fluids);
+        for (int amount : new int[]{1, 17, 1000, Integer.MAX_VALUE}) {
+            source.setAmount(amount);
+            assertSame(key, KeyConstructionCache.findFluid(source));
+            assertEquals(amount, source.getAmount());
+        }
+        for (int amount : new int[]{0, -1}) {
+            source.setAmount(amount);
+            assertNull(KeyConstructionCache.findFluid(source));
+        }
+        assertNull(KeyConstructionCache.findFluid(FluidStack.EMPTY));
+        assertNull(KeyConstructionCache.findFluid(new FluidStack(Fluids.EMPTY, 1)));
+        source.setAmount(1000);
+        source.set(DataComponents.CUSTOM_NAME, Component.literal("changed"));
+        assertNull(KeyConstructionCache.findFluid(source));
+        assertNull(key.get(DataComponents.CUSTOM_NAME));
+        KeyConstructionCache.clear();
+        assertNull(KeyConstructionCache.findFluid(new FluidStack(Fluids.WATER, 1)));
+        KeyConstructionCache.configure(false);
+        assertNull(KeyConstructionCache.findFluid(new FluidStack(Fluids.WATER, 1)));
+    }
+
+    @Test void clearingDuringFluidConstructionCannotRepopulateTheNewGeneration() {
+        var source = new FluidStack(Fluids.WATER, 1);
+        var old = KeyConstructionCache.fluid(source, args -> {
+            KeyConstructionCache.clear();
+            return AEFluidKey.of((FluidStack) args[0]);
+        });
+        assertNull(KeyConstructionCache.findFluid(source));
+        var next = KeyConstructionCache.fluid(source, fluids);
+        assertNotSame(old, next);
+        assertEquals(old, next);
+        assertEquals(old.hashCode(), next.hashCode());
+    }
+
     @Test void clearAndDisableNeverChangeKeyEquality() {
         var stack = new ItemStack(Items.STONE);
         var first = KeyConstructionCache.item(stack, items);

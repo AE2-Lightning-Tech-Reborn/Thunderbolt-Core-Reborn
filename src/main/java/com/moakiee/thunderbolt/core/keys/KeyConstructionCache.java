@@ -12,7 +12,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 /**
- * Reuses AE2 keys through per-Item plain slots, weak component canonicalization and a bounded fluid
+ * Reuses AE2 keys through per-Item/per-Fluid plain slots, weak component canonicalization and a bounded fluid
  * cache. Bypasses, clearing and concurrent plain misses may return equal, distinct objects. AE2's
  * value equality must remain intact. No caller-owned mutable stack is retained.
  */
@@ -24,6 +24,7 @@ public final class KeyConstructionCache {
     private static volatile Tables tables;
 
     private record Tables(Object generation, AtomicReferenceArray<PlainItemKeyCache> plainItems,
+                          AtomicReferenceArray<PlainFluidKeyCache> plainFluids,
                           AtomicInteger maintenanceCursor,
                           WeakCanonicalMap.IdentityTable<AEItemKey> identities,
                           AtomicReferenceArray<AEItemKey> items,
@@ -32,6 +33,7 @@ public final class KeyConstructionCache {
             // Per-item holders share one normalized plain key without hash collisions.
             // Item fields are detached when a generation ends, including never-used-again Items.
             this(new Object(), new AtomicReferenceArray<>(BuiltInRegistries.ITEM.size()),
+                    new AtomicReferenceArray<>(BuiltInRegistries.FLUID.size()),
                     new AtomicInteger(),
                     new WeakCanonicalMap.IdentityTable<>(4096),
                     new AtomicReferenceArray<>(CAPACITY), new AtomicReferenceArray<>(CAPACITY), components);
@@ -52,6 +54,10 @@ public final class KeyConstructionCache {
                 var cached = previous.plainItems.get(i);
                 if (cached != null && cached.owner != null) cached.owner.thunderbolt$clearPlainKeyCache(cached);
             }
+            for (int i = 0; i < previous.plainFluids.length(); i++) {
+                var cached = previous.plainFluids.get(i);
+                if (cached != null) cached.owner.thunderbolt$clearFluidKey(cached);
+            }
         }
     }
 
@@ -64,6 +70,11 @@ public final class KeyConstructionCache {
     }
 
     public static boolean isCurrent(PlainItemKeyCache cache) {
+        var current = tables;
+        return current != null && cache.generation == current.generation;
+    }
+
+    public static boolean isCurrent(PlainFluidKeyCache cache) {
         var current = tables;
         return current != null && cache.generation == current.generation;
     }
@@ -181,6 +192,18 @@ public final class KeyConstructionCache {
         return cached;
     }
 
+    /** Read-only fluid probe: amounts are not part of an AE key, but empty stacks are invalid. */
+    public static AEFluidKey findFluid(FluidStack source) {
+        var current = tables;
+        if (current == null || source.isEmpty()) return null;
+        Object patch = source.isComponentsPatchEmpty() ? EMPTY_PATCH
+                : (Object) source.getComponents() instanceof SharedComponentPatch access && current.components
+                        ? access.thunderbolt$copyOnWritePatchIdentity() : null;
+        if (patch == null) return null;
+        var cached = current.fluids.get(slot(source.getFluid(), patch));
+        return matchesFluid(cached, source, patch, current.components) ? cached : null;
+    }
+
     /** AE2 has already copied the fluid stack and normalized its amount to one. */
     public static AEFluidKey fluid(FluidStack ownedStack, Operation<AEFluidKey> constructor) {
         var current = tables;
@@ -189,12 +212,42 @@ public final class KeyConstructionCache {
         if (patch == null) return constructor.call(ownedStack);
         int slot = slot(ownedStack.getFluid(), patch);
         var cached = current.fluids.get(slot);
-        if (cached != null && (patch == EMPTY_PATCH || (Object) cached instanceof FluidKeyComponents access
-                && patchIdentity(access.thunderbolt$components(), false, current.components) == patch)
-                && cached.matches(ownedStack)) return cached;
+        if (matchesFluid(cached, ownedStack, patch, current.components)) return cached;
         var result = constructor.call(ownedStack);
         current.fluids.set(slot, result);
+        if (patch == EMPTY_PATCH && isPlainFluidStack(ownedStack)
+                && result != null && result.matches(ownedStack)
+                && (Object) result instanceof FluidKeyComponents access
+                && access.thunderbolt$components().isEmpty()) {
+            publishFluid(current, ownedStack, result);
+        }
         return result;
+    }
+
+    /** A custom prototype with an empty patch is not necessarily an ordinary fluid. */
+    public static boolean isPlainFluidStack(FluidStack source) {
+        return source.isComponentsPatchEmpty()
+                && (Object) source.getComponents() instanceof SharedComponentPatch access
+                && access.thunderbolt$prototypeIdentity() == DataComponentMap.EMPTY;
+    }
+
+    private static void publishFluid(Tables current, FluidStack stack, AEFluidKey key) {
+        if (!((Object) stack.getFluid() instanceof FluidKeyCacheOwner owner)) return;
+        int id = BuiltInRegistries.FLUID.getId(stack.getFluid());
+        if (id < 0 || id >= current.plainFluids.length()) return;
+        var holder = current.plainFluids.get(id);
+        if (holder == null) {
+            var fresh = new PlainFluidKeyCache(current.generation, owner);
+            var witness = current.plainFluids.compareAndExchange(id, null, fresh);
+            holder = witness == null ? fresh : witness;
+        }
+        owner.thunderbolt$publishFluidKey(holder, key);
+    }
+
+    private static boolean matchesFluid(AEFluidKey cached, FluidStack source, Object patch, boolean components) {
+        return cached != null && (patch == EMPTY_PATCH || (Object) cached instanceof FluidKeyComponents access
+                && patchIdentity(access.thunderbolt$components(), false, components) == patch)
+                && cached.matches(source);
     }
 
     private static Object patchIdentity(DataComponentMap components, boolean empty, boolean enabled) {

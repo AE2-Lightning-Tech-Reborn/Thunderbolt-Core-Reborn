@@ -1,5 +1,9 @@
 # 对象复用实验：移植范围与 AE 附属兼容性
 
+原版、Lean、最新 TB 的本轮完整重测见[最新完整对照表](object-reuse-latest-three-way.zh-CN.md)。
+
+普通流体与 NBT 最新迭代的实现、867 项 JUnit / 31 项 GameTest 验证及三组独立 JVM 复测见[专项报告](object-reuse-fluid-nbt.zh-CN.md)。
+
 最新三方实测见[原始基线／Lean 最新／当前 TB 对照](object-reuse-three-way.zh-CN.md)。
 
 本实验基于 Thunderbolt `3798e5b0300eddb19706cd9352ba0a29f957048b`，目标是减少重复构造、组件 hash 和 NBT 复制分配，保留 AE2 及附属的物品身份、编解码、存储与样板语义。没有改变 V2 的搜索算法。
@@ -12,12 +16,12 @@
 
 | 方向 | 本实验实现 | 兼容性边界 |
 | --- | --- | --- |
-| AEItemKey / AEFluidKey | Item 字段保存普通物品键，流体使用 4096 槽有界缓存 | 保留 ItemLike.asItem、组件内容与值相等；Key 内计数／动画归一化为 1／0，原栈不变；自定义物品动态容量／耐久继续检查 |
+| AEItemKey / AEFluidKey | Item/Fluid 字段保存普通键；组件流体保留 4096 槽有界缓存 | 保留 ItemLike.asItem、组件内容与值相等；Key 内计数／动画归一化为 1／0，原栈不变；自定义物品动态容量／耐久继续检查 |
 | 带组件的物品键 | 写时复制 patch 身份索引，加内容相等的双弱引用规范化表 | 首次可写快照旁路；独立等值快照可汇合；原 AE2 值相等语义不变 |
 | ResourceLocation | 有界构造复用；缓存原 hashCode | 保留校验、equals 和原 hash 值；构造复用默认关闭，适合重复标识多的负载 |
 | TagKey | 复用构造候选对象并缓存原 hashCode | 候选仍进入原版弱驻留表，保留规范实例和既有相等语义 |
 | CompoundTag.copy | 使用实际转换视图的 forEach，减少临时 Entry | 保留 HashMap、每个 Tag 的深复制和其他 mixin 传入的转换视图 |
-| ListTag.copy | 对转换后的 Iterable 预留原列表容量 | 保留 ArrayList、原迭代顺序、元素复制和实际传入的 Iterable |
+| ListTag.copy | 原生 ArrayList 输入合并转换与收集，通用 Iterable 按原列表容量预分配 | 保留 ArrayList、原迭代顺序、元素复制和实际传入的 Iterable |
 | ResourceKey | 保留原版弱驻留实现 | 已有去重，不再叠加另一套规范实例体系 |
 | Ingredient | 保留原实现 | 不共享有可变 ItemStack 数组和懒缓存的 Ingredient，避免跨配方污染与重载问题 |
 | 全局 NBT 容器替换 | 不移植 | 不要求其他附属的 NBT Map/List 必须为某个 fastutil 类型 |

@@ -1,5 +1,9 @@
 # Item 字段与双层弱规范化缓存
 
+原版、Lean、最新 TB 的本轮完整重测见[最新完整对照表](object-reuse-latest-three-way.zh-CN.md)。
+
+后续普通流体与 NBT 优化见[本轮复测报告](object-reuse-fluid-nbt.zh-CN.md)；本文保留原测量版本和历史数据。
+
 最新三方实测见[原始基线／Lean 最新／当前 TB 对照](object-reuse-three-way.zh-CN.md)。
 
 本次迭代接续对象复用实验 `caa258c`，保留 AE2 的值相等、hash、网络及存档语义。普通物品走 Item 字段；组件物品走身份索引和内容规范化两层缓存。流体仍使用原有有界缓存。本次没有修改规划器算法。

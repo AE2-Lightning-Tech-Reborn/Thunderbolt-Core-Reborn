@@ -1,5 +1,9 @@
 # 对象复用三方对照：原始基线、Lean 最新版、当前 Thunderbolt
 
+原版、Lean、最新 TB 的本轮完整重测见[最新完整对照表](object-reuse-latest-three-way.zh-CN.md)。
+
+后续普通流体与 NBT 优化见[本轮复测报告](object-reuse-fluid-nbt.zh-CN.md)；本文保留原测量版本和历史数据。
+
 2026-09-19 实测。实现已提交为 `2c9fd75`；以下数字对应这一固定实现，不把历史 32 B 试验或旧轮次结果混入本表。
 
 ## 版本与测量方法

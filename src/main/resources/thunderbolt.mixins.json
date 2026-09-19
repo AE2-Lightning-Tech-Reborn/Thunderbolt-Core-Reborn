@@ -18,6 +18,7 @@
     "ae2.key.AEItemKeyConstructionMixin",
     "ae2.key.AEFluidKeyConstructionMixin",
     "ae2.key.ItemKeyCacheMixin",
+    "ae2.key.FluidKeyCacheMixin",
     "platform.objects.SharedComponentPatchMixin",
     "platform.objects.ResourceLocationReuseMixin",
     "platform.objects.TagKeyReuseMixin",

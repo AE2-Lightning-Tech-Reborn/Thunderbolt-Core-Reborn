@@ -162,4 +162,49 @@ public final class ObjectReuseGameTests {
                 && new ListTag().copy().isEmpty(), "empty/copy path differs");
         h.succeed();
     }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void nbtCopiesHonorOverriddenTagsAndCustomBackingCollections(GameTestHelper h) throws Exception {
+        var calls = new java.util.ArrayList<Integer>();
+        var list = new ListTag();
+        for (int i = 0; i < 3; i++) {
+            final int id = i;
+            list.add(new CompoundTag() {
+                @Override public CompoundTag copy() {
+                    calls.add(id);
+                    var copy = new CompoundTag(); copy.putInt("transformed", id); return copy;
+                }
+            });
+        }
+        var copy = list.copy();
+        require(calls.equals(java.util.List.of(0, 1, 2)), "Tag.copy override/order/call count changed");
+        for (int i = 0; i < 3; i++) require(copy.getCompound(i).getInt("transformed") == i, "overridden copy value lost");
+        var values = new ListTag();
+        values.add(net.minecraft.nbt.IntTag.valueOf(500));
+        var valueCopy = values.copy();
+        require(valueCopy.get(0) == values.get(0), "immutable value tags no longer shared as vanilla does");
+        valueCopy.add(net.minecraft.nbt.IntTag.valueOf(600));
+        require(values.size() == 1, "list backing was shared");
+
+        var mapCtor = CompoundTag.class.getDeclaredConstructor(Map.class); mapCtor.setAccessible(true);
+        var customMap = new java.util.LinkedHashMap<String, Tag>();
+        var row = new CompoundTag(); row.putIntArray("values", new int[]{1, 2});
+        customMap.put("child", row);
+        var customCompound = mapCtor.newInstance(customMap);
+        var listCtor = ListTag.class.getDeclaredConstructor(java.util.List.class, byte.class); listCtor.setAccessible(true);
+        var customList = listCtor.newInstance(new java.util.LinkedList<>(java.util.List.of(customCompound)), Tag.TAG_COMPOUND);
+        ListTag expected;
+        ObjectReuseOptions.fastNbtCopies = false;
+        try { expected = customList.copy(); } finally { ObjectReuseOptions.fastNbtCopies = true; }
+        var actual = customList.copy();
+        require(actual.equals(expected), "custom backing container changed copy behavior");
+        var listField = ListTag.class.getDeclaredField("list"); listField.setAccessible(true);
+        var mapField = CompoundTag.class.getDeclaredField("tags"); mapField.setAccessible(true);
+        require(listField.get(actual).getClass() == listField.get(expected).getClass()
+                && mapField.get(actual.getCompound(0)).getClass() == mapField.get(expected.getCompound(0)).getClass(),
+                "custom-input fallback changed output container types");
+        actual.getCompound(0).getCompound("child").getIntArray("values")[0] = 9;
+        require(row.getIntArray("values")[0] == 1, "custom-input fallback shared mutable descendants");
+        h.succeed();
+    }
 }

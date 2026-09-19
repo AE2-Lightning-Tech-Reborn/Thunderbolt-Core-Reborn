@@ -1,0 +1,1568 @@
+{
+  "before_commit": "939892da5e4cacbbace6e933f89f1d45a50c7592",
+  "lean_commit": "22d4c0930353b4904a75499f47f25d876e26b2ef",
+  "after": "Optimized revision based on before_commit; exact runtime source hashes and artifact hash below",
+  "orders": [
+    [
+      "BEFORE",
+      "LEAN",
+      "AFTER"
+    ],
+    [
+      "LEAN",
+      "AFTER",
+      "BEFORE"
+    ],
+    [
+      "AFTER",
+      "BEFORE",
+      "LEAN"
+    ]
+  ],
+  "method": "Same committed mixed benchmark, one fresh JVM per sample; 6 warmups + 7 measured rounds; ns and allocated bytes per call; medians within JVM. Sequential execution.",
+  "results": [
+    {
+      "mode": "BEFORE",
+      "round": 1,
+      "log": "BEFORE-mixed-1.log",
+      "log_sha256": "3dc1116072db14d81811b1c8b38c174fdcc746c25b6144dd3d02734450338b66",
+      "samples": {
+        "item_count_1": {
+          "ns": 2.61,
+          "bytes": 0.0
+        },
+        "item_count_64": {
+          "ns": 2.67,
+          "bytes": 0.0
+        },
+        "item_components": {
+          "ns": 11.44,
+          "bytes": 0.0
+        },
+        "item_deep_components": {
+          "ns": 14.78,
+          "bytes": 0.0
+        },
+        "item_256_variants": {
+          "ns": 21.43,
+          "bytes": 0.0
+        },
+        "equal_component_storage_lookup": {
+          "ns": 18.83,
+          "bytes": 0.0
+        },
+        "item_fresh_components": {
+          "ns": 120.7,
+          "bytes": 656.0
+        },
+        "fluid_plain": {
+          "ns": 6.36,
+          "bytes": 24.0
+        },
+        "item_many_types_1701": {
+          "ns": 5.62,
+          "bytes": 0.0
+        },
+        "resource_location": {
+          "ns": 48.67,
+          "bytes": 144.0
+        },
+        "resource_unique": {
+          "ns": 25.04,
+          "bytes": 80.0
+        },
+        "resource_lookup": {
+          "ns": 2.2,
+          "bytes": 0.0
+        },
+        "tag_key": {
+          "ns": 9.43,
+          "bytes": 0.0
+        },
+        "nbt_compound_64": {
+          "ns": 442.36,
+          "bytes": 2728.01
+        },
+        "nbt_list_64": {
+          "ns": 1329.98,
+          "bytes": 13672.01
+        }
+      },
+      "probes": {
+        "air_itemlike_returns_null": "true",
+        "potion_raw_matches_input": "true",
+        "potion_itemlike_equals_default_stack": "true",
+        "potion_raw_distinct_from_water": "true",
+        "potion_disk_roundtrip": "true",
+        "potion_packet_roundtrip": "true",
+        "potion_storage_lookup_after_packet": "42",
+        "concurrent_first_keys_equal": "true",
+        "concurrent_storage_type_count": "1",
+        "dynamic_limit_initial": "64",
+        "dynamic_limit_after_change": "16",
+        "native_stack_count_poptime": "1,0",
+        "registry_input_mismatches": "[]",
+        "registry_factory_inequality": "[]",
+        "equal_component_lookup_hits": "256/256"
+      }
+    },
+    {
+      "mode": "LEAN",
+      "round": 1,
+      "log": "LEAN-mixed-1.log",
+      "log_sha256": "52fe503f05bcd3f0bd83bbe3013c119af847769f580f162bf353be07175eb37a",
+      "samples": {
+        "item_count_1": {
+          "ns": 2.79,
+          "bytes": 0.0
+        },
+        "item_count_64": {
+          "ns": 2.6,
+          "bytes": 0.0
+        },
+        "item_components": {
+          "ns": 38.31,
+          "bytes": 104.0
+        },
+        "item_deep_components": {
+          "ns": 118.79,
+          "bytes": 16.0
+        },
+        "item_256_variants": {
+          "ns": 42.09,
+          "bytes": 104.0
+        },
+        "equal_component_storage_lookup": {
+          "ns": 652.4,
+          "bytes": 64.0
+        },
+        "item_fresh_components": {
+          "ns": 247.08,
+          "bytes": 549.43
+        },
+        "fluid_plain": {
+          "ns": 2.67,
+          "bytes": 0.0
+        },
+        "item_many_types_1699": {
+          "ns": 5.76,
+          "bytes": 0.0
+        },
+        "resource_location": {
+          "ns": 28.19,
+          "bytes": 120.0
+        },
+        "resource_unique": {
+          "ns": 29.09,
+          "bytes": 56.0
+        },
+        "resource_lookup": {
+          "ns": 2.08,
+          "bytes": 0.0
+        },
+        "tag_key": {
+          "ns": 9.3,
+          "bytes": 0.0
+        },
+        "nbt_compound_64": {
+          "ns": 459.69,
+          "bytes": 1696.01
+        },
+        "nbt_list_64": {
+          "ns": 1200.83,
+          "bytes": 12112.01
+        }
+      },
+      "probes": {
+        "air_itemlike_returns_null": "IllegalArgumentException:stack is empty",
+        "potion_raw_matches_input": "false",
+        "potion_itemlike_equals_default_stack": "false",
+        "potion_raw_distinct_from_water": "true",
+        "potion_disk_roundtrip": "false",
+        "potion_packet_roundtrip": "false",
+        "potion_storage_lookup_after_packet": "null",
+        "concurrent_first_keys_equal": "false",
+        "concurrent_storage_type_count": "2",
+        "dynamic_limit_initial": "64",
+        "dynamic_limit_after_change": "64",
+        "native_stack_count_poptime": "1,0",
+        "registry_input_mismatches": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+        "registry_factory_inequality": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+        "equal_component_lookup_hits": "256/256"
+      }
+    },
+    {
+      "mode": "AFTER",
+      "round": 1,
+      "log": "AFTER-mixed-1.log",
+      "log_sha256": "7ae0c71b9cda69f9007077bb0044ebace67029033db1b20ad5d1354c2d6ddd04",
+      "samples": {
+        "item_count_1": {
+          "ns": 3.6,
+          "bytes": 0.0
+        },
+        "item_count_64": {
+          "ns": 2.79,
+          "bytes": 0.0
+        },
+        "item_components": {
+          "ns": 9.29,
+          "bytes": 0.0
+        },
+        "item_deep_components": {
+          "ns": 12.63,
+          "bytes": 0.0
+        },
+        "item_256_variants": {
+          "ns": 20.87,
+          "bytes": 0.0
+        },
+        "equal_component_storage_lookup": {
+          "ns": 18.2,
+          "bytes": 0.0
+        },
+        "item_fresh_components": {
+          "ns": 119.63,
+          "bytes": 656.0
+        },
+        "fluid_plain": {
+          "ns": 2.68,
+          "bytes": 0.0
+        },
+        "item_many_types_1701": {
+          "ns": 5.53,
+          "bytes": 0.0
+        },
+        "resource_location": {
+          "ns": 51.93,
+          "bytes": 144.0
+        },
+        "resource_unique": {
+          "ns": 20.29,
+          "bytes": 80.0
+        },
+        "resource_lookup": {
+          "ns": 2.06,
+          "bytes": 0.0
+        },
+        "tag_key": {
+          "ns": 8.43,
+          "bytes": 0.0
+        },
+        "nbt_compound_64": {
+          "ns": 204.63,
+          "bytes": 2640.01
+        },
+        "nbt_list_64": {
+          "ns": 963.98,
+          "bytes": 8000.01
+        }
+      },
+      "probes": {
+        "air_itemlike_returns_null": "true",
+        "potion_raw_matches_input": "true",
+        "potion_itemlike_equals_default_stack": "true",
+        "potion_raw_distinct_from_water": "true",
+        "potion_disk_roundtrip": "true",
+        "potion_packet_roundtrip": "true",
+        "potion_storage_lookup_after_packet": "42",
+        "concurrent_first_keys_equal": "true",
+        "concurrent_storage_type_count": "1",
+        "dynamic_limit_initial": "64",
+        "dynamic_limit_after_change": "16",
+        "native_stack_count_poptime": "1,0",
+        "registry_input_mismatches": "[]",
+        "registry_factory_inequality": "[]",
+        "equal_component_lookup_hits": "256/256"
+      }
+    },
+    {
+      "mode": "LEAN",
+      "round": 2,
+      "log": "LEAN-mixed-2.log",
+      "log_sha256": "7fe9ceb44bc3ba7316a884b8cc03e71af5cc8cd1ae7a246a448a0936a9070b61",
+      "samples": {
+        "item_count_1": {
+          "ns": 2.22,
+          "bytes": 0.0
+        },
+        "item_count_64": {
+          "ns": 2.45,
+          "bytes": 0.0
+        },
+        "item_components": {
+          "ns": 33.03,
+          "bytes": 104.0
+        },
+        "item_deep_components": {
+          "ns": 121.6,
+          "bytes": 16.0
+        },
+        "item_256_variants": {
+          "ns": 43.57,
+          "bytes": 104.0
+        },
+        "equal_component_storage_lookup": {
+          "ns": 498.64,
+          "bytes": 64.0
+        },
+        "item_fresh_components": {
+          "ns": 192.3,
+          "bytes": 506.72
+        },
+        "fluid_plain": {
+          "ns": 2.62,
+          "bytes": 0.0
+        },
+        "item_many_types_1699": {
+          "ns": 4.5,
+          "bytes": 0.0
+        },
+        "resource_location": {
+          "ns": 26.99,
+          "bytes": 120.0
+        },
+        "resource_unique": {
+          "ns": 33.62,
+          "bytes": 56.0
+        },
+        "resource_lookup": {
+          "ns": 2.01,
+          "bytes": 0.0
+        },
+        "tag_key": {
+          "ns": 9.41,
+          "bytes": 0.0
+        },
+        "nbt_compound_64": {
+          "ns": 508.48,
+          "bytes": 1696.01
+        },
+        "nbt_list_64": {
+          "ns": 937.72,
+          "bytes": 12112.01
+        }
+      },
+      "probes": {
+        "air_itemlike_returns_null": "IllegalArgumentException:stack is empty",
+        "potion_raw_matches_input": "false",
+        "potion_itemlike_equals_default_stack": "false",
+        "potion_raw_distinct_from_water": "true",
+        "potion_disk_roundtrip": "false",
+        "potion_packet_roundtrip": "false",
+        "potion_storage_lookup_after_packet": "null",
+        "concurrent_first_keys_equal": "false",
+        "concurrent_storage_type_count": "2",
+        "dynamic_limit_initial": "64",
+        "dynamic_limit_after_change": "64",
+        "native_stack_count_poptime": "1,0",
+        "registry_input_mismatches": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+        "registry_factory_inequality": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+        "equal_component_lookup_hits": "256/256"
+      }
+    },
+    {
+      "mode": "AFTER",
+      "round": 2,
+      "log": "AFTER-mixed-2.log",
+      "log_sha256": "f295a86b3868ec3bdb72e35b6d7813901964c678a0253020c3438bd732d4d97f",
+      "samples": {
+        "item_count_1": {
+          "ns": 3.41,
+          "bytes": 0.0
+        },
+        "item_count_64": {
+          "ns": 2.51,
+          "bytes": 0.0
+        },
+        "item_components": {
+          "ns": 9.49,
+          "bytes": 0.0
+        },
+        "item_deep_components": {
+          "ns": 12.64,
+          "bytes": 0.0
+        },
+        "item_256_variants": {
+          "ns": 20.87,
+          "bytes": 0.0
+        },
+        "equal_component_storage_lookup": {
+          "ns": 17.91,
+          "bytes": 0.0
+        },
+        "item_fresh_components": {
+          "ns": 149.73,
+          "bytes": 656.0
+        },
+        "fluid_plain": {
+          "ns": 2.67,
+          "bytes": 0.0
+        },
+        "item_many_types_1701": {
+          "ns": 5.45,
+          "bytes": 0.0
+        },
+        "resource_location": {
+          "ns": 54.3,
+          "bytes": 144.0
+        },
+        "resource_unique": {
+          "ns": 27.64,
+          "bytes": 80.0
+        },
+        "resource_lookup": {
+          "ns": 2.02,
+          "bytes": 0.0
+        },
+        "tag_key": {
+          "ns": 9.36,
+          "bytes": 0.0
+        },
+        "nbt_compound_64": {
+          "ns": 293.42,
+          "bytes": 2688.01
+        },
+        "nbt_list_64": {
+          "ns": 1349.07,
+          "bytes": 11072.01
+        }
+      },
+      "probes": {
+        "air_itemlike_returns_null": "true",
+        "potion_raw_matches_input": "true",
+        "potion_itemlike_equals_default_stack": "true",
+        "potion_raw_distinct_from_water": "true",
+        "potion_disk_roundtrip": "true",
+        "potion_packet_roundtrip": "true",
+        "potion_storage_lookup_after_packet": "42",
+        "concurrent_first_keys_equal": "true",
+        "concurrent_storage_type_count": "1",
+        "dynamic_limit_initial": "64",
+        "dynamic_limit_after_change": "16",
+        "native_stack_count_poptime": "1,0",
+        "registry_input_mismatches": "[]",
+        "registry_factory_inequality": "[]",
+        "equal_component_lookup_hits": "256/256"
+      }
+    },
+    {
+      "mode": "BEFORE",
+      "round": 2,
+      "log": "BEFORE-mixed-2.log",
+      "log_sha256": "4eff4f85060037c2173b3fa3de9ce2a5d6e10ea15ab246deb2a4fafd595ef0aa",
+      "samples": {
+        "item_count_1": {
+          "ns": 2.73,
+          "bytes": 0.0
+        },
+        "item_count_64": {
+          "ns": 2.42,
+          "bytes": 0.0
+        },
+        "item_components": {
+          "ns": 9.48,
+          "bytes": 0.0
+        },
+        "item_deep_components": {
+          "ns": 12.2,
+          "bytes": 0.0
+        },
+        "item_256_variants": {
+          "ns": 19.24,
+          "bytes": 0.0
+        },
+        "equal_component_storage_lookup": {
+          "ns": 17.68,
+          "bytes": 0.0
+        },
+        "item_fresh_components": {
+          "ns": 116.93,
+          "bytes": 656.0
+        },
+        "fluid_plain": {
+          "ns": 5.97,
+          "bytes": 24.0
+        },
+        "item_many_types_1701": {
+          "ns": 4.72,
+          "bytes": 0.0
+        },
+        "resource_location": {
+          "ns": 52.11,
+          "bytes": 144.0
+        },
+        "resource_unique": {
+          "ns": 21.6,
+          "bytes": 80.0
+        },
+        "resource_lookup": {
+          "ns": 2.11,
+          "bytes": 0.0
+        },
+        "tag_key": {
+          "ns": 10.53,
+          "bytes": 0.0
+        },
+        "nbt_compound_64": {
+          "ns": 419.63,
+          "bytes": 2728.01
+        },
+        "nbt_list_64": {
+          "ns": 1260.99,
+          "bytes": 13672.01
+        }
+      },
+      "probes": {
+        "air_itemlike_returns_null": "true",
+        "potion_raw_matches_input": "true",
+        "potion_itemlike_equals_default_stack": "true",
+        "potion_raw_distinct_from_water": "true",
+        "potion_disk_roundtrip": "true",
+        "potion_packet_roundtrip": "true",
+        "potion_storage_lookup_after_packet": "42",
+        "concurrent_first_keys_equal": "true",
+        "concurrent_storage_type_count": "1",
+        "dynamic_limit_initial": "64",
+        "dynamic_limit_after_change": "16",
+        "native_stack_count_poptime": "1,0",
+        "registry_input_mismatches": "[]",
+        "registry_factory_inequality": "[]",
+        "equal_component_lookup_hits": "256/256"
+      }
+    },
+    {
+      "mode": "AFTER",
+      "round": 3,
+      "log": "AFTER-mixed-3.log",
+      "log_sha256": "6063e0d2133907bc0b9af31b015559052a4a21b1fcaaed38bd98d9bdfa532b43",
+      "samples": {
+        "item_count_1": {
+          "ns": 3.61,
+          "bytes": 0.0
+        },
+        "item_count_64": {
+          "ns": 2.56,
+          "bytes": 0.0
+        },
+        "item_components": {
+          "ns": 9.43,
+          "bytes": 0.0
+        },
+        "item_deep_components": {
+          "ns": 12.49,
+          "bytes": 0.0
+        },
+        "item_256_variants": {
+          "ns": 20.45,
+          "bytes": 0.0
+        },
+        "equal_component_storage_lookup": {
+          "ns": 19.51,
+          "bytes": 0.0
+        },
+        "item_fresh_components": {
+          "ns": 118.07,
+          "bytes": 656.0
+        },
+        "fluid_plain": {
+          "ns": 2.88,
+          "bytes": 0.0
+        },
+        "item_many_types_1701": {
+          "ns": 6.57,
+          "bytes": 0.0
+        },
+        "resource_location": {
+          "ns": 39.55,
+          "bytes": 144.0
+        },
+        "resource_unique": {
+          "ns": 23.26,
+          "bytes": 80.0
+        },
+        "resource_lookup": {
+          "ns": 2.04,
+          "bytes": 0.0
+        },
+        "tag_key": {
+          "ns": 9.62,
+          "bytes": 16.0
+        },
+        "nbt_compound_64": {
+          "ns": 189.39,
+          "bytes": 2640.01
+        },
+        "nbt_list_64": {
+          "ns": 978.73,
+          "bytes": 8000.01
+        }
+      },
+      "probes": {
+        "air_itemlike_returns_null": "true",
+        "potion_raw_matches_input": "true",
+        "potion_itemlike_equals_default_stack": "true",
+        "potion_raw_distinct_from_water": "true",
+        "potion_disk_roundtrip": "true",
+        "potion_packet_roundtrip": "true",
+        "potion_storage_lookup_after_packet": "42",
+        "concurrent_first_keys_equal": "true",
+        "concurrent_storage_type_count": "1",
+        "dynamic_limit_initial": "64",
+        "dynamic_limit_after_change": "16",
+        "native_stack_count_poptime": "1,0",
+        "registry_input_mismatches": "[]",
+        "registry_factory_inequality": "[]",
+        "equal_component_lookup_hits": "256/256"
+      }
+    },
+    {
+      "mode": "BEFORE",
+      "round": 3,
+      "log": "BEFORE-mixed-3.log",
+      "log_sha256": "c37f46cce93cb9c6abf66b5a8b0a02f7d61237361c3a891cda3c6fd7b711feca",
+      "samples": {
+        "item_count_1": {
+          "ns": 3.41,
+          "bytes": 0.0
+        },
+        "item_count_64": {
+          "ns": 2.51,
+          "bytes": 0.0
+        },
+        "item_components": {
+          "ns": 9.38,
+          "bytes": 0.0
+        },
+        "item_deep_components": {
+          "ns": 12.41,
+          "bytes": 0.0
+        },
+        "item_256_variants": {
+          "ns": 21.33,
+          "bytes": 0.0
+        },
+        "equal_component_storage_lookup": {
+          "ns": 20.48,
+          "bytes": 0.0
+        },
+        "item_fresh_components": {
+          "ns": 119.15,
+          "bytes": 656.0
+        },
+        "fluid_plain": {
+          "ns": 6.31,
+          "bytes": 24.0
+        },
+        "item_many_types_1701": {
+          "ns": 8.14,
+          "bytes": 0.0
+        },
+        "resource_location": {
+          "ns": 51.96,
+          "bytes": 144.0
+        },
+        "resource_unique": {
+          "ns": 21.72,
+          "bytes": 80.0
+        },
+        "resource_lookup": {
+          "ns": 2.04,
+          "bytes": 0.0
+        },
+        "tag_key": {
+          "ns": 9.38,
+          "bytes": 0.0
+        },
+        "nbt_compound_64": {
+          "ns": 427.03,
+          "bytes": 2728.01
+        },
+        "nbt_list_64": {
+          "ns": 1173.9,
+          "bytes": 8000.01
+        }
+      },
+      "probes": {
+        "air_itemlike_returns_null": "true",
+        "potion_raw_matches_input": "true",
+        "potion_itemlike_equals_default_stack": "true",
+        "potion_raw_distinct_from_water": "true",
+        "potion_disk_roundtrip": "true",
+        "potion_packet_roundtrip": "true",
+        "potion_storage_lookup_after_packet": "42",
+        "concurrent_first_keys_equal": "true",
+        "concurrent_storage_type_count": "1",
+        "dynamic_limit_initial": "64",
+        "dynamic_limit_after_change": "16",
+        "native_stack_count_poptime": "1,0",
+        "registry_input_mismatches": "[]",
+        "registry_factory_inequality": "[]",
+        "equal_component_lookup_hits": "256/256"
+      }
+    },
+    {
+      "mode": "LEAN",
+      "round": 3,
+      "log": "LEAN-mixed-3.log",
+      "log_sha256": "7d35aa86eb08d36f9de1d9a78fb86e9258f830f302badf28108eeba7f9e9e6ec",
+      "samples": {
+        "item_count_1": {
+          "ns": 3.55,
+          "bytes": 0.0
+        },
+        "item_count_64": {
+          "ns": 2.48,
+          "bytes": 0.0
+        },
+        "item_components": {
+          "ns": 42.34,
+          "bytes": 104.0
+        },
+        "item_deep_components": {
+          "ns": 114.24,
+          "bytes": 16.0
+        },
+        "item_256_variants": {
+          "ns": 43.4,
+          "bytes": 104.0
+        },
+        "equal_component_storage_lookup": {
+          "ns": 574.45,
+          "bytes": 64.0
+        },
+        "item_fresh_components": {
+          "ns": 224.08,
+          "bytes": 488.0
+        },
+        "fluid_plain": {
+          "ns": 2.68,
+          "bytes": 0.0
+        },
+        "item_many_types_1699": {
+          "ns": 5.3,
+          "bytes": 0.0
+        },
+        "resource_location": {
+          "ns": 26.64,
+          "bytes": 120.0
+        },
+        "resource_unique": {
+          "ns": 29.42,
+          "bytes": 56.0
+        },
+        "resource_lookup": {
+          "ns": 2.02,
+          "bytes": 0.0
+        },
+        "tag_key": {
+          "ns": 9.36,
+          "bytes": 0.0
+        },
+        "nbt_compound_64": {
+          "ns": 417.74,
+          "bytes": 1696.01
+        },
+        "nbt_list_64": {
+          "ns": 1306.36,
+          "bytes": 13136.01
+        }
+      },
+      "probes": {
+        "air_itemlike_returns_null": "IllegalArgumentException:stack is empty",
+        "potion_raw_matches_input": "false",
+        "potion_itemlike_equals_default_stack": "false",
+        "potion_raw_distinct_from_water": "true",
+        "potion_disk_roundtrip": "false",
+        "potion_packet_roundtrip": "false",
+        "potion_storage_lookup_after_packet": "null",
+        "concurrent_first_keys_equal": "false",
+        "concurrent_storage_type_count": "2",
+        "dynamic_limit_initial": "64",
+        "dynamic_limit_after_change": "64",
+        "native_stack_count_poptime": "1,0",
+        "registry_input_mismatches": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+        "registry_factory_inequality": "[minecraft:potion, minecraft:splash_potion, minecraft:tipped_arrow, minecraft:lingering_potion]",
+        "equal_component_lookup_hits": "256/256"
+      }
+    }
+  ],
+  "after_source_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/keys/FluidKeyCacheOwner.java": "87bcf8e20f03a7432ed2c5dc383c191083fb52c02099131e1d844486269b6f60",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/KeyConstructionCache.java": "285c6e1fdf1587a4e11eb6ab6d4eed183836347b49207eefa97fac42b62c469b",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/NbtCopyViews.java": "d592cd0ebb083130a046eec8a501f8c4f8fe6878962665f42e2efb41c2601952",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/PlainFluidKeyCache.java": "8f4ef99c378afde9e8b1a942a8b3dc540a4246204f96c3213a7fec48cff2c8b7",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/key/AEFluidKeyConstructionMixin.java": "0216562aa975f6f882667cfd87dc3033b582863a86da270c16c5740a2bd45209",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/key/FluidKeyCacheMixin.java": "00146be6b142d7361a3a3c9a6a058d0b5c16212e38a04c86d363c37ff2f424f5",
+    "src/main/java/com/moakiee/thunderbolt/mixin/platform/objects/CompoundTagCopyMixin.java": "23ab176479eae51a12d9919c341c0d583a78f508d34db74a612aebe8c7f33916",
+    "src/main/java/com/moakiee/thunderbolt/mixin/platform/objects/ListTagCopyMixin.java": "f76aab43bcdc138e4ad6e436e96af322498bb142da0e0df83b24b88645dd699c",
+    "src/main/resources/thunderbolt.mixins.json": "184ecb45bf6e930cd562897ab7a14f429d8895cd4251e9a6b02a0d7cd57e99c4"
+  },
+  "harness_sha256": {
+    "README.zh-CN.md": "9d461e733185a8fc9ea533985dac4004bc651c193f5a676d1350c7d1bd6d2775",
+    "comparison.init.gradle": "c52637ea6c5f2207d15f98d78b58d0747bbd588f9859d8699d6e7997545f87cd",
+    "java/com/moakiee/thunderbolt/comparison/ComparisonBenchmark.java": "d4d4149ce95911d3c690cbe5f41c0653369bf8ff7a0d0d6e3915248b61933f40",
+    "java/com/moakiee/thunderbolt/comparison/ComparisonProbe.java": "435ac17e91d800b2af298ad1839503ceb26e5b639b89b7dc9b4d1e37fbdb2d36",
+    "java/com/moakiee/thunderbolt/comparison/DirectFactoryBenchmark.java": "c77f4b4f1bb390da061cddcaba64d570f0ae94cadb1a9f015cae7e31667ed69a",
+    "measurement-agent/MANIFEST.MF": "0f175a5606f4507509d7273d31646e5204f4c1ad9647c9860bdfe03082214848",
+    "measurement-agent/SizeAgent.java": "5fd52febc7fa12f2d78bad8a5abb876bfa1a34c6db5f09c4cfa8292d541670aa",
+    "resources/data/lean_comparison/structure/empty.nbt": "3d74d298c7c5506b965d60175926438528152037acc6737fd369877f9ecb33f8",
+    "size-agent.init.gradle": "64ed727da5b62a26827450b594141a7762be92a7c0f2084f9779a6599be9e340",
+    "summarize.py": "08a9d524f116f494fb52b3ad9273f84d267d81ec0d0f6f2d64b33da0cd114b5a"
+  },
+  "medians": {
+    "BEFORE": {
+      "item_count_1": {
+        "ns": {
+          "median": 2.73,
+          "range": [
+            2.61,
+            3.41
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_count_64": {
+        "ns": {
+          "median": 2.51,
+          "range": [
+            2.42,
+            2.67
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_components": {
+        "ns": {
+          "median": 9.48,
+          "range": [
+            9.38,
+            11.44
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_deep_components": {
+        "ns": {
+          "median": 12.41,
+          "range": [
+            12.2,
+            14.78
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_256_variants": {
+        "ns": {
+          "median": 21.33,
+          "range": [
+            19.24,
+            21.43
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "equal_component_storage_lookup": {
+        "ns": {
+          "median": 18.83,
+          "range": [
+            17.68,
+            20.48
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_fresh_components": {
+        "ns": {
+          "median": 119.15,
+          "range": [
+            116.93,
+            120.7
+          ]
+        },
+        "bytes": {
+          "median": 656.0,
+          "range": [
+            656.0,
+            656.0
+          ]
+        }
+      },
+      "fluid_plain": {
+        "ns": {
+          "median": 6.31,
+          "range": [
+            5.97,
+            6.36
+          ]
+        },
+        "bytes": {
+          "median": 24.0,
+          "range": [
+            24.0,
+            24.0
+          ]
+        }
+      },
+      "item_many_types_1701": {
+        "ns": {
+          "median": 5.62,
+          "range": [
+            4.72,
+            8.14
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "resource_location": {
+        "ns": {
+          "median": 51.96,
+          "range": [
+            48.67,
+            52.11
+          ]
+        },
+        "bytes": {
+          "median": 144.0,
+          "range": [
+            144.0,
+            144.0
+          ]
+        }
+      },
+      "resource_unique": {
+        "ns": {
+          "median": 21.72,
+          "range": [
+            21.6,
+            25.04
+          ]
+        },
+        "bytes": {
+          "median": 80.0,
+          "range": [
+            80.0,
+            80.0
+          ]
+        }
+      },
+      "resource_lookup": {
+        "ns": {
+          "median": 2.11,
+          "range": [
+            2.04,
+            2.2
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "tag_key": {
+        "ns": {
+          "median": 9.43,
+          "range": [
+            9.38,
+            10.53
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "nbt_compound_64": {
+        "ns": {
+          "median": 427.03,
+          "range": [
+            419.63,
+            442.36
+          ]
+        },
+        "bytes": {
+          "median": 2728.01,
+          "range": [
+            2728.01,
+            2728.01
+          ]
+        }
+      },
+      "nbt_list_64": {
+        "ns": {
+          "median": 1260.99,
+          "range": [
+            1173.9,
+            1329.98
+          ]
+        },
+        "bytes": {
+          "median": 13672.01,
+          "range": [
+            8000.01,
+            13672.01
+          ]
+        }
+      }
+    },
+    "LEAN": {
+      "item_count_1": {
+        "ns": {
+          "median": 2.79,
+          "range": [
+            2.22,
+            3.55
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_count_64": {
+        "ns": {
+          "median": 2.48,
+          "range": [
+            2.45,
+            2.6
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_components": {
+        "ns": {
+          "median": 38.31,
+          "range": [
+            33.03,
+            42.34
+          ]
+        },
+        "bytes": {
+          "median": 104.0,
+          "range": [
+            104.0,
+            104.0
+          ]
+        }
+      },
+      "item_deep_components": {
+        "ns": {
+          "median": 118.79,
+          "range": [
+            114.24,
+            121.6
+          ]
+        },
+        "bytes": {
+          "median": 16.0,
+          "range": [
+            16.0,
+            16.0
+          ]
+        }
+      },
+      "item_256_variants": {
+        "ns": {
+          "median": 43.4,
+          "range": [
+            42.09,
+            43.57
+          ]
+        },
+        "bytes": {
+          "median": 104.0,
+          "range": [
+            104.0,
+            104.0
+          ]
+        }
+      },
+      "equal_component_storage_lookup": {
+        "ns": {
+          "median": 574.45,
+          "range": [
+            498.64,
+            652.4
+          ]
+        },
+        "bytes": {
+          "median": 64.0,
+          "range": [
+            64.0,
+            64.0
+          ]
+        }
+      },
+      "item_fresh_components": {
+        "ns": {
+          "median": 224.08,
+          "range": [
+            192.3,
+            247.08
+          ]
+        },
+        "bytes": {
+          "median": 506.72,
+          "range": [
+            488.0,
+            549.43
+          ]
+        }
+      },
+      "fluid_plain": {
+        "ns": {
+          "median": 2.67,
+          "range": [
+            2.62,
+            2.68
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_many_types_1699": {
+        "ns": {
+          "median": 5.3,
+          "range": [
+            4.5,
+            5.76
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "resource_location": {
+        "ns": {
+          "median": 26.99,
+          "range": [
+            26.64,
+            28.19
+          ]
+        },
+        "bytes": {
+          "median": 120.0,
+          "range": [
+            120.0,
+            120.0
+          ]
+        }
+      },
+      "resource_unique": {
+        "ns": {
+          "median": 29.42,
+          "range": [
+            29.09,
+            33.62
+          ]
+        },
+        "bytes": {
+          "median": 56.0,
+          "range": [
+            56.0,
+            56.0
+          ]
+        }
+      },
+      "resource_lookup": {
+        "ns": {
+          "median": 2.02,
+          "range": [
+            2.01,
+            2.08
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "tag_key": {
+        "ns": {
+          "median": 9.36,
+          "range": [
+            9.3,
+            9.41
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "nbt_compound_64": {
+        "ns": {
+          "median": 459.69,
+          "range": [
+            417.74,
+            508.48
+          ]
+        },
+        "bytes": {
+          "median": 1696.01,
+          "range": [
+            1696.01,
+            1696.01
+          ]
+        }
+      },
+      "nbt_list_64": {
+        "ns": {
+          "median": 1200.83,
+          "range": [
+            937.72,
+            1306.36
+          ]
+        },
+        "bytes": {
+          "median": 12112.01,
+          "range": [
+            12112.01,
+            13136.01
+          ]
+        }
+      }
+    },
+    "AFTER": {
+      "item_count_1": {
+        "ns": {
+          "median": 3.6,
+          "range": [
+            3.41,
+            3.61
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_count_64": {
+        "ns": {
+          "median": 2.56,
+          "range": [
+            2.51,
+            2.79
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_components": {
+        "ns": {
+          "median": 9.43,
+          "range": [
+            9.29,
+            9.49
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_deep_components": {
+        "ns": {
+          "median": 12.63,
+          "range": [
+            12.49,
+            12.64
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_256_variants": {
+        "ns": {
+          "median": 20.87,
+          "range": [
+            20.45,
+            20.87
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "equal_component_storage_lookup": {
+        "ns": {
+          "median": 18.2,
+          "range": [
+            17.91,
+            19.51
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_fresh_components": {
+        "ns": {
+          "median": 119.63,
+          "range": [
+            118.07,
+            149.73
+          ]
+        },
+        "bytes": {
+          "median": 656.0,
+          "range": [
+            656.0,
+            656.0
+          ]
+        }
+      },
+      "fluid_plain": {
+        "ns": {
+          "median": 2.68,
+          "range": [
+            2.67,
+            2.88
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "item_many_types_1701": {
+        "ns": {
+          "median": 5.53,
+          "range": [
+            5.45,
+            6.57
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "resource_location": {
+        "ns": {
+          "median": 51.93,
+          "range": [
+            39.55,
+            54.3
+          ]
+        },
+        "bytes": {
+          "median": 144.0,
+          "range": [
+            144.0,
+            144.0
+          ]
+        }
+      },
+      "resource_unique": {
+        "ns": {
+          "median": 23.26,
+          "range": [
+            20.29,
+            27.64
+          ]
+        },
+        "bytes": {
+          "median": 80.0,
+          "range": [
+            80.0,
+            80.0
+          ]
+        }
+      },
+      "resource_lookup": {
+        "ns": {
+          "median": 2.04,
+          "range": [
+            2.02,
+            2.06
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "tag_key": {
+        "ns": {
+          "median": 9.36,
+          "range": [
+            8.43,
+            9.62
+          ]
+        },
+        "bytes": {
+          "median": 0.0,
+          "range": [
+            0.0,
+            16.0
+          ]
+        }
+      },
+      "nbt_compound_64": {
+        "ns": {
+          "median": 204.63,
+          "range": [
+            189.39,
+            293.42
+          ]
+        },
+        "bytes": {
+          "median": 2640.01,
+          "range": [
+            2640.01,
+            2688.01
+          ]
+        }
+      },
+      "nbt_list_64": {
+        "ns": {
+          "median": 978.73,
+          "range": [
+            963.98,
+            1349.07
+          ]
+        },
+        "bytes": {
+          "median": 8000.01,
+          "range": [
+            8000.01,
+            11072.01
+          ]
+        }
+      }
+    }
+  },
+  "environment": {
+    "date": "2026-09-19",
+    "java": "Temurin 21.0.11+10",
+    "architecture": "arm64",
+    "minecraft": "1.21.1",
+    "neoforge": "21.1.219",
+    "ae2": "19.2.17",
+    "performance_addons": "None except Lean in LEAN mode; addon validation ran separately"
+  },
+  "validation": {
+    "junit": {
+      "tests": 867,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "mixin_game_tests": {
+      "tests": 31,
+      "failures": 0
+    },
+    "addon_items": 807,
+    "registered_fluids": 12,
+    "addon_artifact_manifest": "object-reuse-tested-artifacts.json",
+    "log_sha256": "604202ac54848642582b46701d705bbcb66fcda980ea9ca3e9b702a7c1096ce7"
+  },
+  "after_jar_sha256": "05748beaba9943d0064acd2b2f6735d53e37d10e3e8f76b816c8e75414484e51",
+  "after_jar_file": "thunderbolt-object-reuse-experiment-2.0.0.jar"
+}

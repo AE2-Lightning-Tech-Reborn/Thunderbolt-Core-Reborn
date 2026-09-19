@@ -79,6 +79,97 @@ public final class KeyReuseGameTests {
     }
 
     @GameTest(template = "empty", timeoutTicks = 100)
+    public static void fluidFieldsDetachAndRejectLatePublication(GameTestHelper h) throws Exception {
+        KeyConstructionCache.configure(true);
+        var owner = (com.moakiee.thunderbolt.core.keys.FluidKeyCacheOwner) (Object) Fluids.WATER;
+        var old = AEFluidKey.of(Fluids.WATER);
+        var field = net.minecraft.world.level.material.Fluid.class.getDeclaredField("thunderbolt$fluidGeneration");
+        field.setAccessible(true);
+        var generation = (com.moakiee.thunderbolt.core.keys.PlainFluidKeyCache) field.get(Fluids.WATER);
+        require(generation != null && owner.thunderbolt$plainFluidKey() == old, "plain Fluid slot missing");
+        KeyConstructionCache.clear();
+        require(owner.thunderbolt$plainFluidKey() == null && field.get(Fluids.WATER) == null,
+                "reset retained the old Fluid generation");
+        owner.thunderbolt$publishFluidKey(generation, old);
+        require(owner.thunderbolt$plainFluidKey() == null, "old publication survived reset");
+        var current = AEFluidKey.of(Fluids.WATER);
+        require(current != old && current.equals(old) && current.hashCode() == old.hashCode(),
+                "reset changed fluid value equality");
+        owner.thunderbolt$publishFluidKey(generation, old);
+        owner.thunderbolt$clearFluidKey(generation);
+        require(owner.thunderbolt$plainFluidKey() == current, "stale operation replaced the current Fluid slot");
+        try {
+            KeyConstructionCache.configure(false);
+            require(owner.thunderbolt$plainFluidKey() == null && field.get(Fluids.WATER) == null,
+                    "disable retained the Fluid slot");
+            require(AEFluidKey.of(Fluids.WATER) != AEFluidKey.of(Fluids.WATER), "disabled fluid still reused");
+        } finally { KeyConstructionCache.configure(true); }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void fluidFastHitsRespectEmptyStacksAndCustomPrototypes(GameTestHelper h) throws Exception {
+        var source = new FluidStack(Fluids.WATER, 1000);
+        var plain = AEFluidKey.of(source);
+        for (int amount : new int[]{1, 17, 1000, Integer.MAX_VALUE}) {
+            source.setAmount(amount);
+            require(AEFluidKey.of(source) == plain && source.getAmount() == amount, "fluid amount changed the key/caller");
+        }
+        for (int amount : new int[]{0, -1}) {
+            source.setAmount(amount);
+            require(AEFluidKey.of(source) == null, "empty fluid hit a populated ordinary slot");
+        }
+        require(AEFluidKey.of(Fluids.EMPTY) == null && AEFluidKey.of(FluidStack.EMPTY) == null, "EMPTY fluid accepted");
+        var constructor = FluidStack.class.getDeclaredConstructor(net.minecraft.world.level.material.Fluid.class,
+                int.class, net.minecraft.core.component.PatchedDataComponentMap.class);
+        constructor.setAccessible(true);
+        var prototype = net.minecraft.core.component.DataComponentMap.builder()
+                .set(DataComponents.CUSTOM_NAME, Component.literal("custom prototype")).build();
+        var custom = constructor.newInstance(Fluids.WATER, 1000,
+                new net.minecraft.core.component.PatchedDataComponentMap(prototype));
+        require(custom.isComponentsPatchEmpty(), "custom prototype fixture unexpectedly patched");
+        var key = AEFluidKey.of(custom);
+        require(!key.equals(plain) && key.matches(custom) && AEFluidKey.of(Fluids.WATER) == plain,
+                "custom prototype was merged into the ordinary Fluid slot");
+        source.setAmount(1000);
+        source.set(DataComponents.CUSTOM_NAME, Component.literal("named"));
+        AEFluidKey.of(source);
+        var named = AEFluidKey.of(source);
+        require(named == AEFluidKey.of(source), "repeated fluid component snapshot missed");
+        source.set(DataComponents.CUSTOM_NAME, Component.literal("changed"));
+        require(!named.equals(AEFluidKey.of(source)) && plain.get(DataComponents.CUSTOM_NAME) == null,
+                "caller mutation leaked into a cached fluid key");
+        try {
+            KeyConstructionCache.configure(true, false);
+            require(AEFluidKey.of(source) != AEFluidKey.of(source), "fluid component opt-out ignored");
+            require(AEFluidKey.of(Fluids.WATER) == AEFluidKey.of(Fluids.WATER), "component opt-out disabled ordinary fluids");
+        } finally { KeyConstructionCache.configure(true); }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void allRegisteredFluidsKeepNativeValuesAndIndependentStacks(GameTestHelper h) {
+        var baselines = new java.util.HashMap<net.minecraft.world.level.material.Fluid, AEFluidKey>();
+        try {
+            KeyConstructionCache.configure(false);
+            for (var fluid : net.minecraft.core.registries.BuiltInRegistries.FLUID) {
+                if (fluid != Fluids.EMPTY) baselines.put(fluid, AEFluidKey.of(fluid));
+            }
+        } finally { KeyConstructionCache.configure(true); }
+        baselines.forEach((fluid, nativeKey) -> {
+            var key = AEFluidKey.of(new FluidStack(fluid, 1000));
+            require(key.equals(nativeKey) && key.hashCode() == nativeKey.hashCode(), "registered fluid semantics changed: " + fluid);
+            require(key == AEFluidKey.of(fluid), "registered Fluid direct slot missing");
+            var mutable = key.toStack(17);
+            require(mutable.getAmount() == 17, "toStack ignored fluid amount");
+            mutable.set(DataComponents.CUSTOM_NAME, Component.literal("output changed"));
+            require(key.equals(nativeKey), "output mutation changed stored fluid key");
+        });
+        System.out.println("FLUID_REGISTRY_AUDIT matched=" + baselines.size());
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
     public static void componentsAndCallerStacksSurviveKeyNormalization(GameTestHelper h) {
         var source = new ItemStack(Items.IRON_INGOT);
         var original = AEItemKey.of(source);
