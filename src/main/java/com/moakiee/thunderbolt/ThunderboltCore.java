@@ -16,6 +16,7 @@ import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import com.moakiee.thunderbolt.api.crafting.CraftingPlanningEngines;
 import com.moakiee.thunderbolt.api.crafting.ICraftingPlanningService;
@@ -49,6 +50,7 @@ public final class ThunderboltCore {
                 ModConfig.Type.COMMON, ThunderboltCommonConfig.SPEC, "thunderbolt-common.toml");
         NeoForge.EVENT_BUS.addListener(this::onServerStarting);
         NeoForge.EVENT_BUS.addListener(this::onServerStopped);
+        NeoForge.EVENT_BUS.addListener(this::onServerTick);
         LOGGER.info("[Thunderbolt Core Reborn] initialized");
     }
 
@@ -61,6 +63,10 @@ public final class ThunderboltCore {
         EjectEndpointIndex.INSTANCE.onServerStop();
         KeyConstructionCache.clear();
         ResourceConstructionCache.clear();
+    }
+
+    private void onServerTick(ServerTickEvent.Post event) {
+        KeyConstructionCache.maintain();
     }
 
     private void onConfigChanged(ModConfigEvent event) {

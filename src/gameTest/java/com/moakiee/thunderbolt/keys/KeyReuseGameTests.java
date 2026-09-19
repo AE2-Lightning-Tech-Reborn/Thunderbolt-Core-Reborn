@@ -42,6 +42,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 public final class KeyReuseGameTests {
     private static final java.util.concurrent.atomic.AtomicInteger STACK_LIMIT = new java.util.concurrent.atomic.AtomicInteger(64);
     private static Item dynamicItem;
+    private static Item countSensitiveItem;
 
     @SubscribeEvent
     public static void registerTestItem(RegisterEvent event) {
@@ -50,6 +51,10 @@ public final class KeyReuseGameTests {
                 @Override public int getMaxStackSize(ItemStack stack) { return STACK_LIMIT.get(); }
             };
             helper.register(ResourceLocation.fromNamespaceAndPath("thunderbolt", "key_reuse_test_item"), dynamicItem);
+            countSensitiveItem = new Item(new Item.Properties()) {
+                @Override public int getMaxStackSize(ItemStack stack) { return stack.getCount() == 1 ? 16 : 64; }
+            };
+            helper.register(ResourceLocation.fromNamespaceAndPath("thunderbolt", "count_sensitive_key_test_item"), countSensitiveItem);
         });
     }
 
@@ -74,7 +79,7 @@ public final class KeyReuseGameTests {
     }
 
     @GameTest(template = "empty", timeoutTicks = 100)
-    public static void componentsCountsAndNativeCopiesArePreserved(GameTestHelper h) {
+    public static void componentsAndCallerStacksSurviveKeyNormalization(GameTestHelper h) {
         var source = new ItemStack(Items.IRON_INGOT);
         var original = AEItemKey.of(source);
         source.set(DataComponents.CUSTOM_NAME, Component.literal("named"));
@@ -92,9 +97,16 @@ public final class KeyReuseGameTests {
         var large = new ItemStack(Items.IRON_INGOT, 64);
         large.setPopTime(5);
         var key = AEItemKey.of(large);
-        require(key.getReadOnlyStack().getCount() == 64 && key.getReadOnlyStack().getPopTime() == 5,
-                "native read-only stack normalized");
+        require(key == original && key.getReadOnlyStack().getCount() == 1 && key.getReadOnlyStack().getPopTime() == 0,
+                "plain key was not normalized and shared");
+        require(large.getCount() == 64 && large.getPopTime() == 5, "normalization changed the caller stack");
+        large.setPopTime(2);
+        require(key == AEItemKey.of(large), "animation split the normalized key");
+        large.setCount(32);
+        require(key == AEItemKey.of(large), "quantity split the normalized key");
+        require(large.getCount() == 32 && large.getPopTime() == 2, "cache hit changed the caller stack");
         var output = original.toStack(20);
+        require(output.getCount() == 20, "toStack lost the explicitly requested output quantity");
         output.set(DataComponents.CUSTOM_NAME, Component.literal("mutated copy"));
         require(original.get(DataComponents.CUSTOM_NAME) == null, "toStack was not independent");
         var fluid = new FluidStack(Fluids.WATER, 1000);
@@ -217,6 +229,14 @@ public final class KeyReuseGameTests {
             var second = AEItemKey.of(stack);
             require(first != second && second.getMaxStackSize() == 16 && first.equals(second),
                     "stack-sensitive NeoForge hook was ignored or changed equality");
+            stack.set(DataComponents.CUSTOM_NAME, Component.literal("dynamic component capacity"));
+            AEItemKey.of(stack);
+            var componentFirst = AEItemKey.of(stack);
+            require(componentFirst == AEItemKey.of(stack), "dynamic component identity cache was not exercised");
+            STACK_LIMIT.set(32);
+            var componentSecond = AEItemKey.of(stack);
+            require(componentFirst != componentSecond && componentSecond.getMaxStackSize() == 32
+                    && componentFirst.equals(componentSecond), "component fast hit skipped a custom dynamic hook");
         } finally { STACK_LIMIT.set(64); }
         h.succeed();
     }
@@ -224,6 +244,265 @@ public final class KeyReuseGameTests {
     @GameTest(template = "empty", timeoutTicks = 100)
     public static void constructionBenchmark(GameTestHelper h) {
         if (Boolean.getBoolean("thunderbolt.keyReuseBenchmark")) KeyReuseBenchmark.run();
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void defaultPotionsAndEmptyPatchesRemainDistinct(GameTestHelper h) {
+        for (var item : List.of(Items.POTION, Items.SPLASH_POTION, Items.LINGERING_POTION, Items.TIPPED_ARROW)) {
+            var raw = new ItemStack(item);
+            var water = item.getDefaultInstance();
+            var plain = AEItemKey.of(raw);
+            var defaultKey = AEItemKey.of(item);
+            require(plain.matches(raw), "empty patch became a default potion");
+            require(defaultKey.equals(AEItemKey.of(water)) && !plain.equals(defaultKey), "potion factory identity changed");
+            var decoded = AEItemKey.fromTag(h.getLevel().registryAccess(), defaultKey.toTag(h.getLevel().registryAccess()));
+            require(defaultKey.equals(decoded), "potion disk roundtrip changed equality");
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void independentComponentSnapshotsConvergeAndDetachOnMutation(GameTestHelper h) {
+        KeyConstructionCache.configure(true);
+        var a = new ItemStack(Items.DIAMOND);
+        a.set(DataComponents.CUSTOM_NAME, Component.literal("canonical"));
+        AEItemKey.of(a); // First writable snapshot deliberately bypasses admission.
+        var first = AEItemKey.of(a);
+        var b = new ItemStack(Items.DIAMOND);
+        b.set(DataComponents.CUSTOM_NAME, Component.literal("canonical"));
+        AEItemKey.of(b);
+        require(first == AEItemKey.of(b), "content L2 did not reuse an independent equal patch");
+        require(first == AEItemKey.of(b), "identity alias did not reuse the content representative");
+        b.set(DataComponents.CUSTOM_NAME, Component.literal("changed"));
+        var changed = AEItemKey.of(b);
+        require(!changed.equals(first) && first.get(DataComponents.CUSTOM_NAME).getString().equals("canonical"),
+                "COW mutation poisoned the canonical key");
+        var bulk = a.copyWithCount(64); bulk.setPopTime(3);
+        var bulkKey = AEItemKey.of(bulk);
+        require(bulkKey == first && bulkKey.getReadOnlyStack().getCount() == 1
+                && bulkKey.getReadOnlyStack().getPopTime() == 0, "component quantity or animation split the canonical key");
+        require(bulk.getCount() == 64 && bulk.getPopTime() == 3, "component normalization changed caller state");
+        first.getReadOnlyStack().set(DataComponents.CUSTOM_NAME, Component.literal("bad mutation"));
+        require(AEItemKey.of(a).matches(a), "invalid canonical representative poisoned an identity alias");
+        h.succeed();
+    }
+
+    private record GcWitness(AEItemKey key, java.lang.ref.WeakReference<ItemStack> source,
+                             java.lang.ref.WeakReference<Object> aliasPatch) {}
+
+    private static ItemStack gcNamedStack(String name) {
+        var stack = new ItemStack(Items.GOLD_INGOT, 64);
+        stack.set(DataComponents.CUSTOM_NAME, Component.literal(name));
+        // The first copy transitions a fresh writable patch to a reusable COW snapshot.
+        AEItemKey.of(stack);
+        return stack;
+    }
+
+    private static GcWitness prepareGcWitness() {
+        var source = gcNamedStack("weak-key-live");
+        var key = AEItemKey.of(source);
+        var alias = gcNamedStack("weak-key-live");
+        require(AEItemKey.of(alias) == key, "independent alias did not converge");
+        var patch = ((com.moakiee.thunderbolt.core.keys.SharedComponentPatch) alias.getComponents())
+                .thunderbolt$copyOnWritePatchIdentity();
+        return new GcWitness(key, new java.lang.ref.WeakReference<>(source), new java.lang.ref.WeakReference<>(patch));
+    }
+
+    private static void awaitCollection(java.lang.ref.WeakReference<?> reference) throws Exception {
+        for (int i = 0; i < 100 && reference.get() != null; i++) {
+            System.gc();
+            KeyConstructionCache.maintain();
+            Thread.sleep(10);
+        }
+        require(reference.get() == null, "cache retained an otherwise unused object");
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 200)
+    public static void liveComponentKeySurvivesGcOfSourcesAndIdentityAliases(GameTestHelper h) throws Exception {
+        var witness = prepareGcWitness();
+        awaitCollection(witness.source());
+        awaitCollection(witness.aliasPatch());
+        var independent = gcNamedStack("weak-key-live");
+        require(AEItemKey.of(independent) == witness.key(), "live key lost canonicality after GC of cache probes");
+        h.succeed();
+    }
+
+    private static java.util.List<java.lang.ref.WeakReference<?>> unreferencedComponentKey() {
+        var key = AEItemKey.of(gcNamedStack("weak-key-collectible"));
+        var patch = ((com.moakiee.thunderbolt.core.keys.SharedComponentPatch) key.getReadOnlyStack().getComponents())
+                .thunderbolt$copyOnWritePatchIdentity();
+        return java.util.List.of(new java.lang.ref.WeakReference<>(key), new java.lang.ref.WeakReference<>(patch));
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 200)
+    public static void unusedComponentKeyAndCanonicalSnapshotAreCollectible(GameTestHelper h) throws Exception {
+        var references = unreferencedComponentKey();
+        awaitCollection(references.get(0));
+        awaitCollection(references.get(1));
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void itemFieldsAreDetachedWhenTheCacheGenerationEnds(GameTestHelper h) {
+        var owner = (com.moakiee.thunderbolt.core.keys.ItemKeyCacheOwner) (Object) Items.IRON_INGOT;
+        AEItemKey.of(Items.IRON_INGOT);
+        var old = owner.thunderbolt$plainKeyCache();
+        var oldSingle = owner.thunderbolt$plainKey();
+        AEItemKey.of(new ItemStack(Items.IRON_INGOT, 64));
+        var oldOther = owner.thunderbolt$plainKey();
+        require(old != null, "Item field fast path was not installed");
+        require(oldSingle != null && oldSingle == oldOther, "count variants did not share the direct Item slot");
+        KeyConstructionCache.clear();
+        require(owner.thunderbolt$plainKeyCache() == null, "old Item field retained its cache generation");
+        require(owner.thunderbolt$plainKey() == null,
+                "direct Item slots retained the old generation");
+        owner.thunderbolt$plainKeyCache(old);
+        owner.thunderbolt$publishPlainKey(old, oldSingle);
+        owner.thunderbolt$publishPlainKey(old, oldOther);
+        require(owner.thunderbolt$plainKeyCache() == null, "late old-generation publication was accepted");
+        require(owner.thunderbolt$plainKey() == null,
+                "late publication reattached a detached direct slot");
+        var current = AEItemKey.of(Items.IRON_INGOT);
+        require(owner.thunderbolt$plainKeyCache() != old, "new requests reattached the old generation");
+        owner.thunderbolt$clearPlainKeyCache(old);
+        owner.thunderbolt$publishPlainKey(old, oldSingle);
+        require(owner.thunderbolt$plainKey() == current,
+                "an old generation cleared or replaced the new direct slot");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void countSensitiveHooksUseTheNormalizedKeyStack(GameTestHelper h) {
+        var source = new ItemStack(countSensitiveItem, 64);
+        source.setPopTime(5);
+        require(source.getMaxStackSize() == 64, "count-sensitive test item was not configured");
+        var key = AEItemKey.of(source);
+        require(key.getMaxStackSize() == 16 && key.getReadOnlyStack().getCount() == 1
+                        && key.getReadOnlyStack().getPopTime() == 0, "key metadata was computed before normalization");
+        require(key == AEItemKey.of(source) && key == AEItemKey.of(new ItemStack(countSensitiveItem)),
+                "dynamic-hook probes compared the unnormalized caller metadata");
+        require(source.getCount() == 64 && source.getPopTime() == 5 && source.getMaxStackSize() == 64,
+                "normalized key construction changed the caller's metadata");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void constructorAndPacketNormalizeWithoutChangingInputs(GameTestHelper h) throws Exception {
+        KeyConstructionCache.configure(true);
+        var source = new ItemStack(Items.DIAMOND, 64);
+        source.setPopTime(7);
+        source.set(DataComponents.CUSTOM_NAME, Component.literal("normalized codec input"));
+        var constructor = AEItemKey.class.getDeclaredConstructor(ItemStack.class);
+        constructor.setAccessible(true);
+        var direct = constructor.newInstance(source);
+        require(direct.getReadOnlyStack().getCount() == 1 && direct.getReadOnlyStack().getPopTime() == 0
+                        && source.getCount() == 64 && source.getPopTime() == 7,
+                "constructor normalization changed caller state or retained a non-unit stack");
+        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), h.getLevel().registryAccess());
+        try {
+            ItemStack.STREAM_CODEC.encode(buffer, source);
+            var decoded = AEItemKey.fromPacket(buffer);
+            require(decoded.equals(direct) && decoded.getReadOnlyStack().getCount() == 1
+                            && decoded.getReadOnlyStack().getPopTime() == 0 && decoded.toStack(20).getCount() == 20,
+                    "packet key was not normalized or explicit output quantity changed");
+        } finally { buffer.release(); }
+        try {
+            KeyConstructionCache.configure(false);
+            var nativeKey = AEItemKey.of(source);
+            require(nativeKey.getReadOnlyStack().getCount() == 64 && nativeKey.getReadOnlyStack().getPopTime() == 7,
+                    "disabled key reuse did not restore the native factory");
+        } finally { KeyConstructionCache.configure(true); }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void plainKeysWithDifferentComponentPrototypesDoNotAlias(GameTestHelper h) throws Exception {
+        KeyConstructionCache.configure(true);
+        // A custom prototype can contain data even when its patch is empty. Construct the same
+        // stack shape as an addon replacing the default component map, without mutating the Item.
+        var constructor = ItemStack.class.getDeclaredConstructor(net.minecraft.world.level.ItemLike.class,
+                int.class, net.minecraft.core.component.PatchedDataComponentMap.class);
+        constructor.setAccessible(true);
+        var prototypeA = net.minecraft.core.component.DataComponentMap.builder().addAll(Items.IRON_INGOT.components())
+                .set(DataComponents.CUSTOM_NAME, Component.literal("prototype A")).build();
+        var prototypeB = net.minecraft.core.component.DataComponentMap.builder().addAll(Items.IRON_INGOT.components())
+                .set(DataComponents.CUSTOM_NAME, Component.literal("prototype B")).build();
+        var a = constructor.newInstance(Items.IRON_INGOT, 1,
+                new net.minecraft.core.component.PatchedDataComponentMap(prototypeA));
+        var b = constructor.newInstance(Items.IRON_INGOT, 1,
+                new net.minecraft.core.component.PatchedDataComponentMap(prototypeB));
+        require(a.isComponentsPatchEmpty() && b.isComponentsPatchEmpty(), "prototype test has a nonempty patch");
+        for (int i = 0; i < 10; i++) {
+            var keyA = AEItemKey.of(a);
+            require(keyA == AEItemKey.of(a), "prototype A did not exercise the direct slot");
+            var keyB = AEItemKey.of(b);
+            require(keyB == AEItemKey.of(b), "prototype B did not exercise the direct slot");
+            require(!keyA.equals(keyB) && keyA.matches(a) && keyB.matches(b),
+                    "empty patches with distinct prototypes shared the wrong key");
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 200)
+    public static void concurrentNormalizedKeysPreserveEachCallersStackState(GameTestHelper h) throws Exception {
+        KeyConstructionCache.configure(true);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(8)) {
+            var jobs = new java.util.ArrayList<java.util.concurrent.Future<?>>();
+            for (int worker = 0; worker < 8; worker++) {
+                final int offset = worker;
+                jobs.add(pool.submit(() -> {
+                    require(start.await(5, TimeUnit.SECONDS), "plain slot workers did not start");
+                    var source = new ItemStack(Items.COPPER_INGOT);
+                    for (int i = 0; i < 1000; i++) {
+                        int variant = (i + offset) % 4;
+                        int count = variant < 2 ? 1 : variant == 2 ? 2 : 64;
+                        int popTime = variant == 1 ? 5 : variant == 3 ? 3 : 0;
+                        source.setCount(count);
+                        source.setPopTime(popTime);
+                        var key = AEItemKey.of(source);
+                        var stack = key.getReadOnlyStack();
+                        require(key.matches(source) && stack.getCount() == 1 && stack.getPopTime() == 0
+                                        && source.getCount() == count && source.getPopTime() == popTime,
+                                "concurrent normalization changed the caller or published a non-unit key");
+                    }
+                    return null;
+                }));
+            }
+            start.countDown();
+            for (var job : jobs) job.get(5, TimeUnit.SECONDS);
+        } finally { start.countDown(); }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 200)
+    public static void constructorCompletingAfterResetCannotOverwriteDirectItemFields(GameTestHelper h) throws Exception {
+        KeyConstructionCache.configure(true);
+        var source = new ItemStack(Items.COAL);
+        var owner = (com.moakiee.thunderbolt.core.keys.ItemKeyCacheOwner) (Object) Items.COAL;
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var resume = new java.util.concurrent.CountDownLatch(1);
+        try (var pool = Executors.newSingleThreadExecutor()) {
+            var result = pool.submit(() -> KeyConstructionCache.item(source.copy(), args -> {
+                entered.countDown();
+                try {
+                    if (!resume.await(5, TimeUnit.SECONDS)) throw new AssertionError("constructor resume timed out");
+                } catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new AssertionError(e); }
+                return AEItemKey.of((ItemStack) args[0]);
+            }));
+            try {
+                require(entered.await(5, TimeUnit.SECONDS), "constructor did not reach the publication barrier");
+                var old = owner.thunderbolt$plainKeyCache();
+                KeyConstructionCache.clear();
+                var current = AEItemKey.of(source);
+                var field = owner.thunderbolt$plainKey();
+                resume.countDown();
+                require(result.get(5, TimeUnit.SECONDS).equals(current), "late constructor changed value semantics");
+                require(owner.thunderbolt$plainKeyCache() != old && owner.thunderbolt$plainKey() == field,
+                        "late constructor overwrote the current direct field");
+            } finally { resume.countDown(); }
+        }
         h.succeed();
     }
 }

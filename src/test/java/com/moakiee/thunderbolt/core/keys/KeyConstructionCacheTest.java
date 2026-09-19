@@ -70,18 +70,26 @@ class KeyConstructionCacheTest {
         assertNotEquals(base, KeyConstructionCache.item(removed, items));
     }
 
-    @Test void readOnlyCountAndPopTimeAreNotNormalized() {
-        for (int count : new int[]{2, 64}) {
-            var stack = new ItemStack(Items.STONE, count);
-            var first = KeyConstructionCache.item(stack, items);
-            assertSame(first, KeyConstructionCache.item(stack, items));
-            assertEquals(count, first.getReadOnlyStack().getCount());
+    @Test void countsAndAnimationsShareOneNormalizedKeyWithoutChangingInputs() {
+        var canonical = KeyConstructionCache.item(new ItemStack(Items.STONE), items);
+        for (int count : new int[]{1, 2, 64}) {
+            var source = new ItemStack(Items.STONE, count);
+            source.setPopTime(5);
+            var key = KeyConstructionCache.item(source, items);
+            assertSame(canonical, key);
+            assertSame(key, KeyConstructionCache.findItem(source));
+            assertEquals(1, key.getReadOnlyStack().getCount());
+            assertEquals(0, key.getReadOnlyStack().getPopTime());
+            assertEquals(count, source.getCount());
+            assertEquals(5, source.getPopTime());
+            assertEquals(20, key.toStack(20).getCount());
         }
-        var animated = new ItemStack(Items.STONE);
-        animated.setPopTime(5);
-        var first = KeyConstructionCache.item(animated, items);
-        assertSame(first, KeyConstructionCache.item(animated, items));
-        assertEquals(5, first.getReadOnlyStack().getPopTime());
+        KeyConstructionCache.configure(false);
+        var nativeSource = new ItemStack(Items.STONE, 64);
+        nativeSource.setPopTime(5);
+        var nativeKey = KeyConstructionCache.item(nativeSource, items);
+        assertEquals(64, nativeKey.getReadOnlyStack().getCount());
+        assertEquals(5, nativeKey.getReadOnlyStack().getPopTime());
     }
 
     @Test void fluidVariantsBypassAndCallerMutationDoesNotChangeExistingKeys() {
@@ -147,5 +155,45 @@ class KeyConstructionCacheTest {
         var next = KeyConstructionCache.item(stack, items);
         assertNotSame(first, next);
         assertEquals(1, next.getReadOnlyStack().getCount());
+    }
+
+    @Test void earlyProbeNeverPublishesOrRetainsTheCallerStack() {
+        var input = new ItemStack(Items.STONE);
+        assertNull(KeyConstructionCache.findItem(input));
+        var key = KeyConstructionCache.item(input.copy(), items);
+        assertSame(key, KeyConstructionCache.findItem(input));
+        input.set(DataComponents.CUSTOM_NAME, Component.literal("changed"));
+        assertNull(KeyConstructionCache.findItem(input));
+        assertNull(key.get(DataComponents.CUSTOM_NAME));
+        assertSame(key, KeyConstructionCache.findItem(new ItemStack(Items.STONE)));
+        KeyConstructionCache.clear();
+        assertNull(KeyConstructionCache.findItem(new ItemStack(Items.STONE)));
+        KeyConstructionCache.configure(false);
+        assertNull(KeyConstructionCache.findItem(new ItemStack(Items.STONE)));
+    }
+
+    @Test void plainRegistrySlotsAreNotEvictedByOtherItemsOrComponents() {
+        var source = new ItemStack(Items.IRON_INGOT);
+        var single = KeyConstructionCache.item(source.copy(), items);
+        var bulk = KeyConstructionCache.item(source.copyWithCount(64), items);
+        for (var item : net.minecraft.core.registries.BuiltInRegistries.ITEM) {
+            if (item == Items.AIR || item == Items.IRON_INGOT) continue;
+            KeyConstructionCache.item(new ItemStack(item), items);
+        }
+        assertSame(single, KeyConstructionCache.findItem(source));
+        assertSame(single, bulk);
+        assertSame(bulk, KeyConstructionCache.findItem(source.copyWithCount(64)));
+        var animated = source.copy(); animated.setPopTime(4);
+        assertSame(single, KeyConstructionCache.findItem(animated));
+        var named = source.copy(); named.set(DataComponents.CUSTOM_NAME, Component.literal("variant"));
+        KeyConstructionCache.item(named, items);
+        assertSame(single, KeyConstructionCache.findItem(source));
+    }
+
+    @Test void earlyProbeRejectsIllegallyMutatedCachedContents() {
+        var input = new ItemStack(Items.STONE);
+        var key = KeyConstructionCache.item(input.copy(), items);
+        key.getReadOnlyStack().set(DataComponents.CUSTOM_NAME, Component.literal("bad caller"));
+        assertNull(KeyConstructionCache.findItem(input));
     }
 }

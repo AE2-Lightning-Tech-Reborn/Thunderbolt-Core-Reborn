@@ -116,7 +116,7 @@ public final class ObjectReuseGameTests {
         AEItemKey.of(stack);
         var first = AEItemKey.of(stack);
         require(first == AEItemKey.of(stack), "component snapshot was not reused");
-        require(first.getReadOnlyStack().getCount() == 64, "count lost on component key");
+        require(first.getReadOnlyStack().getCount() == 1 && stack.getCount() == 64, "component key was not normalized independently");
         int oldHash = first.hashCode();
         data.putString("value", "after");
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(data));

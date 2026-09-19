@@ -1,17 +1,19 @@
 package com.moakiee.thunderbolt.core.keys;
 
 import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 /**
- * Bounded reuse of AE2 item/fluid keys at the native constructor call site. This is a cache, not an
- * interner: collisions, eviction and concurrent misses may return equal, distinct objects. AE2's
+ * Reuses AE2 keys through per-Item plain slots, weak component canonicalization and a bounded fluid
+ * cache. Bypasses, clearing and concurrent plain misses may return equal, distinct objects. AE2's
  * value equality must remain intact. No caller-owned mutable stack is retained.
  */
 public final class KeyConstructionCache {
@@ -21,10 +23,18 @@ public final class KeyConstructionCache {
     // to an old generation without locking the factory or calling mod code under a cache lock.
     private static volatile Tables tables;
 
-    private record Tables(AtomicReferenceArray<AEItemKey> items,
+    private record Tables(Object generation, AtomicReferenceArray<PlainItemKeyCache> plainItems,
+                          AtomicInteger maintenanceCursor,
+                          WeakCanonicalMap.IdentityTable<AEItemKey> identities,
+                          AtomicReferenceArray<AEItemKey> items,
                           AtomicReferenceArray<AEFluidKey> fluids, boolean components) {
         private Tables(boolean components) {
-            this(new AtomicReferenceArray<>(CAPACITY), new AtomicReferenceArray<>(CAPACITY), components);
+            // Per-item holders share one normalized plain key without hash collisions.
+            // Item fields are detached when a generation ends, including never-used-again Items.
+            this(new Object(), new AtomicReferenceArray<>(BuiltInRegistries.ITEM.size()),
+                    new AtomicInteger(),
+                    new WeakCanonicalMap.IdentityTable<>(4096),
+                    new AtomicReferenceArray<>(CAPACITY), new AtomicReferenceArray<>(CAPACITY), components);
         }
     }
 
@@ -35,7 +45,14 @@ public final class KeyConstructionCache {
     }
 
     public static synchronized void configure(boolean enabled, boolean components) {
+        var previous = tables;
         tables = enabled ? new Tables(components) : null;
+        if (previous != null) {
+            for (int i = 0; i < previous.plainItems.length(); i++) {
+                var cached = previous.plainItems.get(i);
+                if (cached != null && cached.owner != null) cached.owner.thunderbolt$clearPlainKeyCache(cached);
+            }
+        }
     }
 
     public static synchronized void clear() {
@@ -46,28 +63,122 @@ public final class KeyConstructionCache {
         return tables != null;
     }
 
-    /** The supplied stack has already gone through AE2's normal ItemStack.copy() call. */
+    public static boolean isCurrent(PlainItemKeyCache cache) {
+        var current = tables;
+        return current != null && cache.generation == current.generation;
+    }
+
+    /** Incremental idle cleanup, shared by client/server ticks. Never scans the entire registry. */
+    public static void maintain() {
+        var current = tables;
+        if (current == null || !current.components || current.plainItems.length() == 0) return;
+        int length = current.plainItems.length();
+        int start = current.maintenanceCursor.getAndAdd(32);
+        for (int i = 0; i < Math.min(32, length); i++) {
+            var holder = current.plainItems.get(Math.floorMod(start + i, length));
+            var cache = holder != null ? holder.components(false, current.identities) : null;
+            if (cache != null) cache.cleanUp();
+        }
+    }
+
+    /** Read-only probe before the native factory copies its caller-owned stack. */
+    public static AEItemKey findItem(ItemStack source) {
+        var current = tables;
+        if (current == null || source.isEmpty()) return null;
+        if (source.isComponentsPatchEmpty()) {
+            var plain = plainCache(current, source, false);
+            if (plain != null) {
+                var cached = plain.key;
+                return matchesItem(cached, source, EMPTY_PATCH, current.components) ? cached : null;
+            }
+        }
+        Object patch = source.getComponents() instanceof SharedComponentPatch access && current.components
+                ? access.thunderbolt$copyOnWritePatchIdentity() : null;
+        if (patch == null) return null;
+        var holder = plainCache(current, source, false);
+        var components = holder != null ? holder.components(false, current.identities) : null;
+        if (components != null && source.getComponents() instanceof SharedComponentPatch access) {
+            return components.findIdentity(source, patch, access.thunderbolt$prototypeIdentity());
+        }
+        var cached = current.items.get(slot(source.getItem(), patch));
+        return matchesItem(cached, source, patch, current.components) ? cached : null;
+    }
+
+    /** The stack is a native copy or the exact key-owned stack supplied by the validated pre-copy probe. */
     public static AEItemKey item(ItemStack ownedStack, Operation<AEItemKey> constructor) {
         var current = tables;
         if (current == null || ownedStack.isEmpty()) return constructor.call(ownedStack);
+        ownedStack = normalizedStack(ownedStack);
         Object patch = patchIdentity(ownedStack.getComponents(), ownedStack.isComponentsPatchEmpty(), current.components);
         if (patch == null) return constructor.call(ownedStack);
-        int slot = slot(ownedStack.getItem(), patch, ownedStack.getCount(), ownedStack.getPopTime());
-        var cached = current.items.get(slot);
-        if (cached != null && cached.getItem() == ownedStack.getItem()
-                && cached.getReadOnlyStack().getCount() == ownedStack.getCount()
-                && cached.getReadOnlyStack().getPopTime() == ownedStack.getPopTime()
-                && patchIdentity(cached.getReadOnlyStack().getComponents(),
-                        cached.getReadOnlyStack().isComponentsPatchEmpty(), current.components) == patch
-                && cached.matches(ownedStack)
-                // Preserve NeoForge's stack-sensitive item hooks, even for a component-free stack.
-                && cached.getMaxStackSize() == ownedStack.getMaxStackSize()
-                && cached.getFuzzySearchValue() == ownedStack.getDamageValue()) {
-            return cached;
+        if (patch != EMPTY_PATCH && ownedStack.getComponents() instanceof SharedComponentPatch access) {
+            var holder = plainCache(current, ownedStack, true);
+            if (holder != null) return holder.components(true, current.identities).getOrCreate(ownedStack, patch,
+                    access.thunderbolt$prototypeIdentity(), constructor);
         }
+        var plain = patch == EMPTY_PATCH ? plainCache(current, ownedStack, true) : null;
+        if (plain != null) {
+            var cached = plain.key;
+            if (cached != null && (cached.getReadOnlyStack() == ownedStack
+                    || matchesItem(cached, ownedStack, EMPTY_PATCH, current.components))) return cached;
+            var result = constructor.call(ownedStack);
+            plain.key = result;
+            if (plain.staticHooks
+                    && ownedStack.getComponents() instanceof SharedComponentPatch
+                    && result.matches(ownedStack) && result.getReadOnlyStack().getCount() == 1
+                    && result.getReadOnlyStack().getPopTime() == 0) {
+                plain.owner.thunderbolt$publishPlainKey(plain, result);
+            }
+            return result;
+        }
+        int slot = slot(ownedStack.getItem(), patch);
+        var cached = current.items.get(slot);
+        if (cached != null && (cached.getReadOnlyStack() == ownedStack
+                || matchesItem(cached, ownedStack, patch, current.components))) return cached;
         var result = constructor.call(ownedStack);
         current.items.set(slot, result);
         return result;
+    }
+
+    /** Returns a normalized view without changing the caller's stack; already normalized stacks are reused. */
+    public static ItemStack normalizedStack(ItemStack source) {
+        if (source.isEmpty() || source.getCount() == 1 && source.getPopTime() == 0) return source;
+        var copy = source.copyWithCount(1);
+        copy.setPopTime(0);
+        return copy;
+    }
+
+    private static boolean matchesItem(AEItemKey cached, ItemStack ownedStack, Object patch, boolean components) {
+        if (cached == null) return false;
+        var metadata = normalizedStack(ownedStack);
+        return cached != null && cached.getItem() == ownedStack.getItem()
+                && cached.getReadOnlyStack().getCount() == 1
+                && cached.getReadOnlyStack().getPopTime() == 0
+                && patchIdentity(cached.getReadOnlyStack().getComponents(),
+                        cached.getReadOnlyStack().isComponentsPatchEmpty(), components) == patch
+                && cached.matches(ownedStack)
+                // Preserve NeoForge's stack-sensitive item hooks, even for a component-free stack.
+                && cached.getMaxStackSize() == metadata.getMaxStackSize()
+                && cached.getFuzzySearchValue() == metadata.getDamageValue();
+    }
+
+    private static PlainItemKeyCache plainCache(Tables current, ItemStack stack, boolean create) {
+        ItemKeyCacheOwner owner = (Object) stack.getItem() instanceof ItemKeyCacheOwner access ? access : null;
+        if (owner != null) {
+            var cached = owner.thunderbolt$plainKeyCache();
+            if (cached != null && cached.generation == current.generation) return cached;
+        }
+        int id = BuiltInRegistries.ITEM.getId(stack.getItem());
+        // Unknown or late-registered items keep the bounded generic-cache path.
+        if (id < 0 || id >= current.plainItems.length()) return null;
+        var cached = current.plainItems.get(id);
+        if (cached == null && create) {
+            var fresh = new PlainItemKeyCache(current.generation, owner);
+            var witness = current.plainItems.compareAndExchange(id, null, fresh);
+            cached = witness == null ? fresh : witness;
+        }
+        if (cached != null && owner != null) owner.thunderbolt$plainKeyCache(cached);
+        return cached;
     }
 
     /** AE2 has already copied the fluid stack and normalized its amount to one. */
@@ -76,7 +187,7 @@ public final class KeyConstructionCache {
         if (current == null || ownedStack.isEmpty() || ownedStack.getAmount() != 1) return constructor.call(ownedStack);
         Object patch = patchIdentity(ownedStack.getComponents(), ownedStack.isComponentsPatchEmpty(), current.components);
         if (patch == null) return constructor.call(ownedStack);
-        int slot = slot(ownedStack.getFluid(), patch, 1, 0);
+        int slot = slot(ownedStack.getFluid(), patch);
         var cached = current.fluids.get(slot);
         if (cached != null && (patch == EMPTY_PATCH || (Object) cached instanceof FluidKeyComponents access
                 && patchIdentity(access.thunderbolt$components(), false, current.components) == patch)
@@ -92,8 +203,8 @@ public final class KeyConstructionCache {
                 ? access.thunderbolt$sharedPatchIdentity() : null;
     }
 
-    private static int slot(Object primary, Object patch, int count, int popTime) {
-        int hash = 31 * (31 * System.identityHashCode(primary) + count) + popTime;
+    private static int slot(Object primary, Object patch) {
+        int hash = System.identityHashCode(primary);
         if (patch != EMPTY_PATCH) hash = 31 * hash + System.identityHashCode(patch);
         return (hash ^ (hash >>> 16)) & (CAPACITY - 1);
     }
