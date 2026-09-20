@@ -15,6 +15,8 @@ import net.neoforged.neoforge.fluids.FluidStack;
  * Reuses AE2 keys through per-Item/per-Fluid plain slots, weak component canonicalization and a bounded fluid
  * cache. Bypasses, clearing and concurrent plain misses may return equal, distinct objects. AE2's
  * value equality must remain intact. No caller-owned mutable stack is retained.
+ * Stack limits are native construction snapshots, reused while the item and components match;
+ * changes to external state alone do not invalidate a cached stack limit.
  */
 public final class KeyConstructionCache {
     private static final int CAPACITY = 4096;
@@ -134,7 +136,7 @@ public final class KeyConstructionCache {
                     || matchesItem(cached, ownedStack, EMPTY_PATCH, current.components))) return cached;
             var result = constructor.call(ownedStack);
             plain.key = result;
-            if (plain.staticHooks
+            if (plain.staticDamageHooks
                     && ownedStack.getComponents() instanceof SharedComponentPatch
                     && result.matches(ownedStack) && result.getReadOnlyStack().getCount() == 1
                     && result.getReadOnlyStack().getPopTime() == 0) {
@@ -168,8 +170,7 @@ public final class KeyConstructionCache {
                 && patchIdentity(cached.getReadOnlyStack().getComponents(),
                         cached.getReadOnlyStack().isComponentsPatchEmpty(), components) == patch
                 && cached.matches(ownedStack)
-                // Preserve NeoForge's stack-sensitive item hooks, even for a component-free stack.
-                && cached.getMaxStackSize() == metadata.getMaxStackSize()
+                // Preserve NeoForge's stack-sensitive damage hook, even for a component-free stack.
                 && cached.getFuzzySearchValue() == metadata.getDamageValue();
     }
 

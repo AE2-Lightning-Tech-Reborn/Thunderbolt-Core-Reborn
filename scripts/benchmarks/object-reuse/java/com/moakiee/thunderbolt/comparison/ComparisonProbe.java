@@ -54,6 +54,11 @@ public final class ComparisonProbe {
 
     @GameTest(template = "empty", timeoutTicks = 2000)
     public static void compare(GameTestHelper h) throws Exception {
+        if (Boolean.getBoolean("comparison.stackLimitOnly")) {
+            StackLimitBenchmark.run(new ItemStack(dynamic));
+            h.succeed();
+            return;
+        }
         if (Boolean.getBoolean("comparison.resourceColdOnly")) {
             ResourceLocationColdBenchmark.run();
             h.succeed();
@@ -100,6 +105,7 @@ public final class ComparisonProbe {
             row("concurrent_storage_type_count", map.size());
         } finally { barrier = null; pool.shutdownNow(); }
 
+        // Synthetic external-state mutation, not evidence of a real addon compatibility failure.
         var input = new ItemStack(dynamic);
         row("dynamic_limit_initial", AEItemKey.of(input).getMaxStackSize());
         limit.set(16);

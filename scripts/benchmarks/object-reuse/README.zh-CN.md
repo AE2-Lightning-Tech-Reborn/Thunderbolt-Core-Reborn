@@ -40,3 +40,5 @@ jar cfm "$measurement_output/size-agent.jar" "$comparison_harness/measurement-ag
 ```
 
 在普通工厂独立循环的 Gradle 命令上再加 `-PcomparisonSizeAgent="$measurement_output/size-agent.jar" -I "$comparison_harness/size-agent.init.gradle"`。只记录 `DIRECT_KEY_SIZE`；该 JVM 的耗时不加入性能表。此大小不包含栈、组件和缓存节点，依赖压缩引用与对象对齐设置。
+
+堆叠上限专项对照可加 `-PcomparisonStackLimitOnly=true`，跳过其他基准及语义探针。它测量普通物品、自定义上限物品、64 件输入的组件命中，以及新建等值组件栈；沿用相同公开工厂入口，输出 `STACK_LIMIT_BENCH`。每种场景 8 轮预热、9 轮测量、每轮 20 万次，记录 ns/次和线程分配 B/次。外部状态突变的 `dynamic_limit_after_change` 只是人工边界观察，不作为实际附属兼容故障判据。

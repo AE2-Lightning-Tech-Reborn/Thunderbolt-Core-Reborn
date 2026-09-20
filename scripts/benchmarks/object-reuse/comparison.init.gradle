@@ -16,6 +16,7 @@ allprojects { afterEvaluate {
   systemProperty 'neoforge.enabledGameTestNamespaces', 'lean_comparison'
   systemProperty 'comparison.mode', mode
   systemProperty 'comparison.directFactoryOnly', providers.gradleProperty('comparisonDirectFactoryOnly').getOrElse('false')
+  systemProperty 'comparison.stackLimitOnly', providers.gradleProperty('comparisonStackLimitOnly').getOrElse('false')
   systemProperty 'comparison.resourceOnly', providers.gradleProperty('comparisonResourceOnly').getOrElse('false')
   systemProperty 'comparison.resourceColdOnly', providers.gradleProperty('comparisonResourceColdOnly').getOrElse('false')
   systemProperty 'comparison.skipBenchmark', providers.gradleProperty('comparisonSkipBenchmark').getOrElse('false')

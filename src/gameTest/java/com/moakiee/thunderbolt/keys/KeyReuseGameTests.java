@@ -40,17 +40,21 @@ import net.neoforged.fml.common.EventBusSubscriber;
 @PrefixGameTestTemplate(false)
 @EventBusSubscriber(modid = "thunderbolt", bus = EventBusSubscriber.Bus.MOD)
 public final class KeyReuseGameTests {
-    private static final java.util.concurrent.atomic.AtomicInteger STACK_LIMIT = new java.util.concurrent.atomic.AtomicInteger(64);
-    private static Item dynamicItem;
+    private static final java.util.concurrent.atomic.AtomicInteger STACK_LIMIT_CALLS = new java.util.concurrent.atomic.AtomicInteger();
+    private static Item componentLimitItem;
     private static Item countSensitiveItem;
 
     @SubscribeEvent
     public static void registerTestItem(RegisterEvent event) {
         event.register(Registries.ITEM, helper -> {
-            dynamicItem = new Item(new Item.Properties()) {
-                @Override public int getMaxStackSize(ItemStack stack) { return STACK_LIMIT.get(); }
+            componentLimitItem = new Item(new Item.Properties()) {
+                @Override public int getMaxStackSize(ItemStack stack) {
+                    STACK_LIMIT_CALLS.incrementAndGet();
+                    // Deliberately differs from the component, proving that native hooks still run on creation.
+                    return stack.getOrDefault(DataComponents.MAX_STACK_SIZE, 64) / 2;
+                }
             };
-            helper.register(ResourceLocation.fromNamespaceAndPath("thunderbolt", "key_reuse_test_item"), dynamicItem);
+            helper.register(ResourceLocation.fromNamespaceAndPath("thunderbolt", "key_reuse_test_item"), componentLimitItem);
             countSensitiveItem = new Item(new Item.Properties()) {
                 @Override public int getMaxStackSize(ItemStack stack) { return stack.getCount() == 1 ? 16 : 64; }
             };
@@ -310,25 +314,49 @@ public final class KeyReuseGameTests {
     }
 
     @GameTest(template = "empty", timeoutTicks = 100)
-    public static void dynamicModdedStackLimitIsRecheckedOnAHit(GameTestHelper h) {
-        try {
-            STACK_LIMIT.set(64);
-            var stack = new ItemStack(dynamicItem);
-            var first = AEItemKey.of(stack);
-            require(first == AEItemKey.of(stack), "custom plain item was not cached");
-            STACK_LIMIT.set(16);
-            var second = AEItemKey.of(stack);
-            require(first != second && second.getMaxStackSize() == 16 && first.equals(second),
-                    "stack-sensitive NeoForge hook was ignored or changed equality");
-            stack.set(DataComponents.CUSTOM_NAME, Component.literal("dynamic component capacity"));
-            AEItemKey.of(stack);
-            var componentFirst = AEItemKey.of(stack);
-            require(componentFirst == AEItemKey.of(stack), "dynamic component identity cache was not exercised");
-            STACK_LIMIT.set(32);
-            var componentSecond = AEItemKey.of(stack);
-            require(componentFirst != componentSecond && componentSecond.getMaxStackSize() == 32
-                    && componentFirst.equals(componentSecond), "component fast hit skipped a custom dynamic hook");
-        } finally { STACK_LIMIT.set(64); }
+    public static void customStackLimitsAreCapturedPerComponentSnapshot(GameTestHelper h) {
+        var stack = new ItemStack(componentLimitItem, 64);
+        var plain = AEItemKey.of(stack);
+        require(plain.getMaxStackSize() == 32, "native custom stack limit was ignored");
+        int calls = STACK_LIMIT_CALLS.get();
+        require(plain == AEItemKey.of(stack) && STACK_LIMIT_CALLS.get() == calls,
+                "plain cache hit reevaluated the stack limit");
+
+        stack.set(DataComponents.MAX_STACK_SIZE, 32);
+        var limited = AEItemKey.of(stack);
+        require(limited.getMaxStackSize() == 16 && plain.getMaxStackSize() == 32 && !limited.equals(plain),
+                "changed components reused stale metadata or mutated the old key");
+        // Warm the identity alias before checking the hit and independent equal-content paths.
+        limited = AEItemKey.of(stack);
+        calls = STACK_LIMIT_CALLS.get();
+        require(limited == AEItemKey.of(stack) && STACK_LIMIT_CALLS.get() == calls,
+                "component identity hit reevaluated the stack limit");
+        var equal = new ItemStack(componentLimitItem, 64);
+        equal.set(DataComponents.MAX_STACK_SIZE, 32);
+        equal.copy(); // Share the native COW snapshot so this lookup exercises content interning.
+        require(limited == AEItemKey.of(equal) && STACK_LIMIT_CALLS.get() == calls,
+                "equal component content reevaluated the stack limit or lost its representative");
+        stack.set(DataComponents.MAX_STACK_SIZE, 16);
+        var smaller = AEItemKey.of(stack);
+        require(smaller.getMaxStackSize() == 8 && limited.getMaxStackSize() == 16 && !smaller.equals(limited),
+                "a second component change reused stale stack limits");
+        stack.set(DataComponents.MAX_STACK_SIZE, 64);
+        require(AEItemKey.of(stack) == plain && stack.getCount() == 64,
+                "restoring default components lost the plain key or changed the caller");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void nativeStackLimitComponentsRemainDistinct(GameTestHelper h) {
+        var stack = new ItemStack(Items.IRON_INGOT, 64);
+        var plain = AEItemKey.of(stack);
+        stack.set(DataComponents.MAX_STACK_SIZE, 16);
+        var limited = AEItemKey.of(stack);
+        require(plain.getMaxStackSize() == 64 && limited.getMaxStackSize() == 16 && !plain.equals(limited),
+                "native MAX_STACK_SIZE component was ignored");
+        limited = AEItemKey.of(stack); // First writable snapshots deliberately bypass cache admission.
+        require(limited == AEItemKey.of(stack) && stack.getCount() == 64,
+                "native component key was not reused or changed the caller");
         h.succeed();
     }
 

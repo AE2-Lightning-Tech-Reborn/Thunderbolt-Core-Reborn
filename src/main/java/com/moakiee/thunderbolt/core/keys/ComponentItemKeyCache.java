@@ -9,11 +9,11 @@ import net.minecraft.world.item.Item;
 /** Per-item aliases and content lookup weakly reference the actual key and its existing owned snapshot. */
 public final class ComponentItemKeyCache {
     private final WeakCanonicalMap<Object, AEItemKey> keys;
-    private final boolean staticHooks;
+    private final boolean staticDamageHooks;
 
-    ComponentItemKeyCache(WeakCanonicalMap.IdentityTable<AEItemKey> identities, boolean staticHooks) {
+    ComponentItemKeyCache(WeakCanonicalMap.IdentityTable<AEItemKey> identities, boolean staticDamageHooks) {
         this.keys = new WeakCanonicalMap<>(identities, ComponentItemKeyCache::canonicalPatch);
-        this.staticHooks = staticHooks;
+        this.staticDamageHooks = staticDamageHooks;
     }
 
     void cleanUp() { keys.cleanUp(); }
@@ -41,10 +41,9 @@ public final class ComponentItemKeyCache {
                 || !(key.getReadOnlyStack().getComponents() instanceof SharedComponentPatch access)
                 || access.thunderbolt$prototypeIdentity() != prototype) return false;
         // Snapshot identity and normalized count/animation were validated by the alias stamp.
-        if (staticHooks) return true;
+        if (staticDamageHooks) return true;
         var metadata = KeyConstructionCache.normalizedStack(source);
-        return key.getMaxStackSize() == metadata.getMaxStackSize()
-                && key.getFuzzySearchValue() == metadata.getDamageValue();
+        return key.getFuzzySearchValue() == metadata.getDamageValue();
     }
 
     private static Object canonicalPatch(AEItemKey key) {
@@ -59,18 +58,16 @@ public final class ComponentItemKeyCache {
         private final DataComponentPatch components;
         private final Item item;
         private final Object prototype;
-        private final int maxStackSize, damage, hash;
+        private final int damage, hash;
 
         ContentProbe(ItemStack stack, Object prototype) {
             this.components = stack.getComponentsPatch();
             this.item = stack.getItem();
             this.prototype = prototype;
-            // NeoForge item hooks are evaluated once before acquiring a writer monitor.
-            this.maxStackSize = stack.getMaxStackSize();
+            // Preserve the damage hook; stack limits are captured only by native key construction.
             this.damage = stack.getDamageValue();
             int hash = 31 * components.hashCode() + System.identityHashCode(prototype);
             hash = 31 * hash + System.identityHashCode(item);
-            hash = 31 * hash + maxStackSize;
             this.hash = 31 * hash + damage;
         }
 
@@ -80,7 +77,7 @@ public final class ComponentItemKeyCache {
             // The weak stored key is the canonical patch at insertion time. Reject stale native
             // cached metadata if an addon illegally changes the key's supposedly read-only stack.
             if (snapshot == null || canonicalPatch(key) != snapshot || key.getItem() != item
-                    || key.getMaxStackSize() != maxStackSize || key.getFuzzySearchValue() != damage) return false;
+                    || key.getFuzzySearchValue() != damage) return false;
             var stack = key.getReadOnlyStack();
             return stack.getComponents() instanceof SharedComponentPatch access
                     && access.thunderbolt$prototypeIdentity() == prototype

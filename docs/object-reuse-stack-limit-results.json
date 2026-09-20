@@ -1,0 +1,362 @@
+{
+  "date": "2026-09-20",
+  "baseline": "1dbd09d12e81521549eb4b3ae661695ddabf87a7",
+  "java": "Temurin 21.0.11+10 arm64",
+  "minecraft": "1.21.1",
+  "neoforge": "21.1.219",
+  "ae2": "19.2.17",
+  "method": "Three independent JVMs per version, BEFORE then AFTER, run serially. 8 warmup and 9 measurement rounds of 200000 calls. Median of JVM medians; thread allocations, not retained heap. No AE addons in timing processes.",
+  "samples": {
+    "before": [
+      {
+        "jvm": 1,
+        "log_sha256": "db2ec761ad40f5bd93ab06211cbed53b3bb1734795bb126f7c5ae40a978083f1",
+        "scenarios": [
+          {
+            "scenario": "ordinary_plain",
+            "ns": 2.499,
+            "round_min_ns": 2.33,
+            "round_max_ns": 7.24,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain",
+            "ns": 15.868,
+            "round_min_ns": 14.99,
+            "round_max_ns": 16.178,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain_64",
+            "ns": 24.539,
+            "round_min_ns": 23.721,
+            "round_max_ns": 26.197,
+            "bytes": 72.0
+          },
+          {
+            "scenario": "custom_component_hit_64",
+            "ns": 29.722,
+            "round_min_ns": 25.202,
+            "round_max_ns": 56.461,
+            "bytes": 56.0
+          },
+          {
+            "scenario": "custom_equal_component_new_stack",
+            "ns": 104.159,
+            "round_min_ns": 101.875,
+            "round_max_ns": 108.314,
+            "bytes": 552.0
+          }
+        ]
+      },
+      {
+        "jvm": 2,
+        "log_sha256": "979f2c887e6b2b54dae715f88e26b4052a6ef89cee9ae95db11c28ca0e2e8fcb",
+        "scenarios": [
+          {
+            "scenario": "ordinary_plain",
+            "ns": 1.723,
+            "round_min_ns": 1.722,
+            "round_max_ns": 2.843,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain",
+            "ns": 17.969,
+            "round_min_ns": 17.603,
+            "round_max_ns": 18.314,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain_64",
+            "ns": 24.955,
+            "round_min_ns": 23.993,
+            "round_max_ns": 53.931,
+            "bytes": 72.0
+          },
+          {
+            "scenario": "custom_component_hit_64",
+            "ns": 26.913,
+            "round_min_ns": 26.032,
+            "round_max_ns": 27.131,
+            "bytes": 56.0
+          },
+          {
+            "scenario": "custom_equal_component_new_stack",
+            "ns": 114.888,
+            "round_min_ns": 108.384,
+            "round_max_ns": 147.307,
+            "bytes": 552.0
+          }
+        ]
+      },
+      {
+        "jvm": 3,
+        "log_sha256": "f30fcfad59e9c00d041a9309af037d27f4d57f60131267d8abd1f32e0f8199bf",
+        "scenarios": [
+          {
+            "scenario": "ordinary_plain",
+            "ns": 2.485,
+            "round_min_ns": 2.471,
+            "round_max_ns": 3.336,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain",
+            "ns": 18.789,
+            "round_min_ns": 18.664,
+            "round_max_ns": 19.132,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain_64",
+            "ns": 25.898,
+            "round_min_ns": 24.657,
+            "round_max_ns": 52.163,
+            "bytes": 72.0
+          },
+          {
+            "scenario": "custom_component_hit_64",
+            "ns": 30.341,
+            "round_min_ns": 29.109,
+            "round_max_ns": 30.767,
+            "bytes": 56.0
+          },
+          {
+            "scenario": "custom_equal_component_new_stack",
+            "ns": 114.699,
+            "round_min_ns": 101.103,
+            "round_max_ns": 138.337,
+            "bytes": 528.0
+          }
+        ]
+      }
+    ],
+    "after": [
+      {
+        "jvm": 1,
+        "log_sha256": "73ac1fc5e7dd2e74b5a3c763620be966b56ef7f5e275e585b58394949b2ecec3",
+        "scenarios": [
+          {
+            "scenario": "ordinary_plain",
+            "ns": 2.6,
+            "round_min_ns": 2.558,
+            "round_max_ns": 4.079,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain",
+            "ns": 2.246,
+            "round_min_ns": 2.176,
+            "round_max_ns": 2.48,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain_64",
+            "ns": 3.022,
+            "round_min_ns": 2.86,
+            "round_max_ns": 3.196,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_component_hit_64",
+            "ns": 9.25,
+            "round_min_ns": 8.471,
+            "round_max_ns": 9.591,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_equal_component_new_stack",
+            "ns": 102.453,
+            "round_min_ns": 100.423,
+            "round_max_ns": 105.253,
+            "bytes": 552.0
+          }
+        ]
+      },
+      {
+        "jvm": 2,
+        "log_sha256": "4da11c6bdcef864fdadc96a08a51135258b776a949f1b39281908a5f3aa4bfd5",
+        "scenarios": [
+          {
+            "scenario": "ordinary_plain",
+            "ns": 2.578,
+            "round_min_ns": 2.333,
+            "round_max_ns": 3.397,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain",
+            "ns": 2.231,
+            "round_min_ns": 2.23,
+            "round_max_ns": 2.249,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain_64",
+            "ns": 3.11,
+            "round_min_ns": 3.033,
+            "round_max_ns": 3.228,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_component_hit_64",
+            "ns": 9.396,
+            "round_min_ns": 9.282,
+            "round_max_ns": 9.63,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_equal_component_new_stack",
+            "ns": 101.916,
+            "round_min_ns": 97.234,
+            "round_max_ns": 117.289,
+            "bytes": 528.0
+          }
+        ]
+      },
+      {
+        "jvm": 3,
+        "log_sha256": "99d4e6055cc8851dfc78d91493b21593672be2d33285ba48b84effaa1dab2087",
+        "scenarios": [
+          {
+            "scenario": "ordinary_plain",
+            "ns": 2.516,
+            "round_min_ns": 2.452,
+            "round_max_ns": 4.105,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain",
+            "ns": 2.099,
+            "round_min_ns": 2.017,
+            "round_max_ns": 2.144,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_plain_64",
+            "ns": 3.12,
+            "round_min_ns": 3.099,
+            "round_max_ns": 3.155,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_component_hit_64",
+            "ns": 9.128,
+            "round_min_ns": 9.018,
+            "round_max_ns": 9.376,
+            "bytes": 0.0
+          },
+          {
+            "scenario": "custom_equal_component_new_stack",
+            "ns": 130.126,
+            "round_min_ns": 98.623,
+            "round_max_ns": 138.037,
+            "bytes": 528.0
+          }
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "before": {
+      "ordinary_plain": {
+        "ns": 2.485,
+        "jvm_min_ns": 1.723,
+        "jvm_max_ns": 2.499,
+        "bytes": 0.0,
+        "jvm_min_bytes": 0.0,
+        "jvm_max_bytes": 0.0
+      },
+      "custom_plain": {
+        "ns": 17.969,
+        "jvm_min_ns": 15.868,
+        "jvm_max_ns": 18.789,
+        "bytes": 0.0,
+        "jvm_min_bytes": 0.0,
+        "jvm_max_bytes": 0.0
+      },
+      "custom_plain_64": {
+        "ns": 24.955,
+        "jvm_min_ns": 24.539,
+        "jvm_max_ns": 25.898,
+        "bytes": 72.0,
+        "jvm_min_bytes": 72.0,
+        "jvm_max_bytes": 72.0
+      },
+      "custom_component_hit_64": {
+        "ns": 29.722,
+        "jvm_min_ns": 26.913,
+        "jvm_max_ns": 30.341,
+        "bytes": 56.0,
+        "jvm_min_bytes": 56.0,
+        "jvm_max_bytes": 56.0
+      },
+      "custom_equal_component_new_stack": {
+        "ns": 114.699,
+        "jvm_min_ns": 104.159,
+        "jvm_max_ns": 114.888,
+        "bytes": 552.0,
+        "jvm_min_bytes": 528.0,
+        "jvm_max_bytes": 552.0
+      }
+    },
+    "after": {
+      "ordinary_plain": {
+        "ns": 2.578,
+        "jvm_min_ns": 2.516,
+        "jvm_max_ns": 2.6,
+        "bytes": 0.0,
+        "jvm_min_bytes": 0.0,
+        "jvm_max_bytes": 0.0
+      },
+      "custom_plain": {
+        "ns": 2.231,
+        "jvm_min_ns": 2.099,
+        "jvm_max_ns": 2.246,
+        "bytes": 0.0,
+        "jvm_min_bytes": 0.0,
+        "jvm_max_bytes": 0.0
+      },
+      "custom_plain_64": {
+        "ns": 3.11,
+        "jvm_min_ns": 3.022,
+        "jvm_max_ns": 3.12,
+        "bytes": 0.0,
+        "jvm_min_bytes": 0.0,
+        "jvm_max_bytes": 0.0
+      },
+      "custom_component_hit_64": {
+        "ns": 9.25,
+        "jvm_min_ns": 9.128,
+        "jvm_max_ns": 9.396,
+        "bytes": 0.0,
+        "jvm_min_bytes": 0.0,
+        "jvm_max_bytes": 0.0
+      },
+      "custom_equal_component_new_stack": {
+        "ns": 102.453,
+        "jvm_min_ns": 101.916,
+        "jvm_max_ns": 130.126,
+        "bytes": 528.0,
+        "jvm_min_bytes": 528.0,
+        "jvm_max_bytes": 552.0
+      }
+    }
+  },
+  "source_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/keys/PlainItemKeyCache.java": {
+      "before": "fb0d09e0c14e63e0491a8b40c7098a670e6a70cde7f6f8cd8efb620752960d21",
+      "after": "c3f655fe1d8e6d961cc5581d1c98f02a33be70c223c9f1814868436ed3979792"
+    },
+    "src/main/java/com/moakiee/thunderbolt/core/keys/ComponentItemKeyCache.java": {
+      "before": "a686b4def180b843642be50a5b315256776faf80f70db565b2c53b60bc724d25",
+      "after": "e6aac087971f1805f82037dedf375f8bd5f557100882dd1d20e3c8e30622ce35"
+    },
+    "src/main/java/com/moakiee/thunderbolt/core/keys/KeyConstructionCache.java": {
+      "before": "285c6e1fdf1587a4e11eb6ab6d4eed183836347b49207eefa97fac42b62c469b",
+      "after": "f04e2e2e15a444d6a6e32cd75de053d8c585ca4694a5508d2f99d3cf03febb1b"
+    }
+  },
+  "harness_sha256": "e502d579169f6661d424788c3508e211688b007109931e2424ab0438a42c81f0"
+}

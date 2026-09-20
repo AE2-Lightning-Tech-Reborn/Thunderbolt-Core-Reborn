@@ -1,5 +1,7 @@
 # 对象复用三方对照：原始基线、Lean 最新版、当前 Thunderbolt
 
+后续已取消相同物品／组件下的堆叠上限逐次复核，见[本次简化说明](object-reuse-stack-limit.zh-CN.md)。下方动态上限一行保留历史观测，属于人工边界探针，不能代表已发现的实际附属故障。
+
 原版、Lean、最新 TB 的本轮完整重测见[最新完整对照表](object-reuse-latest-three-way.zh-CN.md)。
 
 后续普通流体与 NBT 优化见[本轮复测报告](object-reuse-fluid-nbt.zh-CN.md)；本文保留原测量版本和历史数据。
