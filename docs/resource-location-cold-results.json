@@ -1,0 +1,906 @@
+{
+  "baseline": "3798e5b0300eddb19706cd9352ba0a29f957048b",
+  "lean": "22d4c0930353b4904a75499f47f25d876e26b2ef",
+  "method": "3 sequential JVMs per mode; 6 warmup + 9 measured rounds; 20000 calls per scenario/round; cold input strings and output arrays created before timing; retained outputs stay live across all rounds",
+  "before_source_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/keys/ResourceConstructionCache.java": "a3f3cec424df1cb297aaf870cef74dc8300fd0bfa3d5d4250065ebc10afb8ee1",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/SharedComponentPatch.java": "ae14bf942d19e704be0ada58748848d707671b68f756d2ab75a675bc13b01bac",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/ObjectReuseOptions.java": "863fada0454324ea9d7b6406a8abacf2ac91ab1a764beeff548082a1f3d486f2",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/WeakOpenHashMap.java": "1409ab394abc2edbee3856e9e058fefd4636f2c0340fd2b46fbbaefa6cc0142b",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/FluidKeyComponents.java": "b373e8ec138ffc12d65b84be037245f958a028a22f37d025b7d4022ecdcc7fa1",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/ObjectReuseClientMaintenance.java": "0e458b3c691f10bb0a1fb10d4d177be58330fa6eb068b0687cb09399842aea73",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/PlainItemKeyCache.java": "fb0d09e0c14e63e0491a8b40c7098a670e6a70cde7f6f8cd8efb620752960d21",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/ComponentItemKeyCache.java": "a686b4def180b843642be50a5b315256776faf80f70db565b2c53b60bc724d25",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/PlainFluidKeyCache.java": "8f4ef99c378afde9e8b1a942a8b3dc540a4246204f96c3213a7fec48cff2c8b7",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/ResourceLocationCanonicalCache.java": "76d48ea1ff6fd43e7f1e58449fa75d26b11dbd9aa51cf14eca2d29ee021ac3ad",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/WeakCanonicalMap.java": "5d2f6e43279ab1acac29089dff029f037fd36d9bd5fea5829883c9bcba99dc59",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/KeyConstructionCache.java": "285c6e1fdf1587a4e11eb6ab6d4eed183836347b49207eefa97fac42b62c469b",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/FluidKeyCacheOwner.java": "87bcf8e20f03a7432ed2c5dc383c191083fb52c02099131e1d844486269b6f60",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/NbtCopyViews.java": "d592cd0ebb083130a046eec8a501f8c4f8fe6878962665f42e2efb41c2601952",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/ItemKeyCacheOwner.java": "4af35d4d7d3f49073f97f77dc33a2dd10d89e8c1b43b69825216891639018735",
+    "src/main/java/com/moakiee/thunderbolt/mixin/platform/objects/ResourceLocationReuseMixin.java": "71475fb7b47c289abfb6261c53a29686e291e9c0ef8b562cdd8a4538d9ae737e"
+  },
+  "after_source_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/keys/WeakCanonicalSet.java": "44f1853f254d199d21f6c64d5a517cd0dac258c0d1b3766cc24b53c551ecb2f0",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/ResourceLocationCanonicalCache.java": "d41784ffdbf0d203515a8af3fffc3885d8b8227de1938977f7a91caabe7d5917",
+    "src/main/java/com/moakiee/thunderbolt/core/keys/ResourceConstructionCache.java": "3700ef1f15025a262c2f83133a434a3d29baa2007a0d1c7862924a67fa84c475",
+    "src/main/java/com/moakiee/thunderbolt/mixin/platform/objects/ResourceLocationReuseMixin.java": "71475fb7b47c289abfb6261c53a29686e291e9c0ef8b562cdd8a4538d9ae737e",
+    "scripts/benchmarks/object-reuse/java/com/moakiee/thunderbolt/comparison/ResourceLocationColdBenchmark.java": "944987d45d6d20bc74ffaaa77630df12dac14e6838f5732de54031e4adf08ae7"
+  },
+  "log_sha256": {
+    "base-1.log": "e976464307832f223715c2caf6859a0e4def9290bcedc5d31a4b523955255ae5",
+    "base-2.log": "0b237c1aff608e46478948431a4c62ebc3704f814bd97e3b709cc79ea933952e",
+    "base-3.log": "614786935c187b8afd745022888bd51989e50d8fa35a7c34955456d4feaa53af",
+    "lean-1.log": "b4eaada562eb0838e32161f9adb1d55ec8a7dbe656b1b340acec939fb936805e",
+    "lean-2.log": "fee262988b6880d7c4004c1f67f3f11b52ccbc861f8b475efe5995ae2ace357a",
+    "lean-3.log": "82c7c37a22177c401b175d1231c18e4f5a4c3ddfdf379d407841930316d82bef",
+    "ours_before-1.log": "9d7dcd1378d75d1e1950e3287b90ed87759ff41b182889983e6ba9a5c85a04c3",
+    "ours_before-2.log": "2dcc77f857e86b23dd09c94ab1294688f8267e775edb429c7b7c4f84dc939454",
+    "ours_before-3.log": "a35a36a5afa587cbdac13603679eed8144bc4edc21b42d990078fa4b82ed9476",
+    "ours_after-1.log": "32f551eb2f81bf15742551e3622383f650bce57896f89b289a5ed74a024dc1f2",
+    "ours_after-2.log": "16c554024e4e06e0f2a937faa03d846bd219a98520a4da5bd980d5620774551a",
+    "ours_after-3.log": "8cdb971c654cc41bff862228c76ab08f202f7c10662f3f7bd3949bc545fa5f0f",
+    "original-harness/ours-1.log": "6ed92236f60dd58f44599d1dedf253b9e7870aa62dc2fbb874ce8f827423dfc0",
+    "original-harness/ours-2.log": "4f3447c0581374b17d6a0f8477fe8bc09c434f10070904ad57141fc31174fdb7",
+    "original-harness/ours-3.log": "e661dd77597b50773fbde4f5842414da34c9726c335b0a35e24dc672987ba320"
+  },
+  "summary": {
+    "BASE": {
+      "pair_discarded": {
+        "ns": 17.031,
+        "bytes": 24.0,
+        "process_medians_ns": [
+          16.4,
+          17.104,
+          17.031
+        ],
+        "process_bytes": [
+          24.0,
+          24.0,
+          24.0
+        ]
+      },
+      "pair_retained": {
+        "ns": 17.242,
+        "bytes": 24.0,
+        "process_medians_ns": [
+          16.144,
+          17.575,
+          17.242
+        ],
+        "process_bytes": [
+          24.0,
+          24.0,
+          24.0
+        ]
+      },
+      "parse_discarded": {
+        "ns": 26.471,
+        "bytes": 128.0,
+        "process_medians_ns": [
+          26.471,
+          25.977,
+          28.375
+        ],
+        "process_bytes": [
+          128.0,
+          128.0,
+          128.0
+        ]
+      },
+      "parse_retained": {
+        "ns": 26.948,
+        "bytes": 128.0,
+        "process_medians_ns": [
+          26.048,
+          26.948,
+          28.444
+        ],
+        "process_bytes": [
+          128.0,
+          128.0,
+          128.0
+        ]
+      }
+    },
+    "LEAN": {
+      "pair_discarded": {
+        "ns": 108.281,
+        "bytes": 64.0,
+        "process_medians_ns": [
+          108.281,
+          104.681,
+          113.9
+        ],
+        "process_bytes": [
+          64.0,
+          64.0,
+          64.0
+        ]
+      },
+      "pair_retained": {
+        "ns": 102.073,
+        "bytes": 64.0,
+        "process_medians_ns": [
+          102.073,
+          101.915,
+          109.935
+        ],
+        "process_bytes": [
+          64.0,
+          64.0,
+          64.0
+        ]
+      },
+      "parse_discarded": {
+        "ns": 112.888,
+        "bytes": 168.0,
+        "process_medians_ns": [
+          112.888,
+          110.3,
+          133.227
+        ],
+        "process_bytes": [
+          168.0,
+          168.0,
+          168.0
+        ]
+      },
+      "parse_retained": {
+        "ns": 111.073,
+        "bytes": 168.0,
+        "process_medians_ns": [
+          111.073,
+          108.996,
+          130.852
+        ],
+        "process_bytes": [
+          168.0,
+          168.0,
+          168.0
+        ]
+      }
+    },
+    "OURS_BEFORE": {
+      "pair_discarded": {
+        "ns": 150.217,
+        "bytes": 176.0,
+        "process_medians_ns": [
+          150.217,
+          143.829,
+          157.294
+        ],
+        "process_bytes": [
+          176.0,
+          176.0,
+          152.0
+        ]
+      },
+      "pair_retained": {
+        "ns": 134.756,
+        "bytes": 176.0,
+        "process_medians_ns": [
+          143.01,
+          134.756,
+          125.833
+        ],
+        "process_bytes": [
+          176.0,
+          176.0,
+          152.0
+        ]
+      },
+      "parse_discarded": {
+        "ns": 271.227,
+        "bytes": 504.0,
+        "process_medians_ns": [
+          290.61,
+          271.227,
+          269.471
+        ],
+        "process_bytes": [
+          504.0,
+          504.0,
+          480.0
+        ]
+      },
+      "parse_retained": {
+        "ns": 289.015,
+        "bytes": 504.0,
+        "process_medians_ns": [
+          289.015,
+          286.127,
+          327.519
+        ],
+        "process_bytes": [
+          504.0,
+          504.0,
+          480.0
+        ]
+      }
+    },
+    "OURS_AFTER": {
+      "pair_discarded": {
+        "ns": 100.158,
+        "bytes": 64.0,
+        "process_medians_ns": [
+          100.158,
+          88.852,
+          116.675
+        ],
+        "process_bytes": [
+          64.0,
+          64.0,
+          64.0
+        ]
+      },
+      "pair_retained": {
+        "ns": 100.971,
+        "bytes": 64.0,
+        "process_medians_ns": [
+          100.971,
+          89.171,
+          104.915
+        ],
+        "process_bytes": [
+          64.0,
+          64.0,
+          64.0
+        ]
+      },
+      "parse_discarded": {
+        "ns": 148.131,
+        "bytes": 192.0,
+        "process_medians_ns": [
+          148.131,
+          138.119,
+          152.95
+        ],
+        "process_bytes": [
+          192.0,
+          192.0,
+          192.0
+        ]
+      },
+      "parse_retained": {
+        "ns": 150.846,
+        "bytes": 192.0,
+        "process_medians_ns": [
+          150.846,
+          145.663,
+          157.454
+        ],
+        "process_bytes": [
+          192.0,
+          192.0,
+          192.0
+        ]
+      }
+    }
+  },
+  "samples": [
+    {
+      "mode": "BASE",
+      "scenario": "pair_discarded",
+      "run": 1,
+      "ns": 16.4,
+      "min_ns": 15.131,
+      "max_ns": 24.048,
+      "bytes": 24.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "pair_retained",
+      "run": 1,
+      "ns": 16.144,
+      "min_ns": 15.002,
+      "max_ns": 24.535,
+      "bytes": 24.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "parse_discarded",
+      "run": 1,
+      "ns": 26.471,
+      "min_ns": 25.244,
+      "max_ns": 27.129,
+      "bytes": 128.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "parse_retained",
+      "run": 1,
+      "ns": 26.048,
+      "min_ns": 24.867,
+      "max_ns": 471.771,
+      "bytes": 128.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "pair_discarded",
+      "run": 2,
+      "ns": 17.104,
+      "min_ns": 15.208,
+      "max_ns": 22.492,
+      "bytes": 24.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "pair_retained",
+      "run": 2,
+      "ns": 17.575,
+      "min_ns": 16.038,
+      "max_ns": 23.392,
+      "bytes": 24.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "parse_discarded",
+      "run": 2,
+      "ns": 25.977,
+      "min_ns": 24.319,
+      "max_ns": 29.965,
+      "bytes": 128.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "parse_retained",
+      "run": 2,
+      "ns": 26.948,
+      "min_ns": 25.55,
+      "max_ns": 32.494,
+      "bytes": 128.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "pair_discarded",
+      "run": 3,
+      "ns": 17.031,
+      "min_ns": 16.644,
+      "max_ns": 26.25,
+      "bytes": 24.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "pair_retained",
+      "run": 3,
+      "ns": 17.242,
+      "min_ns": 15.331,
+      "max_ns": 25.965,
+      "bytes": 24.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "parse_discarded",
+      "run": 3,
+      "ns": 28.375,
+      "min_ns": 26.071,
+      "max_ns": 31.052,
+      "bytes": 128.0
+    },
+    {
+      "mode": "BASE",
+      "scenario": "parse_retained",
+      "run": 3,
+      "ns": 28.444,
+      "min_ns": 27.91,
+      "max_ns": 32.975,
+      "bytes": 128.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "pair_discarded",
+      "run": 1,
+      "ns": 108.281,
+      "min_ns": 96.523,
+      "max_ns": 124.817,
+      "bytes": 64.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "pair_retained",
+      "run": 1,
+      "ns": 102.073,
+      "min_ns": 94.279,
+      "max_ns": 111.175,
+      "bytes": 64.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "parse_discarded",
+      "run": 1,
+      "ns": 112.888,
+      "min_ns": 101.581,
+      "max_ns": 896.227,
+      "bytes": 168.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "parse_retained",
+      "run": 1,
+      "ns": 111.073,
+      "min_ns": 102.046,
+      "max_ns": 135.129,
+      "bytes": 168.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "pair_discarded",
+      "run": 2,
+      "ns": 104.681,
+      "min_ns": 82.738,
+      "max_ns": 130.288,
+      "bytes": 64.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "pair_retained",
+      "run": 2,
+      "ns": 101.915,
+      "min_ns": 83.29,
+      "max_ns": 109.181,
+      "bytes": 64.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "parse_discarded",
+      "run": 2,
+      "ns": 110.3,
+      "min_ns": 96.948,
+      "max_ns": 978.063,
+      "bytes": 168.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "parse_retained",
+      "run": 2,
+      "ns": 108.996,
+      "min_ns": 95.808,
+      "max_ns": 134.752,
+      "bytes": 168.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "pair_discarded",
+      "run": 3,
+      "ns": 113.9,
+      "min_ns": 109.281,
+      "max_ns": 869.363,
+      "bytes": 64.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "pair_retained",
+      "run": 3,
+      "ns": 109.935,
+      "min_ns": 101.923,
+      "max_ns": 125.002,
+      "bytes": 64.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "parse_discarded",
+      "run": 3,
+      "ns": 133.227,
+      "min_ns": 121.335,
+      "max_ns": 772.45,
+      "bytes": 168.0
+    },
+    {
+      "mode": "LEAN",
+      "scenario": "parse_retained",
+      "run": 3,
+      "ns": 130.852,
+      "min_ns": 115.956,
+      "max_ns": 155.25,
+      "bytes": 168.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "pair_discarded",
+      "run": 1,
+      "ns": 150.217,
+      "min_ns": 121.092,
+      "max_ns": 936.992,
+      "bytes": 176.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "pair_retained",
+      "run": 1,
+      "ns": 143.01,
+      "min_ns": 119.313,
+      "max_ns": 202.952,
+      "bytes": 176.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "parse_discarded",
+      "run": 1,
+      "ns": 290.61,
+      "min_ns": 245.935,
+      "max_ns": 3695.338,
+      "bytes": 504.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "parse_retained",
+      "run": 1,
+      "ns": 289.015,
+      "min_ns": 247.167,
+      "max_ns": 675.752,
+      "bytes": 504.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "pair_discarded",
+      "run": 2,
+      "ns": 143.829,
+      "min_ns": 123.635,
+      "max_ns": 158.356,
+      "bytes": 176.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "pair_retained",
+      "run": 2,
+      "ns": 134.756,
+      "min_ns": 124.852,
+      "max_ns": 864.546,
+      "bytes": 176.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "parse_discarded",
+      "run": 2,
+      "ns": 271.227,
+      "min_ns": 247.017,
+      "max_ns": 664.5,
+      "bytes": 504.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "parse_retained",
+      "run": 2,
+      "ns": 286.127,
+      "min_ns": 235.517,
+      "max_ns": 1129.304,
+      "bytes": 504.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "pair_discarded",
+      "run": 3,
+      "ns": 157.294,
+      "min_ns": 112.465,
+      "max_ns": 191.583,
+      "bytes": 152.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "pair_retained",
+      "run": 3,
+      "ns": 125.833,
+      "min_ns": 109.558,
+      "max_ns": 267.404,
+      "bytes": 152.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "parse_discarded",
+      "run": 3,
+      "ns": 269.471,
+      "min_ns": 219.196,
+      "max_ns": 2809.779,
+      "bytes": 480.0
+    },
+    {
+      "mode": "OURS_BEFORE",
+      "scenario": "parse_retained",
+      "run": 3,
+      "ns": 327.519,
+      "min_ns": 219.715,
+      "max_ns": 906.392,
+      "bytes": 480.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "pair_discarded",
+      "run": 1,
+      "ns": 100.158,
+      "min_ns": 87.006,
+      "max_ns": 818.546,
+      "bytes": 64.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "pair_retained",
+      "run": 1,
+      "ns": 100.971,
+      "min_ns": 87.021,
+      "max_ns": 1212.463,
+      "bytes": 64.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "parse_discarded",
+      "run": 1,
+      "ns": 148.131,
+      "min_ns": 137.652,
+      "max_ns": 342.223,
+      "bytes": 192.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "parse_retained",
+      "run": 1,
+      "ns": 150.846,
+      "min_ns": 143.031,
+      "max_ns": 234.477,
+      "bytes": 192.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "pair_discarded",
+      "run": 2,
+      "ns": 88.852,
+      "min_ns": 79.427,
+      "max_ns": 1292.419,
+      "bytes": 64.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "pair_retained",
+      "run": 2,
+      "ns": 89.171,
+      "min_ns": 79.796,
+      "max_ns": 112.158,
+      "bytes": 64.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "parse_discarded",
+      "run": 2,
+      "ns": 138.119,
+      "min_ns": 129.083,
+      "max_ns": 1234.083,
+      "bytes": 192.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "parse_retained",
+      "run": 2,
+      "ns": 145.663,
+      "min_ns": 129.913,
+      "max_ns": 456.583,
+      "bytes": 192.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "pair_discarded",
+      "run": 3,
+      "ns": 116.675,
+      "min_ns": 91.054,
+      "max_ns": 1665.919,
+      "bytes": 64.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "pair_retained",
+      "run": 3,
+      "ns": 104.915,
+      "min_ns": 92.731,
+      "max_ns": 145.363,
+      "bytes": 64.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "parse_discarded",
+      "run": 3,
+      "ns": 152.95,
+      "min_ns": 139.665,
+      "max_ns": 352.265,
+      "bytes": 192.0
+    },
+    {
+      "mode": "OURS_AFTER",
+      "scenario": "parse_retained",
+      "run": 3,
+      "ns": 157.454,
+      "min_ns": 142.929,
+      "max_ns": 269.881,
+      "bytes": 192.0
+    }
+  ],
+  "original_harness_verification": {
+    "parse_shared": {
+      "ns": 5.372,
+      "bytes": 0.0,
+      "samples": [
+        {
+          "run": 1,
+          "ns": 4.616,
+          "min_ns": 4.244,
+          "max_ns": 5.04,
+          "bytes": 0.0
+        },
+        {
+          "run": 2,
+          "ns": 5.526,
+          "min_ns": 5.074,
+          "max_ns": 8.07,
+          "bytes": 0.0
+        },
+        {
+          "run": 3,
+          "ns": 5.372,
+          "min_ns": 5.088,
+          "max_ns": 5.949,
+          "bytes": 0.0
+        }
+      ]
+    },
+    "pair_shared": {
+      "ns": 5.173,
+      "bytes": 0.0,
+      "samples": [
+        {
+          "run": 1,
+          "ns": 5.073,
+          "min_ns": 4.757,
+          "max_ns": 5.996,
+          "bytes": 0.0
+        },
+        {
+          "run": 2,
+          "ns": 5.173,
+          "min_ns": 5.041,
+          "max_ns": 5.525,
+          "bytes": 0.0
+        },
+        {
+          "run": 3,
+          "ns": 5.191,
+          "min_ns": 4.953,
+          "max_ns": 5.431,
+          "bytes": 0.0
+        }
+      ]
+    },
+    "parse_equal_string": {
+      "ns": 6.117,
+      "bytes": 24.0,
+      "samples": [
+        {
+          "run": 1,
+          "ns": 5.371,
+          "min_ns": 5.02,
+          "max_ns": 5.69,
+          "bytes": 24.0
+        },
+        {
+          "run": 2,
+          "ns": 6.117,
+          "min_ns": 5.78,
+          "max_ns": 6.426,
+          "bytes": 24.0
+        },
+        {
+          "run": 3,
+          "ns": 6.147,
+          "min_ns": 5.807,
+          "max_ns": 6.62,
+          "bytes": 24.0
+        }
+      ]
+    },
+    "parse_8192_live": {
+      "ns": 10.906,
+      "bytes": 0.0,
+      "samples": [
+        {
+          "run": 1,
+          "ns": 9.595,
+          "min_ns": 8.701,
+          "max_ns": 11.746,
+          "bytes": 0.0
+        },
+        {
+          "run": 2,
+          "ns": 11.038,
+          "min_ns": 10.521,
+          "max_ns": 11.494,
+          "bytes": 0.0
+        },
+        {
+          "run": 3,
+          "ns": 10.906,
+          "min_ns": 10.696,
+          "max_ns": 11.626,
+          "bytes": 0.0
+        }
+      ]
+    },
+    "unique_pairs": {
+      "ns": 119.415,
+      "bytes": 88.0,
+      "samples": [
+        {
+          "run": 1,
+          "ns": 119.415,
+          "min_ns": 109.59,
+          "max_ns": 216.727,
+          "bytes": 88.0
+        },
+        {
+          "run": 2,
+          "ns": 122.308,
+          "min_ns": 94.752,
+          "max_ns": 1455.99,
+          "bytes": 88.0
+        },
+        {
+          "run": 3,
+          "ns": 117.956,
+          "min_ns": 99.585,
+          "max_ns": 207.7,
+          "bytes": 88.0
+        }
+      ]
+    },
+    "hash_code": {
+      "ns": 0.827,
+      "bytes": 0.0,
+      "samples": [
+        {
+          "run": 1,
+          "ns": 0.873,
+          "min_ns": 0.801,
+          "max_ns": 1.0,
+          "bytes": 0.0
+        },
+        {
+          "run": 2,
+          "ns": 0.791,
+          "min_ns": 0.711,
+          "max_ns": 1.017,
+          "bytes": 0.0
+        },
+        {
+          "run": 3,
+          "ns": 0.827,
+          "min_ns": 0.744,
+          "max_ns": 1.009,
+          "bytes": 0.0
+        }
+      ]
+    },
+    "hash_map": {
+      "ns": 5.66,
+      "bytes": 0.0,
+      "samples": [
+        {
+          "run": 1,
+          "ns": 5.66,
+          "min_ns": 5.327,
+          "max_ns": 6.204,
+          "bytes": 0.0
+        },
+        {
+          "run": 2,
+          "ns": 6.168,
+          "min_ns": 5.95,
+          "max_ns": 6.964,
+          "bytes": 0.0
+        },
+        {
+          "run": 3,
+          "ns": 3.043,
+          "min_ns": 2.868,
+          "max_ns": 3.579,
+          "bytes": 0.0
+        }
+      ]
+    }
+  }
+}

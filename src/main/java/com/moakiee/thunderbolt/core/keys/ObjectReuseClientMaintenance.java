@@ -9,5 +9,6 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 public final class ObjectReuseClientMaintenance {
     @SubscribeEvent public static void tick(ClientTickEvent.Post event) {
         KeyConstructionCache.maintain();
+        ResourceConstructionCache.maintain();
     }
 }

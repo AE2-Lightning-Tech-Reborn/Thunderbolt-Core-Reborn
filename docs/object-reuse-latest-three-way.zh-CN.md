@@ -1,5 +1,7 @@
 # 原版、Lean、最新 Thunderbolt 完整对照
 
+后续 RL 弱缓存已单独优化，见 [ResourceLocation 缓存复测](resource-location-cache.zh-CN.md)。本文保留流体/NBT 版本的完整快照；其中 RL 默认关闭的说明和数字不代表后续版本。
+
 2026-09-19 全量重新测量，包含普通流体直接缓存及 NBT 转换/收集合并。所有性能数字均来自本轮，不拼接旧轮次结果。
 
 ## 版本与方法

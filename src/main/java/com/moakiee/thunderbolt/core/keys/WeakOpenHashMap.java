@@ -63,7 +63,25 @@ final class WeakOpenHashMap<K, V> {
         return hash ^ (hash >>> 15);
     }
 
-    V get(K key) { return get(equality(key)); }
+    /** Direct equality lookup avoids a temporary probe when the JIT cannot eliminate it. */
+    @SuppressWarnings("unchecked")
+    V get(K key) {
+        Objects.requireNonNull(key);
+        int hash = hash(key.hashCode());
+        var current = table;
+        try {
+            for (int slot = hash & current.mask;; slot = (slot + 1) & current.mask) {
+                var node = SLOT.getAcquire(current.slots, slot);
+                if (node == null) return null;
+                if (node == DELETED) continue;
+                var entry = (Entry<K, V>) node;
+                if (entry.hash != hash) continue;
+                var stored = entry.get();
+                var value = entry.value.get();
+                if (stored != null && value != null && (key == stored || key.equals(stored))) return value;
+            }
+        } finally { Reference.reachabilityFence(key); }
+    }
 
     /** A transient probe can compare against both stored referents without becoming a retained key. */
     @SuppressWarnings("unchecked")

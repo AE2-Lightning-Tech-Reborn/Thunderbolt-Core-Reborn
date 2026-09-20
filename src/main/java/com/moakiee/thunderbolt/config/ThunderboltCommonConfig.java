@@ -40,9 +40,9 @@ public final class ThunderboltCommonConfig {
         REUSE_COMPONENT_KEYS = builder.comment("Also reuse component keys after repeated copying of a native copy-on-write patch snapshot.",
                         "Fresh/unknown/writable component maps bypass reuse; independent equal patches still compare by value.")
                 .define("reuseComponentKeys", true);
-        REUSE_RESOURCE_LOCATIONS = builder.comment("Bounded constructor reuse for ResourceLocation; preserves validation and value equality.",
-                        "Opt-in: reduces allocation on repeated identifiers but costs time on mostly unique identifiers.")
-                .define("reuseResourceLocations", false);
+        REUSE_RESOURCE_LOCATIONS = builder.comment("Weak canonical ResourceLocation cache with a parsed-string shortcut; preserves validation and value equality.",
+                        "Reduces repeated-ID allocation; mostly unique identifiers pay extra indexing cost. Existing configurations keep their saved value.")
+                .define("reuseResourceLocations", true);
         REUSE_TAG_KEYS = builder.comment("Reuse TagKey constructor candidates before vanilla's canonical interner.")
                 .define("reuseTagKeys", true);
         CACHE_RESOURCE_HASHES = builder.comment("Memoize the original hashCode of immutable ResourceLocation and TagKey values.")

@@ -54,6 +54,16 @@ public final class ComparisonProbe {
 
     @GameTest(template = "empty", timeoutTicks = 2000)
     public static void compare(GameTestHelper h) throws Exception {
+        if (Boolean.getBoolean("comparison.resourceColdOnly")) {
+            ResourceLocationColdBenchmark.run();
+            h.succeed();
+            return;
+        }
+        if (Boolean.getBoolean("comparison.resourceOnly")) {
+            ResourceLocationBenchmark.run();
+            h.succeed();
+            return;
+        }
         if (Boolean.getBoolean("comparison.directFactoryOnly")) {
             DirectFactoryBenchmark.run();
             h.succeed();

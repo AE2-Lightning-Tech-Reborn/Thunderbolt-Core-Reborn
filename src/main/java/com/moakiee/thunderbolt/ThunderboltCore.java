@@ -67,6 +67,7 @@ public final class ThunderboltCore {
 
     private void onServerTick(ServerTickEvent.Post event) {
         KeyConstructionCache.maintain();
+        ResourceConstructionCache.maintain();
     }
 
     private void onConfigChanged(ModConfigEvent event) {
