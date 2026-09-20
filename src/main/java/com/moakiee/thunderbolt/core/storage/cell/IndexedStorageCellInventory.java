@@ -21,7 +21,7 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 import com.moakiee.thunderbolt.core.storage.cell.ByteTracker;
 
 /** Shared AE2 {@link StorageCell} wrapper for every {@link IIndexedStorageCellItem}. */
-public final class IndexedStorageCellInventory implements StorageCell {
+public final class IndexedStorageCellInventory implements StorageCell, com.moakiee.thunderbolt.api.storage.BigMEStorage {
     private final ItemStack stack;
     private final IIndexedStorageCellItem definition;
     private final @Nullable HolderLookup.Provider explicitRegistries;
@@ -53,6 +53,7 @@ public final class IndexedStorageCellInventory implements StorageCell {
         this.storage = cellId != null && savedData != null
                 ? savedData.getOrCreateStorage(storageType, cellId, resolveRegistries())
                 : new IndexedStorage();
+        if (definition.supportsBigAmounts(stack)) storage.enableArbitraryPrecision();
         this.byteTracker = definition.createByteTracker(stack, storage);
         syncByteTracker();
     }
@@ -60,6 +61,7 @@ public final class IndexedStorageCellInventory implements StorageCell {
     @Override
     public long insert(AEKey key, long amount, Actionable mode, IActionSource source) {
         if (amount <= 0 || !definition.accepts(stack, key, source)) return 0;
+        if (definition.supportsBigAmounts(stack)) return insertBig(key, java.math.BigInteger.valueOf(amount), mode, source).longValueExact();
         ensureSync();
         boolean newKey = !storage.containsKey(key);
         long accepted = Math.min(amount, byteTracker.computeMaxInsertable(key.getType(), newKey));
@@ -76,6 +78,7 @@ public final class IndexedStorageCellInventory implements StorageCell {
     @Override
     public long extract(AEKey key, long amount, Actionable mode, IActionSource source) {
         if (amount <= 0) return 0;
+        if (definition.supportsBigAmounts(stack)) return extractBig(key, java.math.BigInteger.valueOf(amount), mode, source).longValueExact();
         ensureSync();
         if (mode == Actionable.SIMULATE) {
             return storage.extract(key, amount, Actionable.SIMULATE);
@@ -104,6 +107,7 @@ public final class IndexedStorageCellInventory implements StorageCell {
     public CellState getStatus() {
         ensureSync();
         if (storage.getTotalTypes() == 0) return CellState.EMPTY;
+        if (definition.supportsBigAmounts(stack)) return CellState.NOT_EMPTY;
         if (byteTracker.isFull()) return CellState.FULL;
         if (byteTracker.isTypeFull()) return CellState.TYPES_FULL;
         return CellState.NOT_EMPTY;
@@ -136,6 +140,39 @@ public final class IndexedStorageCellInventory implements StorageCell {
         savedData.persistStorage(storageType, cellId, storage, resolveRegistries());
         ensureSync();
         syncSummary();
+    }
+
+    @Override public java.math.BigInteger insertBig(AEKey key, java.math.BigInteger amount, Actionable mode, IActionSource source) {
+        com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(amount);
+        if (!definition.supportsBigAmounts(stack)) return java.math.BigInteger.valueOf(insert(key,
+                com.moakiee.thunderbolt.core.storage.big.BigAmounts.project(amount), mode, source));
+        if (!definition.accepts(stack, key, source)) return java.math.BigInteger.ZERO;
+        var accepted = storage.insertExact(key, amount, mode);
+        if (mode == Actionable.MODULATE && accepted.signum() > 0) { syncByteTracker(); syncSummary(); markChanged(); }
+        return accepted;
+    }
+
+    @Override public java.math.BigInteger extractBig(AEKey key, java.math.BigInteger amount, Actionable mode, IActionSource source) {
+        com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(amount);
+        if (!definition.supportsBigAmounts(stack)) return java.math.BigInteger.valueOf(extract(key,
+                com.moakiee.thunderbolt.core.storage.big.BigAmounts.project(amount), mode, source));
+        var taken = storage.extractExact(key, amount, mode);
+        if (mode == Actionable.MODULATE && taken.signum() > 0) { syncByteTracker(); syncSummary(); markChanged(); }
+        return taken;
+    }
+
+    @Override public java.util.Map<AEKey, java.math.BigInteger> snapshotBig(IActionSource source) {
+        if (definition.supportsBigAmounts(stack)) return storage.snapshotExact();
+        // The non-opted-in bridge can extract only one long chunk per endpoint.
+        // Do not promise its larger legacy ledger as atomically available to an exact plan.
+        var result = new java.util.LinkedHashMap<AEKey, java.math.BigInteger>();
+        storage.snapshotExact().forEach((key, amount) -> {
+            long available = extract(key,
+                    com.moakiee.thunderbolt.core.storage.big.BigAmounts.project(amount),
+                    Actionable.SIMULATE, source);
+            if (available > 0) result.put(key, java.math.BigInteger.valueOf(available));
+        });
+        return java.util.Map.copyOf(result);
     }
 
     public IndexedStorage storage() { return storage; }

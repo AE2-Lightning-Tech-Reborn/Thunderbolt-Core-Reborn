@@ -274,7 +274,8 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
     @Inject(method = "run", at = @At("RETURN"), cancellable = true, remap = false)
     private void thunderbolt$finishCalculation(CallbackInfoReturnable<ICraftingPlan> cir) {
         var result = cir.getReturnValue();
-        if (result instanceof CraftingPlan craftingPlan) {
+        if (result instanceof CraftingPlan craftingPlan
+                && !com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(result)) {
             result = LoopCraftingPlan.wrapIfNeeded(
                     craftingPlan, PlanningMetadataStore.take(craftingPlan));
         }

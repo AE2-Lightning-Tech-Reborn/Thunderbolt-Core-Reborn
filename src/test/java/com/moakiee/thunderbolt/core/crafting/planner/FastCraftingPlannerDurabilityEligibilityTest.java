@@ -1,28 +1,72 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Future;
 
+import com.google.common.collect.ImmutableSet;
+import com.mojang.serialization.MapCodec;
+import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 
+import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.networking.IGridNode;
+import appeng.api.networking.crafting.CalculationStrategy;
+import appeng.api.networking.crafting.ICraftingCPU;
+import appeng.api.networking.crafting.ICraftingPlan;
+import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.networking.crafting.ICraftingService;
+import appeng.api.networking.crafting.ICraftingSimulationRequester;
+import appeng.api.networking.crafting.ICraftingSubmitResult;
+import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.storage.AEKeyFilter;
+import appeng.crafting.inv.ChildCraftingSimulationState;
+import appeng.crafting.inv.ICraftingInventory;
+import appeng.crafting.pattern.AECraftingPattern;
+import net.minecraftforge.fml.loading.LoadingModList;
 
 import org.junit.jupiter.api.Test;
 
+import sun.misc.Unsafe;
+
 class FastCraftingPlannerDurabilityEligibilityTest {
+    static {
+        LoadingModList.of(List.of(), List.of(), new net.minecraftforge.fml.loading.EarlyLoadingException("test", null, List.of()));
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+    }
+
     private static final AEKey FULL_TOOL = new TestKey("tool", "full");
     private static final AEKey DAMAGED_TOOL = new TestKey("tool", "damaged");
+
+    private static final AEItemKey A = AEItemKey.of(Items.IRON_INGOT);
+    private static final AEItemKey B = AEItemKey.of(Items.WOODEN_PICKAXE);
+    private static final AEItemKey C = AEItemKey.of(Items.STICK);
+    private static final AEItemKey D = AEItemKey.of(Items.DIAMOND);
 
     @Test
     void strictPatternDoesNotTreatRejectedDamagedToolAsReusable() {
@@ -40,33 +84,426 @@ class FastCraftingPlannerDurabilityEligibilityTest {
                 input, DAMAGED_TOOL, null));
     }
 
+    /** A -> B; B* + C -> B*-1 + D. Fuzzy B* reuses one crafted tool for both D. */
     @Test
-    void missingRemainderCannotContinueDurabilityChain() {
-        assertFalse(FastCraftingPlanner.acceptsDurabilityRemainder(
-                new TestInput(true), null, null));
+    void aToBThenDurabilityRecipeReusesBWhenFuzzyIsEnabled() {
+        IPatternDetails makeB = new FakePattern(B, new IPatternDetails.IInput[] {
+                new ExactInput(A)
+        });
+        IPatternDetails makeD = TestCraftingPattern.create(D, new IPatternDetails.IInput[] {
+                new DurabilityInput(B, true),
+                new ExactInput(C)
+        });
+        var service = new FakeCraftingService()
+                .pattern(B, makeB)
+                .pattern(D, makeD)
+                .craftable(B)
+                .craftable(D);
+        var inventory = new ChildCraftingSimulationState(
+                new StockInventory(Map.of(A, 1L, C, 2L)));
+
+        var attempt = FastCraftingPlanner.tryAttempt(service, inventory, null, D, 2, false);
+
+        assertTrue(attempt.handled());
+        assertNotNull(attempt.plan(),
+                "fuzzy B* must reuse B*-1 instead of crafting a second B");
+        assertTrue(attempt.plan().missingItems().isEmpty());
+        assertEquals(1L, attempt.plan().patternTimes().get(makeB));
+        assertEquals(2L, attempt.plan().patternTimes().get(makeD));
+        assertEquals(1L, attempt.plan().usedItems().get(A));
+        assertEquals(2L, attempt.plan().usedItems().get(C));
+    }
+
+    /** A -> B; B* + C -> B*-1 + D. Strict B cannot consume B*-1 on the second craft. */
+    @Test
+    void aToBThenDurabilityRecipeReportsSecondBMissingWhenFuzzyIsDisabled() {
+        IPatternDetails makeB = new FakePattern(B, new IPatternDetails.IInput[] {
+                new ExactInput(A)
+        });
+        IPatternDetails makeD = TestCraftingPattern.create(D, new IPatternDetails.IInput[] {
+                new DurabilityInput(B, false),
+                new ExactInput(C)
+        });
+        var service = new FakeCraftingService()
+                .pattern(B, makeB)
+                .pattern(D, makeD)
+                .craftable(B)
+                .craftable(D);
+        var inventory = new ChildCraftingSimulationState(
+                new StockInventory(Map.of(A, 1L, C, 2L)));
+
+        var attempt = FastCraftingPlanner.tryAttempt(service, inventory, null, D, 2, false);
+
+        assertTrue(attempt.handled());
+        assertNull(attempt.plan(),
+                "strict B must not produce a feasible plan by reusing rejected B*-1");
+        assertNotNull(attempt.simulationFallback());
+        assertEquals(1L, attempt.simulationFallback().missingItems().get(A),
+                "two strict crafts need two fresh B, hence two A");
+        assertEquals(2L, attempt.simulationFallback().patternTimes().get(makeB));
+        assertEquals(2L, attempt.simulationFallback().patternTimes().get(makeD));
+    }
+
+    @Test
+    void exhaustedToolIsReplacedOnlyAfterItsLastUsableCraft() {
+        int life = B.toStack().getMaxDamage();
+        for (int amount : new int[]{life - 1, life, life + 1, 2 * life, 2 * life + 1}) {
+            long replacements = (amount - 1L) / life;
+            var result = durabilityAttempt(B, amount, Map.of(B, 1L, A, replacements, C, (long) amount));
+            assertNotNull(result.plan(), "amount=" + amount);
+            assertTrue(result.plan().missingItems().isEmpty());
+            assertEquals(1L, result.plan().usedItems().get(B));
+            assertEquals(replacements, result.plan().usedItems().get(A));
+        }
+    }
+
+    @Test
+    void oneCraftPastBreakageReportsTheNextToolsRawMaterial() {
+        long amount = B.toStack().getMaxDamage() + 1L;
+        var result = durabilityAttempt(B, amount, Map.of(B, 1L, C, amount));
+        assertNull(result.plan());
+        assertNotNull(result.simulationFallback());
+        assertEquals(1L, result.simulationFallback().missingItems().get(A));
+        assertEquals(0L, result.simulationFallback().missingItems().get(B));
+    }
+
+    @Test
+    void lastDurabilityStockAndLastDurabilityTemplateBothStillAllowReplacement() {
+        ItemStack last = B.toStack();
+        last.setDamageValue(last.getMaxDamage() - 1);
+        AEItemKey lastKey = AEItemKey.of(last);
+        for (AEItemKey template : List.of(B, lastKey)) {
+            var lastUse = durabilityAttempt(template, 1, Map.of(lastKey, 1L, C, 1L));
+            assertNotNull(lastUse.plan());
+            assertEquals(1L, lastUse.plan().usedItems().get(lastKey));
+            var replaced = durabilityAttempt(template, 2, Map.of(lastKey, 1L, A, 1L, C, 2L));
+            assertNotNull(replaced.plan());
+            assertEquals(1L, replaced.plan().usedItems().get(lastKey));
+            assertEquals(1L, replaced.plan().usedItems().get(A));
+        }
+    }
+
+    @Test
+    void finalUseDoesNotRegisterAPhantomRemainderInCpuExtraction() {
+        ItemStack last = B.toStack();
+        last.setDamageValue(last.getMaxDamage() - 1);
+        AEItemKey lastKey = AEItemKey.of(last);
+        IPatternDetails base = TestCraftingPattern.create(D, new IPatternDetails.IInput[]{
+                new DurabilityInput(B, true), new ExactInput(C)});
+        var allocated = new com.moakiee.thunderbolt.core.crafting.pattern.PlannedInputPattern(
+                base, List.of(Map.of(), Map.of(C, 1L)));
+        for (var pattern : List.of(base, allocated)) {
+            var inventory = new StockInventory(Map.of(lastKey, 1L, C, 1L));
+            var outputs = new appeng.api.stacks.KeyCounter();
+            var containers = new appeng.api.stacks.KeyCounter();
+            var extracted = com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper
+                    .extractPatternInputs(pattern, inventory, null, outputs, containers);
+            assertNotNull(extracted);
+            assertEquals(1L, outputs.get(D));
+            assertTrue(containers.isEmpty(), "broken tool must have no awaited remainder");
+            assertEquals(0L, inventory.extract(lastKey, 1, Actionable.SIMULATE));
+        }
+    }
+
+    @Test
+    void parallelUseMayLeaveOneDurabilityOnEachToolButTheNextCraftConsumesIt() {
+        var input = new DurabilityInput(B, true);
+        IPatternDetails pattern = TestCraftingPattern.create(D, new IPatternDetails.IInput[]{input});
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        int tools = 8, life = B.toStack().getMaxDamage();
+        inventory.insert(B, tools, Actionable.MODULATE);
+        long remaining = (long) tools * (life - 1);
+        while (remaining > 0) {
+            var batch = com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper
+                    .bulkExtract(pattern, inventory, remaining, true, Map.of(), null);
+            assertNotNull(batch);
+            for (var entry : batch.scaledInputs[0]) {
+                var returned = input.getRemainingKey(entry.getKey());
+                if (returned != null) inventory.insert(returned, entry.getLongValue(), Actionable.MODULATE);
+            }
+            remaining -= batch.actualCopies;
+        }
+        ItemStack last = B.toStack();
+        last.setDamageValue(life - 1);
+        AEItemKey lastKey = AEItemKey.of(last);
+        assertEquals(tools, inventory.extract(lastKey, Long.MAX_VALUE, Actionable.SIMULATE));
+        var next = com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper
+                .bulkExtract(pattern, inventory, tools, true, Map.of(), null);
+        assertNotNull(next, "all of the remaining one-use tools are still accepted");
+        assertEquals(tools, next.actualCopies);
+        assertEquals(tools, next.scaledInputs[0].get(lastKey));
+        assertNull(input.getRemainingKey(lastKey));
+    }
+
+    @Test
+    void nativeStyleFuzzyAnchorsDoNotReserveOneWholeToolForEveryUse() {
+        assertFuzzyToolReservation(B, B.toStack().getMaxDamage());
+    }
+
+    @Test
+    void twoUsesOfOneDamagedToolDoNotReserveTwoToolsAndLeaveBothAtOneDurability() {
+        ItemStack twoUses = B.toStack();
+        twoUses.setDamageValue(twoUses.getMaxDamage() - 2);
+        assertFuzzyToolReservation(AEItemKey.of(twoUses), 2);
+    }
+
+    @Test
+    void lastUseStockDoesNotPullInAFreshToolThatCpuCanChooseInstead() {
+        ItemStack last = B.toStack();
+        last.setDamageValue(last.getMaxDamage() - 1);
+        AEItemKey lastKey = AEItemKey.of(last);
+        IPatternDetails pattern = TestCraftingPattern.create(D,
+                new IPatternDetails.IInput[]{nativeStyleDurabilityInput(B)});
+        var service = new FakeCraftingService().pattern(D, pattern).craftable(D);
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(B, 100L, lastKey, 1L))),
+                null, D, 1, false);
+        assertNotNull(attempt.plan());
+        assertEquals(1L, attempt.plan().usedItems().get(lastKey));
+        assertEquals(0L, attempt.plan().usedItems().get(B), "the old tool's last use already covers this job");
+    }
+
+    private static IPatternDetails.IInput nativeStyleDurabilityInput(AEItemKey template) {
+        var source = new DurabilityInput(template, true);
+        return new IPatternDetails.IInput() {
+            // AECraftingPattern lists its captured input and the recipe ingredient separately.
+            public GenericStack[] getPossibleInputs() {
+                return new GenericStack[]{new GenericStack(template, 1), new GenericStack(B, 1)};
+            }
+            public long getMultiplier() { return 1; }
+            public boolean isValid(AEKey key, Level level) { return source.isValid(key, level); }
+            public AEKey getRemainingKey(AEKey key) { return source.getRemainingKey(key); }
+        };
+    }
+
+    private static void assertFuzzyToolReservation(AEItemKey template, long amount) {
+        IPatternDetails pattern = TestCraftingPattern.create(D,
+                new IPatternDetails.IInput[]{nativeStyleDurabilityInput(template)});
+        var service = new FakeCraftingService().pattern(D, pattern).craftable(D);
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(template, 100L))),
+                null, D, amount, false);
+        assertNotNull(attempt.plan());
+        assertEquals(1L, attempt.plan().usedItems().get(template), "one tool covers the requested uses");
+        // Feed precisely the exported stock through native AE2 extraction: it must use the same
+        // tool until it disappears, instead of spreading those crafts across surplus tools.
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(template, attempt.plan().usedItems().get(template), Actionable.MODULATE);
+        for (long craft = 0; craft < amount; craft++) {
+            var outputs = new appeng.api.stacks.KeyCounter();
+            var containers = new appeng.api.stacks.KeyCounter();
+            assertNotNull(com.moakiee.thunderbolt.core.crafting.batch.ParallelBatchCpuHelper
+                    .extractPatternInputs(pattern, inventory, null, outputs, containers));
+            assertEquals(1L, outputs.get(D));
+            for (var entry : containers) {
+                if (craft + 1 == amount) assertEquals(0L, entry.getLongValue());
+                if (entry.getLongValue() > 0)
+                    inventory.insert(entry.getKey(), entry.getLongValue(), Actionable.MODULATE);
+            }
+        }
+    }
+
+    private static FastCraftingPlanner.FastAttempt durabilityAttempt(
+            AEItemKey template, long amount, Map<AEKey, Long> stock) {
+        IPatternDetails makeB = new FakePattern(B, new IPatternDetails.IInput[]{new ExactInput(A)});
+        IPatternDetails makeD = TestCraftingPattern.create(D, new IPatternDetails.IInput[]{
+                new DurabilityInput(template, true), new ExactInput(C)});
+        var service = new FakeCraftingService().pattern(B, makeB).pattern(D, makeD)
+                .craftable(B).craftable(D);
+        return FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(stock)), null, D, amount, false);
     }
 
     private record TestInput(boolean allowVariants) implements IPatternDetails.IInput {
-        @Override
-        public GenericStack[] getPossibleInputs() {
-            return new GenericStack[] { new GenericStack(FULL_TOOL, 1) };
+        @Override public GenericStack[] getPossibleInputs() {
+            return new GenericStack[] {new GenericStack(FULL_TOOL, 1)};
         }
-
-        @Override
-        public long getMultiplier() {
-            return 1;
-        }
-
-        @Override
-        public boolean isValid(AEKey key, Level level) {
+        @Override public long getMultiplier() { return 1; }
+        @Override public boolean isValid(AEKey key, Level level) {
             return allowVariants
                     ? FULL_TOOL.dropSecondary().equals(key.dropSecondary())
                     : FULL_TOOL.equals(key);
         }
-
-        @Override
-        public AEKey getRemainingKey(AEKey key) {
+        @Override public AEKey getRemainingKey(AEKey key) {
             return FULL_TOOL.equals(key) ? DAMAGED_TOOL : null;
+        }
+    }
+
+    private record ExactInput(AEKey key) implements IPatternDetails.IInput {
+        @Override public GenericStack[] getPossibleInputs() {
+            return new GenericStack[] {new GenericStack(key, 1)};
+        }
+        @Override public long getMultiplier() { return 1; }
+        @Override public boolean isValid(AEKey candidate, Level level) {
+            return key.equals(candidate);
+        }
+        @Override public AEKey getRemainingKey(AEKey candidate) { return null; }
+    }
+
+    private record DurabilityInput(AEItemKey encoded, boolean fuzzy)
+            implements IPatternDetails.IInput {
+        @Override public GenericStack[] getPossibleInputs() {
+            return new GenericStack[] {new GenericStack(encoded, 1)};
+        }
+        @Override public long getMultiplier() { return 1; }
+        @Override public boolean isValid(AEKey candidate, Level level) {
+            return candidate instanceof AEItemKey item
+                    && (fuzzy ? item.getItem() == encoded.getItem() : encoded.equals(item));
+        }
+        @Override public AEKey getRemainingKey(AEKey candidate) {
+            if (!(candidate instanceof AEItemKey item) || item.getItem() != encoded.getItem()) {
+                return null;
+            }
+            ItemStack remainder = item.toStack();
+            int nextDamage = remainder.getDamageValue() + 1;
+            if (nextDamage >= remainder.getMaxDamage()) {
+                return null;
+            }
+            remainder.setDamageValue(nextDamage);
+            return AEItemKey.of(remainder);
+        }
+    }
+
+    private record FakePattern(AEKey output, IInput[] inputs) implements IPatternDetails {
+        @Override public AEItemKey getDefinition() { return null; }
+        @Override public IInput[] getInputs() { return inputs; }
+        @Override public GenericStack[] getOutputs() {
+            return new GenericStack[]{new GenericStack(output, 1)};
+        }
+    }
+
+    /**
+     * The refactored adapter deliberately enables durability inference only for an actual
+     * {@link AECraftingPattern}. AE2 needs a live level and recipe manager to construct one normally,
+     * so this test-only subclass is allocated without running that external constructor and overrides
+     * the complete {@link IPatternDetails} surface used by the planner.
+     */
+    private static final class TestCraftingPattern extends AECraftingPattern {
+        private IInput[] testInputs;
+        private List<GenericStack> testOutputs;
+
+        private TestCraftingPattern() {
+            super(null, null);
+        }
+
+        static TestCraftingPattern create(AEKey output, IInput[] inputs) {
+            try {
+                var pattern = (TestCraftingPattern) unsafe().allocateInstance(
+                        TestCraftingPattern.class);
+                pattern.testInputs = inputs;
+                pattern.testOutputs = List.of(new GenericStack(output, 1));
+                return pattern;
+            } catch (InstantiationException e) {
+                throw new AssertionError(e);
+            }
+        }
+
+        @Override public AEItemKey getDefinition() { return null; }
+        @Override public IInput[] getInputs() { return testInputs; }
+        @Override public GenericStack[] getOutputs() { return testOutputs.toArray(GenericStack[]::new); }
+        @Override public boolean equals(Object obj) { return this == obj; }
+        @Override public int hashCode() { return System.identityHashCode(this); }
+    }
+
+    private static Unsafe unsafe() {
+        try {
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+            field.setAccessible(true);
+            return (Unsafe) field.get(null);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private static final class FakeCraftingService implements ICraftingService {
+        private final Map<AEKey, List<IPatternDetails>> patterns = new LinkedHashMap<>();
+        private final Set<AEKey> craftables = new java.util.LinkedHashSet<>();
+
+        FakeCraftingService pattern(AEKey output, IPatternDetails details) {
+            patterns.computeIfAbsent(output, ignored -> new ArrayList<>()).add(details);
+            return this;
+        }
+
+        FakeCraftingService craftable(AEKey key) {
+            craftables.add(key);
+            return this;
+        }
+
+        @Override public java.util.Collection<IPatternDetails> getCraftingFor(AEKey whatToCraft) {
+            return patterns.getOrDefault(whatToCraft, List.of());
+        }
+        @Override public void refreshNodeCraftingProvider(IGridNode node) { }
+         public void addGlobalCraftingProvider(ICraftingProvider provider) { }
+         public void removeGlobalCraftingProvider(ICraftingProvider provider) { }
+         public void refreshGlobalCraftingProvider(ICraftingProvider provider) { }
+        @Override public AEKey getFuzzyCraftable(AEKey whatToCraft, AEKeyFilter filter) {
+            for (AEKey key : craftables) {
+                if (key.getId().equals(whatToCraft.getId()) && filter.matches(key)) {
+                    return key;
+                }
+            }
+            return null;
+        }
+        @Override public Future<ICraftingPlan> beginCraftingCalculation(
+                Level level, ICraftingSimulationRequester simRequester, AEKey what, long amount,
+                CalculationStrategy strategy) {
+            throw new UnsupportedOperationException();
+        }
+        @Override public ICraftingSubmitResult submitJob(
+                ICraftingPlan job,
+                appeng.api.networking.crafting.ICraftingRequester requestingMachine,
+                ICraftingCPU target,
+                boolean prioritizePower,
+                IActionSource src) {
+            throw new UnsupportedOperationException();
+        }
+        @Override public ImmutableSet<ICraftingCPU> getCpus() { return ImmutableSet.of(); }
+        @Override public boolean canEmitFor(AEKey what) { return false; }
+        @Override public Set<AEKey> getCraftables(AEKeyFilter filter) {
+            var result = new java.util.LinkedHashSet<AEKey>();
+            for (AEKey key : craftables) {
+                if (filter.matches(key)) {
+                    result.add(key);
+                }
+            }
+            return result;
+        }
+        @Override public boolean isRequesting(AEKey what) { return false; }
+        @Override public long getRequestedAmount(AEKey what) { return 0; }
+        @Override public boolean isRequestingAny() { return false; }
+    }
+
+    private static final class StockInventory implements ICraftingInventory {
+        private final Map<AEKey, Long> stock;
+
+        StockInventory(Map<AEKey, Long> stock) {
+            this.stock = new HashMap<>(stock);
+        }
+
+        @Override public void insert(AEKey key, long amount, Actionable mode) {
+            if (mode == Actionable.MODULATE) {
+                stock.merge(key, amount, Long::sum);
+            }
+        }
+
+        @Override public long extract(AEKey key, long amount, Actionable mode) {
+            long available = stock.getOrDefault(key, 0L);
+            long taken = Math.min(available, amount);
+            if (mode == Actionable.MODULATE && taken > 0) {
+                stock.put(key, available - taken);
+            }
+            return taken;
+        }
+
+        @Override public Iterable<AEKey> findFuzzyTemplates(AEKey key) {
+            var matches = new ArrayList<AEKey>();
+            for (AEKey candidate : stock.keySet()) {
+                if (candidate.getType() == key.getType()
+                        && candidate.getId().equals(key.getId())) {
+                    matches.add(candidate);
+                }
+            }
+            return matches;
         }
     }
 
@@ -80,55 +517,27 @@ class FastCraftingPlannerDurabilityEligibilityTest {
             this.variant = variant;
         }
 
-        @Override
-        public AEKeyType getType() {
-            return TYPE;
-        }
-
-        @Override
-        public AEKey dropSecondary() {
-            return new TestKey(id, "");
-        }
-
-        @Override
-        public CompoundTag toTag() {
+        @Override public AEKeyType getType() { return TYPE; }
+        @Override public AEKey dropSecondary() { return new TestKey(id, ""); }
+        @Override public CompoundTag toTag() {
             return new CompoundTag();
         }
-
-        @Override
-        public Object getPrimaryKey() {
-            return id;
-        }
-
-        @Override
-        public ResourceLocation getId() {
+        @Override public Object getPrimaryKey() { return id; }
+        @Override public ResourceLocation getId() {
             return new ResourceLocation("thunderbolt_test", id);
         }
-
-        @Override
-        public void writeToPacket(FriendlyByteBuf data) {
-        }
-
-        @Override
-        protected Component computeDisplayName() {
+        @Override public void writeToPacket(FriendlyByteBuf data) { }
+        @Override protected Component computeDisplayName() {
             return Component.literal(id + "#" + variant);
         }
-
-        @Override
-        public void addDrops(long amount, List<ItemStack> drops, Level level, BlockPos pos) {
-        }
-
-        @Override
-        public boolean equals(Object obj) {
+        @Override public void addDrops(long amount, List<ItemStack> drops, Level level, BlockPos pos) { }
+         public boolean hasComponents() { return !variant.isEmpty(); }
+        @Override public boolean equals(Object obj) {
             return obj instanceof TestKey other
                     && id.equals(other.id)
                     && variant.equals(other.variant);
         }
-
-        @Override
-        public int hashCode() {
-            return 31 * id.hashCode() + variant.hashCode();
-        }
+        @Override public int hashCode() { return 31 * id.hashCode() + variant.hashCode(); }
     }
 
     private static final class TestKeyType extends AEKeyType {
@@ -137,15 +546,8 @@ class FastCraftingPlannerDurabilityEligibilityTest {
                             "thunderbolt_test", "durability_eligibility_key"),
                     TestKey.class, Component.literal("durability eligibility key"));
         }
-
-        @Override
-        public AEKey loadKeyFromTag(CompoundTag tag) {
-            return null;
-        }
-
-        @Override
-        public AEKey readFromPacket(FriendlyByteBuf input) {
-            return null;
-        }
+         @Override public AEKey loadKeyFromTag(CompoundTag tag) { return null; }
+        public MapCodec<? extends AEKey> codec() { return null; }
+        @Override public AEKey readFromPacket(FriendlyByteBuf input) { return null; }
     }
 }

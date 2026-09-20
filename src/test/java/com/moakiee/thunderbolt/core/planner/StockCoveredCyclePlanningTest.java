@@ -69,16 +69,20 @@ class StockCoveredCyclePlanningTest {
     }
 
     @Test
-    void alternateStockCutsRespectTheSharedSearchBudget() {
+    void exactSmallDagRemainsAvailableWhenRecursiveSearchIsLimited() {
         CraftGraph<String> graph = graph(true, false, 57, 47, 3, 6, false);
 
         PlanningResult<String> result = CraftPlannerV2.planDetailed(
                 graph, "request", 4, CraftPlannerV2.DEFAULT_VISIT_CAP, 1);
 
-        assertFalse(result.plan().feasible());
-        assertTrue(result.plan().budgetExhausted());
-        assertEquals(1, result.diagnostics().planRuns());
-        assertTrue(result.diagnostics().searchCutoff());
+        assertTrue(result.plan().feasible());
+        assertTrue(result.diagnostics().consumedSearchBudget() <= 1);
+        assertEquals(2L, result.plan().usedStock().get("luminessence"));
+        assertEquals(6L, result.plan().usedStock().get("firmament"));
+        assertEquals(16L, firingsFor(result.plan(), "supreme_circuit"));
+        assertEquals(0L, firingsFor(result.plan(), "luminessence"));
+        assertEquals(0L, firingsFor(result.plan(), "absolute_essence"));
+        assertEquals(0L, firingsFor(result.plan(), "infinity_core"));
     }
 
     @Test

@@ -192,6 +192,11 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
                                                                  boolean prioritizePower,
                                                                  IActionSource src,
                                                                  CallbackInfoReturnable<ICraftingSubmitResult> cir) {
+        if (com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(job)) {
+            cir.setReturnValue(CraftingSubmitResult.simpleError(
+                    appeng.api.networking.crafting.CraftingSubmitErrorCode.INCOMPLETE_PLAN));
+            return;
+        }
         if (job.simulation()) {
             return;
         }
@@ -296,7 +301,7 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
             if (!cluster.isActive()) {
                 continue;
             }
-            for (var cpu : cluster.getActiveCpus()) {
+            for (var cpu : cluster.getVisibleCpus()) {
                 cpus.add(cpu);
             }
             if (cluster.getAvailableStorage() > 0L) {

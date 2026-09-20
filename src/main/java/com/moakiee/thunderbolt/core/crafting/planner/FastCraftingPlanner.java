@@ -1,5 +1,6 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,8 +69,8 @@ import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
  *   <li><b>Recursion / cycle</b> → handled in-engine: the v2 planner breaks back-edges ("去头尾") so a
  *       compress/decompress pair (1 block ⇄ 9 ingots) is planned directly instead of declining. The
  *       reverse side resolves from stock/missing; cuts only remove options, never overstate feasibility.</li>
- *   <li>A <b>feasible</b> plan is always safe to return (mass-balanced ⇒ executable), even with
- *       byproducts and multiple recipe choices.</li>
+ *   <li>A <b>feasible</b> plan must satisfy both material accounting and the solver's ordered
+ *       execution/startup checks; aggregate balance alone is not a cycle reachability proof.</li>
  *   <li><b>Proven infeasible</b>: best-effort, never declined (Policy A).
  *       {@code simulate=false}→null, {@code simulate=true}→partial plan with missing items.</li>
  *   <li><b>Search budget exhausted</b>: stop enumerating alternatives and finish the current route
@@ -79,15 +80,12 @@ import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
  * </ul>
  *
  * <p><b>Execution-time contract (fuzzy substitution).</b> For a hard-fuzzy slot the planner commits to a
- * <em>concrete</em> substitute (the most-available option in the chosen combination) and charges that exact
- * key as used. AE2 still fires the single real {@link IPatternDetails}, and at extraction time its fuzzy
- * matcher may pull a <em>different</em> acceptable stack than the one the plan charged (e.g. a different
- * NBT/damage variant, or a different tag member that happened to be in the same slot). The plan stays
- * mass-balanced for the key it charged, but the network can end up consuming a sibling substitute instead.
- * This is an <b>execution-time</b> concern, not a planning one: reconciling "what the plan charged" with
- * "what the fuzzy slot actually resolved" is the responsibility of the executing CPU (the batch crafting
- * CPU logic), which sees the real extraction. The planner intentionally does not try to predict AE2's
- * runtime fuzzy resolution here — see the batch CPU logic for the execution-side fix.
+ * <em>concrete</em> allocation, including mixed substitutes within a slot, and charges those exact keys.
+ * The registered pattern counts remain available to native CPUs. A separate weakly held execution
+ * manifest preserves each chosen slot allocation for integrating CPUs such as Tianshu. Its task wrappers
+ * constrain extraction while delegating physical execution to the original pattern. Durability carriers
+ * and late-bound same-id slots retain their dynamic semantics; contracted macros retain their own
+ * expansion and seed routing contract.
  *
  * <p><b>Planning-side input discovery.</b> Every input follows AE2's native contract: each
  * {@link IPatternDetails.IInput#getPossibleInputs()} entry anchors one primary-identity candidate
@@ -157,6 +155,7 @@ public final class FastCraftingPlanner {
         private final SolverKind solverKind;
         @Nullable
         private final CraftPlannerV2.PlanningSession<AEKey> plannerSession;
+        private final CpSatRankedFlowSolver.PlanningSession cpSatSession = new CpSatRankedFlowSolver.PlanningSession();
 
         public CalculationSession() {
             this(SolverKind.V2);
@@ -292,7 +291,7 @@ public final class FastCraftingPlanner {
         CraftPlan<AEKey> plan;
         if (session.solverKind == CalculationSession.SolverKind.CP_SAT) {
             CpSatRankedFlowSolver.Result<AEKey> solved =
-                    CpSatRankedFlowSolver.solve(compiled.graph, output, amount);
+                    CpSatRankedFlowSolver.solve(compiled.graph, output, amount, session.cpSatSession);
             if (solved.status() != CpSatRankedFlowSolver.Status.SOLVED
                     || solved.plan() == null) {
                 return FastAttempt.decline();
@@ -308,6 +307,14 @@ public final class FastCraftingPlanner {
             return FastAttempt.decline();
         }
         boolean multi = compiled.multiplePaths;
+        if (session.solverKind == CalculationSession.SolverKind.V2
+                && (amount >= Sat.SAT || ExactPlanPreview.needsExact(plan)
+                    || computeBytes(plan, compiled.durability, compiled.patternSources) == Long.MAX_VALUE)) {
+            var exact = CraftPlannerV2.planExactDiagnostic(compiled.graph, output,
+                    BigInteger.valueOf(amount), session.plannerSession, compiled.emittable);
+            return FastAttempt.handled(ExactPlanPreview.create(output, amount, multi,
+                    exact, compiled.durability, compiled.emittable), Map.of());
+        }
         // Emittable shortfalls are supplied by emitters, not crafted, so they don't make a plan
         // infeasible — only a non-emittable shortfall does.
         if (plan.feasible() || noNonEmittableMissing(plan, compiled.emittable)) {
@@ -488,6 +495,7 @@ public final class FastCraftingPlanner {
         // Memoized "how much is already in the network" per key (SIMULATE probe), used to rank fuzzy
         // substitutes most-available-first so the bounded keep-best-32 picks the cheapest routes.
         Map<AEKey, Long> availability = new HashMap<>();
+        Map<AEKey, Boolean> lateBoundOutputs = new HashMap<>();
         RequirementModes requirementModes = new RequirementModes(root, forcedRequirementModes);
         Map<AEKey, Long> supplementalSelfSeedStock = new HashMap<>();
         // Unit-system bookkeeping. A durability chain prices its links in USES (carrier pool); every
@@ -510,6 +518,8 @@ public final class FastCraftingPlanner {
         while (!queue.isEmpty()) {
             exportBudget.consume();
             AEKey key = queue.poll();
+            AEKey catalogKey = LateBoundOutputKey.physical(key);
+            boolean lateBound = key instanceof LateBoundOutputKey;
             requirementModes.markProcessed(key);
 
             // Durability carrier: a finite-use token resource. Its stock (= aggregate uses over the
@@ -520,7 +530,7 @@ public final class FastCraftingPlanner {
             long outputScale = 1;
             if (carrier != null) {
                 outputScale = carrier.n();
-            } else {
+            } else if (!lateBound) {
                 long available = usableStock(snapshot, key, reservedStock);
                 if (available > 0) {
                     builder.stock(key, available);
@@ -531,13 +541,13 @@ public final class FastCraftingPlanner {
             // Emitable items (e.g. via level/energy emitters) are an infinite on-demand source: keep
             // them as a leaf with their current real stock, and treat any shortfall as emitted (handled
             // in toAe2Plan) rather than crafted. Never decline just because an item is emittable.
-            if (craftingService.canEmitFor(key)) {
+            if (!lateBound && craftingService.canEmitFor(key)) {
                 emittable.add(key);
                 builder.stock(key, Sat.SAT);
                 continue;
             }
 
-            Collection<IPatternDetails> patterns = craftingService.getCraftingFor(key);
+            Collection<IPatternDetails> patterns = craftingService.getCraftingFor(catalogKey);
             // Count only the primary-output views we actually register (see restriction below); the raw
             // getCraftingFor count would over-report "multiple paths" for secondary-output aliases.
             int registeredForKey = 0;
@@ -555,11 +565,12 @@ public final class FastCraftingPlanner {
                 // pattern of its own, surfaces as missing (Policy A best-effort) rather than being
                 // made by deliberately over-producing the primary.
                 GenericStack primaryStack = details.getPrimaryOutput();
-                if (primaryStack == null || !key.equals(primaryStack.what())) {
+                if (primaryStack == null || !catalogKey.equals(primaryStack.what())) {
                     continue;
                 }
-                if (!producerMatchesRequirement(
-                        details, key, requirementModes.modeFor(key), exportBudget)) {
+                if (lateBound ? !isLateBoundOutput(details, catalogKey, exportBudget)
+                        : !producerMatchesRequirement(
+                                details, key, requirementModes.modeFor(key), exportBudget)) {
                     continue;
                 }
                 patternSources.computeIfAbsent(key,
@@ -571,10 +582,14 @@ public final class FastCraftingPlanner {
                 List<CraftOutput<AEKey>> byproducts = new ArrayList<>(Math.max(0, outputs.length - 1));
                 for (GenericStack out : outputs) {
                     exportBudget.consume();
-                    if (primary == null && key.equals(out.what())) {
+                    if (primary == null && catalogKey.equals(out.what())) {
                         primary = out;
                     } else {
-                        byproducts.add(CraftOutput.of(out.what(), out.amount()));
+                        // An uncertain secondary output must not leak into a strict resource pool,
+                        // including when its primary becomes reachable through the new mixed route.
+                        AEKey byproductKey = isLateBoundOutput(details, out.what(), exportBudget)
+                                ? new LateBoundOutputKey(out.what()) : out.what();
+                        byproducts.add(CraftOutput.of(byproductKey, out.amount()));
                     }
                 }
                 if (primary == null) {
@@ -661,11 +676,9 @@ public final class FastCraftingPlanner {
                         // already encodes this slot's per-craft durability cost (the chain was built
                         // from this slot's own getRemainingKey), so a 2-durability-per-craft recipe
                         // simply produces a chain whose length is the firings a full tool survives.
-                        long usesPerFiring = Sat.mul(
-                                Math.max(1, in.getPossibleInputs()[0].amount()),
-                                Math.max(1, in.getMultiplier()));
                         slotOptions.add(List.of(new SlotChoice(List.of(
-                                CraftInput.of(chain.carrier(), usesPerFiring)))));
+                                CraftInput.of(chain.carrier(), Math.max(1, in.getPossibleInputs()[0].amount()))
+                                        .scaled(Math.max(1, in.getMultiplier()))))));
                         // A durability carrier means one exact full tool. An ID_ONLY producer is
                         // late-bound and must never be priced as that full carrier.
                         slotRequirementModes.add(RequirementMode.STRICT);
@@ -698,6 +711,19 @@ public final class FastCraftingPlanner {
                         AEKey remaining = in.getRemainingKey(inputKey);
                         if (remaining == null) {
                             opts.add(CraftInput.of(inputKey, template.amount()));
+                            // Exact stock/outputs remain shared by both consumers. Only the unknown
+                            // producer output gets its own resource, never a duplicate stock pool.
+                            if (sameIdClosure
+                                    && forcedRequirementModes.get(inputKey) == RequirementMode.MIXED
+                                    && lateBoundOutputs.computeIfAbsent(inputKey, candidate -> {
+                                        for (var producer : craftingService.getCraftingFor(candidate)) {
+                                            exportBudget.consume();
+                                            if (isLateBoundOutput(producer, candidate, exportBudget)) return true;
+                                        }
+                                        return false;
+                                    })) {
+                                opts.add(CraftInput.of(new LateBoundOutputKey(inputKey), template.amount()));
+                            }
                         } else if (remaining.equals(inputKey)) {
                             // Returned unchanged: a true catalyst / non-degrading container. One seed
                             // serves the whole batch (AE2's limitQty), modelled as a returned input.
@@ -742,7 +768,8 @@ public final class FastCraftingPlanner {
                     if (opts.size() > 1) {
                         for (CraftInput<AEKey> o : opts) {
                             availability.computeIfAbsent(o.key(),
-                                k -> usableStock(snapshot, k, reservedStock));
+                                k -> k instanceof LateBoundOutputKey ? 0L
+                                        : usableStock(snapshot, k, reservedStock));
                         }
                         opts.sort(Comparator.comparingLong(
                             (CraftInput<AEKey> o) -> availability.get(o.key())).reversed());
@@ -763,7 +790,7 @@ public final class FastCraftingPlanner {
                     multiplePaths[0] = true; // fuzzy expanded into competing recipes
                 }
                 // For a craftable durability tool, one firing makes one full tool = n uses.
-                long outAmount = Sat.mul(primary.amount(), outputScale);
+                BigInteger outAmount = BigInteger.valueOf(primary.amount()).multiply(BigInteger.valueOf(outputScale));
                 // Keep the best (lowest rank-sum) up to FUZZY_NONCYCLE_STEPS combinations; when the
                 // product is within budget this emits all of them, otherwise it greedily keeps the front.
                 emitBestCombinations(
@@ -878,6 +905,19 @@ public final class FastCraftingPlanner {
         return true;
     }
 
+    private static boolean isLateBoundOutput(
+            IPatternDetails details, AEKey key, GraphExportBudget budget) {
+        var provider = CraftingPatternDelegates.forProviderLookup(details);
+        if (!(provider instanceof FuzzyPatternInputs fuzzy)) return false;
+        var outputs = provider.getOutputs();
+        for (int slot = 0; slot < outputs.length; slot++) {
+            budget.consume();
+            var output = outputs[slot];
+            if (output != null && key.equals(output.what()) && fuzzy.producesSameIdVariants(slot)) return true;
+        }
+        return false;
+    }
+
     enum RequirementMode {
         STRICT,
         ID_ONLY,
@@ -898,9 +938,9 @@ public final class FastCraftingPlanner {
     }
 
     /**
-     * Tracks the demand capability attached to each concrete graph key. If a key has already been
-     * expanded and a later edge tightens its mode, the current graph is discarded and rebuilt with
-     * that mode forced from the start. This makes producer eligibility independent of BFS order.
+     * Tracks the demand capability attached to each concrete graph key. Late changes to producer
+     * eligibility, or any newly mixed demand requiring split consumer options, rebuild the graph
+     * with that mode forced from the start. This makes the split independent of BFS order.
      */
     static final class RequirementModes {
         private final Map<AEKey, RequirementMode> modes;
@@ -927,7 +967,9 @@ public final class FastCraftingPlanner {
                 return;
             }
             modes.put(key, merged);
-            if (processed.contains(key)) {
+            // A mixed demand also changes already-emitted consumer choices, even if BFS has not
+            // expanded the material itself yet. Rebuild once with the split known from the start.
+            if (processed.contains(key) || merged == RequirementMode.MIXED) {
                 lateChanges.merge(key, merged, RequirementMode::merge);
             }
         }
@@ -1200,7 +1242,7 @@ public final class FastCraftingPlanner {
             exportBudget.consume();
             linkOwner.put(link, chain);
         }
-        builder.stock(full, chain.totalUses()); // carrier stock = aggregate uses (set once)
+        builder.stockExact(full, chain.exactTotalUses()); // carrier stock = aggregate uses (set once)
         return new ChainLookup(chain, null);
     }
 
@@ -1294,16 +1336,16 @@ public final class FastCraftingPlanner {
     /**
      * Emit up to {@link #FUZZY_NONCYCLE_STEPS} {@link CraftPattern}s for the per-slot substitute options,
      * choosing the lowest rank-sum (most-available-first) combinations when the full cartesian product
-     * exceeds the budget. All share the same {@code source} {@link IPatternDetails} (so AE2 fires the one
-     * real pattern and resolves the fuzzy slot from whatever the plan charged as used); the v2 planner
-     * treats them as competing recipes and picks per availability.
+     * exceeds the budget. All share the same {@code source} {@link IPatternDetails}; the v2 planner
+     * treats them as competing recipes and picks per availability. Runtime input allocation belongs
+     * to the executing CPU; exported tasks retain their registered pattern identities.
      */
     private static void emitBestCombinations(
             CraftGraph.Builder<AEKey> builder,
             Set<AEKey> seen,
             Deque<AEKey> queue,
             AEKey key,
-            long outputAmount,
+            BigInteger outputAmount,
             List<CraftOutput<AEKey>> byproducts,
             List<List<SlotChoice>> slotOptions,
             List<RequirementMode> slotRequirementModes,
@@ -1334,7 +1376,7 @@ public final class FastCraftingPlanner {
                     if (combo == byproducts) {
                         combo = new ArrayList<>(byproducts);
                     }
-                    combo.add(CraftOutput.of(opt.remainder(), opt.amount()));
+                    combo.add(CraftOutput.exact(opt.remainder(), opt.exactAmount()));
                     if (seen.add(opt.remainder())) {
                         queue.add(opt.remainder());
                     }
@@ -1426,9 +1468,7 @@ public final class FastCraftingPlanner {
     }
 
     private static CraftInput<AEKey> scaleInput(CraftInput<AEKey> input, long units) {
-        return new CraftInput<>(
-                input.key(), Sat.mul(input.amount(), units), input.returned(), input.uses(),
-                input.remainder(), input.reusableStockSource());
+        return input.scaled(units);
     }
 
     private static long immediatelySupportedFirings(
@@ -1474,7 +1514,7 @@ public final class FastCraftingPlanner {
             }
         }
 
-        // AE2 extracts fuzzy-slot stock before it decides how much of the remainder must be crafted.
+        // AE2 extracts ordinary fuzzy-slot stock before deciding how much must be crafted.
         // Preserve that observable behavior: charge any still-unused accepted stock up to the slot's
         // aggregate demand, even when the compact planner found a more economical concrete mix.
         chargeAvailableFuzzyStock(plan, usedItems, snapshot, reservedStock);
@@ -1492,7 +1532,7 @@ public final class FastCraftingPlanner {
                 // accepted by a fuzzy slot must therefore remain visible even when another accepted
                 // candidate happens to be produced by some fired pattern. Suppressing the whole slot
                 // here could otherwise export simulation=true with an empty missingItems counter.
-                missingItems.add(e.getKey(), e.getValue());
+                missingItems.add(LateBoundOutputKey.physical(e.getKey()), e.getValue());
             } else {
                 // Missing uses become full tools to craft/supply: ceil(uses / n).
                 missingItems.add(chain.carrier(), Sat.ceilDiv(e.getValue(), chain.n()));
@@ -1501,7 +1541,7 @@ public final class FastCraftingPlanner {
 
         long bytes = computeBytes(plan, durability, patternSources);
 
-        return new CraftingPlan(
+        var result = new CraftingPlan(
                 new GenericStack(output, amount),
                 bytes,
                 simulation,
@@ -1510,6 +1550,7 @@ public final class FastCraftingPlanner {
                 emittedItems,
                 missingItems,
                 patternTimes);
+        return result;
     }
 
     private static void chargeAvailableFuzzyStock(
@@ -1527,6 +1568,17 @@ public final class FastCraftingPlanner {
             for (IPatternDetails.IInput slot : sourceEntry.getKey().getInputs()) {
                 GenericStack[] possible = slot.getPossibleInputs();
                 if (possible.length <= 1) continue;
+                // Stock-first padding is only meaningful for ordinary consumable slots. Tool uses
+                // and returned seeds have already been translated to physical items above. Charging
+                // them once per firing again can reserve many tools that one chain already covers.
+                boolean returnsItem = false;
+                for (GenericStack option : possible) {
+                    if (slot.getRemainingKey(option.what()) != null) {
+                        returnsItem = true;
+                        break;
+                    }
+                }
+                if (returnsItem) continue;
                 long remainingUnits = Sat.mul(times, Math.max(1, slot.getMultiplier()));
                 for (GenericStack option : possible) {
                     long unitAmount = Math.max(1, option.amount());

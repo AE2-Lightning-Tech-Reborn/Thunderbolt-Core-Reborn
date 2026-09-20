@@ -15,5 +15,6 @@
   "algorithm.thunderbolt.v2": "Thunderbolt V2 Planner",
   "algorithm.thunderbolt.cp_sat": "Thunderbolt CP-SAT Planner (Experimental)",
   "algorithm.thunderbolt.all_failed": "All Failed",
-  "gui.thunderbolt.crafting_plan.algorithm": "%1$s [%2$s]"
+  "gui.thunderbolt.crafting_plan.algorithm": "%1$s [%2$s]",
+  "gui.thunderbolt.exact_plan.preview": "Preview only: amount exceeds execution range"
 }

@@ -8,6 +8,7 @@ import com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot;
 /** Cooperative cancellation checkpoint shared by adapter and pure planner hot loops. */
 public final class PlanningCancellation {
     private static final ThreadLocal<PlanningAttemptContext> CURRENT = new ThreadLocal<>();
+    private static final ThreadLocal<Long> OPTIONAL_DEADLINE = new ThreadLocal<>();
 
     private PlanningCancellation() {
     }
@@ -16,11 +17,11 @@ public final class PlanningCancellation {
         var context = CURRENT.get();
         if (context != null) {
             context.checkpoint();
-            return;
-        }
-        if (Thread.currentThread().isInterrupted()) {
+        } else if (Thread.currentThread().isInterrupted()) {
             throw new CancellationException("crafting calculation interrupted");
         }
+        Long optional = OPTIONAL_DEADLINE.get();
+        if (optional != null && System.nanoTime() - optional >= 0L) throw new OptionalWorkLimit();
     }
 
     /** Runs the bound planning checkpoint and reports whether this is candidate work. */
@@ -42,14 +43,31 @@ public final class PlanningCancellation {
 
     /** Remaining candidate time, capped for a bounded native solver call. */
     static long remainingNanos(long capNanos) {
+        check();
         long boundedCap = Math.max(0L, capNanos);
+        Long optional = OPTIONAL_DEADLINE.get();
+        if (optional != null) boundedCap = Math.min(boundedCap, Math.max(0L, optional - System.nanoTime()));
         var context = CURRENT.get();
         if (context == null) {
             return boundedCap;
         }
-        context.checkpoint();
         long remaining = context.deadlineNanos() - System.nanoTime();
         return Math.max(0L, Math.min(boundedCap, remaining));
+    }
+
+    /** A nested optional stage may stop itself without swallowing user cancellation or router exits. */
+    static Scope limitOptionalWork(long nanos) {
+        Long previous = OPTIONAL_DEADLINE.get();
+        long duration = remainingNanos(nanos);
+        OPTIONAL_DEADLINE.set(System.nanoTime() + duration);
+        return () -> {
+            if (previous == null) OPTIONAL_DEADLINE.remove();
+            else OPTIONAL_DEADLINE.set(previous);
+        };
+    }
+
+    static final class OptionalWorkLimit extends RuntimeException {
+        private OptionalWorkLimit() { super(null, null, false, false); }
     }
 
     public static Scope bind(PlanningAttemptContext context) {
