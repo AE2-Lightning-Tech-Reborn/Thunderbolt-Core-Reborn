@@ -38,7 +38,7 @@ public abstract class GridConnectionMaxChannelsMixin {
 
     /**
      * During the DFS pass, cancel AE2's routing-tree-based channel propagation
-     * and return the exact per-connection flow from Dinic's max-flow result.
+     * and return the exact per-connection flow from the max-flow result.
      * The actual usedChannels field is set by Phase 4 (force-apply) after the
      * DFS completes. Only intercepts connections belonging to the max-flow network.
      */

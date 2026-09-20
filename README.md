@@ -30,7 +30,8 @@ server.
   crafting previews
 - extension APIs for crafting providers, high-capacity channels, indexed
   storage cells, and eject endpoints
-- max-flow channel allocation for compatible high-capacity networks
+- max-flow channel allocation for compatible high-capacity networks,
+  using a bidirectional tree seed and exact residual completion
 - optional compatibility hooks for Advanced AE, NeoECO, AE2 Crafting Tree,
   and ExtendedAE Plus; hooks load only when the corresponding mod is present
 - coexistence with GTLCore (`gtlcore`): Thunderbolt yields CPU dispatch to

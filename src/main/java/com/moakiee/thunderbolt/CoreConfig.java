@@ -25,7 +25,7 @@ public final class CoreConfig {
     }
 
     public static void setChannelsPerController(int value) {
-        // 该值作为每个控制器的渠道容量注入 Dinic 最大流计算，
+        // 该值作为每个控制器的渠道容量注入最大流计算，
         // 0 或负数会导致全网渠道瘫痪或未定义行为，必须钳制到至少 1。
         int clamped = Math.max(1, value);
         if (value != clamped) {

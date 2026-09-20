@@ -35,7 +35,7 @@ import appeng.me.pathfinding.IPathItem;
 import appeng.me.pathfinding.PathingCalculation;
 
 /**
- * Replaces AE2's BFS-based channel assignment with Dinic's max-flow
+ * Replaces AE2's BFS-based channel assignment with Thunderbolt max-flow
  * for all controller networks.
  * <p>
  * Any network containing at least one controller (vanilla or high-capacity)
