@@ -35,6 +35,94 @@ import com.moakiee.thunderbolt.core.storage.cell.DualLong126;
  * reassigning contiguous ids and forcing a full rewrite.
  */
 public final class IndexedStorage {
+    private static final java.math.BigInteger MASK_63 = java.math.BigInteger.valueOf(Long.MAX_VALUE);
+    private static final java.math.BigInteger MAX_126 = java.math.BigInteger.ONE.shiftLeft(126).subtract(java.math.BigInteger.ONE);
+    private boolean arbitraryPrecision;
+    // Only quantities beyond the legacy 126-bit encoding need an additional serialized value.
+    private final java.util.Map<AEKey, java.math.BigInteger> wideAmounts = new java.util.HashMap<>();
+    private final java.util.Map<AEKeyType, java.math.BigInteger> exactTypeTotals = new java.util.HashMap<>();
+
+    public void enableArbitraryPrecision() {
+        if (arbitraryPrecision) return;
+        arbitraryPrecision = true;
+        rebuildExactTotals();
+    }
+
+    public java.math.BigInteger getAmountExact(AEKey key) {
+        int id = keyToId.getInt(key);
+        if (id < 0) return java.math.BigInteger.ZERO;
+        return wideAmounts.getOrDefault(key, java.math.BigInteger.valueOf(hi[id]).shiftLeft(63)
+                .add(java.math.BigInteger.valueOf(lo[id])));
+    }
+
+    public java.util.Map<AEKey, java.math.BigInteger> snapshotExact() {
+        var result = new java.util.LinkedHashMap<AEKey, java.math.BigInteger>();
+        for (int id = 0; id < nextId; id++) if (idToKey[id] != null)
+            result.put(idToKey[id], getAmountExact(idToKey[id]));
+        return java.util.Map.copyOf(result);
+    }
+
+    public java.math.BigInteger insertExact(AEKey key, java.math.BigInteger amount, Actionable mode) {
+        com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(amount);
+        if (!arbitraryPrecision) throw new IllegalStateException("Exact insertion requires an opted-in cell");
+        var current = getAmountExact(key);
+        var maximum = java.math.BigInteger.ONE.shiftLeft(com.moakiee.thunderbolt.core.storage.big.BigAmounts.MAX_BITS).subtract(java.math.BigInteger.ONE);
+        var accepted = amount.min(maximum.subtract(current).max(java.math.BigInteger.ZERO));
+        if (accepted.signum() > 0 && mode == Actionable.MODULATE) setAmountExact(key, current.add(accepted));
+        return accepted;
+    }
+
+    public java.math.BigInteger extractExact(AEKey key, java.math.BigInteger amount, Actionable mode) {
+        com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(amount);
+        if (!arbitraryPrecision) throw new IllegalStateException("Exact extraction requires an opted-in cell");
+        var current = getAmountExact(key);
+        var taken = current.min(amount);
+        if (taken.signum() > 0 && mode == Actionable.MODULATE) setAmountExact(key, current.subtract(taken));
+        return taken;
+    }
+
+    private void setAmountExact(AEKey key, java.math.BigInteger amount) {
+        var before = getAmountExact(key);
+        int id = keyToId.getInt(key);
+        if (id < 0) { id = allocateId(key); totalTypes++; typeCounts.addTo(key.getType(), 1); }
+        if (amount.signum() == 0) {
+            wideAmounts.remove(key);
+            recycleId(id, key); totalTypes--; typeCounts.addTo(key.getType(), -1);
+            if (typeCounts.getInt(key.getType()) == 0) typeCounts.removeInt(key.getType());
+            if (freeCount > Math.max(totalTypes, 1) * COMPACT_THRESHOLD) needsCompact = true;
+        } else {
+            var projection = amount.min(MAX_126);
+            lo[id] = projection.and(MASK_63).longValueExact(); hi[id] = projection.shiftRight(63).longValueExact();
+            if (amount.compareTo(MAX_126) > 0) wideAmounts.put(key, amount); else wideAmounts.remove(key);
+            enqueueDirty(id);
+        }
+        var total = exactTypeTotals.getOrDefault(key.getType(), java.math.BigInteger.ZERO).add(amount).subtract(before);
+        exactTypeTotals.put(key.getType(), total);
+        projectTypeTotal(key.getType(), total);
+        needsPersist = true; modCount++;
+    }
+
+    private void projectTypeTotal(AEKeyType type, java.math.BigInteger amount) {
+        var n = amount.min(MAX_126);
+        typeAmountLo.put(type, n.and(MASK_63).longValueExact());
+        typeAmountHi.put(type, n.shiftRight(63).longValueExact());
+    }
+
+    private void rebuildExactTotals() {
+        exactTypeTotals.clear();
+        for (int id = 0; id < nextId; id++) if (idToKey[id] != null)
+            exactTypeTotals.merge(idToKey[id].getType(), getAmountExact(idToKey[id]), java.math.BigInteger::add);
+        exactTypeTotals.forEach(this::projectTypeTotal);
+    }
+
+    private void persistWide(CompoundTag root) {
+        if (!arbitraryPrecision) return;
+        root.putBoolean("arbitraryPrecision", true);
+        var wide = new CompoundTag();
+        wideAmounts.forEach((key, n) -> wide.putByteArray(Integer.toString(keyToId.getInt(key)), n.toByteArray()));
+        root.put("bigAmounts", wide);
+    }
+
 
     private static final int INITIAL_CAPACITY = 256;
     private static final int COMPACT_THRESHOLD = 2;
@@ -99,6 +187,7 @@ public final class IndexedStorage {
     // ══════════════════════════════════════════════════════════════════════
 
     public long insert(AEKey key, long amount, Actionable mode) {
+        if (arbitraryPrecision && amount > 0) return insertExact(key, java.math.BigInteger.valueOf(amount), mode).longValueExact();
         if (amount <= 0) return 0;
         if (mode == Actionable.SIMULATE) return amount;
 
@@ -147,6 +236,7 @@ public final class IndexedStorage {
     // ══════════════════════════════════════════════════════════════════════
 
     public long extract(AEKey key, long amount, Actionable mode) {
+        if (arbitraryPrecision && amount > 0) return extractExact(key, java.math.BigInteger.valueOf(amount), mode).longValueExact();
         if (amount <= 0) return 0;
 
         int id = keyToId.getInt(key);
@@ -204,7 +294,7 @@ public final class IndexedStorage {
     public void getAvailableStacks(KeyCounter out) {
         for (int id = 0; id < nextId; id++) {
             if (idToKey[id] != null) {
-                out.add(idToKey[id], DualLong126.cap(hi[id], lo[id]));
+                out.set(idToKey[id], com.google.common.math.LongMath.saturatedAdd(out.get(idToKey[id]), DualLong126.cap(hi[id], lo[id])));
             }
         }
     }
@@ -277,6 +367,7 @@ public final class IndexedStorage {
 
         lastRoot.putInt("totalTypes", totalTypes);
         needsPersist = false;
+        persistWide(lastRoot);
         return lastRoot;
     }
 
@@ -315,6 +406,7 @@ public final class IndexedStorage {
         root.put("hi", new LongArrayTag(pHi));
         root.putInt("totalTypes", totalTypes);
         needsPersist = false;
+        persistWide(root);
         return root;
     }
 
@@ -375,6 +467,9 @@ public final class IndexedStorage {
             HolderLookup.Provider registries) {
         java.util.Objects.requireNonNull(root, "root");
         java.util.Objects.requireNonNull(keyDeserializer, "keyDeserializer");
+        wideAmounts.clear();
+        exactTypeTotals.clear();
+        arbitraryPrecision = root.getBoolean("arbitraryPrecision");
         keyToId.clear();
         Arrays.fill(idToKey, null);
         Arrays.fill(lo, 0L);
@@ -466,6 +561,15 @@ public final class IndexedStorage {
             typeAmountLo.put(kt, sum[1]);
         }
 
+        var wide = root.getCompound("bigAmounts");
+        for (var index : wide.getAllKeys()) {
+            int id = Integer.parseInt(index);
+            if (id < 0 || id >= nextId || idToKey[id] == null) throw new IllegalArgumentException("Orphan exact cell quantity");
+            var n = com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(new java.math.BigInteger(wide.getByteArray(index)));
+            if (n.compareTo(MAX_126) <= 0) throw new IllegalArgumentException("Invalid wide cell quantity");
+            wideAmounts.put(idToKey[id], n);
+        }
+        if (arbitraryPrecision) rebuildExactTotals();
         needsCompact = repaired || freeCount > Math.max(totalTypes, 1) * COMPACT_THRESHOLD;
         needsPersist = repaired;
     }

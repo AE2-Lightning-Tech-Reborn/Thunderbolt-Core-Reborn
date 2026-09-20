@@ -23,6 +23,11 @@ public abstract class CraftConfirmScreenMixin {
             index = 1)
     private Component thunderbolt$appendAlgorithmName(Component title) {
         var menu = ((CraftConfirmScreen) (Object) this).getMenu();
+        var report = com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.get(menu.getPlan());
+        if (report != null) {
+            return appeng.core.localization.GuiText.BytesUsed.text(
+                    com.moakiee.thunderbolt.ae2.crafting.ExactAmountFormatter.compact(report.bytes(), 1));
+        }
         if (menu instanceof CraftingAlgorithmNameMenu extension) {
             var name = extension.thunderbolt$getCraftingAlgorithmName();
             if (!name.getString().isEmpty()) {
@@ -31,5 +36,14 @@ public abstract class CraftConfirmScreenMixin {
             }
         }
         return title;
+    }
+
+    @ModifyArg(method = "updateBeforeRender", at = @At(value = "INVOKE",
+            target = "Lappeng/client/gui/me/crafting/CraftConfirmScreen;"
+                    + "setTextContent(Ljava/lang/String;Lnet/minecraft/network/chat/Component;)V", ordinal = 1), index = 1)
+    private Component thunderbolt$previewStatus(Component status) {
+        var menu = ((CraftConfirmScreen) (Object) this).getMenu();
+        return com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(menu.getPlan())
+                ? Component.translatable("gui.thunderbolt.exact_plan.preview") : status;
     }
 }

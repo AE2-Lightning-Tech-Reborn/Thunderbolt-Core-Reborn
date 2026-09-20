@@ -9,10 +9,12 @@
     "ae2.crafting.CraftingCalculationMixin",
     "ae2.crafting.CraftConfirmMenuMixin",
     "ae2.crafting.MenuTypeBuilderMixin",
+    "ae2.crafting.ExactCraftConfirmPacketMixin",
     "ae2.crafting.Ae2CraftingTreeCompatibilityMixin",
     "ae2.crafting.CraftingLinkNexusMixin",
     "ae2.crafting.ExtendedCraftingCpuServiceMixin",
     "ae2.crafting.CraftingServiceAccessor",
+    "ae2.crafting.NetworkCraftingProvidersRevisionMixin",
     "platform.eject.EjectCapabilityMixin",
     "platform.eject.EjectGhostBlockEntityMixin",
     "ae2.channel.GridConnectionMaxChannelsMixin",
@@ -31,10 +33,13 @@
     "compat.advancedae.AaeExecutingCraftingJobAccessor",
     "compat.advancedae.AaeElapsedTimeTrackerAccessor",
     "compat.advancedae.AaeTaskProgressAccessor",
-    "ae2.crafting.ExtendedCraftingCpuInsertMixin"
+    "ae2.crafting.ExtendedCraftingCpuInsertMixin",
+    "ae2.storage.NetworkBigStorageMixin",
+    "ae2.storage.DriveBigStorageMixin"
   ],
   "client": [
     "ae2.client.CraftConfirmScreenMixin",
+    "ae2.client.ExactCraftConfirmTableMixin",
     "ae2.client.CPUSelectionListStorageMixin",
     "ae2.client.CraftConfirmScreenCpuStatusMixin",
     "ae2.client.TooltipsByteAmountMixin"

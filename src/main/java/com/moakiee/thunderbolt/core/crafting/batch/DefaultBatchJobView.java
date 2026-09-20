@@ -31,6 +31,22 @@ public final class DefaultBatchJobView
     private final ContainerItemAccounting containerItemAccounting;
     private Iterator<? extends Map.Entry<IPatternDetails, ?>> rawIterator;
     private Map.Entry<IPatternDetails, ?> currentEntry;
+    private Runnable dispatchFailureHandler;
+
+    public DefaultBatchJobView onDispatchFailure(Runnable handler) {
+        dispatchFailureHandler = Objects.requireNonNull(handler);
+        return this;
+    }
+
+    @Override
+    public void failDispatch(String reason, Throwable cause) {
+        if (dispatchFailureHandler == null) {
+            BatchJobView.super.failDispatch(reason, cause);
+            return;
+        }
+        dispatchFailureHandler.run();
+        appeng.core.AELog.warn("[thunderbolt] Batch job canceled after dispatch failure: %s. %s", reason, cause);
+    }
 
     public DefaultBatchJobView(
             Level level,

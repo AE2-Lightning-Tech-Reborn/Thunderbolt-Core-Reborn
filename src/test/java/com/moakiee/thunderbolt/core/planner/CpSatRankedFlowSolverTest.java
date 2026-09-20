@@ -20,6 +20,19 @@ class CpSatRankedFlowSolverTest {
     }
 
     @Test
+    void thousandRecipeChainIsNotRejectedByTheFormerAdmissionCaps() {
+        var builder = CraftGraph.<String>builder().stock("P0", 1);
+        for (int i = 1; i <= 1000; i++)
+            builder.pattern("P"+i, 1, List.of(CraftInput.of("P"+(i-1), 1)));
+        var result = assertTimeoutPreemptively(Duration.ofSeconds(3),
+                () -> CpSatRankedFlowSolver.solve(builder.build(), "P1000", 1));
+        assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
+        assertTrue(result.plan().feasible());
+        assertEquals(1000, result.plan().firings().size());
+        assertEquals(1L, result.plan().usedStock().get("P0"));
+    }
+
+    @Test
     void byproductFeedbackIsSolvedWithoutCallingV2() {
         long amount = 1_000_000_000L;
         var makeB = new CraftPattern<>(

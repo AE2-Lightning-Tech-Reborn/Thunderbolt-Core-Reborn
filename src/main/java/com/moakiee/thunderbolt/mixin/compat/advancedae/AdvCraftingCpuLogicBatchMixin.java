@@ -117,11 +117,15 @@ public abstract class AdvCraftingCpuLogicBatchMixin {
                         (task, value) -> ((AaeTaskProgressAccessor) task).setValue(value),
                         timeTracker,
                         (tracker, count, type) -> ((AaeElapsedTimeTrackerAccessor) tracker)
-                                .invokeAddMaxItems(count, type)),
+                                .invokeAddMaxItems(count, type)).onDispatchFailure(() -> {
+                                    jobAccessor.getLink().cancel();
+                                    thunderbolt$markCpuDirty();
+                                }),
                 inventory,
                 batchedByTask,
                 this::thunderbolt$markCpuDirty);
 
+        if (jobAccessor.getLink().isCanceled()) return remainingOps;
         if (batchResult.dispatchedCopies() > 0) {
             // AdvancedAE CPUs keep batch extraction/provider dispatch, but pay one operation per copy.
             // UNBOUNDED providers (such as creative item sources) still pay one operation per dispatch.

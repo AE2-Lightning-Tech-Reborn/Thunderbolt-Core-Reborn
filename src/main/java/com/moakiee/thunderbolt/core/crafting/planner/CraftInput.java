@@ -3,6 +3,7 @@ package com.moakiee.thunderbolt.core.crafting.planner;
 import com.moakiee.thunderbolt.core.crafting.pattern.ReusableStockSource;
 
 import java.util.Objects;
+import java.math.BigInteger;
 
 /**
  * One input slot of a {@link CraftPattern}.
@@ -32,13 +33,32 @@ import java.util.Objects;
  * @param <K>       item key type (e.g. AE2's AEKey, or String in tests)
  */
 public record CraftInput<K>(K key, long amount, boolean returned, long uses, K remainder,
-                            ReusableStockSource reusableStockSource) {
+                            ReusableStockSource reusableStockSource, BigInteger exactAmount) {
 
     /** A true catalyst survives unlimited firings (one seed serves the whole batch). */
     public static final long INFINITE_USES = Long.MAX_VALUE;
 
+    public CraftInput(K key, long amount, boolean returned, long uses, K remainder,
+            ReusableStockSource reusableStockSource) {
+        this(key, amount, returned, uses, remainder, reusableStockSource, BigInteger.valueOf(amount));
+    }
+
+    public CraftInput<K> scaled(long multiplier) {
+        BigInteger exact = exactAmount.multiply(BigInteger.valueOf(multiplier));
+        return new CraftInput<>(key, Sat.mul(amount, multiplier), returned, uses, remainder,
+                reusableStockSource, exact);
+    }
+
+    public BigInteger unitsForExact(BigInteger times) {
+        if (times.signum() == 0) return BigInteger.ZERO;
+        BigInteger units = !returned ? times : uses == INFINITE_USES ? BigInteger.ONE
+                : ExactDiagnosticPlanner.ceilDiv(times, BigInteger.valueOf(uses));
+        return ExactDiagnosticPlanner.checked(exactAmount.multiply(units));
+    }
+
     public CraftInput {
         Objects.requireNonNull(key, "key");
+        if (exactAmount == null || exactAmount.signum() <= 0) throw new IllegalArgumentException("exactAmount");
         if (amount <= 0) {
             throw new IllegalArgumentException("input amount must be > 0, was " + amount);
         }

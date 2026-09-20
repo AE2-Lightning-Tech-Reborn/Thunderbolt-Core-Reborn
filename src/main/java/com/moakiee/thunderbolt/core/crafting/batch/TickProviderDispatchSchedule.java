@@ -1,75 +1,102 @@
 package com.moakiee.thunderbolt.core.crafting.batch;
 
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
+import java.util.function.Supplier;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.me.service.CraftingService;
+import com.moakiee.thunderbolt.core.crafting.support.CraftingProviderRevision;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
 
 /**
- * Per-physical-CPU provider schedule for one server tick.
- *
- * <p>Provider candidates are snapshotted once per canonical provider-pattern identity. A provider that
- * rejects that pattern is removed for the rest of the tick, while the most recently successful
- * provider is tried first. This makes a long failed prefix an O(n) cost once per tick instead of
- * once per successful dispatch.
+ * Per-physical-CPU provider schedule with revision-invalidated candidate snapshots.
+ * Stable provider sets retain candidates and success affinity across ticks. Rejections expire
+ * lazily on the next use in another tick. Uninstrumented services keep the one-tick cache contract.
  */
 public final class TickProviderDispatchSchedule {
-    private final IdentityHashMap<IPatternDetails, PatternSchedule> patterns = new IdentityHashMap<>();
+    static final int MAX_PATTERNS = 4_096;
+    private final Reference2ObjectLinkedOpenHashMap<IPatternDetails, PatternSchedule> patterns =
+            new Reference2ObjectLinkedOpenHashMap<>();
     private long tick = Long.MIN_VALUE;
+    private Object serviceIdentity;
+    private long providerRevision = Long.MIN_VALUE;
+    private final BatchProviderResolutionCache batchProviders = new BatchProviderResolutionCache();
 
     public void beginTick(long currentTick) {
         if (tick == currentTick) return;
         tick = currentTick;
-        patterns.clear();
+        batchProviders.beginTick(currentTick);
     }
 
-    public Iterable<ICraftingProvider> candidates(
-            CraftingService craftingService,
-            IPatternDetails providerLookupPattern,
-            IPatternDetails canonicalPattern) {
-        var schedule = patterns.computeIfAbsent(
-                canonicalPattern,
-                ignored -> snapshotProviders(craftingService, providerLookupPattern));
-        return schedule.candidates;
+    BatchProviderResolutionCache batchProviders() { return batchProviders; }
+
+    public Iterable<ICraftingProvider> candidates(CraftingService craftingService,
+            IPatternDetails providerLookupPattern, IPatternDetails canonicalPattern) {
+        long revision = craftingService instanceof CraftingProviderRevision tracked
+                ? tracked.thunderbolt$getCraftingProviderRevision() : tick;
+        return candidates(craftingService, revision, canonicalPattern,
+                () -> craftingService.getProviders(providerLookupPattern));
     }
 
-    private static PatternSchedule snapshotProviders(
-            CraftingService craftingService,
-            IPatternDetails providerLookupPattern) {
-        var providers = new ArrayList<ICraftingProvider>();
-        for (var provider : craftingService.getProviders(providerLookupPattern)) {
-            providers.add(provider);
+    Iterable<ICraftingProvider> candidates(Object service, long revision,
+            IPatternDetails canonicalPattern, Supplier<Iterable<ICraftingProvider>> source) {
+        if (serviceIdentity != service || providerRevision != revision) {
+            serviceIdentity = service;
+            providerRevision = revision;
+            patterns.clear();
+            batchProviders.clear();
         }
-        return new PatternSchedule(providers);
+        var schedule = patterns.getAndMoveToLast(canonicalPattern);
+        if (schedule == null) {
+            var providers = new ArrayList<ICraftingProvider>();
+            source.get().forEach(providers::add);
+            schedule = new PatternSchedule(providers);
+            if (patterns.size() >= MAX_PATTERNS) patterns.removeFirst();
+            patterns.put(canonicalPattern, schedule);
+        }
+        schedule.beginTick(tick);
+        return schedule.candidates;
     }
 
     public boolean isBlocked(IPatternDetails canonicalPattern, ICraftingProvider provider) {
         var schedule = patterns.get(canonicalPattern);
+        if (schedule != null) schedule.beginTick(tick);
         return schedule != null && schedule.candidates.isBlocked(provider);
     }
 
     public void recordFailure(IPatternDetails canonicalPattern, ICraftingProvider provider) {
-        var schedule = patterns.computeIfAbsent(canonicalPattern, ignored -> new PatternSchedule(java.util.List.of()));
-        schedule.candidates.block(provider);
+        var schedule = patterns.get(canonicalPattern);
+        if (schedule != null) {
+            schedule.beginTick(tick);
+            schedule.candidates.block(provider);
+        }
     }
 
     public void recordSuccess(IPatternDetails canonicalPattern, ICraftingProvider provider) {
         var schedule = patterns.get(canonicalPattern);
-        if (schedule != null) schedule.candidates.markSuccess(provider);
+        if (schedule != null) {
+            schedule.beginTick(tick);
+            schedule.candidates.markSuccess(provider);
+        }
     }
 
     public int blockedCount(IPatternDetails canonicalPattern) {
         var schedule = patterns.get(canonicalPattern);
+        if (schedule != null) schedule.beginTick(tick);
         return schedule != null ? schedule.candidates.blockedCount() : 0;
     }
 
     private static final class PatternSchedule {
         private final IdentityCandidateQueue<ICraftingProvider> candidates;
-
+        private long lastTick = Long.MIN_VALUE;
         private PatternSchedule(java.util.List<ICraftingProvider> providers) {
             this.candidates = new IdentityCandidateQueue<>(providers);
+        }
+        private void beginTick(long tick) {
+            if (lastTick == tick) return;
+            candidates.restoreBlocked();
+            lastTick = tick;
         }
     }
 }

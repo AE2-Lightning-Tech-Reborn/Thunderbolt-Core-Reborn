@@ -255,6 +255,15 @@ default Object capture(IGrid grid, PlanningRequest request) {
 context；返回 `null` 等价于该候选 `DECLINE`。V2 当前所需输入已包含在公共请求中，因此
 使用默认空抓取。
 
+内置 V2 与 CP-SAT 在 core 内复用包内可见的 `FastPlannerEngineSession`，各自选择对应的
+图计算会话。共享部分负责 probe 调用、退出信号转换，以及按计划对象身份暂存可复用库存
+元数据；只在 `finish` 时为最终选中的计划登记元数据，`close` 清理会话内的暂存引用。
+这些行为依赖内置图规划器及其元数据协议，因此不作为公共 API 的默认实现。
+
+自定义引擎继续直接实现公共 `PlanningEngineSession`，提供 `attempt`，并按需实现
+`finish` 与 `close`。它可以使用自己的缓存、结果转换和资源清理方式，无需继承内置会话
+或依赖 core；公共接口不要求第三方引擎采用内置图模型。
+
 会话在每个 amount probe 返回：
 
 ```text
