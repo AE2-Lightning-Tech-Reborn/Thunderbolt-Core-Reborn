@@ -1,13 +1,15 @@
 package com.moakiee.thunderbolt.core.crafting.batch;
 
 import java.util.IdentityHashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-/** Identity-based active candidate queue with O(1) permanent removal and success affinity. */
+/** Identity-based candidate queue with O(1) removal and success affinity. */
 final class IdentityCandidateQueue<T> implements Iterable<T> {
     private final IdentityHashMap<T, Node<T>> active = new IdentityHashMap<>();
-    private final IdentityHashMap<T, Boolean> blocked = new IdentityHashMap<>();
+    private final IdentityHashMap<T, Node<T>> blocked = new IdentityHashMap<>();
+    private final ArrayList<Node<T>> blockedNodes = new ArrayList<>();
     private Node<T> head;
     private Node<T> tail;
     private T preferred;
@@ -28,8 +30,10 @@ final class IdentityCandidateQueue<T> implements Iterable<T> {
     }
 
     void block(T candidate) {
-        blocked.put(candidate, Boolean.TRUE);
+        if (blocked.containsKey(candidate)) return;
         var node = active.remove(candidate);
+        blocked.put(candidate, node);
+        if (node != null) blockedNodes.add(node);
         if (node != null) {
             if (node.previous != null) node.previous.next = node.next;
             else head = node.next;
@@ -55,6 +59,21 @@ final class IdentityCandidateQueue<T> implements Iterable<T> {
 
     int blockedCount() {
         return blocked.size();
+    }
+
+    /** Re-enable only last tick's rejected candidates; stable active nodes are never rebuilt. */
+    void restoreBlocked() {
+        if (blocked.isEmpty()) return;
+        for (var node : blockedNodes) {
+            node.previous = tail;
+            node.next = null;
+            if (tail == null) head = node;
+            else tail.next = node;
+            tail = node;
+            active.put(node.value, node);
+        }
+        blocked.clear();
+        blockedNodes.clear();
     }
 
     @Override

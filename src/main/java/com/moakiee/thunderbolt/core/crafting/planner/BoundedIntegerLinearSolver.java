@@ -98,41 +98,113 @@ final class BoundedIntegerLinearSolver {
             return result(Status.INVALID_INPUT, 0);
         }
 
-        int positiveMinimums = 0;
         for (Constraint constraint : constraints) {
             PlanningCancellation.check();
             if (constraint == null || constraint.coefficients().length != variableCount) {
                 return result(Status.INVALID_INPUT, 0);
             }
-            if (constraint.minimum() > 0) {
-                positiveMinimums++;
+        }
+        SparseIntegerBounds.Result reduced = SparseIntegerBounds.reduce(
+                variableCount, constraints, maxValue, workBudget);
+        if (reduced.status() == SparseIntegerBounds.Status.INFEASIBLE) {
+            return result(Status.INFEASIBLE, 1);
+        }
+        if (reduced.status() == SparseIntegerBounds.Status.BUDGET_EXHAUSTED) {
+            return result(Status.BUDGET_EXHAUSTED, 0);
+        }
+        int originalVariableCount = variableCount;
+        int[] reducedIndex = new int[variableCount];
+        Arrays.fill(reducedIndex, -1);
+        int activeCount = 0;
+        for (int variable = 0; variable < variableCount; variable++) {
+            if (reduced.lower()[variable] != reduced.upper()[variable]) {
+                reducedIndex[variable] = activeCount++;
             }
         }
-        long rootRows = constraints.size() + (long) variableCount;
+        List<ExactConstraint> base = new ArrayList<>(constraints.size() + activeCount);
+        List<ExactConstraint> compactBase = new ArrayList<>(constraints.size() + activeCount);
+        long[] upperWidths = new long[activeCount];
+        boolean[] impliedUpper = new boolean[activeCount];
+        for (int original = 0; original < originalVariableCount; original++) {
+            int variable = reducedIndex[original];
+            if (variable >= 0) upperWidths[variable] = reduced.upper()[original] - reduced.lower()[original];
+        }
+        boolean lowerFeasible = true;
+        for (SparseIntegerBounds.Row row : reduced.rows()) {
+            if (!workBudget.tryConsume(row.variables().length)) {
+                return result(Status.BUDGET_EXHAUSTED, 0);
+            }
+            BigInteger offset = BigInteger.ZERO;
+            BigInteger minimumActivity = BigInteger.ZERO;
+            boolean nonpositive = true, hasActiveNegative = false;
+            for (int term = 0; term < row.variables().length; term++) {
+                int variable = row.variables()[term];
+                BigInteger coefficient = row.coefficients()[term];
+                if (reducedIndex[variable] >= 0) {
+                    nonpositive &= coefficient.signum() <= 0;
+                    hasActiveNegative |= coefficient.signum() < 0;
+                }
+                offset = offset.add(coefficient.multiply(BigInteger.valueOf(reduced.lower()[variable])));
+                minimumActivity = minimumActivity.add(coefficient.multiply(BigInteger.valueOf(
+                        coefficient.signum() > 0 ? reduced.lower()[variable] : reduced.upper()[variable])));
+            }
+            lowerFeasible &= offset.compareTo(row.minimum()) >= 0;
+            BigInteger right = row.minimum().subtract(offset);
+            boolean resourceBound = nonpositive && hasActiveNegative && right.signum() <= 0;
+            // Retain a physical consumption row even if the propagated box made it redundant.
+            // It may replace many individual upper-bound rows; dropping both would be unsound.
+            if (minimumActivity.compareTo(row.minimum()) >= 0 && !resourceBound) continue;
+            BigInteger[] exact = zeros(activeCount);
+            for (int term = 0; term < row.variables().length; term++) {
+                int variable = reducedIndex[row.variables()[term]];
+                if (variable >= 0) {
+                    exact[variable] = row.coefficients()[term];
+                    // Every remaining variable is nonnegative. In an all-nonpositive row,
+                    // -a*x - ... >= -b implies x <= floor(b/a) by itself. Remove only a
+                    // bound no stronger than that retained row, including the original domain.
+                    if (resourceBound && exact[variable].signum() < 0
+                            && right.divide(exact[variable]).compareTo(BigInteger.valueOf(upperWidths[variable])) <= 0)
+                        impliedUpper[variable] = true;
+                }
+            }
+            var retained = new ExactConstraint(exact, right);
+            compactBase.add(retained);
+            if (minimumActivity.compareTo(row.minimum()) < 0) base.add(retained);
+        }
+        if (lowerFeasible) {
+            return new Result(Status.SOLVED, reduced.lower(), 1);
+        }
+        if (activeCount == 0) return result(Status.INFEASIBLE, 1);
+        variableCount = activeCount;
+        int positiveMinimums = 0;
+        for (ExactConstraint row : base) if (row.minimum.signum() > 0) positiveMinimums++;
+        long originalRows = base.size() + (long) variableCount;
+        long originalColumns = variableCount + originalRows + positiveMinimums + 1L;
+        if (workBudget.admitsTableau(originalRows, originalColumns)) {
+            // Preserve the established pivot path for models already within the allocation cap.
+            // Compact only a model that would otherwise be rejected before its first LP node.
+            Arrays.fill(impliedUpper, false);
+        } else {
+            base = compactBase;
+            positiveMinimums = 0;
+            for (ExactConstraint row : base) if (row.minimum.signum() > 0) positiveMinimums++;
+        }
+        int explicitBounds = 0;
+        for (boolean implied : impliedUpper) if (!implied) explicitBounds++;
+        long rootRows = base.size() + (long) explicitBounds;
         long rootColumns = variableCount + rootRows + positiveMinimums + 1L;
         if (!workBudget.admitsTableau(rootRows, rootColumns)) {
             return result(Status.BUDGET_EXHAUSTED, 0);
         }
-
-        List<ExactConstraint> base = new ArrayList<>(constraints.size() + variableCount);
-        for (Constraint constraint : constraints) {
-            PlanningCancellation.check();
-            long[] coefficients = constraint.coefficients();
-            if (!workBudget.tryConsume(coefficients.length)) {
-                return result(Status.BUDGET_EXHAUSTED, 0);
-            }
-            BigInteger[] exact = new BigInteger[variableCount];
-            for (int i = 0; i < variableCount; i++) {
-                exact[i] = BigInteger.valueOf(coefficients[i]);
-            }
-            base.add(new ExactConstraint(exact, BigInteger.valueOf(constraint.minimum())));
-        }
-        // CraftPlan firing counts use bounded long arithmetic. Adding the representable upper bound
-        // to the relaxation prevents an arbitrary feasible basis from escaping that domain.
-        for (int variable = 0; variable < variableCount; variable++) {
+        // The reduced coordinates are x - provenLower. Give the relaxation their proven individual
+        // upper bounds instead of a single huge domain for every recipe and activation variable.
+        for (int original = 0; original < originalVariableCount; original++) {
+            int variable = reducedIndex[original];
+            if (variable < 0 || impliedUpper[variable]) continue;
             BigInteger[] upper = zeros(variableCount);
             upper[variable] = BigInteger.ONE.negate();
-            base.add(new ExactConstraint(upper, BigInteger.valueOf(maxValue).negate()));
+            base.add(new ExactConstraint(upper, BigInteger.valueOf(
+                    reduced.upper()[original] - reduced.lower()[original]).negate()));
         }
 
         Deque<List<ExactConstraint>> frontier = new ArrayDeque<>();
@@ -182,7 +254,12 @@ final class BoundedIntegerLinearSolver {
                         }
                         values[i] = integer[i].longValueExact();
                     }
-                    return new Result(Status.SOLVED, values, visited);
+                    long[] expanded = reduced.lower().clone();
+                    for (int original = 0; original < originalVariableCount; original++) {
+                        int variable = reducedIndex[original];
+                        if (variable >= 0) expanded[original] = Math.addExact(expanded[original], values[variable]);
+                    }
+                    return new Result(Status.SOLVED, expanded, visited);
                 }
 
                 Rational value = relaxation.values[fractional];
@@ -419,17 +496,23 @@ final class BoundedIntegerLinearSolver {
             BigInteger[] values,
             List<ExactConstraint> constraints,
             WorkBudget workBudget) {
+        BigInteger[] activities = new BigInteger[constraints.size()];
+        for (int row = 0; row < constraints.size(); row++) {
+            if (!workBudget.tryConsume(values.length)) return false;
+            activities[row] = dot(constraints.get(row).coefficients, values);
+        }
         for (int variable = 0; variable < values.length; variable++) {
             BigInteger lower = BigInteger.ZERO;
-            for (ExactConstraint constraint : constraints) {
-                if (!workBudget.tryConsume(values.length)) {
+            for (int row = 0; row < constraints.size(); row++) {
+                if (!workBudget.tryConsume(1L)) {
                     return false;
                 }
+                ExactConstraint constraint = constraints.get(row);
                 BigInteger coefficient = constraint.coefficients[variable];
                 if (coefficient.signum() <= 0) {
                     continue;
                 }
-                BigInteger other = dot(constraint.coefficients, values)
+                BigInteger other = activities[row]
                         .subtract(coefficient.multiply(values[variable]));
                 BigInteger needed = ceilDivide(
                         constraint.minimum.subtract(other), coefficient);
@@ -438,7 +521,16 @@ final class BoundedIntegerLinearSolver {
                 }
             }
             if (lower.compareTo(values[variable]) < 0) {
-                values[variable] = lower.max(BigInteger.ZERO);
+                BigInteger next = lower.max(BigInteger.ZERO);
+                BigInteger delta = next.subtract(values[variable]);
+                values[variable] = next;
+                for (int row = 0; row < constraints.size(); row++) {
+                    if (!workBudget.tryConsume(1L)) return false;
+                    BigInteger coefficient = constraints.get(row).coefficients[variable];
+                    if (coefficient.signum() != 0) {
+                        activities[row] = activities[row].add(coefficient.multiply(delta));
+                    }
+                }
             }
         }
         return true;
@@ -462,7 +554,9 @@ final class BoundedIntegerLinearSolver {
     private static BigInteger dot(BigInteger[] coefficients, BigInteger[] values) {
         BigInteger result = BigInteger.ZERO;
         for (int i = 0; i < coefficients.length; i++) {
-            result = result.add(coefficients[i].multiply(values[i]));
+            if (coefficients[i].signum() != 0 && values[i].signum() != 0) {
+                result = result.add(coefficients[i].multiply(values[i]));
+            }
         }
         return result;
     }
@@ -591,7 +685,7 @@ final class BoundedIntegerLinearSolver {
             return cells <= maxTableauCells && tryConsume(cells);
         }
 
-        private boolean tryConsume(long cellWork) {
+        boolean tryConsume(long cellWork) {
             PlanningCancellation.check();
             if (unlimited) {
                 return true;
@@ -668,11 +762,18 @@ final class BoundedIntegerLinearSolver {
             if (denominator.signum() == 0) {
                 throw new ArithmeticException("zero denominator");
             }
+            // Sparse simplex rows contain mostly zero and integer cells.
+            if (numerator.signum() == 0) {
+                this.numerator = BigInteger.ZERO;
+                this.denominator = BigInteger.ONE;
+                return;
+            }
             if (denominator.signum() < 0) {
                 numerator = numerator.negate();
                 denominator = denominator.negate();
             }
-            BigInteger gcd = numerator.gcd(denominator);
+            BigInteger gcd = denominator.equals(BigInteger.ONE)
+                    ? BigInteger.ONE : numerator.gcd(denominator);
             this.numerator = numerator.divide(gcd);
             this.denominator = denominator.divide(gcd);
         }
@@ -691,23 +792,40 @@ final class BoundedIntegerLinearSolver {
         }
 
         Rational add(Rational other) {
+            if (other.signum() == 0) return this;
+            if (signum() == 0) return other;
+            if (denominator.equals(other.denominator)) {
+                return new Rational(numerator.add(other.numerator), denominator);
+            }
             return new Rational(
                     numerator.multiply(other.denominator).add(other.numerator.multiply(denominator)),
                     denominator.multiply(other.denominator));
         }
 
         Rational subtract(Rational other) {
+            if (other.signum() == 0) return this;
+            if (equals(other)) return ZERO;
+            if (denominator.equals(other.denominator)) {
+                return new Rational(numerator.subtract(other.numerator), denominator);
+            }
             return new Rational(
                     numerator.multiply(other.denominator).subtract(other.numerator.multiply(denominator)),
                     denominator.multiply(other.denominator));
         }
 
         Rational multiply(Rational other) {
+            if (signum() == 0 || other.signum() == 0) return ZERO;
+            if (equals(ONE)) return other;
+            if (other.equals(ONE)) return this;
             return new Rational(
                     numerator.multiply(other.numerator), denominator.multiply(other.denominator));
         }
 
         Rational divide(Rational other) {
+            if (other.signum() == 0) throw new ArithmeticException("zero denominator");
+            if (signum() == 0) return ZERO;
+            if (other.equals(ONE)) return this;
+            if (equals(other)) return ONE;
             return new Rational(
                     numerator.multiply(other.denominator), denominator.multiply(other.numerator));
         }

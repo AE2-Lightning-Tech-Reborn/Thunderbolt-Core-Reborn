@@ -2,9 +2,9 @@
 
 ## 文档状态
 
-- 状态：已在本地工作树实现；**尚未在 GTL 整合包内完整启动一次**（原因见"实机验证的进展与阻塞"），因此未合入 `main`。
+- 状态：已在本地工作树实现；**尚未在 GTL 整合包内完整启动一次**（原因见"实机验证的进展与阻塞"），因此未合入 `main`。当前工作树已并入上游 `1.20.1` 的规划器 / 精确存储移植（`49233dc`），规划器仍挂在 `computePlan`。频道最大流求解器按上游 `alpha`（`acf9c19`）移植：双向树种子 + 精确残量补齐，Mixin 入口不变。
 - 适用模块：`compat/gtl/GtlCompat`、`mixin/OptionalMixinSelector`、`mixin/ThunderboltMixinConfigPlugin`、`ThunderboltCore`、`mixin/ae2/crafting/CraftingCalculationMixin`、三个访问器与 `ExtendedCraftingCpuServiceMixin`。
-- 结论：GTL 环境下 Thunderbolt 让出 **CPU 派发**，规划器挂在 `CraftingCalculation#computePlan`（GTLCore 覆盖后的 `run()` 仍调用它），其余子系统（频道最大流、弹出、索引存储、扩展合成 CPU、客户端界面、对 AE2LT 暴露的 API）保持启用。
+- 结论：GTL 环境下 Thunderbolt 让出 **CPU 派发**，规划器挂在 `CraftingCalculation#computePlan`（GTLCore 覆盖后的 `run()` 仍调用它），其余子系统（频道最大流、弹出、索引存储、精确 BigInteger 存储、扩展合成 CPU、客户端界面、对 AE2LT 暴露的 API）保持启用。
 - 本文只描述 Thunderbolt 自身的适配，不改变 GTLCore 的任何行为。接入方式参考 [NeoECOAEExtension `gtl-port`](https://github.com/Yang120231/NeoECOAEExtension/tree/gtl-port)：不与 GTLCore 的 `@Overwrite` 对打，在覆盖后仍存活的入口接入。
 
 ## 为什么 CPU 派发必须让位，规划器可以接入
@@ -31,11 +31,11 @@ GTLCore 的 `simulateFor(int)` 是空操作（`return !done`）。AE2 的每刻 
 
 | 交出（GTL 环境下不再应用） | 保留 |
 | --- | --- |
-| `CraftingCpuLogicBatchMixin`（AE2 原生 CPU 的批量派发与账目） | `CraftingCalculationMixin`（`@WrapMethod computePlan`、候选执行、循环合成计划包装） |
-| `AdvCraftingCpuLogicBatchMixin`（AdvancedAE CPU 批量派发） | 频道最大流（`GridNodeMaxChannelsMixin` 等） |
-| `ExtendedAePlusSuperMatrixBatchMixin`（ExtendedAE Plus 超级矩阵批量派发） | 弹出（`Eject*`）、索引存储（`IndexedStorageCellHandler`） |
+| `CraftingCpuLogicBatchMixin`（AE2 原生 CPU 的批量派发与账目） | `CraftingCalculationMixin`（`@WrapMethod computePlan`、候选执行、循环合成计划包装；精确预览不包成 `LoopCraftingPlan`） |
+| `AdvCraftingCpuLogicBatchMixin`（AdvancedAE CPU 批量派发） | 频道最大流（`PathingCalculationCapMixin` / `GridNodeMaxChannelsMixin` 等；求解器为 `BidirectionalFlowSeed` + `ChannelFlowNetwork`） |
+| `ExtendedAePlusSuperMatrixBatchMixin`（ExtendedAE Plus 超级矩阵批量派发） | 弹出（`Eject*`）、索引存储（`IndexedStorageCellHandler`）、精确 BigInteger 存储（`NetworkBigStorageMixin` / `DriveBigStorageMixin`） |
 | `AppliedETransmutationModuleBatchMixin`（AppliedE 转化模块批量派发） | 扩展合成 CPU 集群（`ExtendedCraftingCpuServiceMixin`） |
-| | 客户端界面（`CraftConfirmScreen*`、`CraftConfirmMenuMixin`、`CPUSelectionListStorageMixin`、`Tooltips*`） |
+| | 客户端界面（`CraftConfirmScreen*`、`CraftConfirmMenuMixin`、`ExactCraftConfirm*`、`CPUSelectionListStorageMixin`、`Tooltips*`） |
 | | 对 AE2LT 暴露的 API（`api/**`、`CraftingPlanningEngines` 注册表、菜单与方块实体） |
 
 批量派发家族整体让位而不是逐个判断：它们的账目按 AE2 样板语义推导材料消耗，而 GTL CPU 按 GTLCore 语义展开样板（催化剂槽、自动膨胀）。把 GTL 计划交给 Thunderbolt 的批量账目去扣，会扣错键。

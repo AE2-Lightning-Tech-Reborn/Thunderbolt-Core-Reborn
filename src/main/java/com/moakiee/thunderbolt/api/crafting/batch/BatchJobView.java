@@ -28,4 +28,9 @@ public interface BatchJobView {
     }
 
     void addContainerMaxItems(long count, AEKeyType type);
+
+    /** Stop dispatch after ownership or accepted-work accounting becomes uncertain. */
+    default void failDispatch(String reason, Throwable cause) {
+        throw new IllegalStateException(reason, cause);
+    }
 }

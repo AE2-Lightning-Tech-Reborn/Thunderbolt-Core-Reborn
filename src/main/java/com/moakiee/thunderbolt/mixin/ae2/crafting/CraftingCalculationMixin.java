@@ -284,7 +284,8 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
 
     @Unique
     private ICraftingPlan thunderbolt$finishCalculation(ICraftingPlan result) {
-        if (result instanceof CraftingPlan craftingPlan) {
+        if (result instanceof CraftingPlan craftingPlan
+                && !com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(result)) {
             result = LoopCraftingPlan.wrapIfNeeded(
                     craftingPlan, PlanningMetadataStore.take(craftingPlan));
         }

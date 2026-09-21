@@ -26,9 +26,12 @@ server.
   AE2 fallback
 - batch dispatch, closed-loop crafting, time-wheel scheduling, and overloaded
   pattern support
+- exact BigInteger storage, certified execution programs, and oversized
+  crafting previews
 - extension APIs for crafting providers, high-capacity channels, indexed
   storage cells, and eject endpoints
-- max-flow channel allocation for compatible high-capacity networks
+- max-flow channel allocation for compatible high-capacity networks,
+  using a bidirectional tree seed and exact residual completion
 - optional compatibility hooks for Advanced AE, NeoECO, AE2 Crafting Tree,
   and ExtendedAE Plus; hooks load only when the corresponding mod is present
 - coexistence with GTLCore (`gtlcore`): Thunderbolt yields CPU dispatch to
@@ -78,11 +81,11 @@ Publish it to the local Maven repository:
 .\gradlew.bat publishToMavenLocal
 ```
 
-- Version: `2.0.0-beta.5`
+- Version: `2.0.0`
 - Maven coordinate:
-  `com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.5`
+  `com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0`
 - Distributable JAR:
-  `build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.5.jar`
+  `build/libs/thunderbolt-forge-1.20.1-2.0.0.jar`
 
 The `-slim.jar` artifact does not contain the required MixinExtras jar-in-jar
 dependency and is only an intermediate development artifact.

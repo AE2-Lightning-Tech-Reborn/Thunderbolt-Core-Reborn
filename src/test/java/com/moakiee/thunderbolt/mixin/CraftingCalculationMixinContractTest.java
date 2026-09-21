@@ -36,5 +36,14 @@ class CraftingCalculationMixinContractTest {
                 "GTL yield must detect handover: GTLCore's simulateFor is a no-op");
         assertTrue(source.contains("LockSupport.parkNanos"),
                 "GTL yield must park instead of waiting on AE2's per-tick monitor");
+        assertTrue(source.contains("ExactPlanReports.isPreview(result)"),
+                "exact previews must not be wrapped as LoopCraftingPlan");
+        assertTrue(source.contains("LoopCraftingPlan.wrapIfNeeded("),
+                "restricted plans still wrap after a complete calculation");
+        int previewGuard = source.indexOf(
+                "!com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(result)");
+        int wrap = source.indexOf("LoopCraftingPlan.wrapIfNeeded(");
+        assertTrue(previewGuard >= 0 && wrap > previewGuard,
+                "the preview skip must guard wrapIfNeeded in finishCalculation");
     }
 }

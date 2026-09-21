@@ -1,0 +1,12 @@
+{
+  "baseline": "3242dc07fe209cc1164f25c7aac4251625ef4ef6",
+  "baseline_source_sha256": "21e2669606161bdab0686a074b8040d5bd12be6e115a12c0bf0171af4c6e36d3",
+  "java": "openjdk version \"21.0.11\" 2026-04-21 LTS\nOpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS)\nOpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)\n",
+  "sources": {
+    "src/main/java/com/moakiee/thunderbolt/core/channel/BorrowedCapacityCalculator.java": "b36b4c3531ba13f94237520f106f2ebae3b52f718a72ee4ac747e8accc9f34a8",
+    "src/main/java/com/moakiee/thunderbolt/core/channel/BidirectionalFlowSeed.java": "f2b7bc4328e52909e01fca269bb97d35706412c1bebc04af0d6e45c37e165148",
+    "src/main/java/com/moakiee/thunderbolt/core/channel/ChannelFlowNetwork.java": "cef841f6192cfe9ed23c71739c843ca3856a00f6483fbb51c494db07e04c7263",
+    "scripts/channel-benchmark/ChannelStress.java": "69d873613a69f758ab91a7c5260c6667baf06bd3c4ca054a792a5facffcd0232",
+    "scripts/channel-benchmark/AlgorithmComparison.java": "01be21116b4ed45298c650bfae96c92bcd05f66e3aa2d7fce67ac83f438da4cd"
+  }
+}

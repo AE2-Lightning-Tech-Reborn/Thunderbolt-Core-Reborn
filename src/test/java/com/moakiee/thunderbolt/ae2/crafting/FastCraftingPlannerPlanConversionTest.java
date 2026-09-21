@@ -35,16 +35,66 @@ import com.moakiee.thunderbolt.core.crafting.planner.CraftPattern;
 import com.moakiee.thunderbolt.core.crafting.planner.CraftPlan;
 import com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2;
 import com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlanner;
+import com.moakiee.thunderbolt.test.MinecraftTestBootstrap;
 
 import org.junit.jupiter.api.Test;
 
 class FastCraftingPlannerPlanConversionTest {
+    static {
+        // Proxying ICraftingService loads Level through a default method; that
+        // requires the Forge 1.20.1 registries even when this class is run alone.
+        MinecraftTestBootstrap.ensureInitialized();
+    }
+
     private static final AEKey A = new TestKey("a");
     private static final AEKey B = new TestKey("b");
     private static final AEKey C = new TestKey("c");
     private static final AEKey D = new TestKey("d");
     private static final AEKey E = new TestKey("e");
     private static final AEKey TARGET = new TestKey("target");
+
+    @Test
+    void feasiblePlanLeavesExecutionAllocationToTheCpu() {
+        var flexible = new FakePattern(D, new FakeInput[] {
+                new FakeInput(new GenericStack(B, 1), new GenericStack(A, 1))});
+        var strict = new FakePattern(E, new FakeInput[] {
+                new FakeInput(new GenericStack(B, 1))});
+        var target = new FakePattern(TARGET, new FakeInput[] {
+                new FakeInput(new GenericStack(D, 1)), new FakeInput(new GenericStack(E, 1))});
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(A, 1, Actionable.MODULATE);
+        inventory.insert(B, 1, Actionable.MODULATE);
+        var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(
+                D, List.of(flexible), E, List.of(strict), TARGET, List.of(target))),
+                new ChildCraftingSimulationState(inventory), null, TARGET, 1, false);
+        assertTrue(attempt.handled());
+        assertFalse(attempt.plan().simulation());
+        // Registered pattern identities remain intact for native CPUs and provider lookup.
+        assertEquals(1L, attempt.plan().patternTimes().get(flexible));
+        assertEquals(1L, attempt.plan().patternTimes().get(strict));
+        assertEquals(1L, attempt.plan().usedItems().get(A));
+        assertEquals(1L, attempt.plan().usedItems().get(B));
+        assertTrue(com.moakiee.thunderbolt.core.crafting.plan.PlannedInputAssignments
+                .get(attempt.plan()).isEmpty());
+    }
+
+    @Test
+    void mixedCopiesRetainOneRegisteredPatternWithoutFixedBindings() {
+        var source = new FakePattern(TARGET, new IPatternDetails.IInput[] {
+                new FakeInput(new GenericStack(B, 1), new GenericStack(A, 1))});
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(A, 1, Actionable.MODULATE);
+        inventory.insert(B, 1, Actionable.MODULATE);
+        var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(TARGET, List.of(source))),
+                new ChildCraftingSimulationState(inventory), null, TARGET, 2, false);
+        assertTrue(attempt.handled());
+        assertFalse(attempt.plan().simulation());
+        assertEquals(2L, attempt.plan().patternTimes().get(source));
+        assertEquals(1L, attempt.plan().usedItems().get(A));
+        assertEquals(1L, attempt.plan().usedItems().get(B));
+        assertTrue(com.moakiee.thunderbolt.core.crafting.plan.PlannedInputAssignments
+                .get(attempt.plan()).isEmpty());
+    }
 
     @Test
     void unrelatedShortfallSharingAFuzzyCandidateSurvivesPlanConversion() throws Exception {
@@ -96,6 +146,55 @@ class FastCraftingPlannerPlanConversionTest {
         assertFalse(exported.missingItems().isEmpty(),
                 "the fuzzy D route must not hide B required independently by E");
         assertEquals(1L, exported.missingItems().get(B));
+    }
+
+    @Test
+    void wideAttemptReturnsNonExecutableFullPreviewAndExactSummary() {
+        var batch = new FakePattern(A, new IPatternDetails.IInput[] {
+                new FakeInput(new GenericStack(B, Long.MAX_VALUE))});
+        var service = service(Map.of(A, List.of(batch)));
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new EmptyInventory()), null, A, 3L, false);
+        assertTrue(attempt.handled());
+        assertTrue(attempt.plan().simulation(), "even the non-simulated probe must be preview-only");
+        assertTrue(com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(attempt.plan()),
+                "the mixin finish path skips LoopCraftingPlan wrapping when this attachment is present");
+        assertEquals(3L, attempt.plan().finalOutput().amount(), "do not replace the requested amount with a smaller job");
+        assertTrue(attempt.plan().patternTimes().isEmpty(), "do not export executable truncated firing counts");
+        var summary = com.moakiee.thunderbolt.ae2.crafting.ThunderboltCraftingPlanSummary.fromPlan(attempt.plan());
+        var report = com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.get(summary);
+        assertTrue(summary.isSimulation());
+        assertEquals(java.math.BigInteger.valueOf(Long.MAX_VALUE).multiply(java.math.BigInteger.valueOf(3)),
+                report.entries().get(B).missing());
+        assertTrue(report.bytes().compareTo(java.math.BigInteger.valueOf(Long.MAX_VALUE)) > 0);
+        var raw = summary.getEntries().stream().filter(entry -> entry.getWhat().equals(B)).findFirst().orElseThrow();
+        assertEquals(Long.MAX_VALUE, raw.getMissingAmount());
+        assertEquals(report.entries().get(B), com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.amounts(raw));
+    }
+
+    @Test
+    void ordinaryAttemptKeepsItsExistingExecutionPath() {
+        var batch = new FakePattern(A, new IPatternDetails.IInput[0]);
+        var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(A, List.of(batch))),
+                new ChildCraftingSimulationState(new EmptyInventory()), null, A, 3L, false);
+        assertTrue(attempt.handled());
+        assertFalse(attempt.plan().simulation());
+        assertEquals(3L, attempt.plan().patternTimes().get(batch));
+        assertFalse(com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(attempt.plan()));
+    }
+
+    private static appeng.api.networking.crafting.ICraftingService service(
+            Map<AEKey, List<IPatternDetails>> patterns) {
+        return (appeng.api.networking.crafting.ICraftingService) java.lang.reflect.Proxy.newProxyInstance(
+                FastCraftingPlannerPlanConversionTest.class.getClassLoader(),
+                new Class<?>[] {appeng.api.networking.crafting.ICraftingService.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getCraftingFor" -> patterns.getOrDefault(args[0], List.of());
+                    case "getCraftables" -> patterns.keySet();
+                    case "canEmitFor" -> false;
+                    case "getFuzzyCraftable" -> null;
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
     }
 
     private static CraftingPlan convert(CraftPlan<AEKey> internal) throws Exception {

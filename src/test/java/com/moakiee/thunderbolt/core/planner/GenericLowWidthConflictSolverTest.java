@@ -315,8 +315,8 @@ class GenericLowWidthConflictSolverTest {
 
         assertTrue(result.plan().feasible(), () -> "missing=" + result.plan().missing());
         assertEquals(16, result.diagnostics().separatorWidthPeak());
-        assertEquals(2, result.diagnostics().lowWidthAttempts());
-        assertEquals(2, result.diagnostics().lowWidthSolved());
+        assertEquals(3, result.diagnostics().lowWidthAttempts());
+        assertEquals(3, result.diagnostics().lowWidthSolved());
         assertEquals(1L, result.plan().firings().getOrDefault(wideFeasible, 0L));
         assertEquals(0L, result.plan().firings().getOrDefault(wideDead, 0L));
         assertEquals(0, result.diagnostics().consumedFallbackBudget());
@@ -530,7 +530,7 @@ class GenericLowWidthConflictSolverTest {
     }
 
     @Test
-    void nearIntegralStatefulChainFallsBackBeforeExactRationalWorkCanStall() {
+    void nearIntegralStatefulChainIsReducedBeforeExactRationalWorkCanStall() {
         PlanningResult<String> result =
                 org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(
                         Duration.ofSeconds(2),
@@ -540,14 +540,15 @@ class GenericLowWidthConflictSolverTest {
         assertTrue(result.plan().feasible(), () -> "missing=" + result.plan().missing());
         assertFalse(result.plan().budgetExhausted(),
                 "optional exact cutoff must not poison the ordinary planner");
-        assertTrue(result.diagnostics().lowWidthCutoffs() >= 1,
-                "the dense stateful component must be declined generically");
+        assertEquals(0, result.diagnostics().lowWidthCutoffs(),
+                "integer presolve should eliminate the formerly dense stateful component");
+        assertTrue(result.diagnostics().lowWidthSolved() >= 1);
         assertTrue(result.diagnostics().lowWidthIntegerNodes() <= 4,
                 "the cutoff must happen before repeated rational relaxations");
     }
 
     @Test
-    void craftLessProbesShareCompilationAndExactWorkBudget() {
+    void craftLessProbesReuseCompilationAndReducedStatefulModels() {
         org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(
                 Duration.ofSeconds(2), () -> {
                     CraftGraph<String> graph = nearIntegralStatefulChain(12, 1_023L);
@@ -558,15 +559,14 @@ class GenericLowWidthConflictSolverTest {
 
                     long best = 0L;
                     boolean sawPreparedReuse = false;
-                    boolean sawSpentExactBudget = false;
+                    boolean sawPresolveSolution = false;
                     for (long bit = Long.highestOneBit(1_024L); bit > 0L; bit >>>= 1) {
                         long candidate = best + bit;
                         if (candidate >= 1_024L) continue;
                         PlanningResult<String> probe = CraftPlannerV2.planDetailed(
                                 graph, "budget-root", candidate, session);
                         sawPreparedReuse |= probe.diagnostics().reusedCompilations() > 0;
-                        sawSpentExactBudget |= probe.diagnostics().lowWidthCutoffs() > 0
-                                && probe.diagnostics().lowWidthIntegerNodes() == 0;
+                        sawPresolveSolution |= probe.diagnostics().lowWidthSolved() > 0;
                         if (probe.plan().feasible()) {
                             best = candidate;
                         }
@@ -575,8 +575,8 @@ class GenericLowWidthConflictSolverTest {
                     assertEquals(1_023L, best);
                     assertTrue(sawPreparedReuse,
                             "quantity probes must reuse the normalized graph orientation");
-                    assertTrue(sawSpentExactBudget,
-                            "later probes must not restart a fresh rational-solver budget");
+                    assertTrue(sawPresolveSolution,
+                            "fixed activation variables should no longer require a dense relaxation");
                 });
     }
 

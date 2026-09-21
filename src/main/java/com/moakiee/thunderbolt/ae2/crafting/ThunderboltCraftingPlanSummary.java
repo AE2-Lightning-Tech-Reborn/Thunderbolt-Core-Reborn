@@ -37,6 +37,25 @@ public final class ThunderboltCraftingPlanSummary {
      */
     public static CraftingPlanSummary fromPlan(ICraftingPlan plan) {
         Objects.requireNonNull(plan, "plan");
+        var exact = ExactPlanReports.get(plan);
+        if (exact != null) {
+            var entries = new ArrayList<CraftingPlanSummaryEntry>();
+            exact.entries().forEach((key, value) -> entries.add(new CraftingPlanSummaryEntry(key,
+                    ExactPlanReport.project(value.missing()), ExactPlanReport.project(value.stored()),
+                    ExactPlanReport.project(value.crafting()))));
+            entries.sort((left, right) -> {
+                var a = exact.entries().get(left.getWhat());
+                var b = exact.entries().get(right.getWhat());
+                int comparison = b.missing().compareTo(a.missing());
+                if (comparison == 0) comparison = b.crafting().compareTo(a.crafting());
+                if (comparison == 0) comparison = b.stored().compareTo(a.stored());
+                return comparison;
+            });
+            var summary = new CraftingPlanSummary(ExactPlanReport.project(exact.bytes()), true, List.copyOf(entries));
+            ExactPlanReports.attach(summary, exact);
+            Ae2CraftingTreeSummaryBridge.attach(summary, plan);
+            return summary;
+        }
         var stats = new HashMap<AEKey, KeyStats>();
 
         for (var entry : plan.usedItems()) {

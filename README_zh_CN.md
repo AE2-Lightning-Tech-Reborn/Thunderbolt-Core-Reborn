@@ -19,8 +19,9 @@
 
 - 加速 AE2 自动合成规划，支持按顺序选择规划器，并可回退到 AE2 原生规划器
 - 支持批量下发、闭环合成、时间轮调度和重载样板
+- 支持精确 BigInteger 存储、可认证执行程序，以及超限合成预览
 - 为合成供应器、高容量频道、索引存储单元和弹出端点提供扩展 API
-- 为兼容的高容量网络提供基于最大流的频道分配
+- 为兼容的高容量网络提供基于最大流的频道分配（双向树种子 + 精确残量补齐）
 - 包含 Advanced AE、NeoECO、AE2 Crafting Tree 和 ExtendedAE Plus 的可选兼容钩子；仅在对应模组存在时加载
 - 与 GTLCore（`gtlcore`）共存：CPU 派发让位给 GTLCore，规划器挂在 `CraftingCalculation#computePlan`，其余子系统保持启用
 
@@ -56,9 +57,9 @@
 .\gradlew.bat publishToMavenLocal
 ```
 
-- 版本：`2.0.0-beta.5`
-- Maven 坐标：`com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.5`
-- 可分发 JAR：`build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.5.jar`
+- 版本：`2.0.0`
+- Maven 坐标：`com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0`
+- 可分发 JAR：`build/libs/thunderbolt-forge-1.20.1-2.0.0.jar`
 
 带 `-slim.jar` 后缀的 JAR 不含运行时必需的 MixinExtras 内嵌依赖，只作为开发过程的中间产物。
 

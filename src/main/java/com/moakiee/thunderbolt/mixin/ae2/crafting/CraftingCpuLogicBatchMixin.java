@@ -108,11 +108,15 @@ public abstract class CraftingCpuLogicBatchMixin {
                         (task, value) -> ((TaskProgressAccessor) task).thunderbolt$setValue(value),
                         timeTracker,
                         (tracker, count, type) -> ((ElapsedTimeTrackerAccessor) tracker)
-                                .thunderbolt$invokeAddMaxItems(count, type)),
+                                .thunderbolt$invokeAddMaxItems(count, type)).onDispatchFailure(() -> {
+                                    jobAccessor.thunderbolt$getLink().cancel();
+                                    cluster.markDirty();
+                                }),
                 getInventory(),
                 batchedByTask,
                 cluster::markDirty);
 
+        if (jobAccessor.thunderbolt$getLink().isCanceled()) return remainingOps;
         if (batchResult.dispatchedCopies() > 0) {
             // Vanilla CPUs keep batch extraction/provider dispatch, but pay one operation per copy.
             // UNBOUNDED providers (such as creative item sources) still pay one operation per dispatch.

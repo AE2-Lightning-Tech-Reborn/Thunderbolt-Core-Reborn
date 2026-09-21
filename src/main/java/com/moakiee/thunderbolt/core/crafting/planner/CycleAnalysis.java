@@ -44,16 +44,26 @@ final class CycleAnalysis<K> {
     private static final int MAX_WEIGHT_BITS = 128;
 
     private final Map<K, Kind> kindByMember;
+    private final Map<K, Integer> ordinaryCutOrder;
+    private final boolean singleCyclicComponent;
     private final Set<K> directlyReorientable;
     private final Map<K, Set<K>> membersByMember;
 
     private CycleAnalysis(
             Map<K, Kind> kindByMember,
             Set<K> directlyReorientable,
-            Map<K, Set<K>> membersByMember) {
+            Map<K, Set<K>> membersByMember, Map<K, Integer> ordinaryCutOrder) {
         this.kindByMember = Map.copyOf(kindByMember);
+        this.ordinaryCutOrder = Map.copyOf(ordinaryCutOrder);
         this.directlyReorientable = Set.copyOf(directlyReorientable);
         this.membersByMember = Map.copyOf(membersByMember);
+        Set<K> firstComponent = null;
+        boolean multiple = false;
+        for (Set<K> component : membersByMember.values()) {
+            if (firstComponent == null) firstComponent = component;
+            else if (firstComponent != component) { multiple = true; break; }
+        }
+        singleCyclicComponent = !multiple;
     }
 
     static <K> CycleAnalysis<K> analyze(CraftGraph<K> graph, K target) {
@@ -90,8 +100,49 @@ final class CycleAnalysis<K> {
             }
             for (K member : members) kinds.put(member, kind);
         }
+        Map<K, Integer> cutOrder = new LinkedHashMap<>();
+        boolean ordinary = true;
+        for (K key : adjacency.keySet()) {
+            cutOrder.put(key, cutOrder.size());
+            for (CraftPattern<K> pattern : graph.patternsFor(key)) {
+                for (CraftInput<K> input : pattern.inputs()) {
+                    if (input.returned() || input.remainder() != null
+                            || input.reusableStockSource() != null) ordinary = false;
+                }
+            }
+        }
         return new CycleAnalysis<>(
-                kinds, directlyReorientable(graph, adjacency.keySet()), membersBySccMember);
+                kinds, directlyReorientable(graph, adjacency.keySet()), membersBySccMember,
+                ordinary ? cutOrder : Map.of());
+    }
+
+    /**
+     * In one ordinary SCC, cut-root order cannot change its remaining DAG. With multiple SCCs,
+     * external producers can enter an uncut upstream component from different directions; retain
+     * those traversal orders, just as for stateful roots.
+     */
+    List<K> canonicalCuts(List<K> roots) {
+        if (ordinaryCutOrder.isEmpty() || !singleCyclicComponent) return List.copyOf(roots);
+        return orderedCuts(roots);
+    }
+
+    private List<K> orderedCuts(List<K> roots) {
+        List<K> ordered = new ArrayList<>(roots);
+        ordered.sort(java.util.Comparator.comparingInt(key ->
+                ordinaryCutOrder.getOrDefault(key, Integer.MAX_VALUE)));
+        return List.copyOf(ordered);
+    }
+
+    List<K> ordinaryCycleMembers(int limit) {
+        if (ordinaryCutOrder.isEmpty()) return List.of();
+        var members = new ArrayList<K>();
+        for (K key : ordinaryCutOrder.keySet()) {
+            if (!membersOf(key).isEmpty()) {
+                members.add(key);
+                if (members.size() > limit) return List.of();
+            }
+        }
+        return orderedCuts(members);
     }
 
     Kind kindOf(K key) {

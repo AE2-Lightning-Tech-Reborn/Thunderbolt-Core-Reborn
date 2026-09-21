@@ -11,6 +11,20 @@ import net.minecraftforge.fml.loading.LoadingModList;
 public final class MinecraftTestBootstrap {
     private static boolean initialized;
 
+    @SuppressWarnings("unchecked")
+    public static <T> net.minecraftforge.registries.IForgeRegistry<T> registry(String name) {
+        ensureInitialized();
+        try {
+            var builder = new net.minecraftforge.registries.RegistryBuilder<T>()
+                    .setName(new net.minecraft.resources.ResourceLocation("thunderbolt_test", name));
+            var create = builder.getClass().getDeclaredMethod("create");
+            create.setAccessible(true);
+            return (net.minecraftforge.registries.IForgeRegistry<T>) create.invoke(builder);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
+    }
+
     private MinecraftTestBootstrap() {
     }
 

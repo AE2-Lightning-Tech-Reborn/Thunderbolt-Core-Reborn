@@ -34,6 +34,9 @@ public interface ExtendedCraftingCpuCluster extends ICraftingCPU {
 
     Collection<? extends ICraftingCPU> getActiveCpus();
 
+    /** Jobs exposed in the normal CPU monitor; separate from backend-specific execution lists. */
+    default Collection<? extends ICraftingCPU> getVisibleCpus() { return getActiveCpus(); }
+
     long tickCraftingLogic(IEnergyService energyService, ICraftingService craftingService);
 
     void addWaitingKeys(Set<AEKey> waitingKeys);
@@ -83,7 +86,7 @@ public interface ExtendedCraftingCpuCluster extends ICraftingCPU {
         if (cpu == this) {
             return true;
         }
-        for (var activeCpu : getActiveCpus()) {
+        for (var activeCpu : getVisibleCpus()) {
             if (activeCpu == cpu) {
                 return true;
             }
