@@ -410,6 +410,167 @@ public final class KeyReuseGameTests {
     private record GcWitness(AEItemKey key, java.lang.ref.WeakReference<ItemStack> source,
                              java.lang.ref.WeakReference<Object> aliasPatch) {}
 
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void firstUseEqualComponentsReuseAndLaterAcquireStableIdentity(GameTestHelper h) {
+        KeyConstructionCache.configure(true);
+        var seed = new ItemStack(Items.DIAMOND, 64);
+        var tag = new net.minecraft.nbt.CompoundTag();
+        tag.putString("payload", "same content, independent snapshots");
+        seed.set(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(tag));
+        seed.set(DataComponents.CUSTOM_NAME, Component.literal("existing"));
+        AEItemKey.of(seed);
+        var canonical = AEItemKey.of(seed);
+        for (int i = 0; i < 64; i++) {
+            var query = new ItemStack(Items.DIAMOND, 32); query.setPopTime(5);
+            query.set(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(tag.copy()));
+            query.set(DataComponents.CUSTOM_NAME, Component.literal("existing"));
+            var access = (com.moakiee.thunderbolt.core.keys.SharedComponentPatch) query.getComponents();
+            require(access.thunderbolt$copyOnWritePatchIdentity() == null, "query already shared before first use");
+            require(AEItemKey.of(query) == canonical, "first-use equal content bypassed the existing value");
+            require(access.thunderbolt$copyOnWritePatchIdentity() != null,
+                    "successful value lookup did not preserve native copy-on-write behavior");
+            require(KeyConstructionCache.findItem(query) == null, "first-use hit allocated an identity alias");
+            require(AEItemKey.of(query) == canonical && KeyConstructionCache.findItem(query) == canonical,
+                    "repeated equal input did not acquire its stable identity alias");
+            require(query.getCount() == 32 && query.getPopTime() == 5, "lookup changed caller count or animation");
+            query.set(DataComponents.CUSTOM_NAME, Component.literal("changed " + i));
+            require(!AEItemKey.of(query).equals(canonical) && canonical.matches(seed),
+                    "mutating an uncached query changed the retained representative");
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void firstUseEqualComponentsReuseAcrossLargeValueTable(GameTestHelper h) {
+        KeyConstructionCache.configure(true);
+        var held = new AEItemKey[256];
+        for (int i = 0; i < held.length; i++) {
+            var seed = new ItemStack(Items.EMERALD);
+            seed.set(DataComponents.CUSTOM_NAME, Component.literal("variant " + i));
+            AEItemKey.of(seed); held[i] = AEItemKey.of(seed);
+        }
+        for (int i = 0; i < 1024; i++) {
+            int index = (i * 73) & 255;
+            var query = new ItemStack(Items.EMERALD, 64);
+            query.set(DataComponents.CUSTOM_NAME, Component.literal("variant " + index));
+            require(AEItemKey.of(query) == held[index], "new identity missed an existing large-table value");
+            require(query.getCount() == 64, "large-table lookup changed caller count");
+            query.set(DataComponents.CUSTOM_NAME, Component.literal("unseen " + i));
+            var fresh = AEItemKey.of(query);
+            require(!fresh.equals(held[index]) && fresh.matches(query), "large-table miss returned a wrong value");
+            require(fresh.hashCode() == ItemStack.hashItemAndComponents(fresh.getReadOnlyStack()),
+                    "value lookup changed native key hash semantics");
+        }
+        h.succeed();
+    }
+
+    /** Counts real native component hashing; copying preserves the instrumentation. */
+    private static final class HashCountingTag extends net.minecraft.nbt.CompoundTag {
+        private final java.util.concurrent.atomic.AtomicInteger calls;
+        HashCountingTag(java.util.concurrent.atomic.AtomicInteger calls) { this.calls = calls; }
+        @Override public int hashCode() { calls.incrementAndGet(); return super.hashCode(); }
+        @Override public net.minecraft.nbt.CompoundTag copy() {
+            var result = new HashCountingTag(calls);
+            for (var name : getAllKeys()) result.put(name, java.util.Objects.requireNonNull(get(name)).copy());
+            return result;
+        }
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void valueCacheMissesHashDeepComponentsOnlyOnce(GameTestHelper h) {
+        for (boolean named : new boolean[]{false, true}) {
+            KeyConstructionCache.configure(true);
+            var held = new AEItemKey[128];
+            for (int i = 0; i < held.length; i++) {
+                var seed = new ItemStack(Items.BOOK);
+                var data = new net.minecraft.nbt.CompoundTag(); data.putInt("variant", i);
+                seed.set(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(data));
+                if (named) seed.set(DataComponents.CUSTOM_NAME, Component.literal("retained " + i));
+                AEItemKey.of(seed); held[i] = AEItemKey.of(seed);
+            }
+            var hashes = new java.util.concurrent.atomic.AtomicInteger();
+            var payload = new HashCountingTag(hashes);
+            for (int i = 0; i < 64; i++) payload.putString("field " + i, "never seen " + i);
+            var query = new ItemStack(Items.BOOK);
+            query.set(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(payload));
+            if (named) query.set(DataComponents.CUSTOM_NAME, Component.literal("never seen"));
+            hashes.set(0);
+            var first = AEItemKey.of(query);
+            require(hashes.get() == 1, "first-use miss hashed deep data " + hashes.get() + " times");
+            hashes.set(0);
+            var admitted = AEItemKey.of(query);
+            require(hashes.get() == 1, "admission miss hashed deep data " + hashes.get() + " times");
+            require(first.equals(admitted) && first.matches(query), "single-hash construction changed value semantics");
+            require(admitted == AEItemKey.of(query), "admitted key lost identity reuse");
+            java.lang.ref.Reference.reachabilityFence(held);
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void contentHintCollisionsStillUseFullValueEquality(GameTestHelper h) {
+        KeyConstructionCache.configure(true);
+        var held = new AEItemKey[64];
+        var sharedTag = new net.minecraft.nbt.CompoundTag(); sharedTag.putInt("shared", 1);
+        var sharedData = net.minecraft.world.item.component.CustomData.of(sharedTag);
+        for (int pass = 0; pass < 2; pass++) for (int i = 0; i < held.length; i++) {
+            var query = new ItemStack(Items.PAPER);
+            // Aa and BB collide as literal strings; all share the same data identity. Style and
+            // lore are omitted from hints, so the complete fingerprint deliberately collides.
+            var name = Component.literal(i % 2 == 0 ? "Aa" : "BB")
+                    .withStyle(i % 3 == 0 ? net.minecraft.ChatFormatting.RED : net.minecraft.ChatFormatting.BLUE);
+            query.set(DataComponents.CUSTOM_NAME, name);
+            query.set(DataComponents.CUSTOM_DATA, sharedData);
+            query.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(
+                    java.util.List.of(Component.literal("variant " + i))));
+            var key = AEItemKey.of(query);
+            if (pass == 0) held[i] = AEItemKey.of(query);
+            else require(key == held[i], "colliding content hint returned or hid a different key");
+            require(key.matches(query), "hint comparison ignored style or payload");
+            if (i > 0) require(!held[i - 1].equals(key), "different payloads collapsed");
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void equalOpaqueValuesWithDifferentIdentitiesStillConverge(GameTestHelper h) {
+        KeyConstructionCache.configure(true);
+        var held = new AEItemKey[64];
+        for (int pass = 0; pass < 2; pass++) for (int i = 0; i < held.length; i++) {
+            var query = new ItemStack(Items.BOOK);
+            var data = new net.minecraft.nbt.CompoundTag(); data.putInt("variant", i);
+            query.set(DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(data));
+            var key = AEItemKey.of(query);
+            if (pass == 0) held[i] = AEItemKey.of(query);
+            else require(key == held[i], "opaque identity hint hid an independently decoded equal value");
+            require(key.matches(query), "opaque fallback changed value semantics");
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void firstUseValueMissKeepsAdmissionAndComponentOptOut(GameTestHelper h) {
+        KeyConstructionCache.configure(true);
+        var seed = new ItemStack(Items.GOLD_INGOT);
+        seed.set(DataComponents.CUSTOM_NAME, Component.literal("retained"));
+        AEItemKey.of(seed);
+        var retained = AEItemKey.of(seed);
+        var fresh = new ItemStack(Items.GOLD_INGOT);
+        fresh.set(DataComponents.CUSTOM_NAME, Component.literal("new unique content"));
+        var first = AEItemKey.of(fresh);
+        require(((com.moakiee.thunderbolt.core.keys.SharedComponentPatch) first.getReadOnlyStack().getComponents())
+                .thunderbolt$sharedPatchIdentity() == null, "a read-only miss enabled first-use admission");
+        var second = AEItemKey.of(fresh);
+        require(first != second && first.equals(second) && second == AEItemKey.of(fresh),
+                "miss or subsequent repeated-snapshot admission changed");
+        try {
+            KeyConstructionCache.configure(true, false);
+            var a = AEItemKey.of(seed); var b = AEItemKey.of(seed);
+            require(a != b && a.equals(retained) && b.equals(retained), "value fallback ignored component opt-out");
+        } finally { KeyConstructionCache.configure(true); }
+        h.succeed();
+    }
+
     private static ItemStack gcNamedStack(String name) {
         var stack = new ItemStack(Items.GOLD_INGOT, 64);
         stack.set(DataComponents.CUSTOM_NAME, Component.literal(name));

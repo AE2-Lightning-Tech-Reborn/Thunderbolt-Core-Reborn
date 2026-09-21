@@ -117,13 +117,23 @@ public final class KeyConstructionCache {
         return matchesItem(cached, source, patch, current.components) ? cached : null;
     }
 
+    /** Query existing values before copying; does not allocate a cache or admit a fresh value. */
+    public static AEItemKey findComponentValue(ItemStack source) {
+        var current = tables;
+        if (current == null || !current.components || source.isEmpty()
+                || !(source.getComponents() instanceof SharedComponentPatch access)) return null;
+        var holder = plainCache(current, source, false);
+        var components = holder != null ? holder.components(false, current.identities) : null;
+        return components != null ? components.findValue(source, access.thunderbolt$prototypeIdentity()) : null;
+    }
+
     /** The stack is a native copy or the exact key-owned stack supplied by the validated pre-copy probe. */
     public static AEItemKey item(ItemStack ownedStack, Operation<AEItemKey> constructor) {
         var current = tables;
         if (current == null || ownedStack.isEmpty()) return constructor.call(ownedStack);
         ownedStack = normalizedStack(ownedStack);
         Object patch = patchIdentity(ownedStack.getComponents(), ownedStack.isComponentsPatchEmpty(), current.components);
-        if (patch == null) return constructor.call(ownedStack);
+        if (patch == null) return firstUseComponent(current, ownedStack, constructor);
         if (patch != EMPTY_PATCH && ownedStack.getComponents() instanceof SharedComponentPatch access) {
             var holder = plainCache(current, ownedStack, true);
             if (holder != null) return holder.components(true, current.identities).getOrCreate(ownedStack, patch,
@@ -151,6 +161,17 @@ public final class KeyConstructionCache {
         var result = constructor.call(ownedStack);
         current.items.set(slot, result);
         return result;
+    }
+
+    private static AEItemKey firstUseComponent(Tables current, ItemStack ownedStack, Operation<AEItemKey> constructor) {
+        var created = constructor.call(ownedStack);
+        // Query with the native key's cached hash, but never admit one-off contents.
+        if (current.components && !ownedStack.isComponentsPatchEmpty()) {
+            var holder = plainCache(current, ownedStack, false);
+            var components = holder != null ? holder.components(false, current.identities) : null;
+            if (components != null) return components.reuseConstructed(created);
+        }
+        return created;
     }
 
     /** Returns a normalized view without changing the caller's stack; already normalized stacks are reused. */

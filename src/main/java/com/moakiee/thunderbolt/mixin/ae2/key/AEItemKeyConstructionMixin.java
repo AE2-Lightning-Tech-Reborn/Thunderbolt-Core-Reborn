@@ -43,6 +43,8 @@ abstract class AEItemKeyConstructionMixin {
                 var cached = KeyConstructionCache.findItem(source);
                 if (cached != null) return cached;
             }
+            var existing = KeyConstructionCache.findComponentValue(source);
+            if (existing != null) return existing;
         } else {
             var key = ((ItemKeyCacheOwner) (Object) source.getItem()).thunderbolt$plainKey();
             if (key != null && source.getComponents() instanceof SharedComponentPatch access
@@ -58,8 +60,8 @@ abstract class AEItemKeyConstructionMixin {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;copy()Lnet/minecraft/world/item/ItemStack;"),
             require = 0)
     private static ItemStack thunderbolt$skipCopyOnHit(ItemStack stack, Operation<ItemStack> original) {
-        // Fresh writable patches cannot have an identity hit. Keep one-shot component construction
-        // out of both lookup layers, including their generic dispatch and content hashing costs.
+        // The wrapper already queried existing values. A miss on a fresh writable patch still
+        // bypasses admission; do not repeat its content lookup or create identity aliases here.
         boolean freshPatch = !stack.isComponentsPatchEmpty() && stack.getComponents() instanceof SharedComponentPatch access
                 && access.thunderbolt$copyOnWritePatchIdentity() == null;
         if (!freshPatch) {

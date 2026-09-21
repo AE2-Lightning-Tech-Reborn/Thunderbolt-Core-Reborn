@@ -37,6 +37,24 @@ class WeakOpenHashMapTest {
         for (int i = 0; i < held.size(); i++) assertSame(held.get(i), map.get(new Key(i)));
     }
 
+    @Test void projectedReadsSurviveSmallTableGrowthRemovalAndExpiredValues() throws Exception {
+        var map = new WeakOpenHashMap<Key, Value>();
+        var held = new ArrayList<Value>();
+        for (int i = 0; i < 128; i++) {
+            var value = new Value(new Key(i)); held.add(value);
+            assertNull(map.putIfAbsent(value.key(), value));
+            for (int j = 0; j <= i; j++)
+                assertSame(held.get(j), map.get(WeakOpenHashMap.equality(new Key(j))));
+            assertNull(map.get(WeakOpenHashMap.equality(new Key(1000 + i))));
+        }
+        map.remove(held.get(1).key(), held.get(1));
+        assertNull(map.get(WeakOpenHashMap.equality(new Key(1))));
+        keyReference(map, held.get(2).key()).clear();
+        assertNull(map.get(WeakOpenHashMap.equality(new Key(2))));
+        assertSame(held.get(3), map.get(WeakOpenHashMap.equality(new Key(3))));
+        Reference.reachabilityFence(held);
+    }
+
     @Test void removeUsesExpectedValueIdentity() {
         var map = new WeakOpenHashMap<Key, Value>();
         var first = new Value(new Key(1));

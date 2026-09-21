@@ -34,6 +34,15 @@ abstract class SharedComponentPatchMixin implements SharedComponentPatch {
     }
 
     @Override
+    public Reference2ObjectMap<DataComponentType<?>, Optional<?>> thunderbolt$componentPatchView() {
+        // Unlike asPatch(), a transient query must not promote a writable patch to a COW snapshot.
+        return patch;
+    }
+
+    @Override
+    public void thunderbolt$shareComponentPatch() { copyOnWrite = true; }
+
+    @Override
     public Object thunderbolt$prototypeIdentity() { return prototype; }
 
     @Override

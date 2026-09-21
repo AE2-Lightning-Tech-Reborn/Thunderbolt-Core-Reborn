@@ -11,6 +11,35 @@ import org.junit.jupiter.api.Test;
 class WeakCanonicalMapTest {
     record Value(String content) {}
 
+    @Test void valueOnlyLookupDoesNotCreateOrReplaceIdentityAliases() {
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        var map = new WeakCanonicalMap<String, Value>(key -> { calls.incrementAndGet(); return new Value(key); });
+        var identity = new String("stored");
+        var stored = map.get(identity);
+        var recent = map.recentValue();
+        var equal = new String("stored");
+        assertSame(stored, map.findValue(WeakOpenHashMap.equality(equal)));
+        assertNull(map.findIdentity(equal, 0), "read-only query published an identity alias");
+        assertSame(recent, map.recentValue());
+        assertNull(map.findValue(WeakOpenHashMap.equality("missing")));
+        assertEquals(1, calls.get(), "read-only miss invoked the factory");
+        map.clear();
+        assertNull(map.findValue(WeakOpenHashMap.equality(identity)));
+    }
+
+    @Test void boundedHintsDoNotReplaceRecentIdentityAndClearInvalidatesThem() {
+        var map = new WeakCanonicalMap<String, Value>(Value::new);
+        var first = map.get(new String("first"));
+        var second = map.get(new String("second"));
+        var hintToken = new Object();
+        map.rememberHint(hintToken, 7, first);
+        assertSame(first, map.findIdentity(hintToken, 7));
+        assertSame(second, map.recentValue(), "content hint displaced the fast recent identity");
+        assertNull(map.findIdentity(hintToken, 8));
+        map.clear();
+        assertNull(map.findIdentity(hintToken, 7));
+    }
+
     @Test void selfContainedFactoryAndLazyContentKeyOnlyRunOnMisses() {
         var count = new java.util.concurrent.atomic.AtomicInteger();
         var map = new WeakCanonicalMap<String, Value>(key -> { count.incrementAndGet(); return new Value(key); });

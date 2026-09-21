@@ -72,6 +72,28 @@ public final class WeakCanonicalMap<K, V> {
         return value != null ? value : identities.get(current, identity, variant, identityState);
     }
 
+    /**
+     * Read an existing representative without creation, admission, or identity alias publication.
+     * The transient lookup must validate all representation state required by the caller. In
+     * particular, a mutable query may be borrowed here but must never become a stored cache key.
+     */
+    public V findValue(Lookup<K, V> lookup) {
+        return state.values.get(Objects.requireNonNull(lookup));
+    }
+
+    /** Publish an alias only when the caller already owns a stable identity token. Null is value-only. */
+    public V findValue(Object identity, int variant, Lookup<K, V> lookup) {
+        var current = state;
+        var value = current.values.get(Objects.requireNonNull(lookup));
+        if (value != null && identity != null) remember(current, identity, variant, value);
+        return value;
+    }
+
+    /** A validated value hint shares the bounded weak L1, without displacing the recent identity. */
+    public void rememberHint(Object identity, int variant, V value) {
+        remember(state, Objects.requireNonNull(identity), variant, Objects.requireNonNull(value), false);
+    }
+
     /** Optional fast path when a caller can prove that this exact value was already validated. */
     public V recentValue() {
         var recent = state.recent;
@@ -130,12 +152,16 @@ public final class WeakCanonicalMap<K, V> {
     public void cleanUp() { state.values.cleanUp(); }
 
     private void remember(State<K, V> current, Object identity, int variant, V value) {
+        remember(current, identity, variant, value, true);
+    }
+
+    private void remember(State<K, V> current, Object identity, int variant, V value, boolean recent) {
         var token = new WeakReference<Object>(identity);
         var stamp = identityState != null ? identityState.apply(value) : null;
         var snapshot = stamp == identity ? token : stamp != null ? new WeakReference<>(stamp) : null;
         var alias = new Alias<>(new WeakReference<>(current), token, new WeakReference<>(value), snapshot, variant);
         identities.put(current, identity, variant, alias);
-        current.recent = alias;
+        if (recent) current.recent = alias;
     }
 
     private record Alias<V>(WeakReference<Object> scope, WeakReference<Object> identity,
