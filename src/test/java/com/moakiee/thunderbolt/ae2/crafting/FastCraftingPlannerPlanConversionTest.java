@@ -35,10 +35,17 @@ import com.moakiee.thunderbolt.core.crafting.planner.CraftPattern;
 import com.moakiee.thunderbolt.core.crafting.planner.CraftPlan;
 import com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2;
 import com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlanner;
+import com.moakiee.thunderbolt.test.MinecraftTestBootstrap;
 
 import org.junit.jupiter.api.Test;
 
 class FastCraftingPlannerPlanConversionTest {
+    static {
+        // Proxying ICraftingService loads Level through a default method; that
+        // requires the Forge 1.20.1 registries even when this class is run alone.
+        MinecraftTestBootstrap.ensureInitialized();
+    }
+
     private static final AEKey A = new TestKey("a");
     private static final AEKey B = new TestKey("b");
     private static final AEKey C = new TestKey("c");
@@ -150,6 +157,8 @@ class FastCraftingPlannerPlanConversionTest {
                 new ChildCraftingSimulationState(new EmptyInventory()), null, A, 3L, false);
         assertTrue(attempt.handled());
         assertTrue(attempt.plan().simulation(), "even the non-simulated probe must be preview-only");
+        assertTrue(com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(attempt.plan()),
+                "the mixin finish path skips LoopCraftingPlan wrapping when this attachment is present");
         assertEquals(3L, attempt.plan().finalOutput().amount(), "do not replace the requested amount with a smaller job");
         assertTrue(attempt.plan().patternTimes().isEmpty(), "do not export executable truncated firing counts");
         var summary = com.moakiee.thunderbolt.ae2.crafting.ThunderboltCraftingPlanSummary.fromPlan(attempt.plan());

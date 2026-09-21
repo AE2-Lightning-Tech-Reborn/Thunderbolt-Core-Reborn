@@ -80,6 +80,8 @@ class GtlStandDownSelectionTest {
         assertTrue(OptionalMixinSelector.shouldApply("NetworkCraftingProvidersRevisionMixin", GTL::equals));
         assertTrue(OptionalMixinSelector.shouldApply("PathingCalculationCapMixin", GTL::equals));
         assertTrue(OptionalMixinSelector.shouldApply("GridNodeMaxChannelsMixin", GTL::equals));
+        assertTrue(OptionalMixinSelector.shouldApply("GridConnectionMaxChannelsMixin", GTL::equals));
+        assertTrue(OptionalMixinSelector.shouldApply("GridGetMachineNodesMixin", GTL::equals));
         assertFalse(OptionalMixinSelector.isGtlOwned("ExecutingCraftingJobAccessor"));
         assertFalse(OptionalMixinSelector.isGtlOwned("ExactCraftConfirmPacketMixin"));
         assertFalse(OptionalMixinSelector.isGtlOwned("NetworkBigStorageMixin"));

@@ -24,5 +24,7 @@ final class CraftConfirmPlanningCompositionContractTest {
                 "tracking must invoke the next operation in the MixinExtras chain");
         assertFalse(hookSource.contains("service.beginCraftingCalculation("),
                 "tracking must not bypass another planner by calling the service directly");
+        assertTrue(source.contains("if (com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(result)) ci.cancel();"),
+                "startJob must refuse exact previews instead of auto-starting them");
     }
 }

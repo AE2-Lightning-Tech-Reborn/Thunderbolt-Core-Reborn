@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigInteger;
+
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
@@ -12,6 +14,8 @@ import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.CraftingPlan;
+import com.moakiee.thunderbolt.ae2.crafting.ExactPlanReport;
+import com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports;
 import com.moakiee.thunderbolt.api.crafting.cpu.ExtendedCraftingCpuCluster;
 import com.moakiee.thunderbolt.api.crafting.cpu.ExtendedCraftingCpuClusterHost;
 import com.moakiee.thunderbolt.core.crafting.loop.CraftingCpuRestrictedPattern;
@@ -48,6 +52,18 @@ class LoopCraftingPlanTest {
         assertTrue(wrapped.canRunOn(acceptedHost));
         assertFalse(wrapped.canRunOn(otherHost));
         assertFalse(LoopCraftingPlan.class.getPackageName().contains(".api."));
+    }
+
+    @Test
+    void exactPreviewProjectionStaysUnwrappedBecauseItHasNoRestrictedPatterns() {
+        var seed = new TestKey("preview");
+        var projection = new CraftingPlan(
+                new GenericStack(seed, 3L), Long.MAX_VALUE, true, false,
+                new KeyCounter(), new KeyCounter(), new KeyCounter(), Map.of());
+        ExactPlanReports.attach(projection, new ExactPlanReport(BigInteger.ONE, Map.of(), true));
+
+        assertTrue(ExactPlanReports.isPreview(projection));
+        assertSame(projection, LoopCraftingPlan.wrapIfNeeded(projection));
     }
 
     private static final class TestHost implements ExtendedCraftingCpuClusterHost {
