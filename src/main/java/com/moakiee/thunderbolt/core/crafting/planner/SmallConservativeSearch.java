@@ -114,7 +114,11 @@ final class SmallConservativeSearch {
                     var analysis = ConservativeFeedbackAnalysis.analyzeAll(keys, selected);
                     return analysis.components().size() + analysis.fallbacks().size()
                             == analysis.cyclicComponents().size();
-                }) && UnorderedByproductSafety.allBatchOrdersFinishSmall(certified, target, amount))
+                }))
+                    // CPU dispatch may take any stock-backed prefix of the remaining copies.
+                    // Such a batch is a sequence of enabled unit firings, already covered by
+                    // trySmallPlan's all-orders proof. Requiring every copy of one pattern to
+                    // start together would wrongly reject seed reuse between partial batches.
                     return certified;
             }
             if (node.depth == MAX_FIRINGS) continue;
