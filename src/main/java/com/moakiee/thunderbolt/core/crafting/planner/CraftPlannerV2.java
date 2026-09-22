@@ -161,6 +161,7 @@ public final class CraftPlannerV2<K> {
         private int preferredMaterialDagOrder;
         private int materialDagOrderAttempts;
         private long materialDagOrderNanos;
+        private long conservativeSearchNanos;
         private long missingRefinementNanos;
         private int reachableWorkEstimate;
 
@@ -491,6 +492,28 @@ public final class CraftPlannerV2<K> {
             PlanningSession<K> session) {
         long started = System.nanoTime();
         PlanningResult<K> initial = planCore(graph, target, amount, visitCap, searchWorkBudget, reachableWork, session);
+        if (session.refineMissing && !initial.plan().feasible()
+                && session.searchWorkBudget.remaining > 0
+                && reachableWork <= SmallConservativeSearch.MAX_WORK) {
+            long allowance = Math.min(SmallConservativeSearch.MAX_NANOS - session.conservativeSearchNanos,
+                    PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 8L);
+            if (allowance > 0) {
+                long recoveryStarted = System.nanoTime();
+                int workBefore = session.searchWorkBudget.remaining;
+                CraftPlan<K> recovered = null;
+                try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
+                    recovered = SmallConservativeSearch.tryPlan(graph, target, amount,
+                            SmallConservativeSearch.MAX_STATES, () -> session.searchWorkBudget.tryConsume(1));
+                } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+                    // Optional recovery never invalidates the already-verified missing plan.
+                } finally {
+                    session.conservativeSearchNanos += Math.max(0L, System.nanoTime() - recoveryStarted);
+                }
+                initial = new PlanningResult<>(recovered == null ? initial.plan() : recovered,
+                        initial.diagnostics().withAdditionalSearchWork(
+                                workBefore - session.searchWorkBudget.remaining, System.nanoTime() - started));
+            }
+        }
         if (!session.optimizeFeasible || !initial.plan().feasible() || amount <= 0
                 || amount >= Sat.SAT || initial.plan().usedStock().isEmpty()
                 || session.consumptionOptimizationProbes >= FeasibleConsumptionOptimizer.MAX_PROBES)
