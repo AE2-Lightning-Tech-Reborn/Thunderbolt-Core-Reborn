@@ -3,7 +3,7 @@
   "minVersion": "0.8.5",
   "package": "com.moakiee.thunderbolt.mixin",
   "plugin": "com.moakiee.thunderbolt.mixin.ThunderboltMixinConfigPlugin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_25",
   "mixins": [
     "ae2.crafting.CraftingCalculationMixin",
     "ae2.crafting.CraftConfirmMenuMixin",

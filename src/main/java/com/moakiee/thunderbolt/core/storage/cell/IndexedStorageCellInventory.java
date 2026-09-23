@@ -15,7 +15,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
@@ -28,7 +28,7 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
     private final IIndexedStorageCellItem definition;
     private final @Nullable HolderLookup.Provider explicitRegistries;
     private final @Nullable ISaveProvider saveProvider;
-    private final ResourceLocation storageType;
+    private final Identifier storageType;
     private final String cellIdTag;
     private final IndexedStorage storage;
     private final ByteTracker byteTracker;
@@ -221,14 +221,15 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
 
     private @Nullable UUID readCellId() {
         CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        return tag.hasUUID(cellIdTag) ? tag.getUUID(cellIdTag) : null;
+        return tag.read(cellIdTag, net.minecraft.core.UUIDUtil.CODEC).orElse(null);
     }
 
     private void ensureCellId() {
         if (cellId != null) return;
         cellId = UUID.randomUUID();
         UUID id = cellId;
-        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putUUID(cellIdTag, id));
+        CustomData.update(DataComponents.CUSTOM_DATA, stack,
+                tag -> tag.store(cellIdTag, net.minecraft.core.UUIDUtil.CODEC, id));
     }
 
     private void clearCellId() {

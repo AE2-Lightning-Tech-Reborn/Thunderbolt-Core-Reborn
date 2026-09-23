@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /**
  * Reusable mutable provider implementation with a compact NBT codec. A host block entity normally
@@ -18,25 +18,25 @@ public final class DefaultCraftingAlgorithmProviderState
     private static final String TAG_ALGORITHM = "Algorithm";
     private static final String TAG_PRIORITY = "Priority";
 
-    private final ResourceLocation providedAlgorithm;
-    private final List<ResourceLocation> providedAlgorithms;
+    private final Identifier providedAlgorithm;
+    private final List<Identifier> providedAlgorithms;
     private final CraftingAlgorithmSelection defaultSelection;
     private final Runnable changedCallback;
     private CraftingAlgorithmSelection selection;
 
     public DefaultCraftingAlgorithmProviderState(
-            ResourceLocation defaultAlgorithm, int defaultPriority, Runnable changedCallback) {
+            Identifier defaultAlgorithm, int defaultPriority, Runnable changedCallback) {
         this(defaultAlgorithm, List.of(defaultAlgorithm), defaultPriority, changedCallback);
     }
 
     public DefaultCraftingAlgorithmProviderState(
-            ResourceLocation defaultAlgorithm,
-            Collection<ResourceLocation> providedAlgorithms,
+            Identifier defaultAlgorithm,
+            Collection<Identifier> providedAlgorithms,
             int defaultPriority,
             Runnable changedCallback) {
         this.providedAlgorithm = Objects.requireNonNull(defaultAlgorithm, "defaultAlgorithm");
         Objects.requireNonNull(providedAlgorithms, "providedAlgorithms");
-        var normalizedProvidedAlgorithms = new LinkedHashSet<ResourceLocation>();
+        var normalizedProvidedAlgorithms = new LinkedHashSet<Identifier>();
         normalizedProvidedAlgorithms.add(this.providedAlgorithm);
         for (var algorithm : providedAlgorithms) {
             normalizedProvidedAlgorithms.add(Objects.requireNonNull(algorithm, "providedAlgorithm"));
@@ -48,17 +48,17 @@ public final class DefaultCraftingAlgorithmProviderState
     }
 
     @Override
-    public ResourceLocation getProvidedAlgorithm() {
+    public Identifier getProvidedAlgorithm() {
         return providedAlgorithm;
     }
 
     @Override
-    public List<ResourceLocation> getProvidedAlgorithms() {
+    public List<Identifier> getProvidedAlgorithms() {
         return providedAlgorithms;
     }
 
     @Override
-    public ResourceLocation getSelectedAlgorithm() {
+    public Identifier getSelectedAlgorithm() {
         return selection.algorithmId();
     }
 
@@ -91,13 +91,13 @@ public final class DefaultCraftingAlgorithmProviderState
     }
 
     public void readFromNBT(CompoundTag tag) {
-        var algorithm = ResourceLocation.tryParse(tag.getString(TAG_ALGORITHM));
+        var algorithm = Identifier.tryParse(tag.getStringOr(TAG_ALGORITHM, ""));
         if (algorithm != null
                 && CraftingPlanningEngines.isKnown(algorithm)
                 && !canSelectAlgorithm(algorithm)) {
             algorithm = null;
         }
-        int priority = tag.contains(TAG_PRIORITY) ? tag.getInt(TAG_PRIORITY) : defaultSelection.priority();
+        int priority = tag.getIntOr(TAG_PRIORITY, defaultSelection.priority());
         selection = new CraftingAlgorithmSelection(
                 algorithm == null ? defaultSelection.algorithmId() : algorithm,
                 priority);

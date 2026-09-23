@@ -1,27 +1,17 @@
-package com.moakiee.thunderbolt.mixin.ae2.key;
+package com.moakiee.thunderbolt.ae2.key;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-import java.util.Map;
-
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.SharedConstants;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.fml.loading.LoadingModList;
+import appeng.api.stacks.AEItemKey;
 
-class AEItemKeyComponentPatchTest {
-    static {
-        LoadingModList.of(List.of(), List.of(), List.of(), List.of(), Map.of());
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
-    }
+class AEItemKeyComponentPatchTest extends com.moakiee.thunderbolt.test.MinecraftComponentsTestBase {
 
     @Test
     void ignoresDefaultItemComponents() throws Exception {
@@ -51,10 +41,7 @@ class AEItemKeyComponentPatchTest {
         assertTrue(hasComponentPatch(changed));
     }
 
-    private static boolean hasComponentPatch(ItemStack stack) throws Exception {
-        var method = AEItemKeyComponentsMixin.class.getDeclaredMethod(
-                "thunderbolt$hasComponentPatch", ItemStack.class);
-        method.setAccessible(true);
-        return (boolean) method.invoke(null, stack);
+    private static boolean hasComponentPatch(ItemStack stack) {
+        return AEItemKey.of(stack).hasComponents();
     }
 }

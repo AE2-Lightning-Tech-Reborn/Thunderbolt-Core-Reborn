@@ -16,9 +16,9 @@ import net.neoforged.fml.loading.LoadingModList;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.KeyCounter;
 
-class ExtendedAePlusSuperMatrixBatchBridgeTest {
+class ExtendedAePlusSuperMatrixBatchBridgeTest extends com.moakiee.thunderbolt.test.MinecraftComponentsTestBase {
     static {
-        LoadingModList.of(List.of(), List.of(), List.of(), List.of(), Map.of());
+        LoadingModList.of(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of());
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
     }

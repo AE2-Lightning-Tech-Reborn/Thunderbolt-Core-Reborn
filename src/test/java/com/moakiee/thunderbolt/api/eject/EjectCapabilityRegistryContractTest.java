@@ -9,7 +9,7 @@ import net.minecraft.world.level.Level;
 
 import org.junit.jupiter.api.Test;
 
-class EjectCapabilityRegistryContractTest {
+class EjectCapabilityRegistryContractTest extends com.moakiee.thunderbolt.test.MinecraftComponentsTestBase {
 
     @Test
     void registrationIsASafeNoOpBeforeTheCoreRuntimeIsInstalled() {

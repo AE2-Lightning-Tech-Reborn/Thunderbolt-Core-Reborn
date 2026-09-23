@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext;
 import com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot;
@@ -44,7 +44,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
                 thread.setDaemon(true);
                 return thread;
             });
-    private final ResourceLocation engineId;
+    private final Identifier engineId;
     private final String label;
     private final Thread calculationThread;
     private final long startedNanos;
@@ -67,7 +67,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
     private volatile boolean isolationObserved;
 
     private PlanningAttemptMonitor(
-            ResourceLocation engineId,
+            Identifier engineId,
             String label,
             long warnMs,
             long timeoutMs,
@@ -102,14 +102,14 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
     }
 
     static PlanningAttemptMonitor start(
-            ResourceLocation engineId, String label, Runnable hardTimeoutAction) {
+            Identifier engineId, String label, Runnable hardTimeoutAction) {
         return new PlanningAttemptMonitor(
                 engineId, label, DEFAULT_WARN_MS, DEFAULT_TIMEOUT_MS,
                 DEFAULT_INTERRUPT_GRACE_MS, DEFAULT_STOP_GRACE_MS, hardTimeoutAction);
     }
 
     static PlanningAttemptMonitor startForTest(
-            ResourceLocation engineId,
+            Identifier engineId,
             String label,
             long warnMs,
             long timeoutMs,
@@ -121,7 +121,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
     }
 
     static PlanningAttemptMonitor startForTest(
-            ResourceLocation engineId,
+            Identifier engineId,
             String label,
             long warnMs,
             long timeoutMs,

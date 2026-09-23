@@ -3,6 +3,7 @@ package com.moakiee.thunderbolt.core.eject;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import java.util.Set;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -16,8 +17,8 @@ public final class ThunderboltBlockEntities {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ThunderboltGhostOutputBlockEntity>>
             GHOST_OUTPUT = TYPES.register(
                     "ghost_output",
-                    () -> BlockEntityType.Builder.of(
-                            ThunderboltGhostOutputBlockEntity::new, Blocks.AIR).build(null));
+                    () -> new BlockEntityType<>(
+                            ThunderboltGhostOutputBlockEntity::new, Set.of(Blocks.AIR)));
 
     private ThunderboltBlockEntities() {}
 }

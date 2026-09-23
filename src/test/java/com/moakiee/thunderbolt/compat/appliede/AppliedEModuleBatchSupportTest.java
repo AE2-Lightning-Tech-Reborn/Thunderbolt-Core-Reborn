@@ -17,9 +17,9 @@ import net.minecraft.world.item.Items;
 import net.neoforged.fml.loading.LoadingModList;
 import org.junit.jupiter.api.Test;
 
-class AppliedEModuleBatchSupportTest {
+class AppliedEModuleBatchSupportTest extends com.moakiee.thunderbolt.test.MinecraftComponentsTestBase {
     static {
-        LoadingModList.of(List.of(), List.of(), List.of(), List.of(), Map.of());
+        LoadingModList.of(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of());
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
     }

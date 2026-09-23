@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.jetbrains.annotations.Nullable;
 
 import appeng.api.networking.IGrid;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import com.moakiee.thunderbolt.api.crafting.CraftingPlanningEngine;
 import com.moakiee.thunderbolt.api.crafting.CraftingPlanningEngines;
@@ -150,8 +150,8 @@ class RegisteredPlanningEngineCancellationContractTest {
                 isolationGraceMs);
     }
 
-    private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath("thunderbolt_contract_test", path);
+    private static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath("thunderbolt_contract_test", path);
     }
 
     @FunctionalInterface
@@ -159,7 +159,7 @@ class RegisteredPlanningEngineCancellationContractTest {
         PlanningAttempt run(PlanningAttemptContext context);
     }
 
-    private record ProbeEngine(ResourceLocation id, Probe probe)
+    private record ProbeEngine(Identifier id, Probe probe)
             implements CraftingPlanningEngine {
         @Override
         public boolean check(IGrid grid, PlanningRequest request) {

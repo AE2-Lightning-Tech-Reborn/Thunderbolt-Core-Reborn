@@ -19,7 +19,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.Test;
@@ -165,12 +165,11 @@ class FastPlannerEngineSessionTest {
     private static final class TestKey extends AEKey {
         @Override public AEKeyType getType() { return null; }
         @Override public AEKey dropSecondary() { return this; }
-        @Override public CompoundTag toTag(net.minecraft.core.HolderLookup.Provider registries) {
-            return new CompoundTag();
+        @Override public void toTag(net.minecraft.world.level.storage.ValueOutput output) {
         }
         @Override public Object getPrimaryKey() { return this; }
-        @Override public ResourceLocation getId() {
-            return ResourceLocation.fromNamespaceAndPath("thunderbolt_test", "session_seed");
+        @Override public Identifier getId() {
+            return Identifier.fromNamespaceAndPath("thunderbolt_test", "session_seed");
         }
         @Override public void writeToPacket(RegistryFriendlyByteBuf data) { }
         @Override protected Component computeDisplayName() { return Component.literal("session seed"); }

@@ -11,7 +11,7 @@ import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.stacks.AEKey;
 import appeng.menu.me.crafting.CraftingPlanSummary;
 import appeng.menu.me.crafting.CraftingPlanSummaryEntry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import com.moakiee.thunderbolt.api.crafting.CraftingPlanningEngines;
@@ -22,7 +22,7 @@ public final class ThunderboltCraftingPlanSummary {
     }
 
     /** Native AE2 plans retain AE2's native summary path; every proxy engine uses this one. */
-    public static boolean handles(@Nullable ResourceLocation selectedAlgorithm) {
+    public static boolean handles(@Nullable Identifier selectedAlgorithm) {
         return selectedAlgorithm != null
                 && !CraftingPlanningEngines.VANILLA_ID.equals(selectedAlgorithm);
     }

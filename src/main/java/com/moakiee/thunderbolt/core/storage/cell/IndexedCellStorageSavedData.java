@@ -6,10 +6,12 @@ import java.util.UUID;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 
+import com.moakiee.thunderbolt.core.LegacySavedDataReader;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedStorage;
 
 /** Internal world persistence behind the public indexed-cell registry. */
@@ -18,27 +20,36 @@ public final class IndexedCellStorageSavedData extends SavedData {
     private static final String LEGACY_DATA_NAME = "ae2lt_infinite_cells";
     private static final String TAG_STORES = "Stores";
     private static final String TAG_LEGACY_MIGRATION_COMPLETE = "LegacyMigrationComplete";
-    private static final ResourceLocation LEGACY_AE2LT_TYPE =
-            ResourceLocation.fromNamespaceAndPath("ae2lt", "infinite_cell");
+    private static final Identifier LEGACY_AE2LT_TYPE =
+            Identifier.fromNamespaceAndPath("ae2lt", "infinite_cell");
 
-    private record StorageKey(ResourceLocation type, UUID id) {}
-
-    private static final Factory<IndexedCellStorageSavedData> FACTORY = new Factory<>(
-            IndexedCellStorageSavedData::new,
-            IndexedCellStorageSavedData::load);
+    private record StorageKey(Identifier type, UUID id) {}
 
     private final Map<StorageKey, CompoundTag> cells = new HashMap<>();
     private final transient Map<StorageKey, IndexedStorage> storageCache = new HashMap<>();
     private boolean legacyMigrationComplete;
 
     public static IndexedCellStorageSavedData get(MinecraftServer server) {
-        var data = server.overworld().getDataStorage().computeIfAbsent(FACTORY, DATA_NAME);
+        var storage = server.overworld().getDataStorage();
+        var registries = server.registryAccess();
+        var type = new SavedDataType<>(
+                Identifier.fromNamespaceAndPath("thunderbolt", "indexed_cells"),
+                IndexedCellStorageSavedData::new,
+                CompoundTag.CODEC.xmap(
+                        tag -> load(tag, registries),
+                        data -> data.save(new CompoundTag(), registries)));
+        var data = storage.get(type);
+        if (data == null) {
+            var old = LegacySavedDataReader.read(server, DATA_NAME);
+            data = old == null ? new IndexedCellStorageSavedData() : load(old, registries);
+            storage.set(type, data);
+        }
         data.migrateLegacyIfNeeded(server);
         return data;
     }
 
     public IndexedStorage getOrCreateStorage(
-            ResourceLocation type,
+            Identifier type,
             UUID id,
             HolderLookup.Provider registries) {
         var key = new StorageKey(type, id);
@@ -52,7 +63,7 @@ public final class IndexedCellStorageSavedData extends SavedData {
     }
 
     public void persistStorage(
-            ResourceLocation type,
+            Identifier type,
             UUID id,
             IndexedStorage storage,
             HolderLookup.Provider registries) {
@@ -63,20 +74,19 @@ public final class IndexedCellStorageSavedData extends SavedData {
         setDirty();
     }
 
-    public void markStorageDirty(ResourceLocation type, UUID id, IndexedStorage storage) {
+    public void markStorageDirty(Identifier type, UUID id, IndexedStorage storage) {
         if (type == null || id == null || storage == null) return;
         storageCache.put(new StorageKey(type, id), storage);
         setDirty();
     }
 
-    public void removeCell(ResourceLocation type, UUID id) {
+    public void removeCell(Identifier type, UUID id) {
         var key = new StorageKey(type, id);
         boolean changed = cells.remove(key) != null;
         storageCache.remove(key);
         if (changed) setDirty();
     }
 
-    @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         for (var entry : storageCache.entrySet()) {
             if (entry.getValue().needsPersist()) {
@@ -85,7 +95,7 @@ public final class IndexedCellStorageSavedData extends SavedData {
         }
         var storesTag = new CompoundTag();
         for (var entry : cells.entrySet()) {
-            var typeTag = storesTag.getCompound(entry.getKey().type().toString());
+            var typeTag = storesTag.getCompoundOrEmpty(entry.getKey().type().toString());
             typeTag.put(entry.getKey().id().toString(), entry.getValue());
             storesTag.put(entry.getKey().type().toString(), typeTag);
         }
@@ -112,10 +122,10 @@ public final class IndexedCellStorageSavedData extends SavedData {
 
     static Map<UUID, CompoundTag> decodeLegacyCells(CompoundTag tag) {
         var result = new HashMap<UUID, CompoundTag>();
-        var cellsTag = tag.getCompound("cells");
-        for (var idString : cellsTag.getAllKeys()) {
+        var cellsTag = tag.getCompoundOrEmpty("cells");
+        for (var idString : cellsTag.keySet()) {
             try {
-                result.put(UUID.fromString(idString), cellsTag.getCompound(idString).copy());
+                result.put(UUID.fromString(idString), cellsTag.getCompoundOrEmpty(idString).copy());
             } catch (IllegalArgumentException ignored) {}
         }
         return result;
@@ -124,21 +134,21 @@ public final class IndexedCellStorageSavedData extends SavedData {
     private static IndexedCellStorageSavedData load(
             CompoundTag tag, HolderLookup.Provider registries) {
         var data = new IndexedCellStorageSavedData();
-        data.legacyMigrationComplete = tag.getBoolean(TAG_LEGACY_MIGRATION_COMPLETE);
-        var storesTag = tag.getCompound(TAG_STORES);
-        for (var typeString : storesTag.getAllKeys()) {
-            ResourceLocation type;
+        data.legacyMigrationComplete = tag.getBooleanOr(TAG_LEGACY_MIGRATION_COMPLETE, false);
+        var storesTag = tag.getCompoundOrEmpty(TAG_STORES);
+        for (var typeString : storesTag.keySet()) {
+            Identifier type;
             try {
-                type = ResourceLocation.parse(typeString);
+                type = Identifier.parse(typeString);
             } catch (RuntimeException ignored) {
                 continue;
             }
-            var typeTag = storesTag.getCompound(typeString);
-            for (var idString : typeTag.getAllKeys()) {
+            var typeTag = storesTag.getCompoundOrEmpty(typeString);
+            for (var idString : typeTag.keySet()) {
                 try {
                     data.cells.put(
                             new StorageKey(type, UUID.fromString(idString)),
-                            typeTag.getCompound(idString));
+                            typeTag.getCompoundOrEmpty(idString));
                 } catch (IllegalArgumentException ignored) {}
             }
         }
@@ -146,32 +156,14 @@ public final class IndexedCellStorageSavedData extends SavedData {
     }
 
     /** Read-only loader for the original AE2LT file. It is deliberately never marked dirty. */
-    private static final class LegacyInfiniteCellSavedData extends SavedData {
-        private static final Factory<LegacyInfiniteCellSavedData> FACTORY = new Factory<>(
-                LegacyInfiniteCellSavedData::new,
-                LegacyInfiniteCellSavedData::load);
-
+    private static final class LegacyInfiniteCellSavedData {
         private final Map<UUID, CompoundTag> cells = new HashMap<>();
 
         private static LegacyInfiniteCellSavedData get(MinecraftServer server) {
-            return server.overworld().getDataStorage().computeIfAbsent(FACTORY, LEGACY_DATA_NAME);
-        }
-
-        private static LegacyInfiniteCellSavedData load(
-                CompoundTag tag, HolderLookup.Provider registries) {
             var data = new LegacyInfiniteCellSavedData();
-            data.cells.putAll(decodeLegacyCells(tag));
+            var old = LegacySavedDataReader.read(server, LEGACY_DATA_NAME);
+            if (old != null) data.cells.putAll(decodeLegacyCells(old));
             return data;
-        }
-
-        @Override
-        public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
-            var cellsTag = new CompoundTag();
-            for (var entry : cells.entrySet()) {
-                cellsTag.put(entry.getKey().toString(), entry.getValue());
-            }
-            tag.put("cells", cellsTag);
-            return tag;
         }
     }
 }

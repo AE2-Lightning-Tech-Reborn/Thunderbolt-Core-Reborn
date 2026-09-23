@@ -1,12 +1,12 @@
 package com.moakiee.thunderbolt.core.crafting.algorithm.client;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import appeng.client.gui.AEBaseScreen;
-import appeng.client.gui.Icon;
+import appeng.util.Icon;
 import appeng.client.gui.implementations.AESubScreen;
 import appeng.client.gui.style.Blitter;
 import appeng.client.gui.style.PaletteColor;
@@ -60,7 +60,7 @@ public final class CraftingAlgorithmProviderScreen
         widgets.add("openPriority", new TabButton(
                 Icon.PRIORITY,
                 Component.translatable("gui.thunderbolt.algorithm_provider.selection_priority"),
-                ignored -> PacketDistributor.sendToServer(
+                ignored -> ClientPacketDistributor.sendToServer(
                         SwitchGuisPacket.openSubMenu(PriorityMenu.TYPE))));
     }
 
@@ -71,7 +71,7 @@ public final class CraftingAlgorithmProviderScreen
     }
 
     @Override
-    public void drawBG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY,
+    public void drawBG(GuiGraphicsExtractor guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY,
             float partialTicks) {
         super.drawBG(guiGraphics, offsetX, offsetY, mouseX, mouseY, partialTicks);
 
@@ -89,7 +89,7 @@ public final class CraftingAlgorithmProviderScreen
     }
 
     @Override
-    public void drawFG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY) {
+    public void drawFG(GuiGraphicsExtractor guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY) {
         // Note: the pose is already translated by (leftPos, topPos) here, so draw in dialog-local coordinates
         var name = menu.selectedAlgorithmName().getString();
         int maxWidth = FIELD_RIGHT - FIELD_LEFT - 2 * FIELD_PADDING;
@@ -108,11 +108,11 @@ public final class CraftingAlgorithmProviderScreen
         float textY = FIELD_TOP + 2 + (font.lineHeight * (1.0f - scale)) / 2.0f;
 
         var pose = guiGraphics.pose();
-        pose.pushPose();
-        pose.translate(centerX, textY, 0);
-        pose.scale(scale, scale, 1.0f);
-        guiGraphics.drawCenteredString(font, name, 0, 0, color);
-        pose.popPose();
+        pose.pushMatrix();
+        pose.translate(centerX, textY);
+        pose.scale(scale, scale);
+        guiGraphics.centeredText(font, name, 0, 0, color);
+        pose.popMatrix();
     }
 
     @Override

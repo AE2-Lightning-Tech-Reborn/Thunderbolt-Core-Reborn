@@ -110,7 +110,10 @@ public final class PlannedInputPattern implements IPatternDetails, IProviderLook
             var slotTag = new CompoundTag();
             var stacks = new ListTag();
             for (var entry : slot.entrySet()) {
-                stacks.add(GenericStack.writeTag(registries, new GenericStack(entry.getKey(), entry.getValue())));
+                var output = net.minecraft.world.level.storage.TagValueOutput.createWithContext(
+                        net.minecraft.util.ProblemReporter.DISCARDING, registries);
+                GenericStack.writeTag(output, new GenericStack(entry.getKey(), entry.getValue()));
+                stacks.add(output.buildResult());
             }
             slotTag.put("stacks", stacks);
             list.add(slotTag);
@@ -121,16 +124,15 @@ public final class PlannedInputPattern implements IPatternDetails, IProviderLook
     public static IPatternDetails readFromTag(IPatternDetails delegate, CompoundTag task,
                                                HolderLookup.Provider registries) {
         if (!task.contains(NBT_INPUTS)) return delegate; // Legacy tasks retain their original semantics.
-        if (!task.contains(NBT_INPUTS, Tag.TAG_LIST)) throw new IllegalArgumentException("invalid planned inputs");
-        var list = task.getList(NBT_INPUTS, Tag.TAG_COMPOUND);
+        var list = task.getList(NBT_INPUTS).orElseThrow(() -> new IllegalArgumentException("invalid planned inputs"));
         var slots = new ArrayList<Map<AEKey, Long>>();
         for (int i = 0; i < list.size(); i++) {
             var slot = new LinkedHashMap<AEKey, Long>();
-            var slotTag = list.getCompound(i);
-            if (!slotTag.contains("stacks", Tag.TAG_LIST)) throw new IllegalArgumentException("missing input slot");
-            var stacks = slotTag.getList("stacks", Tag.TAG_COMPOUND);
+            var slotTag = list.getCompoundOrEmpty(i);
+            var stacks = slotTag.getList("stacks").orElseThrow(() -> new IllegalArgumentException("missing input slot"));
             for (int j = 0; j < stacks.size(); j++) {
-                var stack = GenericStack.readTag(registries, stacks.getCompound(j));
+                var stack = GenericStack.readTag(net.minecraft.world.level.storage.TagValueInput.create(
+                        net.minecraft.util.ProblemReporter.DISCARDING, registries, stacks.getCompoundOrEmpty(j)));
                 if (stack == null || stack.amount() <= 0 || slot.put(stack.what(), stack.amount()) != null) {
                     throw new IllegalArgumentException("invalid input allocation");
                 }

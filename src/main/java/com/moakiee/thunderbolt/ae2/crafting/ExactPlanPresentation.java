@@ -3,7 +3,7 @@ package com.moakiee.thunderbolt.ae2.crafting;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import appeng.api.client.AEKeyRendering;
+import appeng.client.api.AEKeyRendering;
 import appeng.core.localization.GuiText;
 import appeng.menu.me.crafting.CraftingPlanSummaryEntry;
 import net.minecraft.network.chat.Component;

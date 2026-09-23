@@ -36,20 +36,20 @@ class IndexedCellStorageSavedDataMigrationTest {
 
         var decoded = IndexedCellStorageSavedData.decodeLegacyCells(legacyFile);
         assertEquals(1, decoded.size());
-        assertEquals(123456789L, decoded.get(validId).getLongArray("lo")[0]);
+        assertEquals(123456789L, decoded.get(validId).getLongArray("lo").orElseThrow()[0]);
 
         var migrated = new IndexedCellStorageSavedData();
         migrated.importLegacyCells(decoded);
         var newFile = migrated.save(new CompoundTag(), null);
-        var stores = newFile.getCompound("Stores");
+        var stores = newFile.getCompoundOrEmpty("Stores");
         assertTrue(stores.contains("ae2lt:infinite_cell"));
-        var typeStore = stores.getCompound("ae2lt:infinite_cell");
+        var typeStore = stores.getCompoundOrEmpty("ae2lt:infinite_cell");
         assertTrue(typeStore.contains(validId.toString()));
-        var migratedCell = typeStore.getCompound(validId.toString());
-        assertEquals(1, migratedCell.getInt("totalTypes"));
-        assertEquals(123456789L, migratedCell.getLongArray("lo")[0]);
-        assertEquals("minecraft:stone", migratedCell.getList("keys", CompoundTag.TAG_COMPOUND)
-                .getCompound(0).getCompound("key").getString("id"));
+        var migratedCell = typeStore.getCompoundOrEmpty(validId.toString());
+        assertEquals(1, migratedCell.getIntOr("totalTypes", 0));
+        assertEquals(123456789L, migratedCell.getLongArray("lo").orElseThrow()[0]);
+        assertEquals("minecraft:stone", migratedCell.getListOrEmpty("keys")
+                .getCompoundOrEmpty(0).getCompoundOrEmpty("key").getStringOr("id", ""));
         assertFalse(typeStore.contains("not-a-uuid"));
     }
 
@@ -66,6 +66,6 @@ class IndexedCellStorageSavedDataMigrationTest {
         var decoded = IndexedCellStorageSavedData.decodeLegacyCells(legacy);
         payload.putInt("value", 2);
 
-        assertEquals(1, decoded.get(id).getInt("value"));
+        assertEquals(1, decoded.get(id).getIntOr("value", 0));
     }
 }

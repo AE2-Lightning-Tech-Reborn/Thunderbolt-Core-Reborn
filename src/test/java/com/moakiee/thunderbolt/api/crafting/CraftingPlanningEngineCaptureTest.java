@@ -4,15 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 class CraftingPlanningEngineCaptureTest {
     @Test
     void captureDefaultsToNoAdditionalInput() {
         CraftingPlanningEngine engine = new CraftingPlanningEngine() {
             @Override
-            public ResourceLocation id() {
-                return ResourceLocation.fromNamespaceAndPath("thunderbolt_test", "capture_default");
+            public Identifier id() {
+                return Identifier.fromNamespaceAndPath("thunderbolt_test", "capture_default");
             }
 
             @Override

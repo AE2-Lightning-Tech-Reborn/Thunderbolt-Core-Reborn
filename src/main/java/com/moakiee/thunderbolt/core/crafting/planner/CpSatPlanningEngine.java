@@ -4,7 +4,7 @@ import java.nio.file.Path;
 
 import appeng.api.networking.IGrid;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import com.moakiee.thunderbolt.ThunderboltCore;
@@ -15,7 +15,7 @@ import com.moakiee.thunderbolt.api.crafting.PlanningRequest;
 
 /** Independent full-graph OR-Tools CP-SAT planning engine. */
 public final class CpSatPlanningEngine implements CraftingPlanningEngine {
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(
+    public static final Identifier ID = Identifier.fromNamespaceAndPath(
             ThunderboltCore.MODID, "cp_sat");
     public static final CpSatPlanningEngine INSTANCE = new CpSatPlanningEngine();
 
@@ -37,7 +37,7 @@ public final class CpSatPlanningEngine implements CraftingPlanningEngine {
     }
 
     @Override
-    public ResourceLocation id() {
+    public Identifier id() {
         return ID;
     }
 

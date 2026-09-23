@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '2.0.140'
+    id 'net.neoforged.moddev' version '2.0.147'
 }
 
 def releaseTag = System.getenv('TAG')?.trim()
@@ -31,7 +31,7 @@ tasks.register('printProjectVersion') {
     }
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 def thunderboltDevGameDirectory = providers.gradleProperty('thunderboltDevGameDirectory')
         .getOrElse('')
@@ -65,11 +65,23 @@ neoForge {
             sourceSet(sourceSets.main)
         }
     }
+
+    if (providers.gradleProperty('thunderboltFmlTests').map { it.toBoolean() }.getOrElse(false)) {
+        unitTest {
+            enable()
+            testedMod = mods."${mod_id}"
+        }
+    }
 }
 
 repositories {
     mavenLocal()
     mavenCentral()
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
     maven {
         url = "https://www.cursemaven.com"
         content {
@@ -101,19 +113,19 @@ dependencies {
     // AE2 — publicly available on CurseForge maven. compileOnly: this layer patches AE2 via
     // mixins; AE2 is provided by the modpack at runtime. The pure planner core under
     // `crafting.core` has NO AE2 dependency and is unit-tested standalone.
-    compileOnly "curse.maven:applied-energistics-2-223794:7027323"
+    compileOnly "org.appliedenergistics:appliedenergistics2:26.1.12-beta"
     if (enableAe2DevRuntime) {
-        runtimeOnly "curse.maven:applied-energistics-2-223794:7027323"
-        runtimeOnly "org.appliedenergistics:guideme:21.1.15"
+        runtimeOnly "org.appliedenergistics:appliedenergistics2:26.1.12-beta"
+        runtimeOnly "org.appliedenergistics:guideme:26.1.10-alpha"
     }
 
     // AdvancedAE (+ its compile-time companions) — the lib hosts the batch-CPU mixin/accessors that
     // target AAE's crafting CPU. compileOnly: AAE is provided by the modpack at runtime when present;
     // the @Pseudo mixins simply no-op if AAE is absent.
-    compileOnly "curse.maven:advancedae-1084104:7668664"
-    compileOnly "curse.maven:extendedae-892005:7727948"
-    compileOnly "curse.maven:glodium-957920:5821676"
-    compileOnly "curse.maven:applied-flux-965012:7429565"
+    compileOnly "maven.modrinth:advancedae:hPJMJOBd"
+    compileOnly "maven.modrinth:extended-ae:KpNzac5y"
+    compileOnly "maven.modrinth:glodium:t0p0CUPy"
+    compileOnly "curse.maven:applied-flux-965012:8512902"
 
     // Unit tests for the pure planner core (no Minecraft/AE2 needed).
     testImplementation platform("org.junit:junit-bom:5.10.2")
@@ -121,7 +133,7 @@ dependencies {
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
     // AE2 API types exercised directly by unit tests (e.g. ByteTracker's AEKeyType);
     // compileOnly deps are absent from the test runtime classpath otherwise.
-    testRuntimeOnly "curse.maven:applied-energistics-2-223794:7027323"
+    testRuntimeOnly "org.appliedenergistics:appliedenergistics2:26.1.12-beta"
 }
 
 tasks.named('processResources') {
@@ -136,6 +148,17 @@ sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
 
 test {
     useJUnitPlatform()
+    def fmlClasses = [
+            'AEFluidKeyComponentPatchTest', 'AEItemKeyComponentPatchTest',
+            'AppliedEModuleBatchSupportTest', 'BigIndexedStorageTest',
+            'EjectCapabilityRegistryContractTest', 'ExtendedAePlusSuperMatrixBatchBridgeTest',
+            'FastCraftingPlannerDurabilityEligibilityTest', 'PlannedInputDispatchTest'
+    ]
+    if (providers.gradleProperty('thunderboltFmlTests').map { it.toBoolean() }.getOrElse(false)) {
+        fmlClasses.each { include "**/${it}*.class" }
+    } else {
+        fmlClasses.each { exclude "**/${it}*.class" }
+    }
     testLogging {
         events "passed", "skipped", "failed"
     }

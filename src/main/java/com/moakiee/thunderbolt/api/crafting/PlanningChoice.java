@@ -4,10 +4,10 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** One entry in an ordered crafting-planner policy. */
-public record PlanningChoice(Kind kind, @Nullable ResourceLocation engineId) {
+public record PlanningChoice(Kind kind, @Nullable Identifier engineId) {
     public enum Kind {
         VANILLA,
         ENGINE
@@ -22,7 +22,7 @@ public record PlanningChoice(Kind kind, @Nullable ResourceLocation engineId) {
         }
     }
 
-    public static PlanningChoice engine(ResourceLocation id) {
+    public static PlanningChoice engine(Identifier id) {
         return new PlanningChoice(Kind.ENGINE, Objects.requireNonNull(id, "id"));
     }
 
@@ -35,7 +35,7 @@ public record PlanningChoice(Kind kind, @Nullable ResourceLocation engineId) {
             return VANILLA;
         }
         if (value.startsWith("engine:")) {
-            return engine(ResourceLocation.parse(value.substring("engine:".length())));
+            return engine(Identifier.parse(value.substring("engine:".length())));
         }
         throw new IllegalArgumentException("Unknown planning choice: " + value);
     }

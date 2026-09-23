@@ -11,14 +11,14 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import com.moakiee.thunderbolt.api.crafting.PlanningExitException;
 
 class PlanningAttemptMonitorTest {
     @Test
     void budgetExpiryInterruptAndIsolationAreDistinctStages() throws Exception {
-        var engineId = ResourceLocation.fromNamespaceAndPath("thunderbolt_test", "slow");
+        var engineId = Identifier.fromNamespaceAndPath("thunderbolt_test", "slow");
         var monitorReady = new CompletableFuture<PlanningAttemptMonitor>();
         var interruptObserved = new CountDownLatch(1);
         var outcome = new CompletableFuture<Outcome>();

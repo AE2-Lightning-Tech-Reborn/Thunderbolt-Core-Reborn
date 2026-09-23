@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Pure priority resolver shared by the AE2 grid service and tests. */
 public final class CraftingAlgorithmResolver {
@@ -19,14 +19,14 @@ public final class CraftingAlgorithmResolver {
 
     public static List<PlanningChoice> resolve(
             Collection<CraftingAlgorithmSelection> providerSelections) {
-        var selectedPriorities = new HashMap<ResourceLocation, Integer>();
+        var selectedPriorities = new HashMap<Identifier, Integer>();
         for (var selection : providerSelections) {
             if (selection != null && CraftingPlanningEngines.isKnown(selection.algorithmId())) {
                 selectedPriorities.merge(selection.algorithmId(), selection.priority(), Math::max);
             }
         }
 
-        var candidates = new HashMap<ResourceLocation, Candidate>();
+        var candidates = new HashMap<Identifier, Candidate>();
         for (var id : CraftingPlanningEngines.getPublic()) {
             boolean explicitlySelected = selectedPriorities.containsKey(id);
             int playerPriority = explicitlySelected
@@ -35,7 +35,7 @@ public final class CraftingAlgorithmResolver {
             candidates.put(id, new Candidate(
                     id, playerPriority, CraftingPlanningEngines.algorithmPriority(id)));
         }
-        for (Map.Entry<ResourceLocation, Integer> entry : selectedPriorities.entrySet()) {
+        for (Map.Entry<Identifier, Integer> entry : selectedPriorities.entrySet()) {
             candidates.put(entry.getKey(), new Candidate(
                     entry.getKey(), entry.getValue(),
                     CraftingPlanningEngines.algorithmPriority(entry.getKey())));
@@ -60,6 +60,6 @@ public final class CraftingAlgorithmResolver {
     }
 
     private record Candidate(
-            ResourceLocation id, int playerPriority, int algorithmPriority) {
+            Identifier id, int playerPriority, int algorithmPriority) {
     }
 }

@@ -10,7 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
@@ -61,15 +61,13 @@ class PatternInputMatchPolicyTest {
 
         @Override public AEKeyType getType() { return TYPE; }
         @Override public AEKey dropSecondary() { return new TestKey(id, ""); }
-        @Override public CompoundTag toTag(net.minecraft.core.HolderLookup.Provider registries) {
-            var tag = new CompoundTag();
-            tag.putString("id", id);
-            tag.putString("variant", variant);
-            return tag;
+        @Override public void toTag(net.minecraft.world.level.storage.ValueOutput output) {
+            output.putString("id", id);
+            output.putString("variant", variant);
         }
         @Override public Object getPrimaryKey() { return id; }
-        @Override public ResourceLocation getId() {
-            return ResourceLocation.fromNamespaceAndPath("thunderbolt_test", id);
+        @Override public Identifier getId() {
+            return Identifier.fromNamespaceAndPath("thunderbolt_test", id);
         }
         @Override public void writeToPacket(RegistryFriendlyByteBuf data) { }
         @Override protected Component computeDisplayName() { return Component.literal(id + variant); }
@@ -83,7 +81,7 @@ class PatternInputMatchPolicyTest {
 
     private static final class TestKeyType extends AEKeyType {
         private TestKeyType() {
-            super(ResourceLocation.fromNamespaceAndPath("thunderbolt_test", "overload_key"),
+            super(Identifier.fromNamespaceAndPath("thunderbolt_test", "overload_key"),
                     TestKey.class, Component.literal("overload key"));
         }
         @Override public MapCodec<? extends AEKey> codec() { return null; }

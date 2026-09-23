@@ -10,14 +10,14 @@ import org.junit.jupiter.api.Test;
 
 import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingSimulationRequester;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 class CraftingAlgorithmCalculationStatusTest {
     @Test
     void selectedAlgorithmBridgesRequesterToItsCalculationFuture() {
         ICraftingSimulationRequester requester = () -> null;
         var future = new CompletableFuture<ICraftingPlan>();
-        var algorithm = ResourceLocation.fromNamespaceAndPath("test", "planner");
+        var algorithm = Identifier.fromNamespaceAndPath("test", "planner");
 
         var tracked = CraftingAlgorithmCalculationStatus.track(requester, () -> future);
         CraftingAlgorithmCalculationStatus.select(requester, algorithm);

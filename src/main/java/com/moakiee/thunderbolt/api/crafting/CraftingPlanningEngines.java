@@ -12,21 +12,21 @@ import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Process-wide engine registry. Registration is only allowed during mod initialization. */
 public final class CraftingPlanningEngines {
     /** Public sentinel used when a provider explicitly selects AE2's native planner. */
-    public static final ResourceLocation VANILLA_ID = ResourceLocation.fromNamespaceAndPath(
+    public static final Identifier VANILLA_ID = Identifier.fromNamespaceAndPath(
             "ae2", "vanilla");
     /** Display-only sentinel for a fail-closed result after every candidate failed. */
-    public static final ResourceLocation ALL_FAILED_ID = ResourceLocation.fromNamespaceAndPath(
+    public static final Identifier ALL_FAILED_ID = Identifier.fromNamespaceAndPath(
             "thunderbolt", "all_failed");
 
-    private static final Map<ResourceLocation, CraftingPlanningEngineDescriptor> ENGINES =
+    private static final Map<Identifier, CraftingPlanningEngineDescriptor> ENGINES =
             new LinkedHashMap<>();
     private static volatile List<CraftingPlanningEngineDescriptor> ordered = List.of();
-    private static volatile List<ResourceLocation> publicIds = List.of(VANILLA_ID);
+    private static volatile List<Identifier> publicIds = List.of(VANILLA_ID);
 
     private CraftingPlanningEngines() {
     }
@@ -65,13 +65,13 @@ public final class CraftingPlanningEngines {
     }
 
     @Nullable
-    public static CraftingPlanningEngine get(ResourceLocation id) {
+    public static CraftingPlanningEngine get(Identifier id) {
         var descriptor = ENGINES.get(id);
         return descriptor == null ? null : descriptor.engine();
     }
 
     @Nullable
-    public static CraftingPlanningEngineDescriptor descriptor(ResourceLocation id) {
+    public static CraftingPlanningEngineDescriptor descriptor(Identifier id) {
         return ENGINES.get(id);
     }
 
@@ -81,30 +81,30 @@ public final class CraftingPlanningEngines {
     }
 
     /** All selectable IDs for the default provider GUI, including vanilla. */
-    public static List<ResourceLocation> allIds() {
-        var result = new ArrayList<ResourceLocation>(ordered.size() + 1);
+    public static List<Identifier> allIds() {
+        var result = new ArrayList<Identifier>(ordered.size() + 1);
         ordered.forEach(entry -> result.add(entry.id()));
         result.add(VANILLA_ID);
         return List.copyOf(result);
     }
 
     /** Public algorithms plus the one private algorithm owned by a provider node. */
-    public static List<ResourceLocation> selectableFor(ResourceLocation providedAlgorithm) {
+    public static List<Identifier> selectableFor(Identifier providedAlgorithm) {
         return selectableFor(List.of(Objects.requireNonNull(providedAlgorithm, "providedAlgorithm")));
     }
 
     /** Public algorithms plus all registered private algorithms owned by a provider node. */
-    public static List<ResourceLocation> selectableFor(
-            Collection<ResourceLocation> providedAlgorithms) {
+    public static List<Identifier> selectableFor(
+            Collection<Identifier> providedAlgorithms) {
         Objects.requireNonNull(providedAlgorithms, "providedAlgorithms");
-        var provided = new LinkedHashSet<ResourceLocation>();
+        var provided = new LinkedHashSet<Identifier>();
         for (var algorithm : providedAlgorithms) {
             provided.add(Objects.requireNonNull(algorithm, "providedAlgorithm"));
         }
         if (provided.isEmpty()) {
             throw new IllegalArgumentException("A crafting algorithm provider must own an algorithm");
         }
-        var result = new ArrayList<ResourceLocation>(ordered.size() + 1);
+        var result = new ArrayList<Identifier>(ordered.size() + 1);
         for (var descriptor : ordered) {
             if (descriptor.publicAlgorithm() || provided.contains(descriptor.id())) {
                 result.add(descriptor.id());
@@ -124,11 +124,11 @@ public final class CraftingPlanningEngines {
     }
 
     /** Public algorithms that do not require a provider node, including vanilla. */
-    public static List<ResourceLocation> getPublic() {
+    public static List<Identifier> getPublic() {
         return publicIds;
     }
 
-    public static boolean isPublic(ResourceLocation id) {
+    public static boolean isPublic(Identifier id) {
         if (VANILLA_ID.equals(id)) {
             return true;
         }
@@ -136,7 +136,7 @@ public final class CraftingPlanningEngines {
         return descriptor != null && descriptor.publicAlgorithm();
     }
 
-    public static int algorithmPriority(ResourceLocation id) {
+    public static int algorithmPriority(Identifier id) {
         if (VANILLA_ID.equals(id)) {
             return Integer.MIN_VALUE;
         }
@@ -145,7 +145,7 @@ public final class CraftingPlanningEngines {
     }
 
     /** Player-facing name, with useful fallbacks for vanilla and unavailable registrations. */
-    public static Component getName(ResourceLocation id) {
+    public static Component getName(Identifier id) {
         if (ALL_FAILED_ID.equals(id)) {
             return Component.translatable("algorithm.thunderbolt.all_failed");
         }
@@ -156,7 +156,7 @@ public final class CraftingPlanningEngines {
         return descriptor == null ? Component.literal(id.toString()) : descriptor.engine().getName();
     }
 
-    public static boolean isKnown(ResourceLocation id) {
+    public static boolean isKnown(Identifier id) {
         return VANILLA_ID.equals(id) || ENGINES.containsKey(id);
     }
 }

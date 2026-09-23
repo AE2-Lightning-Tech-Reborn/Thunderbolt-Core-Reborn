@@ -22,7 +22,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -53,9 +53,9 @@ import org.junit.jupiter.api.Test;
 
 import sun.misc.Unsafe;
 
-class FastCraftingPlannerDurabilityEligibilityTest {
+class FastCraftingPlannerDurabilityEligibilityTest extends com.moakiee.thunderbolt.test.MinecraftComponentsTestBase {
     static {
-        LoadingModList.of(List.of(), List.of(), List.of(), List.of(), Map.of());
+        LoadingModList.of(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of());
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
     }
@@ -519,12 +519,11 @@ class FastCraftingPlannerDurabilityEligibilityTest {
 
         @Override public AEKeyType getType() { return TYPE; }
         @Override public AEKey dropSecondary() { return new TestKey(id, ""); }
-        @Override public CompoundTag toTag(net.minecraft.core.HolderLookup.Provider registries) {
-            return new CompoundTag();
+        @Override public void toTag(net.minecraft.world.level.storage.ValueOutput output) {
         }
         @Override public Object getPrimaryKey() { return id; }
-        @Override public ResourceLocation getId() {
-            return ResourceLocation.fromNamespaceAndPath("thunderbolt_test", id);
+        @Override public Identifier getId() {
+            return Identifier.fromNamespaceAndPath("thunderbolt_test", id);
         }
         @Override public void writeToPacket(RegistryFriendlyByteBuf data) { }
         @Override protected Component computeDisplayName() {
@@ -542,7 +541,7 @@ class FastCraftingPlannerDurabilityEligibilityTest {
 
     private static final class TestKeyType extends AEKeyType {
         private TestKeyType() {
-            super(ResourceLocation.fromNamespaceAndPath(
+            super(Identifier.fromNamespaceAndPath(
                             "thunderbolt_test", "durability_eligibility_key"),
                     TestKey.class, Component.literal("durability eligibility key"));
         }

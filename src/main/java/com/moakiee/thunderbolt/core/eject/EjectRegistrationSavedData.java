@@ -12,10 +12,13 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
+
+import com.moakiee.thunderbolt.core.LegacySavedDataReader;
 
 /** Internal persistence for {@code EjectCapabilityRegistry}. */
 public final class EjectRegistrationSavedData extends SavedData {
@@ -36,16 +39,24 @@ public final class EjectRegistrationSavedData extends SavedData {
             ResourceKey<Level> hostDimension,
             BlockPos hostPos) {}
 
-    private static final Factory<EjectRegistrationSavedData> FACTORY = new Factory<>(
+    private static final SavedDataType<EjectRegistrationSavedData> TYPE = new SavedDataType<>(
+            Identifier.fromNamespaceAndPath("thunderbolt", "eject_registrations"),
             EjectRegistrationSavedData::new,
-            EjectRegistrationSavedData::load,
-            null);
+            CompoundTag.CODEC.xmap(EjectRegistrationSavedData::load,
+                    data -> data.save(new CompoundTag())));
 
     private final List<PersistentRegistration> entries = new ArrayList<>();
     private boolean legacyMigrationComplete;
 
     public static EjectRegistrationSavedData get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(FACTORY, DATA_NAME);
+        var storage = server.overworld().getDataStorage();
+        var data = storage.get(TYPE);
+        if (data == null) {
+            var old = LegacySavedDataReader.read(server, DATA_NAME);
+            data = old == null ? new EjectRegistrationSavedData() : load(old);
+            storage.set(TYPE, data);
+        }
+        return data;
     }
 
     /**
@@ -54,7 +65,8 @@ public final class EjectRegistrationSavedData extends SavedData {
      */
     public void migrateLegacyIfNeeded(MinecraftServer server) {
         if (legacyMigrationComplete) return;
-        var legacy = server.overworld().getDataStorage().computeIfAbsent(FACTORY, LEGACY_DATA_NAME);
+        var old = LegacySavedDataReader.read(server, LEGACY_DATA_NAME);
+        var legacy = old == null ? new EjectRegistrationSavedData() : load(old);
         for (var registration : legacy.entries) {
             if (!entries.contains(registration)) entries.add(registration);
         }
@@ -87,15 +99,14 @@ public final class EjectRegistrationSavedData extends SavedData {
         }
     }
 
-    @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+    public CompoundTag save(CompoundTag tag) {
         var list = new ListTag();
         for (var entry : entries) {
             var encoded = new CompoundTag();
-            encoded.putString(TAG_I_DIM, entry.interceptDimension().location().toString());
+            encoded.putString(TAG_I_DIM, entry.interceptDimension().identifier().toString());
             encoded.putLong(TAG_I_POS, entry.interceptPos().asLong());
             encoded.putInt(TAG_I_FACE, entry.interceptFace().get3DDataValue());
-            encoded.putString(TAG_P_DIM, entry.hostDimension().location().toString());
+            encoded.putString(TAG_P_DIM, entry.hostDimension().identifier().toString());
             encoded.putLong(TAG_P_POS, entry.hostPos().asLong());
             list.add(encoded);
         }
@@ -104,24 +115,23 @@ public final class EjectRegistrationSavedData extends SavedData {
         return tag;
     }
 
-    static EjectRegistrationSavedData load(CompoundTag tag, HolderLookup.Provider registries) {
+    static EjectRegistrationSavedData load(CompoundTag tag) {
         var data = new EjectRegistrationSavedData();
-        data.legacyMigrationComplete = tag.getBoolean(TAG_LEGACY_MIGRATION_COMPLETE);
-        if (!tag.contains(TAG_ENTRIES, Tag.TAG_LIST)) return data;
-        var list = tag.getList(TAG_ENTRIES, Tag.TAG_COMPOUND);
+        data.legacyMigrationComplete = tag.getBooleanOr(TAG_LEGACY_MIGRATION_COMPLETE, false);
+        var list = tag.getListOrEmpty(TAG_ENTRIES);
         for (int i = 0; i < list.size(); i++) {
-            var encoded = list.getCompound(i);
+            var encoded = list.getCompoundOrEmpty(i);
             data.entries.add(new PersistentRegistration(
-                    dimension(encoded.getString(TAG_I_DIM)),
-                    BlockPos.of(encoded.getLong(TAG_I_POS)),
-                    Direction.from3DDataValue(encoded.getInt(TAG_I_FACE)),
-                    dimension(encoded.getString(TAG_P_DIM)),
-                    BlockPos.of(encoded.getLong(TAG_P_POS))));
+                    dimension(encoded.getStringOr(TAG_I_DIM, "")),
+                    BlockPos.of(encoded.getLongOr(TAG_I_POS, 0)),
+                    Direction.from3DDataValue(encoded.getIntOr(TAG_I_FACE, 0)),
+                    dimension(encoded.getStringOr(TAG_P_DIM, "")),
+                    BlockPos.of(encoded.getLongOr(TAG_P_POS, 0))));
         }
         return data;
     }
 
     private static ResourceKey<Level> dimension(String id) {
-        return ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(id));
+        return ResourceKey.create(Registries.DIMENSION, Identifier.parse(id));
     }
 }

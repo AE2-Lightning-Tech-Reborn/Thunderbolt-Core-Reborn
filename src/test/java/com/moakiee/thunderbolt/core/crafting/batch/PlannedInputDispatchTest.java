@@ -19,12 +19,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.Test;
 
-class PlannedInputDispatchTest {
+class PlannedInputDispatchTest extends com.moakiee.thunderbolt.test.MinecraftComponentsTestBase {
     private static final TestKey A = new TestKey("a");
     private static final TestKey B = new TestKey("b");
 
@@ -276,7 +276,7 @@ class PlannedInputDispatchTest {
     @Test
     void persistedMixedAllocationStillProtectsItsSiblingAfterReload() throws Exception {
         if (net.neoforged.fml.loading.LoadingModList.get() == null) {
-            net.neoforged.fml.loading.LoadingModList.of(List.of(), List.of(), List.of(), List.of(), Map.of());
+            net.neoforged.fml.loading.LoadingModList.of(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of());
         }
         net.minecraft.SharedConstants.tryDetectVersion();
         net.minecraft.server.Bootstrap.bootStrap();
@@ -284,25 +284,17 @@ class PlannedInputDispatchTest {
         registryField.setAccessible(true);
         var previous = registryField.get(null);
         // Resolve through the current registry even if AE2 memoizes this codec after this test.
-        var typeCodec = ResourceLocation.CODEC.xmap(
-                id -> appeng.api.stacks.AEKeyTypesInternal.getRegistry().get(id), AEKeyType::getId);
+        var typeCodec = Identifier.CODEC.xmap(
+                id -> appeng.api.stacks.AEKeyTypesInternal.getRegistry().getValue(id), AEKeyType::getId);
         var registry = java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[] {net.minecraft.core.Registry.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "byNameCodec" -> typeCodec;
-                    case "get" -> TestKey.TYPE;
+                    case "getValue" -> TestKey.TYPE;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
         registryField.set(null, registry);
         try {
-            net.minecraft.core.HolderLookup.Provider lookups = new net.minecraft.core.HolderLookup.Provider() {
-                @Override public java.util.stream.Stream<net.minecraft.resources.ResourceKey<? extends net.minecraft.core.Registry<?>>> listRegistries() {
-                    return java.util.stream.Stream.empty();
-                }
-                @Override public <T> java.util.Optional<net.minecraft.core.HolderLookup.RegistryLookup<T>> lookup(
-                        net.minecraft.resources.ResourceKey<? extends net.minecraft.core.Registry<? extends T>> key) {
-                    return java.util.Optional.empty();
-                }
-            };
+            net.minecraft.core.HolderLookup.Provider lookups = net.minecraft.core.RegistryAccess.EMPTY;
             var source = pattern(input(3, B, A));
             var planned = new PlannedInputPattern(source, List.of(Map.of(A, 1L, B, 2L)));
             var tag = new CompoundTag();
@@ -371,10 +363,9 @@ class PlannedInputDispatchTest {
         }
 
         @Override
-        public CompoundTag toTag(net.minecraft.core.HolderLookup.Provider registries) {
-            var tag = new CompoundTag();
-            tag.putString("id", id);
-            return tag;
+        public void toTag(net.minecraft.world.level.storage.ValueOutput output) {
+            output.putString("primary", primaryId);
+            output.putString("id", id);
         }
 
         @Override
@@ -383,8 +374,8 @@ class PlannedInputDispatchTest {
         }
 
         @Override
-        public ResourceLocation getId() {
-            return ResourceLocation.fromNamespaceAndPath("ae2lt_test", primaryId);
+        public Identifier getId() {
+            return Identifier.fromNamespaceAndPath("ae2lt_test", primaryId);
         }
 
         @Override
@@ -420,7 +411,7 @@ class PlannedInputDispatchTest {
 
     private static final class TestKeyType extends AEKeyType {
         private TestKeyType() {
-            super(ResourceLocation.fromNamespaceAndPath("ae2lt_test", "key"), TestKey.class,
+            super(Identifier.fromNamespaceAndPath("ae2lt_test", "key"), TestKey.class,
                     Component.literal("test key"));
         }
 

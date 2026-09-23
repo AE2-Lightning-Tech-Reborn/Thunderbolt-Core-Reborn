@@ -3,7 +3,7 @@ package com.moakiee.thunderbolt.api.crafting;
 import java.util.List;
 
 import appeng.api.networking.IGridNodeService;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Minimal node service: provided algorithms, one current selection, and its player priority. */
 public interface CraftingAlgorithmProvider extends IGridNodeService {
@@ -11,21 +11,21 @@ public interface CraftingAlgorithmProvider extends IGridNodeService {
      * The primary private algorithm owned by this node. This remains the compatibility fallback and
      * does not change with the GUI selection.
      */
-    ResourceLocation getProvidedAlgorithm();
+    Identifier getProvidedAlgorithm();
 
     /**
      * All private algorithms owned by this node, in display order. Existing single-algorithm
      * providers inherit a singleton list automatically.
      */
-    default List<ResourceLocation> getProvidedAlgorithms() {
+    default List<Identifier> getProvidedAlgorithms() {
         return List.of(getProvidedAlgorithm());
     }
 
-    ResourceLocation getSelectedAlgorithm();
+    Identifier getSelectedAlgorithm();
 
     int getPriority();
 
-    default boolean canSelectAlgorithm(ResourceLocation algorithmId) {
+    default boolean canSelectAlgorithm(Identifier algorithmId) {
         return getProvidedAlgorithms().contains(algorithmId)
                 || CraftingPlanningEngines.isPublic(algorithmId);
     }

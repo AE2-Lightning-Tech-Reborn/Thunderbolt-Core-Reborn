@@ -14,13 +14,13 @@ import org.jetbrains.annotations.Nullable;
 
 import appeng.api.networking.IGrid;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 class CraftingAlgorithmResolverTest {
-    private static final ResourceLocation PUBLIC_HIGH = id("public_high");
-    private static final ResourceLocation PUBLIC_LOW = id("public_low");
-    private static final ResourceLocation PRIVATE_HIGH = id("private_high");
-    private static final ResourceLocation PRIVATE_LOW = id("private_low");
+    private static final Identifier PUBLIC_HIGH = id("public_high");
+    private static final Identifier PUBLIC_LOW = id("public_low");
+    private static final Identifier PRIVATE_HIGH = id("private_high");
+    private static final Identifier PRIVATE_LOW = id("private_low");
 
     @BeforeAll
     static void registerEngines() {
@@ -71,7 +71,7 @@ class CraftingAlgorithmResolverTest {
         var resolved = CraftingAlgorithmResolver.resolve(List.of(
                 new CraftingAlgorithmSelection(CraftingPlanningEngines.VANILLA_ID, 100)));
 
-        assertEquals(ResourceLocation.fromNamespaceAndPath("ae2", "vanilla"),
+        assertEquals(Identifier.fromNamespaceAndPath("ae2", "vanilla"),
                 CraftingPlanningEngines.VANILLA_ID);
         assertEquals(List.of(PlanningChoice.VANILLA), resolved);
         assertTrue(CraftingPlanningEngines.isPublic(CraftingPlanningEngines.VANILLA_ID));
@@ -162,7 +162,7 @@ class CraftingAlgorithmResolverTest {
                 CraftingPlanningEngines.ALL_FAILED_ID));
     }
 
-    private static List<ResourceLocation> engineIds(List<PlanningChoice> choices) {
+    private static List<Identifier> engineIds(List<PlanningChoice> choices) {
         assertEquals(PlanningChoice.VANILLA, choices.getLast());
         return choices.stream()
                 .filter(choice -> choice.kind() == PlanningChoice.Kind.ENGINE)
@@ -170,11 +170,11 @@ class CraftingAlgorithmResolverTest {
                 .toList();
     }
 
-    private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath("thunderbolt_test", path);
+    private static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath("thunderbolt_test", path);
     }
 
-    private record TestEngine(ResourceLocation id) implements CraftingPlanningEngine {
+    private record TestEngine(Identifier id) implements CraftingPlanningEngine {
         @Override
         public boolean check(IGrid grid, PlanningRequest request) {
             return true;

@@ -14,7 +14,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.junit.jupiter.api.Test;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import com.moakiee.thunderbolt.api.crafting.PlanningExitException;
 
@@ -422,7 +422,7 @@ class PlanningCandidateExecutorTest {
         assertFalse(stuckStillRunning.get());
     }
 
-    private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath("thunderbolt_test", path);
+    private static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath("thunderbolt_test", path);
     }
 }

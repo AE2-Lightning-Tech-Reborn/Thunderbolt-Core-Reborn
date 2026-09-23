@@ -5,7 +5,7 @@ import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.HolderLookup;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
@@ -29,23 +29,23 @@ public final class IndexedCellStorageRegistry {
     }
 
     public IndexedStorage getOrCreateStorage(
-            ResourceLocation type, UUID id, HolderLookup.Provider registries) {
+            Identifier type, UUID id, HolderLookup.Provider registries) {
         return data.getOrCreateStorage(type, id, registries);
     }
 
     public void persistStorage(
-            ResourceLocation type,
+            Identifier type,
             UUID id,
             IndexedStorage storage,
             HolderLookup.Provider registries) {
         data.persistStorage(type, id, storage, registries);
     }
 
-    public void markStorageDirty(ResourceLocation type, UUID id, IndexedStorage storage) {
+    public void markStorageDirty(Identifier type, UUID id, IndexedStorage storage) {
         data.markStorageDirty(type, id, storage);
     }
 
-    public void removeCell(ResourceLocation type, UUID id) {
+    public void removeCell(Identifier type, UUID id) {
         data.removeCell(type, id);
     }
 }

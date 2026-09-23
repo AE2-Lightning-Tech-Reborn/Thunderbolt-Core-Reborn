@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext;
 import com.moakiee.thunderbolt.core.crafting.planner.PlanningCancellation;
@@ -21,13 +21,13 @@ public final class PlanningCandidateExecutor {
             Thread.ofVirtual().name("thunderbolt-planning-candidate-", 0L).factory();
 
     /** Number of detached invocations that have not actually returned yet, keyed by engine. */
-    private static final ConcurrentHashMap<ResourceLocation, AtomicInteger> QUARANTINED =
+    private static final ConcurrentHashMap<Identifier, AtomicInteger> QUARANTINED =
             new ConcurrentHashMap<>();
 
     private PlanningCandidateExecutor() {
     }
 
-    static boolean isQuarantined(ResourceLocation engineId) {
+    static boolean isQuarantined(Identifier engineId) {
         var count = QUARANTINED.get(engineId);
         return count != null && count.get() > 0;
     }
@@ -41,7 +41,7 @@ public final class PlanningCandidateExecutor {
     }
 
     public static <T> Result<T> execute(
-            ResourceLocation engineId,
+            Identifier engineId,
             String label,
             Work<T> work,
             SchedulerYield schedulerYield,
@@ -50,7 +50,7 @@ public final class PlanningCandidateExecutor {
     }
 
     static <T> Result<T> executeForTest(
-            ResourceLocation engineId,
+            Identifier engineId,
             String label,
             Work<T> work,
             SchedulerYield schedulerYield,
@@ -63,7 +63,7 @@ public final class PlanningCandidateExecutor {
     }
 
     static <T> Result<T> executeForTest(
-            ResourceLocation engineId,
+            Identifier engineId,
             String label,
             Work<T> work,
             SchedulerYield schedulerYield,
@@ -83,7 +83,7 @@ public final class PlanningCandidateExecutor {
     }
 
     static <T> Result<T> executeWithMonitorForTest(
-            ResourceLocation engineId,
+            Identifier engineId,
             String label,
             Work<T> work,
             SchedulerYield schedulerYield,
@@ -93,7 +93,7 @@ public final class PlanningCandidateExecutor {
     }
 
     private static <T> Result<T> execute(
-            ResourceLocation engineId,
+            Identifier engineId,
             String label,
             Work<T> work,
             SchedulerYield schedulerYield,
@@ -206,7 +206,7 @@ public final class PlanningCandidateExecutor {
     }
 
     private static void quarantineUntilReturned(
-            ResourceLocation engineId, CompletableFuture<?> result) {
+            Identifier engineId, CompletableFuture<?> result) {
         var count = QUARANTINED.computeIfAbsent(engineId, ignored -> new AtomicInteger());
         count.incrementAndGet();
         result.whenComplete((ignoredResult, ignoredFailure) -> {
@@ -245,6 +245,6 @@ public final class PlanningCandidateExecutor {
     @FunctionalInterface
     interface MonitorFactory {
         PlanningAttemptMonitor start(
-                ResourceLocation engineId, String label, Runnable hardTimeoutAction);
+                Identifier engineId, String label, Runnable hardTimeoutAction);
     }
 }

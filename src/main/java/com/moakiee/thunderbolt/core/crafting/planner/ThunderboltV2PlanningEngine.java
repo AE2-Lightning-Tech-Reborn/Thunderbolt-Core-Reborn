@@ -2,7 +2,7 @@ package com.moakiee.thunderbolt.core.crafting.planner;
 
 import appeng.api.networking.IGrid;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import com.moakiee.thunderbolt.ThunderboltCore;
@@ -13,7 +13,7 @@ import com.moakiee.thunderbolt.api.crafting.PlanningRequest;
 
 /** Adapter that exposes Thunderbolt's V2 planner through the multi-algorithm API. */
 public final class ThunderboltV2PlanningEngine implements CraftingPlanningEngine {
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(
+    public static final Identifier ID = Identifier.fromNamespaceAndPath(
             ThunderboltCore.MODID, "v2");
     public static final ThunderboltV2PlanningEngine INSTANCE = new ThunderboltV2PlanningEngine();
 
@@ -21,7 +21,7 @@ public final class ThunderboltV2PlanningEngine implements CraftingPlanningEngine
     }
 
     @Override
-    public ResourceLocation id() {
+    public Identifier id() {
         return ID;
     }
 

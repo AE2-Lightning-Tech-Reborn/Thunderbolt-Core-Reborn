@@ -6,13 +6,12 @@ import java.util.Objects;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueOutput;
 
 /**
  * Calculation-local resource for an output whose components are only known at execution time.
@@ -35,10 +34,10 @@ final class LateBoundOutputKey extends AEKey {
     @Override public AEKeyType getType() { return catalogKey.getType(); }
     @Override public AEKey dropSecondary() { return new LateBoundOutputKey(catalogKey.dropSecondary()); }
     @Override public Object getPrimaryKey() { return catalogKey.getPrimaryKey(); }
-    @Override public ResourceLocation getId() { return catalogKey.getId(); }
+    @Override public Identifier getId() { return catalogKey.getId(); }
     @Override public boolean hasComponents() { return catalogKey.hasComponents(); }
     @Override protected Component computeDisplayName() { return catalogKey.getDisplayName(); }
-    @Override public CompoundTag toTag(HolderLookup.Provider registries) {
+    @Override public void toTag(ValueOutput output) {
         throw new IllegalStateException("planner-only late-bound output escaped into serialization");
     }
     @Override public void writeToPacket(RegistryFriendlyByteBuf data) {

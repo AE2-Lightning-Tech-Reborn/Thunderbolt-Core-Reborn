@@ -2,7 +2,7 @@ package com.moakiee.thunderbolt.core.storage.cell;
 
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import com.moakiee.thunderbolt.core.storage.cell.ByteTracker;
@@ -13,7 +13,7 @@ import com.moakiee.thunderbolt.core.storage.cell.ByteTracker;
  */
 public interface IIndexedStorageCellItem {
     /** Stable namespace inside Thunderbolt's world SavedData. Never derive this from display data. */
-    ResourceLocation storageType(ItemStack stack);
+    Identifier storageType(ItemStack stack);
 
     /** Stable UUID tag retained on the ItemStack. Existing mods should keep their legacy tag here. */
     default String cellIdTag(ItemStack stack) {

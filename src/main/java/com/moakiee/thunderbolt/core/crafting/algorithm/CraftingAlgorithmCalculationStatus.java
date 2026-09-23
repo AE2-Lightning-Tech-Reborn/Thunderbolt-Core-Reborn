@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingSimulationRequester;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Bridges the algorithm selected on AE2's calculation thread to its confirmation menu. */
 public final class CraftingAlgorithmCalculationStatus {
@@ -43,7 +43,7 @@ public final class CraftingAlgorithmCalculationStatus {
     }
 
     public static synchronized void select(
-            ICraftingSimulationRequester requester, ResourceLocation algorithmId) {
+            ICraftingSimulationRequester requester, Identifier algorithmId) {
         var status = BY_REQUESTER.get(requester);
         if (status != null) {
             status.algorithmId = algorithmId;
@@ -51,7 +51,7 @@ public final class CraftingAlgorithmCalculationStatus {
     }
 
     @Nullable
-    public static synchronized ResourceLocation selected(Future<ICraftingPlan> future) {
+    public static synchronized Identifier selected(Future<ICraftingPlan> future) {
         var status = BY_FUTURE.get(future);
         return status == null ? null : status.algorithmId;
     }
@@ -69,7 +69,7 @@ public final class CraftingAlgorithmCalculationStatus {
     private static final class Status {
         private final ICraftingSimulationRequester requester;
         @Nullable
-        private ResourceLocation algorithmId;
+        private Identifier algorithmId;
 
         private Status(ICraftingSimulationRequester requester) {
             this.requester = requester;

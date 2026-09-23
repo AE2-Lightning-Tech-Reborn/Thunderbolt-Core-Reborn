@@ -2,12 +2,12 @@ package com.moakiee.thunderbolt.api.crafting;
 
 import appeng.api.networking.IGrid;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 /** A server-side crafting-plan calculation implementation. */
 public interface CraftingPlanningEngine {
-    ResourceLocation id();
+    Identifier id();
 
     /** Player-facing, translatable algorithm name. */
     default Component getName() {

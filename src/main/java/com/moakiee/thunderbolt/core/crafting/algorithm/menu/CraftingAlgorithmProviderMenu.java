@@ -5,7 +5,7 @@ import java.util.List;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.DataSlot;
@@ -28,14 +28,14 @@ public final class CraftingAlgorithmProviderMenu extends AEBaseMenu implements I
             .withInitialData(
                     CraftingAlgorithmProviderMenu::writeInitialData,
                     (host, menu, buf) -> menu.readInitialData(buf))
-            .buildUnregistered(ResourceLocation.fromNamespaceAndPath(
+            .buildUnregistered(Identifier.fromNamespaceAndPath(
                     ThunderboltCore.MODID, "crafting_algorithm_provider"));
 
     public static final int PREVIOUS_ALGORITHM = 0;
     public static final int NEXT_ALGORITHM = 1;
     private static final int MAX_ALGORITHMS = 256;
 
-    private List<ResourceLocation> algorithms;
+    private List<Identifier> algorithms;
     private final CraftingAlgorithmProviderMenuHost host;
     private int selectedIndex;
     private int priority;
@@ -78,7 +78,7 @@ public final class CraftingAlgorithmProviderMenu extends AEBaseMenu implements I
         var current = host.snapshot();
         var algorithms = selectableAlgorithms(host);
         buf.writeVarInt(algorithms.size());
-        algorithms.forEach(buf::writeResourceLocation);
+        algorithms.forEach(buf::writeIdentifier);
         buf.writeVarInt(selectedIndex(
                 algorithms, current.algorithmId(), host.getProvidedAlgorithm()));
         buf.writeInt(current.priority());
@@ -89,24 +89,24 @@ public final class CraftingAlgorithmProviderMenu extends AEBaseMenu implements I
         if (count <= 0 || count > MAX_ALGORITHMS) {
             throw new IllegalArgumentException("Invalid crafting algorithm count " + count);
         }
-        var algorithms = new ArrayList<ResourceLocation>(count);
+        var algorithms = new ArrayList<Identifier>(count);
         for (int i = 0; i < count; i++) {
-            algorithms.add(buf.readResourceLocation());
+            algorithms.add(buf.readIdentifier());
         }
         this.algorithms = List.copyOf(algorithms);
         selectedIndex = Math.floorMod(buf.readVarInt(), algorithms.size());
         priority = buf.readInt();
     }
 
-    private static List<ResourceLocation> selectableAlgorithms(
+    private static List<Identifier> selectableAlgorithms(
             CraftingAlgorithmProviderMenuHost host) {
         return CraftingPlanningEngines.selectableFor(host.getProvidedAlgorithms());
     }
 
     private static int selectedIndex(
-            List<ResourceLocation> algorithms,
-            ResourceLocation selected,
-            ResourceLocation provided) {
+            List<Identifier> algorithms,
+            Identifier selected,
+            Identifier provided) {
         int index = algorithms.indexOf(selected);
         if (index < 0) {
             index = algorithms.indexOf(provided);
@@ -131,7 +131,7 @@ public final class CraftingAlgorithmProviderMenu extends AEBaseMenu implements I
         return true;
     }
 
-    public ResourceLocation selectedAlgorithm() {
+    public Identifier selectedAlgorithm() {
         return algorithms.get(selectedIndex);
     }
 

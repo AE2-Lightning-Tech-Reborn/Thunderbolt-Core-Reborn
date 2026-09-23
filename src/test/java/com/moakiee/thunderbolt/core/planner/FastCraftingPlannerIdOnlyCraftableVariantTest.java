@@ -22,7 +22,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
@@ -700,17 +700,15 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
 
         @Override public AEKeyType getType() { return TYPE; }
         @Override public AEKey dropSecondary() { return new VariantKey(id, null); }
-        @Override public CompoundTag toTag(net.minecraft.core.HolderLookup.Provider registries) {
-            var tag = new CompoundTag();
-            tag.putString("id", id);
+        @Override public void toTag(net.minecraft.world.level.storage.ValueOutput output) {
+            output.putString("id", id);
             if (variant != null) {
-                tag.putString("variant", variant);
+                output.putString("variant", variant);
             }
-            return tag;
         }
         @Override public Object getPrimaryKey() { return id; }
-        @Override public ResourceLocation getId() {
-            return ResourceLocation.fromNamespaceAndPath("thunderbolt_test", id);
+        @Override public Identifier getId() {
+            return Identifier.fromNamespaceAndPath("thunderbolt_test", id);
         }
         @Override public void writeToPacket(RegistryFriendlyByteBuf data) { }
         @Override protected Component computeDisplayName() {
@@ -730,7 +728,7 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
 
     private static final class VariantKeyType extends AEKeyType {
         private VariantKeyType() {
-            super(ResourceLocation.fromNamespaceAndPath("thunderbolt_test", "variant_key"),
+            super(Identifier.fromNamespaceAndPath("thunderbolt_test", "variant_key"),
                     VariantKey.class, Component.literal("variant key"));
         }
         @Override public MapCodec<? extends AEKey> codec() { return null; }

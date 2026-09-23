@@ -16,7 +16,7 @@ import appeng.api.stacks.AEKeyType;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /**
  * Locks the incremental remainder-delta bookkeeping of {@link ByteTracker} against the plain
@@ -32,7 +32,7 @@ class ByteTrackerTest {
         private final int apb;
 
         TestKeyType(String id, int apb) {
-            super(ResourceLocation.fromNamespaceAndPath("thunderbolt_test", id),
+            super(Identifier.fromNamespaceAndPath("thunderbolt_test", id),
                     AEItemKey.class, Component.literal(id));
             this.apb = apb;
         }

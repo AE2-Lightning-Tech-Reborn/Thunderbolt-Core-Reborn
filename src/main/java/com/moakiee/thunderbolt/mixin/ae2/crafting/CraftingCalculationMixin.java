@@ -99,7 +99,7 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
 
     @Unique
     @Nullable
-    private net.minecraft.resources.ResourceLocation thunderbolt$selectedEngine;
+    private net.minecraft.resources.Identifier thunderbolt$selectedEngine;
 
     @Unique
     private boolean thunderbolt$selectedVanilla;

@@ -300,7 +300,7 @@ public final class IndexedStorage {
     // ══════════════════════════════════════════════════════════════════════
 
     public CompoundTag persist(@Nullable CompoundTag lastRoot, HolderLookup.Provider registries) {
-        return persist(lastRoot, (key, reg) -> key.toTagGeneric(reg), registries);
+        return persist(lastRoot, IndexedStorage::serializeKey, registries);
     }
 
     public CompoundTag persist(@Nullable CompoundTag lastRoot, KeySerializer keySerializer, HolderLookup.Provider registries) {
@@ -312,9 +312,9 @@ public final class IndexedStorage {
             return persistFull(keySerializer, registries);
         }
 
-        ListTag keys = lastRoot.getList("keys", Tag.TAG_COMPOUND);
-        long[] pLo = lastRoot.getLongArray("lo");
-        long[] pHi = lastRoot.getLongArray("hi");
+        ListTag keys = lastRoot.getListOrEmpty("keys");
+        long[] pLo = lastRoot.getLongArray("lo").orElseGet(() -> new long[0]);
+        long[] pHi = lastRoot.getLongArray("hi").orElseGet(() -> new long[0]);
 
         int tagLen = alignPow2(nextId);
         if (pLo.length < nextId) {
@@ -438,6 +438,13 @@ public final class IndexedStorage {
         CompoundTag toTag(AEKey key, HolderLookup.Provider registries);
     }
 
+    private static CompoundTag serializeKey(AEKey key, HolderLookup.Provider registries) {
+        var output = net.minecraft.world.level.storage.TagValueOutput.createWithContext(
+                net.minecraft.util.ProblemReporter.DISCARDING, registries);
+        key.toTagGeneric(output);
+        return output.buildResult();
+    }
+
     // ══════════════════════════════════════════════════════════════════════
     //  Load
     // ══════════════════════════════════════════════════════════════════════
@@ -445,7 +452,7 @@ public final class IndexedStorage {
     public void load(CompoundTag root, HolderLookup.Provider registries) {
         wideAmounts.clear();
         exactTypeTotals.clear();
-        arbitraryPrecision = root.getBoolean("arbitraryPrecision");
+        arbitraryPrecision = root.getBooleanOr("arbitraryPrecision", false);
         keyToId.clear();
         nextId = 0;
         freeCount = 0;
@@ -455,9 +462,9 @@ public final class IndexedStorage {
         typeAmountLo.clear();
         typeAmountHi.clear();
 
-        ListTag keys = root.getList("keys", Tag.TAG_COMPOUND);
-        long[] pLo = root.getLongArray("lo");
-        long[] pHi = root.getLongArray("hi");
+        ListTag keys = root.getListOrEmpty("keys");
+        long[] pLo = root.getLongArray("lo").orElseGet(() -> new long[0]);
+        long[] pHi = root.getLongArray("hi").orElseGet(() -> new long[0]);
         int size = keys.size();
         ensureCapacity(size);
         nextId = size;
@@ -470,12 +477,14 @@ public final class IndexedStorage {
             inQueue[id] = false;
             isStructDirty[id] = false;
 
-            CompoundTag entry = keys.getCompound(id);
+            CompoundTag entry = keys.getCompoundOrEmpty(id);
             if (!entry.contains("key")) {
                 addFree(id);
                 continue;
             }
-            AEKey key = AEKey.fromTagGeneric(registries, entry.getCompound("key"));
+            CompoundTag keyTag = entry.getCompoundOrEmpty("key");
+            AEKey key = AEKey.fromTagGeneric(net.minecraft.world.level.storage.TagValueInput.create(
+                    net.minecraft.util.ProblemReporter.DISCARDING, registries, keyTag));
             if (key == null) {
                 addFree(id);
                 continue;
@@ -485,7 +494,7 @@ public final class IndexedStorage {
             idToKey[id] = key;
             lo[id] = id < pLo.length ? pLo[id] : 0L;
             hi[id] = id < pHi.length ? pHi[id] : 0L;
-            serializedKey[id] = entry.getCompound("key");
+            serializedKey[id] = keyTag;
             totalTypes++;
 
             AEKeyType kt = key.getType();
@@ -497,11 +506,12 @@ public final class IndexedStorage {
             typeAmountHi.put(kt, sumHi);
         }
 
-        var wide = root.getCompound("bigAmounts");
-        for (var index : wide.getAllKeys()) {
+        var wide = root.getCompoundOrEmpty("bigAmounts");
+        for (var index : wide.keySet()) {
             int id = Integer.parseInt(index);
             if (id < 0 || id >= nextId || idToKey[id] == null) throw new IllegalArgumentException("Orphan exact cell quantity");
-            var n = com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(new java.math.BigInteger(wide.getByteArray(index)));
+            var n = com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(
+                    new java.math.BigInteger(wide.getByteArray(index).orElseThrow()));
             if (n.compareTo(MAX_126) <= 0) throw new IllegalArgumentException("Invalid wide cell quantity");
             wideAmounts.put(idToKey[id], n);
         }

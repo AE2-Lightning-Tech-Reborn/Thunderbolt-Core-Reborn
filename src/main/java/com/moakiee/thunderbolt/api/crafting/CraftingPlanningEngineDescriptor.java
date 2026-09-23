@@ -2,7 +2,7 @@ package com.moakiee.thunderbolt.api.crafting;
 
 import java.util.Objects;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** Immutable metadata declared when a crafting algorithm is registered. */
 public record CraftingPlanningEngineDescriptor(
@@ -16,7 +16,7 @@ public record CraftingPlanningEngineDescriptor(
         Objects.requireNonNull(engine.getName(), "engine.getName()");
     }
 
-    public ResourceLocation id() {
+    public Identifier id() {
         return engine.id();
     }
 }

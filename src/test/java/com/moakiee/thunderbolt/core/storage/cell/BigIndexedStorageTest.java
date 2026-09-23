@@ -14,11 +14,11 @@ import org.junit.jupiter.api.*;
 import java.math.BigInteger;
 import java.util.*;
 
-class BigIndexedStorageTest {
+class BigIndexedStorageTest extends com.moakiee.thunderbolt.test.MinecraftComponentsTestBase {
     @BeforeAll
     static void bootstrap() {
         net.neoforged.fml.loading.LoadingModList.of(
-                List.of(), List.of(), List.of(), List.of(), Map.of());
+                List.of(), List.of(), List.of(), List.of(), List.of(), Map.of());
         net.minecraft.SharedConstants.tryDetectVersion();
         net.minecraft.server.Bootstrap.bootStrap();
         try {
@@ -51,9 +51,9 @@ class BigIndexedStorageTest {
     void nonOptedInCellsAdvertiseOnlyOneExtractableLongChunk() {
         var definition =
                 new IIndexedStorageCellItem() {
-                    public net.minecraft.resources.ResourceLocation storageType(
+                    public net.minecraft.resources.Identifier storageType(
                             net.minecraft.world.item.ItemStack stack) {
-                        return net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
+                        return net.minecraft.resources.Identifier.fromNamespaceAndPath(
                                 "thunderbolt", "test_legacy_cell");
                     }
 
@@ -107,7 +107,7 @@ class BigIndexedStorageTest {
         loaded.extractExact(key, n.subtract(BigInteger.valueOf(4)), Actionable.MODULATE);
         assertEquals(BigInteger.ONE, loaded.getAmountExact(key));
         var narrowed = loaded.persist(tag, registries);
-        assertTrue(narrowed.getCompound("bigAmounts").isEmpty());
+        assertTrue(narrowed.getCompoundOrEmpty("bigAmounts").isEmpty());
         var again = new IndexedStorage();
         again.load(narrowed, registries);
         assertEquals(1, again.extract(key, Long.MAX_VALUE, Actionable.MODULATE));
