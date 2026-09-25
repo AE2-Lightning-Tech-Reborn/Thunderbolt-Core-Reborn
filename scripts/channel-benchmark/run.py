@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compile the real AE2 fixture; compare this checkout with the named Git baseline.
 
-Requires JDK 21 (JAVA_HOME) and the normal Gradle dependencies. No game world is
+Requires JDK 17 (JAVA_HOME) and the normal Gradle dependencies. No game world is
 started. Timings cover assignChannels, excluding graph creation and assertions.
 """
 import argparse
@@ -14,7 +14,7 @@ import subprocess
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--baseline', default='3242dc07fe209cc1164f25c7aac4251625ef4ef6')
+    parser.add_argument('--baseline', default='49233dceba0f0d34b0b7baf78e66b41fc42d3138')
     parser.add_argument('--quick', action='store_true')
     parser.add_argument('--oracle', type=int, default=5000)
     parser.add_argument('--offline', action='store_true')

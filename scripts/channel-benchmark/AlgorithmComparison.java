@@ -36,9 +36,9 @@ public class AlgorithmComparison {
   }
   System.out.println("LIFECYCLE PASS disconnect16to8 reconnect8to16 uniform8/32/128");
  }
- public static void main(String[] args){CoreConfig.setChannelsPerController(128);ChannelSourceRegistry.registerController("compare",ChannelStress.Source.class);String a=args[0],kind=args[1];int n=Integer.parseInt(args[2]);if(kind.equals("oracle")){correctness(a,n);if(a.equals("current")){ChannelStress.special();lifecycle();}return;}
+ public static void main(String[] args){net.minecraft.SharedConstants.tryDetectVersion();net.minecraft.server.Bootstrap.bootStrap();CoreConfig.setChannelsPerController(128);ChannelSourceRegistry.registerController("compare",ChannelStress.Source.class);String a=args[0],kind=args[1];int n=Integer.parseInt(args[2]);if(kind.equals("oracle")){correctness(a,n);if(a.equals("current")){ChannelStress.special();lifecycle();}return;}
   var g=switch(kind){case "tree"->ChannelStress.tree(n,false);case "dense"->ChannelStress.tree(n,true);case "mesh"->ChannelStress.mesh(n);case "finite"->finiteMesh(n);case "comb"->ChannelStress.chain(n,true);case "chain"->ChannelStress.chain(n,false);case "weighted"->ChannelStress.weighted(n);case "vanilla"->ChannelStress.vanilla(n);default->throw new IllegalArgumentException();};
-  int warm=Integer.parseInt(args[3]),reps=Integer.parseInt(args[4]);long tid=Thread.currentThread().threadId();double[] times=new double[reps],alloc=new double[reps];
+  int warm=Integer.parseInt(args[3]),reps=Integer.parseInt(args[4]);long tid=Thread.currentThread().getId();double[] times=new double[reps],alloc=new double[reps];
   long coldStart=System.nanoTime();var result=solve(a,g);double cold=(System.nanoTime()-coldStart)/1e6;int flow=ChannelStress.verify(g,result);System.out.println("COLD "+a+" "+kind+" "+n+" "+cold);result=null;
   for(int i=0;i<warm;i++)ChannelStress.verify(g,solve(a,g));System.gc();
   for(int i=0;i<reps;i++){long bytes=ChannelStress.TM.getThreadAllocatedBytes(tid),t=System.nanoTime();result=solve(a,g);times[i]=(System.nanoTime()-t)/1e6;alloc[i]=(ChannelStress.TM.getThreadAllocatedBytes(tid)-bytes)/1048576.0;flow=ChannelStress.verify(g,result);result=null;}

@@ -1,6 +1,8 @@
 # 频道分配：双向树上批量配对与精确残量求解
 
-本次变更针对 Thunderbolt Core Reborn 的 `alpha`，以 `3242dc07fe209cc1164f25c7aac4251625ef4ef6` 为基线。以下数据来自该基线与优化版本在同一环境下的复测；本次仅更新源码，不涉及服务器部署。
+下表保留 1.21.1 NeoForge `alpha` 的历史测量，以 `3242dc07fe209cc1164f25c7aac4251625ef4ef6` 为基线；这些数字不是 Forge 1.20.1 的实测结果。
+
+Forge 1.20.1 的 JDK 17 快速复测以 `49233dceba0f0d34b0b7baf78e66b41fc42d3138` 为基线：1000 个随机图、并行路径和断开重连检查全部通过。小树状图中位数从 0.805 ms 降至 0.537 ms，1000 需求梳状图从 156.145 ms 降至 0.886 ms，20000 节点长链从 15.289 ms 降至 6.567 ms。原始结果由 `--quick --oracle 1000` 写入 `build/channel-benchmark/results.json`；它们是本机一次快速测量，不代表完整大型场景。
 
 ## 算法
 
@@ -68,7 +70,7 @@
 
 ## 复现
 
-在本工作区设置 JDK 21 的 `JAVA_HOME`，然后执行：
+在 Forge 1.20.1 工作区设置 JDK 17 的 `JAVA_HOME`，然后执行：
 
 ```sh
 ./gradlew --offline test build
