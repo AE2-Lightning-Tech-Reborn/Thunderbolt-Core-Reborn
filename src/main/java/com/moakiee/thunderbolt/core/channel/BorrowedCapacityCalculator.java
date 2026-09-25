@@ -2,8 +2,6 @@ package com.moakiee.thunderbolt.core.channel;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Deque;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -28,8 +26,7 @@ import com.moakiee.thunderbolt.api.channel.ChannelRequestProvider;
 import com.moakiee.thunderbolt.api.channel.ConnectionChannelCapacityProvider;
 
 /**
- * Assigns channels to devices in the high-capacity network using
- * <b>Dinic's max-flow</b>.
+ * Assigns channels to devices in the high-capacity network using a bidirectional tree seed followed by exact residual max-flow.
  * <p>
  * Flow network model:
  * <ul>
@@ -37,9 +34,9 @@ import com.moakiee.thunderbolt.api.channel.ConnectionChannelCapacityProvider;
  *       vanilla controller faces (cap={@code 32×factor}).</li>
  *   <li><b>Relays</b> (node-split): high-capacity cables/controllers = ∞,
  *       dense cables = 32×f, normal cables = 8×f.</li>
- *   <li><b>Sinks</b>: {@code REQUIRE_CHANNEL} devices → super-sink T (cap=1).</li>
+ *   <li><b>Sinks</b>: {@code REQUIRE_CHANNEL} devices → super-sink T (cap=requested channels).</li>
  * </ul>
- * After max-flow, a device has a channel iff its device→T edge carries flow=1.
+ * After max-flow, a device is active iff its device→T edge carries its full request.
  */
 public final class BorrowedCapacityCalculator {
 
@@ -62,11 +59,11 @@ public final class BorrowedCapacityCalculator {
     /**
      * Result of a max-flow channel assignment.
      *
-     * @param channelNodes    devices that were granted a channel (flow=1 on device→T)
+     * @param channelNodes    devices that were granted a channel (its full request on device→T)
      * @param networkNodes    all nodes discovered in the network (for usedChannels override)
      * @param nodeFlow        flow through each node's node-split edge
      *                        (= usedChannels for that cable/device); default 0 for missing keys
-     * @param connectionFlow  exact flow on each GridConnection from Dinic's result
+     * @param connectionFlow  exact flow on each GridConnection from the final feasible flow
      */
     public record Result(Set<GridNode> channelNodes,
                          Set<IGridNode> networkNodes,
@@ -174,43 +171,43 @@ public final class BorrowedCapacityCalculator {
                                 Set<IGridNode> network,
                                 ChannelMode mode) {
 
-        Reference2IntOpenHashMap<IGridNode> idx = new Reference2IntOpenHashMap<>();
+        IGridNode[] nodes = network.toArray(IGridNode[]::new);
+        int total = nodes.length;
+        Reference2IntOpenHashMap<IGridNode> idx = new Reference2IntOpenHashMap<>(total);
         idx.defaultReturnValue(-1);
-        int i = 0;
-        for (var n : network) idx.put(n, i++);
-
-        int total = network.size();
+        for (int i = 0; i < total; i++) idx.put(nodes[i], i);
         int S = 2 * total, T = 2 * total + 1;
-        Dinic dinic = new Dinic(2 * total + 2);
+        ChannelFlowNetwork flowNetwork = new ChannelFlowNetwork(2 * total + 2);
 
         // 1) node-split: in → out, capacity = relay capacity
         //    Record the edge index of each node-split edge for flow readback.
         int[] splitEdge = new int[total];
-        for (var n : network) {
-            int ci = idx.getInt(n);
-            int cap = nodeCap(n, mode);
-            splitEdge[ci] = dinic.edgeCount();
-            dinic.addEdge(2 * ci, 2 * ci + 1, cap);
+        int[] nodeCapacity = new int[total];
+        for (int ci = 0; ci < total; ci++) {
+            int cap = nodeCapacity[ci] = nodeCap(nodes[ci], mode);
+            splitEdge[ci] = flowNetwork.edgeCount();
+            flowNetwork.addEdge(2 * ci, 2 * ci + 1, cap);
         }
 
         // 2) connections between discovered nodes (bidirectional)
-        //    Track Dinic edge indices per GridConnection for flow readback.
-        record ConnEdge(GridConnection gc, int edgeAB, int edgeBA, int cap) {}
+        //    Track residual edge indices per GridConnection for flow readback.
+        record ConnEdge(GridConnection gc, int edgeAB, int edgeBA, int cap, int a, int b) {}
         List<ConnEdge> connEdges = new ArrayList<>();
-        Set<GridConnection> seen = new ReferenceOpenHashSet<>();
-        for (var n : network) {
-            int ci = idx.getInt(n);
+        for (int ci = 0; ci < total; ci++) {
+            var n = nodes[ci];
             for (var c : n.getConnections()) {
                 if (!(c instanceof GridConnection gc)) continue;
                 var other = gc.getOtherSide(n);
                 int oi = idx.getInt(other);
-                if (oi < 0 || !seen.add(gc)) continue;
+                // A GridConnection occurs at both endpoints. Keep every parallel
+                // connection, visiting it only from the lower numbered endpoint.
+                if (oi <= ci) continue;
                 int edgeCap = getConnectionCap(gc, n, other, mode);
-                int eAB = dinic.edgeCount();
-                dinic.addEdge(2 * ci + 1, 2 * oi, edgeCap);
-                int eBA = dinic.edgeCount();
-                dinic.addEdge(2 * oi + 1, 2 * ci, edgeCap);
-                connEdges.add(new ConnEdge(gc, eAB, eBA, edgeCap));
+                int eAB = flowNetwork.edgeCount();
+                flowNetwork.addEdge(2 * ci + 1, 2 * oi, edgeCap);
+                int eBA = flowNetwork.edgeCount();
+                flowNetwork.addEdge(2 * oi + 1, 2 * ci, edgeCap);
+                connEdges.add(new ConnEdge(gc, eAB, eBA, edgeCap, ci, oi));
             }
         }
 
@@ -218,7 +215,7 @@ public final class BorrowedCapacityCalculator {
         int supply = HighCapacityChannelSupport.supplyPerController(mode.getCableCapacityFactor());
         for (var oc : capacitySources) {
             int ci = idx.getInt(oc);
-            dinic.addEdge(S, 2 * ci, supply);
+            flowNetwork.addEdge(S, 2 * ci, supply);
         }
 
         // 4) vanilla controller face sources: S → cable_in
@@ -234,18 +231,18 @@ public final class BorrowedCapacityCalculator {
                 if (other.getOwner() instanceof ControllerBlockEntity) continue;
                 int oi = idx.getInt(other);
                 if (oi >= 0) {
-                    int feIdx = dinic.edgeCount();
-                    dinic.addEdge(S, 2 * oi, faceCap);
+                    int feIdx = flowNetwork.edgeCount();
+                    flowNetwork.addEdge(S, 2 * oi, faceCap);
                     faceEdges.add(new FaceEdge(gc, feIdx, faceCap));
                 }
             }
         }
 
-        // 5) REQUIRE_CHANNEL devices → T, cap=1
+        // 5) REQUIRE_CHANNEL devices → T, cap=requested channels (normally 1)
         //    Multiblock groups (e.g. crafting CPUs) share a single sink edge
         //    so the entire multiblock consumes only 1 channel.
         Set<IGridNode> multiblockSkip = new ReferenceOpenHashSet<>();
-        for (var n : network) {
+        for (var n : nodes) {
             if (!(n instanceof GridNode gn)) continue;
             if (!gn.hasFlag(GridFlags.REQUIRE_CHANNEL) || !gn.hasFlag(GridFlags.MULTIBLOCK)) continue;
             if (multiblockSkip.contains(n)) continue;
@@ -266,30 +263,44 @@ public final class BorrowedCapacityCalculator {
 
         List<IGridNode> sinkNodes = new ArrayList<>();
         IntList sinkEdgeIndices = new IntArrayList();
-        for (var n : network) {
+        for (var n : nodes) {
             if (!(n instanceof GridNode gn)) continue;
             if (!gn.hasFlag(GridFlags.REQUIRE_CHANNEL)) continue;
             if (multiblockSkip.contains(n)) continue;
             int ci = idx.getInt(n);
             int requested = gn.getOwner() instanceof ChannelRequestProvider p
                     ? Math.max(1, p.thunderbolt$getRequestedChannels()) : 1;
-            sinkEdgeIndices.add(dinic.edgeCount());
-            dinic.addEdge(2 * ci + 1, T, requested);
+            sinkEdgeIndices.add(flowNetwork.edgeCount());
+            flowNetwork.addEdge(2 * ci + 1, T, requested);
             sinkNodes.add(n);
         }
 
-        int maxFlow = dinic.maxFlow(S, T, Integer.MAX_VALUE / 2);
+        int initialFlow = BidirectionalFlowSeed.assign(flowNetwork, S, T, splitEdge, INF);
+        int maxFlow = initialFlow + flowNetwork.maxFlow(S, T, INF - initialFlow);
+
+        // Remove the four-edge circulation on each bidirectional physical link.
+        // Its net connection flow is zero, but both endpoint split edges carried it.
+        for (var ce : connEdges) {
+            int both = Math.min(ce.cap - flowNetwork.residual(ce.edgeAB),
+                    ce.cap - flowNetwork.residual(ce.edgeBA));
+            if (both > 0) {
+                flowNetwork.cancelFlow(ce.edgeAB, both);
+                flowNetwork.cancelFlow(ce.edgeBA, both);
+                flowNetwork.cancelFlow(splitEdge[ce.a], both);
+                flowNetwork.cancelFlow(splitEdge[ce.b], both);
+            }
+        }
 
         LOG.debug("maxFlow={}, network={}, sinks={}, capacitySources={}, supply/ctrl={}",
                 maxFlow, network.size(), sinkNodes.size(), capacitySources.size(), supply);
 
         // Collect winning devices
-        Set<GridNode> winners = new ReferenceOpenHashSet<>();
+        Set<GridNode> winners = new ReferenceOpenHashSet<>(sinkNodes.size());
         for (int j = 0; j < sinkNodes.size(); j++) {
             int edgeIdx = sinkEdgeIndices.getInt(j);
             int requested = sinkNodes.get(j).getOwner() instanceof ChannelRequestProvider p
                     ? Math.max(1, p.thunderbolt$getRequestedChannels()) : 1;
-            int assigned = requested - dinic.residual(edgeIdx);
+            int assigned = requested - flowNetwork.residual(edgeIdx);
             if (assigned >= requested) {
                 winners.add((GridNode) sinkNodes.get(j));
             }
@@ -299,23 +310,22 @@ public final class BorrowedCapacityCalculator {
         }
 
         // Collect flow through each node-split (= usedChannels for that node)
-        Reference2IntOpenHashMap<IGridNode> nodeFlow = new Reference2IntOpenHashMap<>();
+        Reference2IntOpenHashMap<IGridNode> nodeFlow = new Reference2IntOpenHashMap<>(total);
         nodeFlow.defaultReturnValue(0);
-        for (var n : network) {
-            int ci = idx.getInt(n);
-            int originalCap = nodeCap(n, mode);
-            int flowThrough = originalCap - dinic.residual(splitEdge[ci]);
+        for (int ci = 0; ci < total; ci++) {
+            int flowThrough = nodeCapacity[ci] - flowNetwork.residual(splitEdge[ci]);
             if (flowThrough > 0) {
-                nodeFlow.put(n, flowThrough);
+                nodeFlow.put(nodes[ci], flowThrough);
             }
         }
 
-        // Collect exact flow on each GridConnection from Dinic edges
-        Reference2IntOpenHashMap<GridConnection> connectionFlow = new Reference2IntOpenHashMap<>();
+        // Collect exact flow on each GridConnection from residual edges
+        Reference2IntOpenHashMap<GridConnection> connectionFlow =
+                new Reference2IntOpenHashMap<>(connEdges.size() + faceEdges.size());
         connectionFlow.defaultReturnValue(0);
         for (var ce : connEdges) {
-            int flowAB = ce.cap - dinic.residual(ce.edgeAB);
-            int flowBA = ce.cap - dinic.residual(ce.edgeBA);
+            int flowAB = ce.cap - flowNetwork.residual(ce.edgeAB);
+            int flowBA = ce.cap - flowNetwork.residual(ce.edgeBA);
             int netFlow = Math.abs(flowAB - flowBA);
             if (netFlow > 0) {
                 connectionFlow.put(ce.gc, netFlow);
@@ -327,7 +337,7 @@ public final class BorrowedCapacityCalculator {
         // (vanilla controllers are not in 'network'), so we derive their
         // flow from the source edge S → cable_in.
         for (var fe : faceEdges) {
-            int flow = fe.cap - dinic.residual(fe.edgeIdx);
+            int flow = fe.cap - flowNetwork.residual(fe.edgeIdx);
             if (flow > 0) {
                 connectionFlow.mergeInt(fe.gc, flow, Integer::sum);
             }
@@ -367,150 +377,5 @@ public final class BorrowedCapacityCalculator {
         return Math.min(capA, capB);
     }
 
-    // ── Dinic's max-flow ─────────────────────────────────────────────
 
-    // Package-private so the iterative solver can be regression-tested without
-    // constructing a live AE2 grid. This is still an implementation detail of
-    // the channel package, not part of Thunderbolt's public API.
-    static final class Dinic {
-        private final int size;
-        private final int[] head;
-        private int[] to, cap, nxt;
-        private int cnt;
-        private final int[] level, cur;
-
-        Dinic(int n) {
-            size = n;
-            head = new int[n];
-            Arrays.fill(head, -1);
-            // ~6 edges per node: node-split(2) + avg connections(2) + source/sink(2)
-            int init = Math.max(n * 6, 64);
-            to = new int[init];
-            cap = new int[init];
-            nxt = new int[init];
-            level = new int[n];
-            cur = new int[n];
-        }
-
-        int edgeCount() {
-            return cnt;
-        }
-
-        int residual(int edgeIdx) {
-            return cap[edgeIdx];
-        }
-
-        void addEdge(int u, int v, int c) {
-            grow(cnt + 2);
-            link(u, v, c);
-            link(v, u, 0);
-        }
-
-        private void link(int u, int v, int c) {
-            to[cnt] = v;
-            cap[cnt] = c;
-            nxt[cnt] = head[u];
-            head[u] = cnt++;
-        }
-
-        private void grow(int need) {
-            if (need <= to.length) return;
-            int len = Math.max(to.length * 2, need);
-            to = Arrays.copyOf(to, len);
-            cap = Arrays.copyOf(cap, len);
-            nxt = Arrays.copyOf(nxt, len);
-        }
-
-        private boolean bfs(int s, int t) {
-            Arrays.fill(level, -1);
-            level[s] = 0;
-            Queue<Integer> q = new ArrayDeque<>();
-            q.add(s);
-            while (!q.isEmpty()) {
-                int v = q.poll();
-                for (int e = head[v]; e != -1; e = nxt[e]) {
-                    if (cap[e] > 0 && level[to[e]] < 0) {
-                        level[to[e]] = level[v] + 1;
-                        q.add(to[e]);
-                    }
-                }
-            }
-            return level[t] >= 0;
-        }
-
-        /**
-         * Dinic DFS 显式栈帧（迭代模式参照 core/planner 的 CycleAnalysis.DfsFrame）。
-         *
-         * @param node   路径上的当前节点
-         * @param pushed 到达该节点时剩余可推送的流量（递归版的 pushed 入参）
-         * @param edge   从父节点进入该节点所使用的边；根帧为 -1
-         */
-        private record DfsFrame(int node, int pushed, int edge) {}
-
-        /**
-         * 阻塞流 DFS 的迭代实现，与原递归版逐点等价：
-         * <ul>
-         *   <li>current arc（cur[]）推进逻辑一致：边不可用或子树返回 0 时
-         *       推进到 nxt[e]；成功增广的边不推进；</li>
-         *   <li>命中汇点后沿显式栈回溯整条路径扣减/回补残余容量，
-         *       等价于递归版各层返回 d 时的 cap[e]-=d / cap[e^1]+=d；</li>
-         *   <li>返回值（本次增广量）与递归版相同，maxFlow 的调用方式不变。</li>
-         * </ul>
-         * 用显式栈替代递归，避免深链网络下 StackOverflowError。
-         * 层级图中 level 每下降一层严格 +1，路径长度 ≤ size，不会栈溢出。
-         */
-        private int dfs(int s, int t, int limit) {
-            Deque<DfsFrame> stack = new ArrayDeque<>();
-            stack.push(new DfsFrame(s, limit, -1));
-            while (!stack.isEmpty()) {
-                DfsFrame frame = stack.peek();
-                int v = frame.node();
-                if (v == t) {
-                    // 命中汇点：增广量为路径上的最小残余容量，
-                    // 沿栈回溯逐边更新残余容量（即递归回溯时逐层扣减流量）。
-                    int d = frame.pushed();
-                    for (DfsFrame f : stack) {
-                        if (f.edge() == -1) break;
-                        cap[f.edge()] -= d;
-                        cap[f.edge() ^ 1] += d;
-                    }
-                    return d;
-                }
-                // 沿 current arc 扫描，与递归版 for 循环条件完全一致。
-                boolean advanced = false;
-                while (cur[v] != -1) {
-                    int e = cur[v];
-                    if (cap[e] > 0 && level[to[e]] == level[v] + 1) {
-                        stack.push(new DfsFrame(to[e], Math.min(frame.pushed(), cap[e]), e));
-                        advanced = true;
-                        break;
-                    }
-                    cur[v] = nxt[e];
-                }
-                if (!advanced) {
-                    // 所有出边耗尽，等价于递归返回 0。弹出当前帧，并推进
-                    // 父帧的 current arc 跳过进入本帧的边 —— 对应递归版
-                    // 子调用返回 0 后 for 循环的 cur[v] = nxt[cur[v]] 步进。
-                    stack.pop();
-                    DfsFrame parent = stack.peek();
-                    if (parent != null) {
-                        cur[parent.node()] = nxt[frame.edge()];
-                    }
-                }
-            }
-            return 0;
-        }
-
-        int maxFlow(int s, int t, int demandCap) {
-            int flow = 0;
-            while (flow < demandCap && bfs(s, t)) {
-                System.arraycopy(head, 0, cur, 0, size);
-                for (int d; (d = dfs(s, t, demandCap - flow)) > 0; ) {
-                    flow += d;
-                    if (flow >= demandCap) break;
-                }
-            }
-            return flow;
-        }
-    }
 }
