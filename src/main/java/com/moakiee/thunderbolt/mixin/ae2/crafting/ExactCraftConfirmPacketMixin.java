@@ -1,6 +1,5 @@
 package com.moakiee.thunderbolt.mixin.ae2.crafting;
 
-import appeng.core.sync.BasePacket;
 import appeng.core.sync.packets.CraftConfirmPlanPacket;
 import appeng.menu.me.crafting.CraftingPlanSummary;
 import com.moakiee.thunderbolt.ae2.crafting.ExactPlanReport;
@@ -35,9 +34,9 @@ public abstract class ExactCraftConfirmPacketMixin {
                     @At(
                             value = "INVOKE",
                             target =
-                                    "Lappeng/core/sync/BasePacket;configureWrite(Lnet/minecraft/network/FriendlyByteBuf;)V"))
+                                    "Lappeng/core/sync/packets/CraftConfirmPlanPacket;configureWrite(Lnet/minecraft/network/FriendlyByteBuf;)V"))
     private void thunderbolt$writeExactReport(
-            BasePacket packet, FriendlyByteBuf buffer, Operation<Void> original) {
+            CraftConfirmPlanPacket packet, FriendlyByteBuf buffer, Operation<Void> original) {
         var report = ExactPlanReports.get(plan);
         if (report != null) {
             buffer.writeInt(THUNDERBOLT_EXACT_MAGIC);
