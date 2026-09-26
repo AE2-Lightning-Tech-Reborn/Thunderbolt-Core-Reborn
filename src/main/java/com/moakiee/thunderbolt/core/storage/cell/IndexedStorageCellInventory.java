@@ -65,7 +65,9 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
         ensureSync();
         boolean newKey = !storage.containsKey(key);
         long accepted = Math.min(amount, byteTracker.computeMaxInsertable(key.getType(), newKey));
-        if (accepted <= 0 || mode == Actionable.SIMULATE) return Math.max(accepted, 0);
+        if (accepted <= 0) return 0;
+        accepted = storage.insert(key, accepted, Actionable.SIMULATE);
+        if (accepted == 0 || mode == Actionable.SIMULATE) return accepted;
 
         storage.insert(key, accepted, Actionable.MODULATE);
         byteTracker.onInsert(key.getType(), accepted, newKey);
@@ -166,13 +168,11 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
         // The non-opted-in bridge can extract only one long chunk per endpoint.
         // Do not promise its larger legacy ledger as atomically available to an exact plan.
         var result = new java.util.LinkedHashMap<AEKey, java.math.BigInteger>();
-        storage.snapshotExact().forEach((key, amount) -> {
-            long available = extract(key,
-                    com.moakiee.thunderbolt.core.storage.big.BigAmounts.project(amount),
-                    Actionable.SIMULATE, source);
+        storage.forEachCappedAmount((key, amount) -> {
+            long available = extract(key, amount, Actionable.SIMULATE, source);
             if (available > 0) result.put(key, java.math.BigInteger.valueOf(available));
         });
-        return java.util.Map.copyOf(result);
+        return result.isEmpty() ? java.util.Map.of() : java.util.Collections.unmodifiableMap(result);
     }
 
     public IndexedStorage storage() { return storage; }

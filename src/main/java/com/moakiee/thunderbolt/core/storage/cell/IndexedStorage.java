@@ -46,10 +46,12 @@ public final class IndexedStorage {
     // Only quantities beyond the legacy 126-bit encoding need an additional serialized value.
     private final java.util.Map<AEKey, java.math.BigInteger> wideAmounts = new java.util.HashMap<>();
     private final java.util.Map<AEKeyType, java.math.BigInteger> exactTypeTotals = new java.util.HashMap<>();
+    private final java.util.Map<AEKeyType, java.math.BigInteger> legacyOverflowTotals = new java.util.HashMap<>();
 
     public void enableArbitraryPrecision() {
         if (arbitraryPrecision) return;
         arbitraryPrecision = true;
+        legacyOverflowTotals.clear();
         rebuildExactTotals();
     }
 
@@ -73,7 +75,7 @@ public final class IndexedStorage {
                     : java.math.BigInteger.valueOf(hi[id]).shiftLeft(63)
                             .add(java.math.BigInteger.valueOf(lo[id])));
         }
-        return java.util.Map.copyOf(result);
+        return result.isEmpty() ? java.util.Map.of() : java.util.Collections.unmodifiableMap(result);
     }
 
     public java.math.BigInteger insertExact(AEKey key, java.math.BigInteger amount, Actionable mode) {
@@ -220,9 +222,13 @@ public final class IndexedStorage {
     public long insert(AEKey key, long amount, Actionable mode) {
         if (arbitraryPrecision && amount > 0) return insertExact(key, java.math.BigInteger.valueOf(amount), mode).longValueExact();
         if (amount <= 0) return 0;
+        int id = keyToId.getInt(key);
+        if (id >= 0 && hi[id] == Long.MAX_VALUE) {
+            amount = Math.min(amount, Long.MAX_VALUE - lo[id]);
+            if (amount == 0) return 0;
+        }
         if (mode == Actionable.SIMULATE) return amount;
 
-        int id = keyToId.getInt(key);
         boolean isNewKey = (id == -1);
         if (isNewKey) {
             id = allocateId(key);
@@ -244,18 +250,7 @@ public final class IndexedStorage {
 
         AEKeyType kt = key.getType();
         if (isNewKey) typeCounts.addTo(kt, 1);
-        long sumLo = typeAmountLo.getLong(kt) + amount;
-        long sumHi = typeAmountHi.getLong(kt);
-        if (sumLo < 0) {
-            sumLo &= Long.MAX_VALUE;
-            if (sumHi == Long.MAX_VALUE) {
-                sumLo = Long.MAX_VALUE;
-            } else {
-                sumHi++;
-            }
-        }
-        typeAmountLo.put(kt, sumLo);
-        typeAmountHi.put(kt, sumHi);
+        updateLegacyTypeTotal(kt, amount);
 
         needsPersist = true;
         modCount++;
@@ -294,23 +289,14 @@ public final class IndexedStorage {
         }
 
         AEKeyType kt = key.getType();
-        long sumLo = typeAmountLo.getLong(kt) - taken;
-        long sumHi = typeAmountHi.getLong(kt);
-        if (sumLo < 0) { sumLo &= Long.MAX_VALUE; sumHi--; }
+        updateLegacyTypeTotal(kt, -taken);
         if (keyRemoved) {
-            // fastutil addTo returns the PREVIOUS value: the last key of a type sees 1 here.
-            int remaining = typeCounts.addTo(kt, -1);
-            if (remaining <= 1) {
+            if (typeCounts.addTo(kt, -1) <= 1) {
                 typeCounts.removeInt(kt);
                 typeAmountLo.removeLong(kt);
                 typeAmountHi.removeLong(kt);
-            } else {
-                typeAmountLo.put(kt, sumLo);
-                typeAmountHi.put(kt, sumHi);
+                legacyOverflowTotals.remove(kt);
             }
-        } else {
-            typeAmountLo.put(kt, sumLo);
-            typeAmountHi.put(kt, sumHi);
         }
 
         needsPersist = true;
@@ -318,14 +304,57 @@ public final class IndexedStorage {
         return taken;
     }
 
+    private void updateLegacyTypeTotal(AEKeyType type, long delta) {
+        var overflow = legacyOverflowTotals.get(type);
+        if (overflow != null) {
+            var updated = overflow.add(java.math.BigInteger.valueOf(delta));
+            if (updated.compareTo(MAX_126) > 0) legacyOverflowTotals.put(type, updated);
+            else legacyOverflowTotals.remove(type);
+            projectTypeTotal(type, updated);
+            return;
+        }
+
+        long low = typeAmountLo.getLong(type);
+        long high = typeAmountHi.getLong(type);
+        long updatedLow = low + delta;
+        if (delta > 0 && updatedLow < 0) {
+            if (high == Long.MAX_VALUE) {
+                legacyOverflowTotals.put(type, amount(high, low).add(java.math.BigInteger.valueOf(delta)));
+                typeAmountLo.put(type, Long.MAX_VALUE);
+                return;
+            }
+            updatedLow &= Long.MAX_VALUE;
+            high++;
+        } else if (delta < 0 && updatedLow < 0) {
+            updatedLow &= Long.MAX_VALUE;
+            high--;
+        }
+        typeAmountLo.put(type, updatedLow);
+        typeAmountHi.put(type, high);
+    }
+
+
     // ══════════════════════════════════════════════════════════════════════
     //  Queries
     // ══════════════════════════════════════════════════════════════════════
 
+    @FunctionalInterface
+    interface CappedAmountConsumer {
+        void accept(AEKey key, long amount);
+    }
+
+    void forEachCappedAmount(CappedAmountConsumer consumer) {
+        for (int id = 0; id < nextId; id++) {
+            var key = idToKey[id];
+            if (key != null) consumer.accept(key, DualLong126.cap(hi[id], lo[id]));
+        }
+    }
+
     public void getAvailableStacks(KeyCounter out) {
         for (int id = 0; id < nextId; id++) {
-            if (idToKey[id] != null) {
-                out.set(idToKey[id], com.google.common.math.LongMath.saturatedAdd(out.get(idToKey[id]), DualLong126.cap(hi[id], lo[id])));
+            var key = idToKey[id];
+            if (key != null) {
+                out.set(key, com.google.common.math.LongMath.saturatedAdd(out.get(key), DualLong126.cap(hi[id], lo[id])));
             }
         }
     }
@@ -505,6 +534,7 @@ public final class IndexedStorage {
         java.util.Objects.requireNonNull(keyDeserializer, "keyDeserializer");
         wideAmounts.clear();
         exactTypeTotals.clear();
+        legacyOverflowTotals.clear();
         arbitraryPrecision = root.getBoolean("arbitraryPrecision");
         keyToId.clear();
         Arrays.fill(idToKey, null);
@@ -571,7 +601,6 @@ public final class IndexedStorage {
 
             int existingId = keyToId.getInt(key);
             if (existingId != -1) {
-                healed |= mergeDuplicate(key, loadedAmounts[id]);
                 mergedInto[id] = existingId;
                 addFree(id);
                 healed = true;
@@ -606,18 +635,20 @@ public final class IndexedStorage {
                     healed = true;
                     continue;
                 }
-                AEKey key = idToKey[mergedInto[sourceId]];
-                var replacement = getAmountExact(key)
-                        .subtract(loadedAmounts[sourceId])
-                        .add(exactAmount);
-                if (replacement.signum() < 0) {
-                    healed = true;
-                    continue;
-                }
-                healed |= setLoadedAmount(key, replacement);
+                loadedAmounts[sourceId] = exactAmount;
             } catch (RuntimeException malformed) {
                 healed = true;
             }
+        }
+        java.math.BigInteger[] mergedAmounts = new java.math.BigInteger[size];
+        for (int id = 0; id < size; id++) {
+            int target = mergedInto[id];
+            if (target < 0) continue;
+            mergedAmounts[target] = mergedAmounts[target] == null ? loadedAmounts[id]
+                    : mergedAmounts[target].add(loadedAmounts[id]);
+        }
+        for (int id = 0; id < size; id++) {
+            if (mergedAmounts[id] != null) healed |= setLoadedAmount(idToKey[id], mergedAmounts[id]);
         }
         rebuildLoadedTypeTotals();
         needsCompact = healed || freeCount > Math.max(totalTypes, 1) * COMPACT_THRESHOLD;
@@ -655,12 +686,10 @@ public final class IndexedStorage {
             if (key == null) continue;
             exactTypeTotals.merge(key.getType(), getAmountExact(key), java.math.BigInteger::add);
         }
-        exactTypeTotals.forEach(this::projectTypeTotal);
-    }
-
-    /** Sums a duplicate entry into the surviving entry without losing an exact recovery value. */
-    private boolean mergeDuplicate(AEKey key, java.math.BigInteger amount) {
-        return setLoadedAmount(key, getAmountExact(key).add(amount));
+        exactTypeTotals.forEach((type, total) -> {
+            projectTypeTotal(type, total);
+            if (!arbitraryPrecision && total.compareTo(MAX_126) > 0) legacyOverflowTotals.put(type, total);
+        });
     }
 
     // ══════════════════════════════════════════════════════════════════════

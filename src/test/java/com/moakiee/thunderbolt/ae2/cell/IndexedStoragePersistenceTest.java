@@ -81,10 +81,28 @@ class IndexedStoragePersistenceTest {
         assertEquals(Long.MAX_VALUE, healed.getLongArray("hi")[0]);
         assertEquals(Long.MAX_VALUE, storage.getAmount(A));
 
-        assertEquals(1L, storage.insert(A, 1L, Actionable.MODULATE));
+        assertEquals(0L, storage.insert(A, 1L, Actionable.SIMULATE));
+        assertEquals(0L, storage.insert(A, 1L, Actionable.MODULATE));
         var saturated = storage.persist(healed, (key, ignored) -> key.toTag(), null);
         assertEquals(Long.MAX_VALUE, saturated.getLongArray("lo")[0]);
         assertEquals(Long.MAX_VALUE, saturated.getLongArray("hi")[0]);
+    }
+
+    @Test
+    void duplicateKeysWithExactOverridesAreSummedBeforeLegacyProjection() {
+        var maximum = java.math.BigInteger.ONE.shiftLeft(126).subtract(java.math.BigInteger.ONE);
+        var root = encoded(List.of(A, A), new long[] {Long.MAX_VALUE, Long.MAX_VALUE},
+                new long[] {Long.MAX_VALUE, Long.MAX_VALUE});
+        root.putBoolean("arbitraryPrecision", true);
+        var wide = new CompoundTag();
+        wide.putByteArray("1", maximum.add(java.math.BigInteger.valueOf(50)).toByteArray());
+        root.put("bigAmounts", wide);
+
+        var storage = new IndexedStorage();
+        storage.load(root, IndexedStoragePersistenceTest::decode, null);
+
+        assertEquals(maximum.multiply(java.math.BigInteger.TWO).add(java.math.BigInteger.valueOf(50)),
+                storage.getAmountExact(A));
     }
 
     @Test
