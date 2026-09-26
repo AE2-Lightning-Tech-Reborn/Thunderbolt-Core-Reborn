@@ -70,6 +70,77 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
     private static final VariantKey E = new VariantKey("e", null);
     private static final VariantKey TARGET = new VariantKey("target", null);
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void directlyRequestedIdOnlyOutputCanBeCraftedWithItsCapturedComponents(boolean hasComponents) {
+        var output = hasComponents ? MAT_CRAFTABLE : new VariantKey("mat", null);
+        IPatternDetails producer = new FakeOverloadPattern(
+                output, new IPatternDetails.IInput[] {new StrictInput(BASE, 1)},
+                Set.of(), Set.of(0));
+        var service = new FakeCraftingService().pattern(output, producer).craftable(output);
+        var inventory = new ChildCraftingSimulationState(new StockInventory(Map.of(BASE, 3L)));
+
+        var attempt = FastCraftingPlanner.tryAttempt(service, inventory, null, output, 3, false);
+
+        assertTrue(attempt.handled());
+        assertNotNull(attempt.plan(), "the requested catalog output must retain its own ID_ONLY producer");
+        assertTrue(attempt.plan().missingItems().isEmpty());
+        assertEquals(3L, attempt.plan().patternTimes().get(producer));
+        assertEquals(3L, attempt.plan().usedItems().get(BASE));
+        assertEquals(output, attempt.plan().finalOutput().what(),
+                "request identity must retain the captured components");
+    }
+
+    @Test
+    void directlyRequestedIdOnlyOutputReportsMissingIngredientsInsteadOfItself() {
+        IPatternDetails producer = new FakeOverloadPattern(
+                MAT_CRAFTABLE, new IPatternDetails.IInput[] {new StrictInput(BASE, 1)},
+                Set.of(), Set.of(0));
+        var service = new FakeCraftingService().pattern(MAT_CRAFTABLE, producer).craftable(MAT_CRAFTABLE);
+        var inventory = new ChildCraftingSimulationState(new StockInventory(Map.of()));
+
+        var attempt = FastCraftingPlanner.tryAttempt(service, inventory, null, MAT_CRAFTABLE, 2, true);
+
+        assertTrue(attempt.handled());
+        assertNotNull(attempt.plan());
+        assertEquals(2L, attempt.plan().missingItems().get(BASE));
+        assertEquals(0L, attempt.plan().missingItems().get(MAT_CRAFTABLE));
+    }
+
+    @Test
+    void strictIntermediateCannotUseIdOnlyOutputEvenWhenCapturedComponentsMatch() {
+        IPatternDetails producer = new FakeOverloadPattern(
+                MAT_CRAFTABLE, new IPatternDetails.IInput[] {new StrictInput(BASE, 1)},
+                Set.of(), Set.of(0));
+        IPatternDetails consumer = new FakePattern(
+                TARGET, new IPatternDetails.IInput[] {new StrictInput(MAT_CRAFTABLE, 1)});
+        var service = new FakeCraftingService().pattern(TARGET, consumer)
+                .pattern(MAT_CRAFTABLE, producer).craftable(TARGET).craftable(MAT_CRAFTABLE);
+        var inventory = new ChildCraftingSimulationState(new StockInventory(Map.of(BASE, 2L)));
+
+        var attempt = FastCraftingPlanner.tryAttempt(service, inventory, null, TARGET, 1, false);
+
+        assertTrue(attempt.handled());
+        assertNull(attempt.plan(), "the root exception must not leak into strict ingredient demands");
+        assertEquals(1L, attempt.simulationFallback().missingItems().get(MAT_CRAFTABLE));
+        assertNull(attempt.simulationFallback().patternTimes().get(producer));
+    }
+
+    @Test
+    void directOrderDoesNotSelectAnUnadvertisedSameIdVariant() {
+        IPatternDetails producer = new FakeOverloadPattern(
+                MAT_CRAFTABLE, new IPatternDetails.IInput[] {new StrictInput(BASE, 1)},
+                Set.of(), Set.of(0));
+        var service = new FakeCraftingService().pattern(MAT_CRAFTABLE, producer).craftable(MAT_CRAFTABLE);
+        var inventory = new ChildCraftingSimulationState(new StockInventory(Map.of(BASE, 2L)));
+
+        var attempt = FastCraftingPlanner.tryAttempt(service, inventory, null, MAT_DECLARED, 1, false);
+
+        assertTrue(attempt.handled());
+        assertNull(attempt.plan(), "a direct order still resolves its exact catalog key");
+        assertEquals(1L, attempt.simulationFallback().missingItems().get(MAT_DECLARED));
+    }
+
     @Test
     void idOnlySlotDiscoversCraftableSameIdVariant() {
         IPatternDetails producesVariant = new FakePattern(MAT_CRAFTABLE, new IPatternDetails.IInput[] {
@@ -443,8 +514,7 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
         @Override public AEItemKey getDefinition() { return null; }
         @Override public IInput[] getInputs() { return inputs; }
         @Override public appeng.api.stacks.GenericStack[] getOutputs() {
-            return new appeng.api.stacks.GenericStack[] {
-                    new appeng.api.stacks.GenericStack(output, 1) };
+            return new appeng.api.stacks.GenericStack[]{new appeng.api.stacks.GenericStack(output, 1)};
         }
     }
 
@@ -463,7 +533,9 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
             implements IPatternDetails, FuzzyPatternInputs {
         @Override public AEItemKey getDefinition() { return null; }
         @Override public IInput[] getInputs() { return inputs; }
-        @Override public appeng.api.stacks.GenericStack[] getOutputs() { return outputs.toArray(appeng.api.stacks.GenericStack[]::new); }
+        @Override public appeng.api.stacks.GenericStack[] getOutputs() {
+            return outputs.toArray(appeng.api.stacks.GenericStack[]::new);
+        }
         @Override public boolean acceptsSameIdVariants(int slot) { return false; }
         @Override public boolean producesSameIdVariants(int slot) { return true; }
     }
@@ -486,8 +558,7 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
         @Override public AEItemKey getDefinition() { return null; }
         @Override public IInput[] getInputs() { return inputs; }
         @Override public appeng.api.stacks.GenericStack[] getOutputs() {
-            return new appeng.api.stacks.GenericStack[] {
-                    new appeng.api.stacks.GenericStack(output, 1) };
+            return new appeng.api.stacks.GenericStack[]{new appeng.api.stacks.GenericStack(output, 1)};
         }
         @Override public boolean acceptsSameIdVariants(int slot) { return idOnlySlots.contains(slot); }
         @Override public boolean producesSameIdVariants(int slot) {
@@ -659,7 +730,10 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
             super(new ResourceLocation("thunderbolt_test", "variant_key"),
                     VariantKey.class, Component.literal("variant key"));
         }
-        @Override public AEKey loadKeyFromTag(CompoundTag tag) { return null; }
+        @Override public AEKey loadKeyFromTag(CompoundTag tag) {
+            return new VariantKey(tag.getString("id"),
+                    tag.contains("variant") ? tag.getString("variant") : null);
+        }
         @Override public AEKey readFromPacket(FriendlyByteBuf input) { return null; }
     }
 }

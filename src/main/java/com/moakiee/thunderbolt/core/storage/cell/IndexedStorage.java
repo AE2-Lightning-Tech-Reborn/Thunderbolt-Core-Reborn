@@ -36,7 +36,12 @@ import com.moakiee.thunderbolt.core.storage.cell.DualLong126;
  */
 public final class IndexedStorage {
     private static final java.math.BigInteger MASK_63 = java.math.BigInteger.valueOf(Long.MAX_VALUE);
-    private static final java.math.BigInteger MAX_126 = java.math.BigInteger.ONE.shiftLeft(126).subtract(java.math.BigInteger.ONE);
+    private static final java.math.BigInteger MAX_126 =
+            java.math.BigInteger.ONE.shiftLeft(126).subtract(java.math.BigInteger.ONE);
+    private static final java.math.BigInteger MAX_EXACT =
+            java.math.BigInteger.ONE
+                    .shiftLeft(com.moakiee.thunderbolt.core.storage.big.BigAmounts.MAX_BITS)
+                    .subtract(java.math.BigInteger.ONE);
     private boolean arbitraryPrecision;
     // Only quantities beyond the legacy 126-bit encoding need an additional serialized value.
     private final java.util.Map<AEKey, java.math.BigInteger> wideAmounts = new java.util.HashMap<>();
@@ -49,16 +54,25 @@ public final class IndexedStorage {
     }
 
     public java.math.BigInteger getAmountExact(AEKey key) {
+        var wide = wideAmounts.get(key);
+        if (wide != null) return wide;
         int id = keyToId.getInt(key);
         if (id < 0) return java.math.BigInteger.ZERO;
-        return wideAmounts.getOrDefault(key, java.math.BigInteger.valueOf(hi[id]).shiftLeft(63)
-                .add(java.math.BigInteger.valueOf(lo[id])));
+        return java.math.BigInteger.valueOf(hi[id]).shiftLeft(63)
+                .add(java.math.BigInteger.valueOf(lo[id]));
     }
 
     public java.util.Map<AEKey, java.math.BigInteger> snapshotExact() {
         var result = new java.util.LinkedHashMap<AEKey, java.math.BigInteger>();
-        for (int id = 0; id < nextId; id++) if (idToKey[id] != null)
-            result.put(idToKey[id], getAmountExact(idToKey[id]));
+        for (int id = 0; id < nextId; id++) {
+            var key = idToKey[id];
+            if (key == null) continue;
+            var wide = wideAmounts.get(key);
+            result.put(key, wide != null
+                    ? wide
+                    : java.math.BigInteger.valueOf(hi[id]).shiftLeft(63)
+                            .add(java.math.BigInteger.valueOf(lo[id])));
+        }
         return java.util.Map.copyOf(result);
     }
 
@@ -66,9 +80,8 @@ public final class IndexedStorage {
         com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(amount);
         if (!arbitraryPrecision) throw new IllegalStateException("Exact insertion requires an opted-in cell");
         var current = getAmountExact(key);
-        var maximum = java.math.BigInteger.ONE.shiftLeft(com.moakiee.thunderbolt.core.storage.big.BigAmounts.MAX_BITS).subtract(java.math.BigInteger.ONE);
-        var accepted = amount.min(maximum.subtract(current).max(java.math.BigInteger.ZERO));
-        if (accepted.signum() > 0 && mode == Actionable.MODULATE) setAmountExact(key, current.add(accepted));
+        var accepted = amount.min(MAX_EXACT.subtract(current).max(java.math.BigInteger.ZERO));
+        if (accepted.signum() > 0 && mode == Actionable.MODULATE) setAmountExact(key, current.add(accepted), current);
         return accepted;
     }
 
@@ -77,12 +90,16 @@ public final class IndexedStorage {
         if (!arbitraryPrecision) throw new IllegalStateException("Exact extraction requires an opted-in cell");
         var current = getAmountExact(key);
         var taken = current.min(amount);
-        if (taken.signum() > 0 && mode == Actionable.MODULATE) setAmountExact(key, current.subtract(taken));
+        if (taken.signum() > 0 && mode == Actionable.MODULATE) setAmountExact(key, current.subtract(taken), current);
         return taken;
     }
 
     private void setAmountExact(AEKey key, java.math.BigInteger amount) {
-        var before = getAmountExact(key);
+        setAmountExact(key, amount, getAmountExact(key));
+    }
+
+    private void setAmountExact(AEKey key, java.math.BigInteger amount, java.math.BigInteger before) {
+        if (amount.equals(before)) return;
         int id = keyToId.getInt(key);
         if (id < 0) { id = allocateId(key); totalTypes++; typeCounts.addTo(key.getType(), 1); }
         if (amount.signum() == 0) {
@@ -96,10 +113,20 @@ public final class IndexedStorage {
             if (amount.compareTo(MAX_126) > 0) wideAmounts.put(key, amount); else wideAmounts.remove(key);
             enqueueDirty(id);
         }
-        var total = exactTypeTotals.getOrDefault(key.getType(), java.math.BigInteger.ZERO).add(amount).subtract(before);
-        exactTypeTotals.put(key.getType(), total);
-        projectTypeTotal(key.getType(), total);
-        needsPersist = true; modCount++;
+        AEKeyType type = key.getType();
+        var total = exactTypeTotals.getOrDefault(type, java.math.BigInteger.ZERO)
+                .add(amount)
+                .subtract(before);
+        if (total.signum() == 0) {
+            exactTypeTotals.remove(type);
+            typeAmountLo.removeLong(type);
+            typeAmountHi.removeLong(type);
+        } else {
+            exactTypeTotals.put(type, total);
+            projectTypeTotal(type, total);
+        }
+        needsPersist = true;
+        modCount++;
     }
 
     private void projectTypeTotal(AEKeyType type, java.math.BigInteger amount) {
@@ -116,7 +143,11 @@ public final class IndexedStorage {
     }
 
     private void persistWide(CompoundTag root) {
-        if (!arbitraryPrecision) return;
+        if (!arbitraryPrecision) {
+            root.remove("arbitraryPrecision");
+            root.remove("bigAmounts");
+            return;
+        }
         root.putBoolean("arbitraryPrecision", true);
         var wide = new CompoundTag();
         wideAmounts.forEach((key, n) -> wide.putByteArray(Integer.toString(keyToId.getInt(key)), n.toByteArray()));
@@ -453,15 +484,20 @@ public final class IndexedStorage {
         CompoundTag toTag(AEKey key, HolderLookup.Provider registries);
     }
 
+    @FunctionalInterface
+    public interface KeyDeserializer {
+        @Nullable AEKey fromTag(CompoundTag tag, HolderLookup.Provider registries);
+    }
+
     // ══════════════════════════════════════════════════════════════════════
     //  Load
     // ══════════════════════════════════════════════════════════════════════
 
     public void load(CompoundTag root, HolderLookup.Provider registries) {
-        load(root, (tag, ignored) -> AEKey.fromTagGeneric(tag), registries);
+        load(root, (tag, reg) -> AEKey.fromTagGeneric(tag), registries);
     }
 
-    void load(
+    public void load(
             CompoundTag root,
             KeyDeserializer keyDeserializer,
             HolderLookup.Provider registries) {
@@ -494,15 +530,26 @@ public final class IndexedStorage {
         int size = keys.size();
         if (size > 0) ensureCapacity(size - 1);
         nextId = size;
-        boolean repaired = pLo.length < size || pHi.length < size;
-        long[] sum = new long[2];
+        boolean healed = pLo.length < size || pHi.length < size;
+        int[] mergedInto = new int[size];
+        Arrays.fill(mergedInto, -1);
+        java.math.BigInteger[] loadedAmounts = new java.math.BigInteger[size];
 
         for (int id = 0; id < size; id++) {
             CompoundTag entry = keys.getCompound(id);
-            if (!entry.contains("key", Tag.TAG_COMPOUND)) {
+            long entryLo = id < pLo.length ? pLo[id] : 0L;
+            long entryHi = id < pHi.length ? pHi[id] : 0L;
+            if (!entry.contains("key")) {
                 addFree(id);
+                if (entryLo != 0L || entryHi != 0L) healed = true;
                 continue;
             }
+            if (!entry.contains("key", Tag.TAG_COMPOUND)) {
+                addFree(id);
+                healed = true;
+                continue;
+            }
+
             AEKey key;
             try {
                 key = keyDeserializer.fromTag(entry.getCompound("key").copy(), registries);
@@ -511,38 +558,23 @@ public final class IndexedStorage {
             }
             if (key == null) {
                 addFree(id);
-                repaired = true;
+                healed = true;
                 continue;
             }
 
-            long entryLo = id < pLo.length ? pLo[id] : 0L;
-            long entryHi = id < pHi.length ? pHi[id] : 0L;
             if (entryLo < 0L || entryHi < 0L || (entryLo == 0L && entryHi == 0L)) {
                 addFree(id);
-                repaired = true;
+                healed = true;
                 continue;
             }
+            loadedAmounts[id] = amount(entryHi, entryLo);
 
             int existingId = keyToId.getInt(key);
             if (existingId != -1) {
-                // Corrupted save contains the same key twice. Saturating-merge this entry's
-                // amount into the existing slot and recycle the duplicate id, so keyToId,
-                // idToKey, totalTypes and typeCounts stay consistent. The normal single-entry
-                // path below is untouched.
-                addSaturated126(hi[existingId], lo[existingId], entryHi, entryLo, sum);
-                hi[existingId] = sum[0];
-                lo[existingId] = sum[1];
-                AEKeyType duplicateType = key.getType();
-                addSaturated126(
-                        typeAmountHi.getLong(duplicateType),
-                        typeAmountLo.getLong(duplicateType),
-                        entryHi,
-                        entryLo,
-                        sum);
-                typeAmountHi.put(duplicateType, sum[0]);
-                typeAmountLo.put(duplicateType, sum[1]);
+                healed |= mergeDuplicate(key, loadedAmounts[id]);
+                mergedInto[id] = existingId;
                 addFree(id);
-                repaired = true;
+                healed = true;
                 continue;
             }
 
@@ -552,47 +584,83 @@ public final class IndexedStorage {
             hi[id] = entryHi;
             serializedKey[id] = entry.getCompound("key").copy();
             totalTypes++;
-
-            AEKeyType kt = key.getType();
-            typeCounts.addTo(kt, 1);
-            addSaturated126(
-                    typeAmountHi.getLong(kt), typeAmountLo.getLong(kt), entryHi, entryLo, sum);
-            typeAmountHi.put(kt, sum[0]);
-            typeAmountLo.put(kt, sum[1]);
+            typeCounts.addTo(key.getType(), 1);
+            mergedInto[id] = id;
         }
 
         var wide = root.getCompound("bigAmounts");
         for (var index : wide.getAllKeys()) {
-            int id = Integer.parseInt(index);
-            if (id < 0 || id >= nextId || idToKey[id] == null) throw new IllegalArgumentException("Orphan exact cell quantity");
-            var n = com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(new java.math.BigInteger(wide.getByteArray(index)));
-            if (n.compareTo(MAX_126) <= 0) throw new IllegalArgumentException("Invalid wide cell quantity");
-            wideAmounts.put(idToKey[id], n);
+            try {
+                int sourceId = Integer.parseInt(index);
+                if (!arbitraryPrecision
+                        || sourceId < 0
+                        || sourceId >= nextId
+                        || mergedInto[sourceId] < 0
+                        || loadedAmounts[sourceId] == null) {
+                    healed = true;
+                    continue;
+                }
+                var exactAmount = com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(
+                        new java.math.BigInteger(wide.getByteArray(index)));
+                if (exactAmount.compareTo(MAX_126) <= 0) {
+                    healed = true;
+                    continue;
+                }
+                AEKey key = idToKey[mergedInto[sourceId]];
+                var replacement = getAmountExact(key)
+                        .subtract(loadedAmounts[sourceId])
+                        .add(exactAmount);
+                if (replacement.signum() < 0) {
+                    healed = true;
+                    continue;
+                }
+                healed |= setLoadedAmount(key, replacement);
+            } catch (RuntimeException malformed) {
+                healed = true;
+            }
         }
-        if (arbitraryPrecision) rebuildExactTotals();
-        needsCompact = repaired || freeCount > Math.max(totalTypes, 1) * COMPACT_THRESHOLD;
-        needsPersist = repaired;
+        rebuildLoadedTypeTotals();
+        needsCompact = healed || freeCount > Math.max(totalTypes, 1) * COMPACT_THRESHOLD;
+        needsPersist = healed;
     }
 
-    private static void addSaturated126(
-            long leftHi, long leftLo, long rightHi, long rightLo, long[] result) {
-        long sumLo = leftLo + rightLo;
-        boolean carry = sumLo < 0L;
-        if (carry) sumLo &= Long.MAX_VALUE;
-
-        long remainingHi = Long.MAX_VALUE - leftHi;
-        if (rightHi > remainingHi || (carry && rightHi == remainingHi)) {
-            result[0] = Long.MAX_VALUE;
-            result[1] = Long.MAX_VALUE;
-            return;
-        }
-        result[0] = leftHi + rightHi + (carry ? 1L : 0L);
-        result[1] = sumLo;
+    private static java.math.BigInteger amount(long high, long low) {
+        return java.math.BigInteger.valueOf(high).shiftLeft(63)
+                .add(java.math.BigInteger.valueOf(low));
     }
 
-    @FunctionalInterface
-    interface KeyDeserializer {
-        @Nullable AEKey fromTag(CompoundTag tag, HolderLookup.Provider registries);
+    private boolean setLoadedAmount(AEKey key, java.math.BigInteger amount) {
+        if (amount.signum() < 0) {
+            throw new IllegalArgumentException("Negative loaded quantity");
+        }
+        var stored = amount.min(arbitraryPrecision ? MAX_EXACT : MAX_126);
+        int id = keyToId.getInt(key);
+        var projection = stored.min(MAX_126);
+        lo[id] = projection.and(MASK_63).longValueExact();
+        hi[id] = projection.shiftRight(63).longValueExact();
+        if (arbitraryPrecision && stored.compareTo(MAX_126) > 0) {
+            wideAmounts.put(key, stored);
+        } else {
+            wideAmounts.remove(key);
+        }
+        return stored.compareTo(amount) != 0;
+    }
+
+    private void rebuildLoadedTypeTotals() {
+        exactTypeTotals.clear();
+        typeAmountLo.clear();
+        typeAmountHi.clear();
+        for (int id = 0; id < nextId; id++) {
+            AEKey key = idToKey[id];
+            if (key == null) continue;
+            exactTypeTotals.merge(key.getType(), getAmountExact(key), java.math.BigInteger::add);
+        }
+        exactTypeTotals.forEach(this::projectTypeTotal);
+    }
+
+    /** Sums a duplicate entry into the surviving entry without losing an exact recovery value. */
+    private boolean mergeDuplicate(AEKey key, java.math.BigInteger amount) {
+        return setLoadedAmount(key, getAmountExact(key).add(amount));
     }
 
     // ══════════════════════════════════════════════════════════════════════

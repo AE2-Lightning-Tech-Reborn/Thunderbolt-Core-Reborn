@@ -17,13 +17,21 @@ import java.util.*;
 class BigIndexedStorageTest {
     @BeforeAll
     static void bootstrap() {
-        net.minecraftforge.fml.loading.LoadingModList.of(List.of(), List.of(), new net.minecraftforge.fml.loading.EarlyLoadingException("test", null, List.of()));
+        net.minecraftforge.fml.loading.LoadingModList.of(
+                List.of(),
+                List.of(),
+                new net.minecraftforge.fml.loading.EarlyLoadingException(
+                        "test bootstrap", null, List.of()));
         net.minecraft.SharedConstants.tryDetectVersion();
         net.minecraft.server.Bootstrap.bootStrap();
-        var registry = com.moakiee.thunderbolt.test.MinecraftTestBootstrap.<appeng.api.stacks.AEKeyType>registry("big_keys");
-        registry.register(appeng.api.stacks.AEKeyType.items().getId(), appeng.api.stacks.AEKeyType.items());
-        registry.register(appeng.api.stacks.AEKeyType.fluids().getId(), appeng.api.stacks.AEKeyType.fluids());
-        appeng.api.stacks.AEKeyTypesInternal.setRegistry(() -> registry);
+    }
+
+    private static appeng.api.stacks.AEKey decodeItemKey(
+            net.minecraft.nbt.CompoundTag tag,
+            net.minecraft.core.HolderLookup.Provider ignored) {
+        var item = BuiltInRegistries.ITEM.get(
+                new net.minecraft.resources.ResourceLocation(tag.getString("id")));
+        return AEItemKey.of(item);
     }
 
     @Test
@@ -81,14 +89,14 @@ class BigIndexedStorageTest {
         assertEquals(n.subtract(BigInteger.valueOf(3)), store.getAmountExact(key));
         var tag = store.persist(null, registries);
         var loaded = new IndexedStorage();
-        loaded.load(tag, registries);
+        loaded.load(tag, BigIndexedStorageTest::decodeItemKey, registries);
         assertEquals(store.snapshotExact(), loaded.snapshotExact());
         loaded.extractExact(key, n.subtract(BigInteger.valueOf(4)), Actionable.MODULATE);
         assertEquals(BigInteger.ONE, loaded.getAmountExact(key));
         var narrowed = loaded.persist(tag, registries);
         assertTrue(narrowed.getCompound("bigAmounts").isEmpty());
         var again = new IndexedStorage();
-        again.load(narrowed, registries);
+        again.load(narrowed, BigIndexedStorageTest::decodeItemKey, registries);
         assertEquals(1, again.extract(key, Long.MAX_VALUE, Actionable.MODULATE));
         assertEquals(0, again.getTotalTypes());
         assertEquals(BigInteger.ZERO, again.getAmountExact(key));
@@ -102,7 +110,8 @@ class BigIndexedStorageTest {
         old.insert(key, Long.MAX_VALUE, Actionable.MODULATE);
         var registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
         var upgraded = new IndexedStorage();
-        upgraded.load(old.persist(null, registries), registries);
+        upgraded.load(
+                old.persist(null, registries), BigIndexedStorageTest::decodeItemKey, registries);
         upgraded.enableArbitraryPrecision();
         assertEquals(
                 BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO),
@@ -161,8 +170,8 @@ class BigIndexedStorageTest {
         }
         var compact = store.persist(old, registries);
         var loaded = new IndexedStorage();
-        loaded.load(old, registries);
-        loaded.load(compact, registries);
+        loaded.load(old, BigIndexedStorageTest::decodeItemKey, registries);
+        loaded.load(compact, BigIndexedStorageTest::decodeItemKey, registries);
         assertEquals(expected, loaded.snapshotExact());
         assertEquals(40, loaded.getTotalTypes());
         assertEquals(expected, store.snapshotExact());
