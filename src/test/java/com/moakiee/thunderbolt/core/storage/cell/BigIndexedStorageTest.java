@@ -17,13 +17,131 @@ import java.util.*;
 class BigIndexedStorageTest {
     @BeforeAll
     static void bootstrap() {
-        net.minecraftforge.fml.loading.LoadingModList.of(List.of(), List.of(), new net.minecraftforge.fml.loading.EarlyLoadingException("test", null, List.of()));
+        net.minecraftforge.fml.loading.LoadingModList.of(
+                List.of(),
+                List.of(),
+                new net.minecraftforge.fml.loading.EarlyLoadingException(
+                        "test bootstrap", null, List.of()));
         net.minecraft.SharedConstants.tryDetectVersion();
         net.minecraft.server.Bootstrap.bootStrap();
-        var registry = com.moakiee.thunderbolt.test.MinecraftTestBootstrap.<appeng.api.stacks.AEKeyType>registry("big_keys");
-        registry.register(appeng.api.stacks.AEKeyType.items().getId(), appeng.api.stacks.AEKeyType.items());
-        registry.register(appeng.api.stacks.AEKeyType.fluids().getId(), appeng.api.stacks.AEKeyType.fluids());
-        appeng.api.stacks.AEKeyTypesInternal.setRegistry(() -> registry);
+    }
+
+    private static appeng.api.stacks.AEKey decodeItemKey(
+            net.minecraft.nbt.CompoundTag tag,
+            net.minecraft.core.HolderLookup.Provider ignored) {
+        var item = BuiltInRegistries.ITEM.get(
+                new net.minecraft.resources.ResourceLocation(tag.getString("id")));
+        return AEItemKey.of(item);
+    }
+
+    private static net.minecraft.nbt.CompoundTag legacyRoot(long[] low, long[] high) {
+        var root = new net.minecraft.nbt.CompoundTag();
+        var entries = new net.minecraft.nbt.ListTag();
+        for (int index = 0; index < low.length; index++) {
+            var entry = new net.minecraft.nbt.CompoundTag();
+            var keyTag = new net.minecraft.nbt.CompoundTag();
+            keyTag.putInt("index", index);
+            entry.put("key", keyTag);
+            entries.add(entry);
+        }
+        root.put("keys", entries);
+        root.putLongArray("lo", low);
+        root.putLongArray("hi", high);
+        return root;
+    }
+
+    @Test
+    void legacyInsertAt126BitLimitReportsOnlyStoredUnits() {
+        var key = AEItemKey.of(Items.IRON_INGOT);
+        var store = new IndexedStorage();
+        var maximum = BigInteger.ONE.shiftLeft(126).subtract(BigInteger.ONE);
+        store.load(legacyRoot(new long[]{Long.MAX_VALUE - 3}, new long[]{Long.MAX_VALUE}),
+                (tag, ignored) -> key, RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY));
+
+        assertEquals(3, store.insert(key, 10, Actionable.SIMULATE));
+        assertEquals(3, store.insert(key, 10, Actionable.MODULATE));
+        assertEquals(maximum, store.getAmountExact(key));
+        long modCount = store.getModCount();
+        assertEquals(0, store.insert(key, 1, Actionable.SIMULATE));
+        assertEquals(0, store.insert(key, 1, Actionable.MODULATE));
+        assertEquals(modCount, store.getModCount());
+        assertEquals(7, store.extract(key, 7, Actionable.MODULATE));
+        assertEquals(7, store.insert(key, 10, Actionable.MODULATE));
+        assertEquals(maximum, store.getAmountExact(key));
+    }
+
+    @Test
+    void legacySaturatedTypeTotalRecoversAfterExtractionAndRandomUpdates() {
+        var iron = AEItemKey.of(Items.IRON_INGOT);
+        var gold = AEItemKey.of(Items.GOLD_INGOT);
+        var maximum = BigInteger.ONE.shiftLeft(126).subtract(BigInteger.ONE);
+        var store = new IndexedStorage();
+        store.load(legacyRoot(new long[]{Long.MAX_VALUE - 10, 20},
+                        new long[]{Long.MAX_VALUE, 0}),
+                (tag, ignored) -> tag.getInt("index") == 0 ? iron : gold,
+                RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY));
+        BigInteger ironAmount = maximum.subtract(BigInteger.TEN);
+        BigInteger goldAmount = BigInteger.valueOf(20);
+        var random = new Random(20260926);
+        for (int iteration = 0; iteration < 5_000; iteration++) {
+            var key = random.nextBoolean() ? iron : gold;
+            var current = key.equals(iron) ? ironAmount : goldAmount;
+            long requested = 1 + random.nextInt(128);
+            BigInteger delta;
+            if (random.nextInt(4) == 0) {
+                delta = current.min(BigInteger.valueOf(requested));
+                assertEquals(delta.longValueExact(), store.extract(key, requested, Actionable.MODULATE));
+                delta = delta.negate();
+            } else {
+                delta = maximum.subtract(current).min(BigInteger.valueOf(requested));
+                assertEquals(delta.longValueExact(), store.insert(key, requested, Actionable.SIMULATE));
+                assertEquals(delta.longValueExact(), store.insert(key, requested, Actionable.MODULATE));
+            }
+            if (key.equals(iron)) ironAmount = ironAmount.add(delta);
+            else goldAmount = goldAmount.add(delta);
+            assertEquals(ironAmount, store.getAmountExact(iron));
+            assertEquals(goldAmount, store.getAmountExact(gold));
+            var projected = ironAmount.add(goldAmount).min(maximum);
+            assertEquals(projected, BigInteger.valueOf(store.getTypeAmountHi().getLong(iron.getType()))
+                    .shiftLeft(63).add(BigInteger.valueOf(store.getTypeAmountLo().getLong(iron.getType()))));
+        }
+    }
+
+
+    @Test
+    void exactSnapshotRemainsImmutableAndIndependentOfLaterUpdates() {
+        var store = new IndexedStorage();
+        store.enableArbitraryPrecision();
+        var key = AEItemKey.of(Items.IRON_INGOT);
+        var wideAmount = BigInteger.TEN.pow(100);
+        assertEquals(Map.of(), store.snapshotExact());
+        store.insertExact(key, wideAmount, Actionable.MODULATE);
+        var snapshot = store.snapshotExact();
+        assertEquals(Map.of(key, wideAmount), snapshot);
+        assertThrows(UnsupportedOperationException.class, () -> snapshot.put(key, BigInteger.ONE));
+        store.extractExact(key, wideAmount, Actionable.MODULATE);
+        assertEquals(Map.of(key, wideAmount), snapshot);
+        assertEquals(Map.of(), store.snapshotExact());
+    }
+
+    @Test
+    void availableStacksSkipsHolesAndSaturatesExistingCounter() {
+        var store = new IndexedStorage();
+        var iron = AEItemKey.of(Items.IRON_INGOT);
+        var gold = AEItemKey.of(Items.GOLD_INGOT);
+        var removed = AEItemKey.of(Items.PAPER);
+        store.insert(iron, 3, Actionable.MODULATE);
+        store.insert(removed, 2, Actionable.MODULATE);
+        store.insert(gold, 7, Actionable.MODULATE);
+        store.extract(removed, 2, Actionable.MODULATE);
+
+        var available = new appeng.api.stacks.KeyCounter();
+        available.set(iron, Long.MAX_VALUE - 1);
+        store.getAvailableStacks(available);
+
+        assertEquals(Long.MAX_VALUE, available.get(iron));
+        assertEquals(7, available.get(gold));
+        assertEquals(0, available.get(removed));
     }
 
     @Test
@@ -59,11 +177,23 @@ class BigIndexedStorageTest {
         assertEquals(Long.MAX_VALUE, inv.insert(key, Long.MAX_VALUE, Actionable.MODULATE, source));
         var amount = BigInteger.valueOf(Long.MAX_VALUE);
         assertEquals(amount.multiply(BigInteger.TWO), inv.storage().getAmountExact(key));
-        assertEquals(amount, inv.snapshotBig(source).get(key));
+        var gold = AEItemKey.of(Items.GOLD_INGOT);
+        var removed = AEItemKey.of(Items.DIAMOND);
+        assertEquals(7, inv.insert(gold, 7, Actionable.MODULATE, source));
+        assertEquals(2, inv.insert(removed, 2, Actionable.MODULATE, source));
+        assertEquals(2, inv.extract(removed, 2, Actionable.MODULATE, source));
+        long beforeSnapshot = inv.storage().getModCount();
+        var snapshot = inv.snapshotBig(source);
+        assertEquals(Map.of(key, amount, gold, BigInteger.valueOf(7)), snapshot);
+        assertThrows(UnsupportedOperationException.class, () -> snapshot.clear());
+        assertEquals(beforeSnapshot, inv.storage().getModCount());
         assertEquals(
                 amount,
                 inv.extractBig(key, amount.multiply(BigInteger.TWO), Actionable.SIMULATE, source));
         assertEquals(amount.multiply(BigInteger.TWO), inv.storage().getAmountExact(key));
+        assertEquals(7, inv.extract(gold, 7, Actionable.MODULATE, source));
+        assertEquals(BigInteger.valueOf(7), snapshot.get(gold));
+        assertFalse(inv.snapshotBig(source).containsKey(gold));
     }
 
     @Test
@@ -81,14 +211,14 @@ class BigIndexedStorageTest {
         assertEquals(n.subtract(BigInteger.valueOf(3)), store.getAmountExact(key));
         var tag = store.persist(null, registries);
         var loaded = new IndexedStorage();
-        loaded.load(tag, registries);
+        loaded.load(tag, BigIndexedStorageTest::decodeItemKey, registries);
         assertEquals(store.snapshotExact(), loaded.snapshotExact());
         loaded.extractExact(key, n.subtract(BigInteger.valueOf(4)), Actionable.MODULATE);
         assertEquals(BigInteger.ONE, loaded.getAmountExact(key));
         var narrowed = loaded.persist(tag, registries);
         assertTrue(narrowed.getCompound("bigAmounts").isEmpty());
         var again = new IndexedStorage();
-        again.load(narrowed, registries);
+        again.load(narrowed, BigIndexedStorageTest::decodeItemKey, registries);
         assertEquals(1, again.extract(key, Long.MAX_VALUE, Actionable.MODULATE));
         assertEquals(0, again.getTotalTypes());
         assertEquals(BigInteger.ZERO, again.getAmountExact(key));
@@ -102,7 +232,8 @@ class BigIndexedStorageTest {
         old.insert(key, Long.MAX_VALUE, Actionable.MODULATE);
         var registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
         var upgraded = new IndexedStorage();
-        upgraded.load(old.persist(null, registries), registries);
+        upgraded.load(
+                old.persist(null, registries), BigIndexedStorageTest::decodeItemKey, registries);
         upgraded.enableArbitraryPrecision();
         assertEquals(
                 BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO),
@@ -161,8 +292,8 @@ class BigIndexedStorageTest {
         }
         var compact = store.persist(old, registries);
         var loaded = new IndexedStorage();
-        loaded.load(old, registries);
-        loaded.load(compact, registries);
+        loaded.load(old, BigIndexedStorageTest::decodeItemKey, registries);
+        loaded.load(compact, BigIndexedStorageTest::decodeItemKey, registries);
         assertEquals(expected, loaded.snapshotExact());
         assertEquals(40, loaded.getTotalTypes());
         assertEquals(expected, store.snapshotExact());

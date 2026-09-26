@@ -134,6 +134,17 @@ class FeasibleConsumptionOptimizerTest {
     }
 
     @Test
+    void optionalProbeLimitFallsWithReachableGraphWork() {
+        assertEquals(FeasibleConsumptionOptimizer.MAX_PROBES,
+                CraftPlannerV2.consumptionOptimizationProbeLimit(4_096));
+        assertEquals(8, CraftPlannerV2.consumptionOptimizationProbeLimit(4_097));
+        assertEquals(8, CraftPlannerV2.consumptionOptimizationProbeLimit(8_192));
+        assertEquals(2, CraftPlannerV2.consumptionOptimizationProbeLimit(8_193));
+        assertEquals(2, CraftPlannerV2.consumptionOptimizationProbeLimit(16_384));
+        assertEquals(0, CraftPlannerV2.consumptionOptimizationProbeLimit(16_385));
+    }
+
+    @Test
     void nearOuterDeadlineSkipsOptimizationAndReturnsInitial() {
         var graph = batchGraph(1);
         var context = new com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext() {

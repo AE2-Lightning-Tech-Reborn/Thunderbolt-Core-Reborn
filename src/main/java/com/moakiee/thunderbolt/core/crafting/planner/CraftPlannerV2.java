@@ -77,6 +77,16 @@ public final class CraftPlannerV2<K> {
     private static final int MIN_SEARCH_WORK_BUDGET = 4_096;
     private static final int FALLBACK_WORK_PER_REACHABLE_UNIT = 64;
     private static final int MAX_FALLBACK_WORK_BUDGET = 262_144;
+    /** Optional feasible-plan probes are useful on small graphs but too expensive on wide DAGs. */
+    private static final int MAX_CONSUMPTION_OPTIMIZATION_WORK = Math.max(
+            4_096, Integer.getInteger("thunderbolt.maxConsumptionOptimizationWork", 16_384));
+
+    static int consumptionOptimizationProbeLimit(int reachableWork) {
+        if (reachableWork > MAX_CONSUMPTION_OPTIMIZATION_WORK) return 0;
+        if (reachableWork > 8_192) return 2;
+        if (reachableWork > 4_096) return 8;
+        return FeasibleConsumptionOptimizer.MAX_PROBES;
+    }
     /**
      * Whole-graph preprocessing guard. Optional exact/local stages have their own smaller budgets,
      * but even linear normalization becomes disruptive on a deliberately enormous reachable graph.
@@ -161,6 +171,7 @@ public final class CraftPlannerV2<K> {
         private int preferredMaterialDagOrder;
         private int materialDagOrderAttempts;
         private long materialDagOrderNanos;
+        private long conservativeSearchNanos;
         private long missingRefinementNanos;
         private int reachableWorkEstimate;
 
@@ -334,6 +345,8 @@ public final class CraftPlannerV2<K> {
     private final Map<ReusableStockUsageKey<K>, Long> usedReusableStock = new HashMap<>();
     private final Map<K, Long> missing = new HashMap<>();     // unmet at raw leaves
     private final Map<K, Long> grossDemand = new HashMap<>(); // pre-extraction request totals (bytes)
+    /** Reused only by the linear pass; never exposed in a returned plan. */
+    private final Map<K, Long> bootstrapReserveScratch = new HashMap<>();
     private final Map<CraftPattern<K>, Long> firings = new IdentityHashMap<>();
     /** Exact component quotas retained when only an unresolved sibling reaches recursive fallback. */
     private final Map<CraftPattern<K>, Long> fixedFiringQuota = new IdentityHashMap<>();
@@ -491,9 +504,32 @@ public final class CraftPlannerV2<K> {
             PlanningSession<K> session) {
         long started = System.nanoTime();
         PlanningResult<K> initial = planCore(graph, target, amount, visitCap, searchWorkBudget, reachableWork, session);
+        if (session.refineMissing && !initial.plan().feasible()
+                && session.searchWorkBudget.remaining > 0
+                && reachableWork <= SmallConservativeSearch.MAX_WORK) {
+            long allowance = Math.min(SmallConservativeSearch.MAX_NANOS - session.conservativeSearchNanos,
+                    PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 8L);
+            if (allowance > 0) {
+                long recoveryStarted = System.nanoTime();
+                int workBefore = session.searchWorkBudget.remaining;
+                CraftPlan<K> recovered = null;
+                try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
+                    recovered = SmallConservativeSearch.tryPlan(graph, target, amount,
+                            SmallConservativeSearch.MAX_STATES, () -> session.searchWorkBudget.tryConsume(1));
+                } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+                    // Optional recovery never invalidates the already-verified missing plan.
+                } finally {
+                    session.conservativeSearchNanos += Math.max(0L, System.nanoTime() - recoveryStarted);
+                }
+                initial = new PlanningResult<>(recovered == null ? initial.plan() : recovered,
+                        initial.diagnostics().withAdditionalSearchWork(
+                                workBefore - session.searchWorkBudget.remaining, System.nanoTime() - started));
+            }
+        }
+        int probeLimit = consumptionOptimizationProbeLimit(reachableWork);
         if (!session.optimizeFeasible || !initial.plan().feasible() || amount <= 0
                 || amount >= Sat.SAT || initial.plan().usedStock().isEmpty()
-                || session.consumptionOptimizationProbes >= FeasibleConsumptionOptimizer.MAX_PROBES)
+                || session.consumptionOptimizationProbes >= probeLimit)
             return initial;
         // Fixed ordinary chains need no optional scan or second planning pass.
         if (initial.diagnostics().contendedOutputs() == 0) return initial;
@@ -506,7 +542,7 @@ public final class CraftPlannerV2<K> {
         FeasibleConsumptionOptimizer.Result<K> optimized;
         try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
             optimized = FeasibleConsumptionOptimizer.optimize(graph, target, amount, initial.plan(),
-                    FeasibleConsumptionOptimizer.MAX_PROBES - session.consumptionOptimizationProbes,
+                    probeLimit - session.consumptionOptimizationProbes,
                     candidateGraph -> {
                         if (!session.searchWorkBudget.tryConsume(reachableWork)) return null;
                         var probe = new PlanningSession<K>();
@@ -4711,11 +4747,15 @@ public final class CraftPlannerV2<K> {
                 need.merge(in.key(), amt, Sat::add);
             }
         }
-        Map<K, Long> bootstrapReserves = new HashMap<>(
-                linearContainerBootstrapReserves.getOrDefault(r, Map.of()));
-        bootstrapReserves.replaceAll((key, reserve) -> Math.max(
-                0L, reserve - Math.min(
-                        reserve, Sat.mul(byproductAmount(r, key), previousFirings))));
+        Map<K, Long> bootstrapReserves = linearContainerBootstrapReserves.getOrDefault(r, Map.of());
+        if (!bootstrapReserves.isEmpty()) {
+            bootstrapReserveScratch.clear();
+            bootstrapReserveScratch.putAll(bootstrapReserves);
+            bootstrapReserves = bootstrapReserveScratch;
+            bootstrapReserves.replaceAll((key, reserve) -> Math.max(
+                    0L, reserve - Math.min(
+                            reserve, Sat.mul(byproductAmount(r, key), previousFirings))));
+        }
         for (CraftOutput<K> out : r.byproducts()) {
             if (mayReuseByproduct(r, out.key())) {
                 long produced = Sat.mul(out.amount(), t);

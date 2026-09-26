@@ -1,0 +1,12 @@
+allprojects {
+    afterEvaluate {
+        tasks.register('writeChannelBenchmarkClasspath') {
+            dependsOn tasks.named('classes')
+            doLast {
+                def output = layout.buildDirectory.file('channel-benchmark/dependencies.txt').get().asFile
+                output.parentFile.mkdirs()
+                output.text = (sourceSets.main.runtimeClasspath + sourceSets.main.compileClasspath).asPath
+            }
+        }
+    }
+}

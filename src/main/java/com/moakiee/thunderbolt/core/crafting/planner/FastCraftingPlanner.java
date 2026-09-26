@@ -919,15 +919,22 @@ public final class FastCraftingPlanner {
     }
 
     enum RequirementMode {
+        // A direct order selects a concrete catalog entry, including the entry advertised by a
+        // late-bound producer. It is not a downstream ingredient's promise about components.
+        REQUESTED_OUTPUT,
         STRICT,
         ID_ONLY,
         MIXED;
 
         boolean acceptsIdOnlyOutput() {
-            return this == ID_ONLY;
+            return this == REQUESTED_OUTPUT || this == ID_ONLY;
         }
 
         static RequirementMode merge(RequirementMode left, RequirementMode right) {
+            // Any actual ingredient demand takes precedence over the root's catalog selection.
+            // In particular, a later STRICT consumer must still exclude late-bound producers.
+            if (left == REQUESTED_OUTPUT) return right;
+            if (right == REQUESTED_OUTPUT) return left;
             return left == right ? left : MIXED;
         }
     }
@@ -949,7 +956,7 @@ public final class FastCraftingPlanner {
 
         RequirementModes(AEKey root, Map<AEKey, RequirementMode> forcedModes) {
             modes = new HashMap<>(forcedModes);
-            require(root, RequirementMode.STRICT);
+            require(root, RequirementMode.REQUESTED_OUTPUT);
         }
 
         RequirementMode modeFor(AEKey key) {

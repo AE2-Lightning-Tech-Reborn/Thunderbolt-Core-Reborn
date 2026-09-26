@@ -8,11 +8,11 @@ import java.util.Random;
 
 import org.junit.jupiter.api.Test;
 
-class BorrowedCapacityCalculatorDinicTest {
+class ChannelFlowNetworkKernelTest {
 
     @Test
     void solvesKnownNetworkWithSeveralAugmentingPaths() {
-        var graph = new BorrowedCapacityCalculator.Dinic(6);
+        var graph = new ChannelFlowNetwork(6);
         graph.addEdge(0, 1, 16);
         graph.addEdge(0, 2, 13);
         graph.addEdge(1, 2, 10);
@@ -33,7 +33,7 @@ class BorrowedCapacityCalculatorDinicTest {
         for (int iteration = 0; iteration < 1_000; iteration++) {
             int size = 2 + random.nextInt(10);
             int[][] capacities = new int[size][size];
-            var graph = new BorrowedCapacityCalculator.Dinic(size);
+            var graph = new ChannelFlowNetwork(size);
 
             for (int from = 0; from < size; from++) {
                 for (int to = 0; to < size; to++) {
@@ -54,7 +54,7 @@ class BorrowedCapacityCalculatorDinicTest {
     @Test
     void deepChannelChainDoesNotUseTheJvmCallStack() {
         int size = 100_000;
-        var graph = new BorrowedCapacityCalculator.Dinic(size);
+        var graph = new ChannelFlowNetwork(size);
         for (int node = 0; node < size - 1; node++) {
             graph.addEdge(node, node + 1, 1);
         }
