@@ -152,7 +152,8 @@ test {
             'AEFluidKeyComponentPatchTest', 'AEItemKeyComponentPatchTest',
             'AppliedEModuleBatchSupportTest', 'BigIndexedStorageTest',
             'EjectCapabilityRegistryContractTest', 'ExtendedAePlusSuperMatrixBatchBridgeTest',
-            'FastCraftingPlannerDurabilityEligibilityTest', 'PlannedInputDispatchTest'
+            'FastCraftingPlannerDurabilityEligibilityTest', 'PlannedInputDispatchTest',
+            'UselessBatchAdapterTest', 'UselessScaledBatchAdapterTest', 'NeoEcoFastPathCompatTest'
     ]
     if (providers.gradleProperty('thunderboltFmlTests').map { it.toBoolean() }.getOrElse(false)) {
         fmlClasses.each { include "**/${it}*.class" }

@@ -157,6 +157,7 @@ public final class BatchExecutor {
                 null);
     }
 
+    /** Uses the global {@link com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapters} registry. */
     public static BatchRunResult runBatchOnly(int remainingOps,
                                               BatchCpuAccounting.Mode accountingMode,
                                               CraftingService cs,
@@ -175,6 +176,7 @@ public final class BatchExecutor {
                 dispatchSchedule, null);
     }
 
+    /** A null adapter selects global lookup; a non-null adapter replaces it for this call. */
     public static BatchRunResult runBatchOnly(int remainingOps,
                                               BatchCpuAccounting.Mode accountingMode,
                                               CraftingService cs,

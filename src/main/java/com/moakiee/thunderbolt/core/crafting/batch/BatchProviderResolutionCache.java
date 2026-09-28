@@ -4,6 +4,7 @@ import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapter;
+import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapters;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderResolver;
 import com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
@@ -17,6 +18,7 @@ final class BatchProviderResolutionCache {
             Reference2ObjectLinkedOpenHashMap<ICraftingProvider, Entry>> resolved =
             new Reference2ObjectLinkedOpenHashMap<>();
     private long tick = Long.MIN_VALUE;
+    private java.util.List<BatchProviderAdapters.Entry> globalSnapshot;
 
     void beginTick(long currentTick) {
         if (tick == currentTick) return;
@@ -28,7 +30,18 @@ final class BatchProviderResolutionCache {
     IBatchCraftingProvider resolve(ICraftingProvider provider, IPatternDetails pattern,
                                   BatchJobView job, @Nullable BatchProviderAdapter adapter) {
         if (provider instanceof IBatchCraftingProvider nativeBatch) return nativeBatch;
-        if (adapter == null) return null;
+        if (adapter == null) {
+            var snapshot = BatchProviderAdapters.entries();
+            if (globalSnapshot != snapshot) {
+                resolved.clear();
+                globalSnapshot = snapshot;
+            }
+            for (var entry : snapshot) {
+                var endpoint = resolve(provider, pattern, job, entry.adapter());
+                if (endpoint != null) return endpoint;
+            }
+            return null;
+        }
         if (!(adapter instanceof BatchProviderResolver resolver)) return adapter.adapt(provider, pattern, job);
         if (!resolver.cacheResolutionForTick()) return resolver.resolve(provider);
         var providers = resolved.getAndMoveToLast(resolver);
@@ -52,7 +65,7 @@ final class BatchProviderResolutionCache {
         return entry.endpoint;
     }
 
-    void clear() { resolved.clear(); }
+    void clear() { resolved.clear(); globalSnapshot = null; }
 
     private static final class Entry {
         private final IBatchCraftingProvider endpoint;
