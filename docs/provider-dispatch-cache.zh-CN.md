@@ -25,7 +25,7 @@ Mixin 在该处维护修订号，经 `CraftingServiceAccessor` 暴露给调度�
 缓存按解析器和提供器的对象身份区分。普通 `BatchProviderAdapter` 仍每次接收实际 job/pattern；
 `cacheResolutionForTick=false` 仍绕过缓存。
 
-首次在一个 tick 使用缓存的适配器端点前，会调用 `beginDispatchTick(tick)`。LT 的 NeoECO/
+首次在一个 tick 使用缓存的适配器端点前，会调用 `beginDispatchTick(tick)`。TB 的 NeoECO/
 Useless 端点利用它清除临时的普通投递降级，不能把本 tick 拒绝 FastPath 永久缓存。
 调用是惰性的，不在 tick 边界遍历所有已缓存提供器。
 
@@ -42,3 +42,13 @@ Useless 端点利用它清除临时的普通投递降级，不能把本 tick 拒
 
 上述计数只衡量重复枚举与解析，不表示每次完整派发都是常数时间。批量执行仍可能遍历候选
 读取机器的实时容量；没有按服务器 TPS 或任意整合包负载承诺性能倍数。
+
+## 全局适配入口
+
+`BatchExecutor.runBatchOnly` 不传适配器，或最后一个参数传 `null`，均使用
+`BatchProviderAdapters`。非空参数只使用本次显式适配器。原生 `IBatchCraftingProvider`
+始终优先；原有重载及最终方法描述符保留，LT 的执行输入分配 Mixin 仍拦截同一方法。
+
+全局表只保存定义，每个解析器继续遵守自己的缓存策略，不把复合注册表整体当作稳定能力。
+注册表变化会使 CPU 的解析快照失效，包括之前的未命中。详见
+[全局批量适配 API](global-batch-provider-adapters.zh-CN.md)。
