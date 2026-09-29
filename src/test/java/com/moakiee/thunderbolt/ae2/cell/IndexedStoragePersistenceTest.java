@@ -42,6 +42,47 @@ class IndexedStoragePersistenceTest {
     }
 
     @Test
+    void uniqueLegacyKeysLoadWithoutHealingOrChangingTheSavedImage() {
+        var keys = new java.util.ArrayList<TestKey>();
+        var amounts = new long[128];
+        var high = new long[128];
+        for (int index = 0; index < amounts.length; index++) {
+            keys.add(new TestKey("unique_" + index));
+            amounts[index] = index + 1L;
+            high[index] = index % 3 == 0 ? 1L : 0L;
+        }
+        var storage = new IndexedStorage();
+        var saved = encoded(keys, amounts, high);
+        storage.load(saved, IndexedStoragePersistenceTest::decode, null);
+
+        assertEquals(keys.size(), storage.getTotalTypes());
+        assertFalse(storage.needsPersist());
+        for (int index = 0; index < keys.size(); index++) {
+            assertEquals(java.math.BigInteger.valueOf(high[index]).shiftLeft(63)
+                    .add(java.math.BigInteger.valueOf(amounts[index])), storage.getAmountExact(keys.get(index)));
+        }
+        var persisted = storage.persist(saved, (key, ignored) -> key.toTag(), null);
+        var restored = new IndexedStorage();
+        restored.load(persisted, IndexedStoragePersistenceTest::decode, null);
+        assertEquals(storage.snapshotExact(), restored.snapshotExact());
+    }
+
+    @Test
+    void invalidWideIndexDoesNotOverrideAnUnrelatedUniqueKey() {
+        var root = encoded(List.of(A, B), new long[] {7L, 9L}, new long[] {0L, 0L});
+        root.putBoolean("arbitraryPrecision", true);
+        var wide = new CompoundTag();
+        wide.putByteArray("2", java.math.BigInteger.ONE.shiftLeft(127).toByteArray());
+        root.put("bigAmounts", wide);
+        var storage = new IndexedStorage();
+        storage.load(root, IndexedStoragePersistenceTest::decode, null);
+
+        assertEquals(7, storage.getAmount(A));
+        assertEquals(9, storage.getAmount(B));
+        assertTrue(storage.needsPersist());
+    }
+
+    @Test
     void malformedAndDuplicateEntriesAreHealedByTheNextPersist() {
         var broken = new TestKey("broken");
         var storage = new IndexedStorage();
@@ -81,10 +122,28 @@ class IndexedStoragePersistenceTest {
         assertEquals(Long.MAX_VALUE, healed.getLongArray("hi")[0]);
         assertEquals(Long.MAX_VALUE, storage.getAmount(A));
 
-        assertEquals(1L, storage.insert(A, 1L, Actionable.MODULATE));
+        assertEquals(0L, storage.insert(A, 1L, Actionable.SIMULATE));
+        assertEquals(0L, storage.insert(A, 1L, Actionable.MODULATE));
         var saturated = storage.persist(healed, (key, ignored) -> key.toTag(), null);
         assertEquals(Long.MAX_VALUE, saturated.getLongArray("lo")[0]);
         assertEquals(Long.MAX_VALUE, saturated.getLongArray("hi")[0]);
+    }
+
+    @Test
+    void duplicateKeysWithExactOverridesAreSummedBeforeLegacyProjection() {
+        var maximum = java.math.BigInteger.ONE.shiftLeft(126).subtract(java.math.BigInteger.ONE);
+        var root = encoded(List.of(A, A), new long[] {Long.MAX_VALUE, Long.MAX_VALUE},
+                new long[] {Long.MAX_VALUE, Long.MAX_VALUE});
+        root.putBoolean("arbitraryPrecision", true);
+        var wide = new CompoundTag();
+        wide.putByteArray("1", maximum.add(java.math.BigInteger.valueOf(50)).toByteArray());
+        root.put("bigAmounts", wide);
+
+        var storage = new IndexedStorage();
+        storage.load(root, IndexedStoragePersistenceTest::decode, null);
+
+        assertEquals(maximum.multiply(java.math.BigInteger.TWO).add(java.math.BigInteger.valueOf(50)),
+                storage.getAmountExact(A));
     }
 
     @Test
@@ -102,6 +161,46 @@ class IndexedStoragePersistenceTest {
         var healed = storage.persist(null, (key, ignored) -> key.toTag(), null);
         assertTrue(healed.getLongArray("hi").length >= 2);
         assertEquals(0L, healed.getLongArray("hi")[1]);
+    }
+
+    @Test
+    void duplicateKeysWithTruncatedAmountArraysUseZeroForMissingParts() {
+        var missingHigh = new IndexedStorage();
+        missingHigh.load(encoded(List.of(A, A), new long[] {7L, 5L}, new long[] {0L}),
+                IndexedStoragePersistenceTest::decode, null);
+        assertEquals(12L, missingHigh.getAmount(A));
+        assertTrue(missingHigh.needsPersist());
+
+        var missingLow = new IndexedStorage();
+        missingLow.load(encoded(List.of(A, A), new long[] {7L}, new long[] {0L, 1L}),
+                IndexedStoragePersistenceTest::decode, null);
+        assertEquals(java.math.BigInteger.ONE.shiftLeft(63).add(java.math.BigInteger.valueOf(7)),
+                missingLow.getAmountExact(A));
+        assertTrue(missingLow.needsPersist());
+    }
+
+    @Test
+    void interleavedDuplicatesKeepExactOverridesAndRoundTripAfterCompaction() {
+        var maximum = java.math.BigInteger.ONE.shiftLeft(126).subtract(java.math.BigInteger.ONE);
+        var root = encoded(List.of(A, B, A, new TestKey("broken"), B, A),
+                new long[] {Long.MAX_VALUE, 7, Long.MAX_VALUE, 1, 5, 3},
+                new long[] {Long.MAX_VALUE, 0, Long.MAX_VALUE, 0, 0, 0});
+        root.putBoolean("arbitraryPrecision", true);
+        var wide = new CompoundTag();
+        wide.putByteArray("0", maximum.add(java.math.BigInteger.valueOf(50)).toByteArray());
+        wide.putByteArray("2", maximum.add(java.math.BigInteger.valueOf(70)).toByteArray());
+        root.put("bigAmounts", wide);
+        var expected = maximum.multiply(java.math.BigInteger.TWO).add(java.math.BigInteger.valueOf(123));
+        var storage = new IndexedStorage();
+        storage.load(root, IndexedStoragePersistenceTest::decode, null);
+        assertEquals(expected, storage.getAmountExact(A));
+        assertEquals(12, storage.getAmount(B));
+        assertEquals(2, storage.getTotalTypes());
+        var healed = storage.persist(root, (key, ignored) -> key.toTag(), null);
+        var restored = new IndexedStorage();
+        restored.load(healed, IndexedStoragePersistenceTest::decode, null);
+        assertEquals(storage.snapshotExact(), restored.snapshotExact());
+        assertFalse(restored.needsPersist());
     }
 
     private static CompoundTag encoded(List<TestKey> keys, long[] lo, long[] hi) {
