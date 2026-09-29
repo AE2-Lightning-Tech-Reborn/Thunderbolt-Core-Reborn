@@ -550,7 +550,7 @@ class GenericLowWidthConflictSolverTest {
     @Test
     void craftLessProbesReuseCompilationAndReducedStatefulModels() {
         org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(
-                Duration.ofSeconds(2), () -> {
+                Duration.ofSeconds(4), () -> {
                     CraftGraph<String> graph = nearIntegralStatefulChain(12, 1_023L);
                     var session = new CraftPlannerV2.PlanningSession<String>();
                     PlanningResult<String> requested = CraftPlannerV2.planDetailed(

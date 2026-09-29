@@ -14,7 +14,6 @@ import appeng.api.stacks.KeyCounter;
 import appeng.crafting.inv.ListCraftingInventory;
 import com.moakiee.thunderbolt.core.crafting.pattern.PlannedInputPattern;
 import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -276,18 +275,31 @@ class PlannedInputDispatchTest {
     @Test
     void persistedMixedAllocationStillProtectsItsSiblingAfterReload() throws Exception {
         if (net.minecraftforge.fml.loading.LoadingModList.get() == null) {
-            net.minecraftforge.fml.loading.LoadingModList.of(List.of(), List.of(), new net.minecraftforge.fml.loading.EarlyLoadingException("test", null, List.of()));
+            net.minecraftforge.fml.loading.LoadingModList.of(
+                    List.of(),
+                    List.of(),
+                    new net.minecraftforge.fml.loading.EarlyLoadingException(
+                            "test bootstrap", null, List.of()));
         }
         net.minecraft.SharedConstants.tryDetectVersion();
         net.minecraft.server.Bootstrap.bootStrap();
-        var registry = com.moakiee.thunderbolt.test.MinecraftTestBootstrap.<appeng.api.stacks.AEKeyType>registry("planned_keys");
-        registry.register(TestKey.TYPE.getId(), TestKey.TYPE);
-        var field = appeng.api.stacks.AEKeyTypesInternal.class.getDeclaredField("registry");
-        field.setAccessible(true);
-        var previous = field.get(null);
-        appeng.api.stacks.AEKeyTypesInternal.setRegistry(() -> registry);
+        var registryField = appeng.api.stacks.AEKeyTypesInternal.class.getDeclaredField("registry");
+        registryField.setAccessible(true);
+        var previous = registryField.get(null);
+        var forgeRegistry = newForgeKeyRegistry();
+        forgeRegistry.register(new ResourceLocation("ae2lt_test", "key"), TestKey.TYPE);
+        appeng.api.stacks.AEKeyTypesInternal.setRegistry(() -> forgeRegistry);
         try {
-            net.minecraft.core.HolderLookup.Provider lookups = null;
+            net.minecraft.core.HolderLookup.Provider lookups =
+                    new net.minecraft.core.HolderLookup.Provider() {
+                        @Override
+                        public <T>
+                                java.util.Optional<net.minecraft.core.HolderLookup.RegistryLookup<T>> lookup(
+                                        net.minecraft.resources.ResourceKey<? extends net.minecraft.core.Registry<? extends T>>
+                                                key) {
+                            return java.util.Optional.empty();
+                        }
+                    };
             var source = pattern(input(3, B, A));
             var planned = new PlannedInputPattern(source, List.of(Map.of(A, 1L, B, 2L)));
             var tag = new CompoundTag();
@@ -302,10 +314,28 @@ class PlannedInputDispatchTest {
             assertEquals(2, held(inventory, B));
             var invalid = tag.copy();
             invalid.putString(PlannedInputPattern.NBT_INPUTS, "invalid");
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> PlannedInputPattern.readFromTag(source, invalid, lookups));
         } finally {
-            field.set(null, previous);
+            registryField.set(null, previous);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static net.minecraftforge.registries.ForgeRegistry newForgeKeyRegistry() {
+        try {
+            var constructor = net.minecraftforge.registries.ForgeRegistry.class.getDeclaredConstructor(
+                    net.minecraftforge.registries.RegistryManager.class,
+                    ResourceLocation.class,
+                    net.minecraftforge.registries.RegistryBuilder.class);
+            constructor.setAccessible(true);
+            return (net.minecraftforge.registries.ForgeRegistry) constructor.newInstance(
+                    net.minecraftforge.registries.RegistryManager.ACTIVE,
+                    new ResourceLocation("ae2lt_test", "key_types"),
+                    new net.minecraftforge.registries.RegistryBuilder<>());
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
         }
     }
 
@@ -387,10 +417,6 @@ class PlannedInputDispatchTest {
         }
 
 
-        public boolean hasComponents() {
-            return !primaryId.equals(id);
-        }
-
         @Override
         public boolean equals(Object obj) {
             return obj instanceof TestKey other
@@ -412,12 +438,6 @@ class PlannedInputDispatchTest {
 
 
         @Override public AEKey loadKeyFromTag(CompoundTag tag) { return new TestKey(tag.getString("primary"), tag.getString("id")); }
-        public MapCodec<? extends AEKey> codec() {
-            return com.mojang.serialization.codecs.RecordCodecBuilder.<TestKey>mapCodec(instance -> instance.group(
-                    com.mojang.serialization.Codec.STRING.fieldOf("primary").forGetter((TestKey key) -> key.primaryId),
-                    com.mojang.serialization.Codec.STRING.fieldOf("id").forGetter((TestKey key) -> key.id)
-            ).apply(instance, TestKey::new));
-        }
 
         @Override
         public AEKey readFromPacket(FriendlyByteBuf input) {

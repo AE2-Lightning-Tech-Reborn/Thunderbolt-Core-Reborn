@@ -193,6 +193,16 @@ final class UnorderedByproductSafety {
 
     /** Optional exact proof for tiny plans; exceeding either fixed bound retains the DAG certificate. */
     static <K> boolean allOrdersFinishSmall(CraftPlan<K> plan, K target, long amount) {
+        return allOrdersFinishSmall(plan, target, amount, false);
+    }
+
+    /** Retain the ordinary executor's stronger whole-pattern-batch contract during cycle recovery. */
+    static <K> boolean allBatchOrdersFinishSmall(CraftPlan<K> plan, K target, long amount) {
+        return allOrdersFinishSmall(plan, target, amount, true);
+    }
+
+    private static <K> boolean allOrdersFinishSmall(CraftPlan<K> plan, K target, long amount,
+            boolean wholeBatches) {
         var patterns = plan.firings().entrySet().stream().filter(e -> e.getValue() > 0).toList();
         if (patterns.size() > 16) return false;
         long total = 0;
@@ -231,7 +241,7 @@ final class UnorderedByproductSafety {
                 }
             }
             return everyOrder(remaining, inventory, inputs, outputs, indices.get(target), amount,
-                    new HashSet<>(), new int[] {4096});
+                    new HashSet<>(), new int[] {4096}, wholeBatches);
         } catch (ArithmeticException ignored) {
             return false;
         }
@@ -239,7 +249,7 @@ final class UnorderedByproductSafety {
 
     private static boolean everyOrder(int[] remaining, long[] inventory, long[][] inputs,
                                       long[][] outputs, int target, long amount,
-                                      Set<List<Integer>> proved, int[] work) {
+                                      Set<List<Integer>> proved, int[] work, boolean wholeBatches) {
         PlanningCancellation.check();
         List<Integer> state = Arrays.stream(remaining).boxed().toList();
         if (proved.contains(state)) return true;
@@ -248,15 +258,19 @@ final class UnorderedByproductSafety {
         for (int r = 0; r < remaining.length; r++) {
             if (remaining[r] == 0) continue;
             pending = true;
+            int times = wholeBatches ? remaining[r] : 1;
             boolean ready = true;
-            for (int k = 0; k < inventory.length; k++) if (inventory[k] < inputs[r][k]) { ready = false; break; }
+            for (int k = 0; k < inventory.length; k++)
+                if (inventory[k] < Math.multiplyExact(inputs[r][k], times)) { ready = false; break; }
             if (!ready) continue;
             enabled = true;
             long[] next = inventory.clone();
-            for (int k = 0; k < next.length; k++) next[k] = Math.addExact(next[k] - inputs[r][k], outputs[r][k]);
-            remaining[r]--;
-            boolean safe = everyOrder(remaining, next, inputs, outputs, target, amount, proved, work);
-            remaining[r]++;
+            for (int k = 0; k < next.length; k++) next[k] = Math.addExact(
+                    Math.subtractExact(next[k], Math.multiplyExact(inputs[r][k], times)),
+                    Math.multiplyExact(outputs[r][k], times));
+            remaining[r] -= times;
+            boolean safe = everyOrder(remaining, next, inputs, outputs, target, amount, proved, work, wholeBatches);
+            remaining[r] += times;
             if (!safe) return false;
         }
         if (pending ? !enabled : inventory[target] < amount) return false;

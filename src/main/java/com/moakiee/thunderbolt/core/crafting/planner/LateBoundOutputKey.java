@@ -6,7 +6,6 @@ import java.util.Objects;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;

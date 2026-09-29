@@ -2,8 +2,11 @@ package com.moakiee.thunderbolt.ae2.mixin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
@@ -12,6 +15,41 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 class CraftingServiceStorageBinaryShapeTest {
+    @Test
+    void craftConfirmPacketWriteHookMatchesActualCallOwner() throws IOException {
+        String resource = "/appeng/core/sync/packets/CraftConfirmPlanPacket.class";
+        try (var input = CraftingServiceStorageBinaryShapeTest.class.getResourceAsStream(resource)) {
+            assertNotNull(input, "missing AE2 packet " + resource);
+            var calls = new int[1];
+            new ClassReader(input).accept(new ClassVisitor(Opcodes.ASM9) {
+                @Override
+                public MethodVisitor visitMethod(
+                        int access, String name, String descriptor, String signature, String[] exceptions) {
+                    if (!name.equals("<init>")
+                            || !descriptor.equals("(Lappeng/menu/me/crafting/CraftingPlanSummary;)V")) {
+                        return null;
+                    }
+                    return new MethodVisitor(Opcodes.ASM9) {
+                        @Override
+                        public void visitMethodInsn(
+                                int opcode, String owner, String invokedName,
+                                String invokedDescriptor, boolean isInterface) {
+                            if (opcode == Opcodes.INVOKEVIRTUAL
+                                    && owner.equals("appeng/core/sync/packets/CraftConfirmPlanPacket")
+                                    && invokedName.equals("configureWrite")
+                                    && invokedDescriptor.equals("(Lnet/minecraft/network/FriendlyByteBuf;)V")) {
+                                calls[0]++;
+                            }
+                        }
+                    };
+                }
+            }, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+            assertEquals(1, calls[0], "AE2 packet write call site drifted");
+        }
+        String mixin = Files.readString(Path.of("src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/ExactCraftConfirmPacketMixin.java"));
+        assertTrue(mixin.contains("Lappeng/core/sync/packets/CraftConfirmPlanPacket;configureWrite"));
+    }
+
     @Test
     void storageInsertHasTheStableCallerSideBridgeTarget() throws IOException {
         String resource = "/appeng/me/service/helpers/CraftingServiceStorage$1.class";
