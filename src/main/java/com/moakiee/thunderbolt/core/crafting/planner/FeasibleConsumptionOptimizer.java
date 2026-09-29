@@ -4,17 +4,30 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-/** Optional anytime improvement of an already certified plan; probes never replace its witness. */
+/**
+ * Optional anytime improvement of an already certified plan; probes never replace its witness.
+ * Fewer executions come first. Stock is only a tie-break inside the same probes and never grows:
+ * every probe is limited to the incumbent's draws.
+ */
 final class FeasibleConsumptionOptimizer {
     static final int MAX_PROBES = 32;
     static final long MAX_NANOS = 2_800_000_000L;
     static final long EXPORT_RESERVE_NANOS = 50_000_000L;
+    /**
+     * Stop once probes have spent this long without cutting executions by at least 1%; 0 disables.
+     * Measured in time, not probes: a probe is a whole planning run, milliseconds on a small graph
+     * and over a second on a large pack, and the player waits for every one of them.
+     */
+    static final long STALL_NANOS = Math.max(0L, Long.getLong("thunderbolt.feasibleOptimizationStallMs", 500L))
+            * 1_000_000L;
+    static final int MIN_GAIN_PERCENT = 1;
 
     record Result<K>(CraftPlan<K> plan, int probes, int improvements) {}
 
@@ -40,6 +53,7 @@ final class FeasibleConsumptionOptimizer {
         private CraftPlan<K> best;
         private int probes;
         private int improvements;
+        private long lastGain;
         private boolean exhausted;
 
         Search(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial, int limit,
@@ -82,47 +96,37 @@ final class FeasibleConsumptionOptimizer {
             }
             if (!choices) return; // Fixed ordinary recipe chains have no allocation to improve.
 
+            // A single cheap whole-DAG proposal. It is only a heuristic: stock, batch rounding and
+            // shared inputs are checked by the oracle.
+            lastGain = System.nanoTime();
             List<K> order = dagOrder(patterns);
-            Map<K, BigInteger> weights = order.isEmpty() ? Map.of() : RawResourcePotential.weights(order, patterns);
-            if (!weights.isEmpty()) {
-                // Per-unit cost misses the waste of firing a large batch for a tiny request.
-                // Use incumbent demand only to propose a policy; replay recomputes every demand.
-                probePolicy(materialPolicy(order, patterns, weights, best), order);
-            }
-            // A single cheap whole-DAG proposal also improves equal-material plans' firing counts.
-            // It is only a heuristic: stock, batch rounding and shared inputs are checked by the oracle.
-            if (!weights.isEmpty()) {
-                probePolicy(executionPolicy(order, patterns), order);
-            }
+            if (!order.isEmpty()) probePolicy(executionPolicy(order, patterns), order);
 
-            var keys = new ArrayList<K>();
-            for (K key : patterns.keySet()) if (best.usedStock().getOrDefault(key, 0L) > 0) keys.add(key);
-            keys.sort((a, b) -> Long.compare(best.usedStock().getOrDefault(b, 0L),
-                    best.usedStock().getOrDefault(a, 0L)));
-            for (K key : keys) {
+            // Then withdraw the busiest remaining route choice, one at a time, and let the planner
+            // reroute that output. Stateful patterns keep their firings, so they are never withdrawn.
+            var tried = new HashSet<CraftPattern<K>>();
+            while (!exhausted && probes < limit
+                    && (STALL_NANOS == 0 || System.nanoTime() - lastGain < STALL_NANOS)) {
                 PlanningCancellation.check();
-                if (exhausted || probes >= limit) break;
-                long upper = best.usedStock().getOrDefault(key, 0L);
-                if (upper == 0 || upper >= Sat.SAT) continue;
-                long lower = lowerBound(weights, target, amount, best.usedStock(), key);
-                if (lower >= upper) continue;
-                boolean improved = probeLimit(key, lower);
-                if (exhausted) break;
-                if (improved) continue;
-                // A rejected heuristic probe is not an infeasibility proof. Bracketing only guides
-                // optional quality search; it can never invalidate the incumbent.
-                long rejected = lower;
-                if (lower < upper - 1 && !probeLimit(key, upper - 1)) continue;
-                upper = best.usedStock().getOrDefault(key, 0L);
-                // A route switch may jump straight to the optimum. Test its actual extraction
-                // before bisecting a trillion-wide gap left by a fractional resource lower bound.
-                if (upper - rejected > 1 && !probeLimit(key, upper - 1)) continue;
-                upper = best.usedStock().getOrDefault(key, 0L);
-                while (!exhausted && probes < limit && upper - rejected > 1) {
-                    long middle = rejected + (upper - rejected) / 2;
-                    if (probeLimit(key, middle)) upper = best.usedStock().getOrDefault(key, 0L);
-                    else rejected = middle;
+                CraftPattern<K> busiest = null;
+                long most = 0;
+                for (var routes : patterns.values()) {
+                    if (routes.size() < 2) continue;
+                    for (var pattern : routes) {
+                        long firings = best.firings().getOrDefault(pattern, 0L);
+                        if (firings > most && !tried.contains(pattern) && !stateful(pattern)) {
+                            busiest = pattern;
+                            most = firings;
+                        }
+                    }
                 }
+                if (busiest == null) break;
+                tried.add(busiest);
+                var selected = new HashMap<>(patterns);
+                var routes = new ArrayList<>(patterns.get(busiest.output()));
+                routes.remove(busiest);
+                selected.put(busiest.output(), routes);
+                probe(graph.withPatterns(selected).withStockLimits(best.usedStock()));
             }
         }
 
@@ -139,13 +143,6 @@ final class FeasibleConsumptionOptimizer {
             if (proposal != null && proposal.feasible()) probe(candidate);
         }
 
-        private boolean probeLimit(K key, long amount) {
-            var limits = new HashMap<>(best.usedStock());
-            if (amount == 0) limits.remove(key);
-            else limits.put(key, amount);
-            return probe(graph.withStockLimits(limits));
-        }
-
         private boolean probe(CraftGraph<K> candidateGraph) {
             PlanningCancellation.check();
             if (exhausted || probes >= limit) return false;
@@ -158,18 +155,29 @@ final class FeasibleConsumptionOptimizer {
             for (var entry : candidate.usedStock().entrySet())
                 if (entry.getValue() > candidateGraph.stock(entry.getKey())) return false;
             if (!improves(best, candidate)) return false;
+            BigInteger before = executions(best);
+            BigInteger gain = before.subtract(executions(candidate));
+            // Stock-only tie-breaks and sub-percent gains do not restart the stall clock.
+            if (gain.signum() > 0 && gain.multiply(BigInteger.valueOf(100))
+                    .compareTo(before.multiply(BigInteger.valueOf(MIN_GAIN_PERCENT))) >= 0) lastGain = System.nanoTime();
             best = candidate;
             improvements++;
             return true;
         }
     }
 
-    /** No material substitution, greater seed occupancy or increased net resource loss is accepted. */
+    /**
+     * Fewer executions first; equal executions then prefer less stock and net resource loss. No
+     * material substitution or greater seed occupancy is accepted either way.
+     */
     static <K> boolean improves(CraftPlan<K> best, CraftPlan<K> candidate) {
         if (!candidate.supported() || !candidate.feasible() || !candidate.missing().isEmpty()
                 || !noMore(candidate.usedStock(), best.usedStock())
                 || !noMore(candidate.usedReusableStock(), best.usedReusableStock())
                 || !statefulFirings(best).equals(statefulFirings(candidate))) return false;
+        // Saving a few items is not worth hundreds of extra machine operations.
+        int executions = executions(candidate).compareTo(executions(best));
+        if (executions != 0) return executions < 0;
         var oldLoss = netLoss(best);
         var newLoss = netLoss(candidate);
         for (var entry : newLoss.entrySet())
@@ -178,7 +186,7 @@ final class FeasibleConsumptionOptimizer {
                 || MissingRefinement.strictlyDominates(candidate.usedReusableStock(), best.usedReusableStock());
         for (var entry : oldLoss.entrySet())
             reduced |= newLoss.getOrDefault(entry.getKey(), BigInteger.ZERO).compareTo(entry.getValue()) < 0;
-        return reduced || executions(candidate).compareTo(executions(best)) < 0;
+        return reduced;
     }
 
     private static <K> boolean noMore(Map<K, Long> candidate, Map<K, Long> best) {
@@ -190,10 +198,15 @@ final class FeasibleConsumptionOptimizer {
     private static <K> Map<CraftPattern<K>, Long> statefulFirings(CraftPlan<K> plan) {
         var result = new HashMap<CraftPattern<K>, Long>();
         plan.firings().forEach((pattern, count) -> {
-            if (pattern.inputs().stream().anyMatch(i -> i.returned() || i.remainder() != null
-                    || i.reusableStockSource() != null)) result.put(pattern, count);
+            if (stateful(pattern)) result.put(pattern, count);
         });
         return result;
+    }
+
+    /** Catalysts, seeds, returned containers and durability carriers. */
+    private static boolean stateful(CraftPattern<?> pattern) {
+        return pattern.inputs().stream().anyMatch(i -> i.returned() || i.remainder() != null
+                || i.reusableStockSource() != null);
     }
 
     private static <K> Map<K, BigInteger> netLoss(CraftPlan<K> plan) {
@@ -215,19 +228,6 @@ final class FeasibleConsumptionOptimizer {
         BigInteger total = BigInteger.ZERO;
         for (long count : plan.firings().values()) total = total.add(BigInteger.valueOf(count));
         return total;
-    }
-
-    private static <K> long lowerBound(Map<K, BigInteger> weights, K target, long amount,
-            Map<K, Long> stock, K key) {
-        BigInteger weight = weights.getOrDefault(key, BigInteger.ZERO);
-        if (weight.signum() <= 0) return 0;
-        BigInteger need = weights.getOrDefault(target, BigInteger.ZERO).multiply(BigInteger.valueOf(amount));
-        for (var entry : stock.entrySet()) if (!entry.getKey().equals(key))
-            need = need.subtract(weights.getOrDefault(entry.getKey(), BigInteger.ZERO)
-                    .multiply(BigInteger.valueOf(entry.getValue())));
-        if (need.signum() <= 0) return 0;
-        return need.subtract(BigInteger.ONE).divide(weight).add(BigInteger.ONE)
-                .min(BigInteger.valueOf(Long.MAX_VALUE)).longValueExact();
     }
 
     private static <K> List<K> dagOrder(Map<K, List<CraftPattern<K>>> patterns) {
@@ -272,30 +272,6 @@ final class FeasibleConsumptionOptimizer {
             }
             if (best != null) selected.put(key, List.of(best));
             cost.put(key, best == null ? 0 : minimum);
-        }
-        return selected;
-    }
-
-    private static <K> Map<K, List<CraftPattern<K>>> materialPolicy(List<K> order,
-            Map<K, List<CraftPattern<K>>> patterns, Map<K, BigInteger> weights, CraftPlan<K> incumbent) {
-        var selected = new HashMap<K, List<CraftPattern<K>>>();
-        for (K key : order) {
-            PlanningCancellation.check();
-            long demand = Math.max(1L, incumbent.grossDemand().getOrDefault(key, 1L)
-                    - incumbent.usedStock().getOrDefault(key, 0L));
-            CraftPattern<K> best = null;
-            BigInteger minimum = null;
-            for (var pattern : patterns.get(key)) {
-                BigInteger cost = BigInteger.ZERO;
-                for (var input : pattern.inputs())
-                    cost = cost.add(weights.get(input.key()).multiply(input.exactAmount()));
-                cost = cost.multiply(BigInteger.valueOf(Sat.ceilDiv(demand, pattern.outputAmount())));
-                if (minimum == null || cost.compareTo(minimum) < 0) {
-                    best = pattern;
-                    minimum = cost;
-                }
-            }
-            if (best != null) selected.put(key, List.of(best));
         }
         return selected;
     }

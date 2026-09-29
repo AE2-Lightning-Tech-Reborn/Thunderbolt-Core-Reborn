@@ -70,13 +70,6 @@ public final class CraftPlannerV2<K> {
      */
     public static final int DEFAULT_VISIT_CAP = 256;
 
-    /** Upper guard for the graph-scaled {@code O(E log E)} default search budget. */
-    public static final int DEFAULT_SEARCH_WORK_BUDGET =
-            Math.max(4_096, Integer.getInteger("thunderbolt.maxCraftSearchWork", 262_144));
-
-    private static final int MIN_SEARCH_WORK_BUDGET = 4_096;
-    private static final int FALLBACK_WORK_PER_REACHABLE_UNIT = 64;
-    private static final int MAX_FALLBACK_WORK_BUDGET = 262_144;
     /**
      * Whole-graph preprocessing guard. Optional exact/local stages have their own smaller budgets,
      * but even linear normalization becomes disruptive on a deliberately enormous reachable graph.
@@ -86,6 +79,19 @@ public final class CraftPlannerV2<K> {
             Integer.MAX_VALUE - 1,
             Math.max(4_096,
                     Integer.getInteger("thunderbolt.maxReachablePlanningWork", 65_536)));
+
+    /**
+     * Upper guard for the graph-scaled {@code O(E log E)} default search budget. Unless set
+     * explicitly it buys a few whole-graph retries at the admitted graph size (262,144 at the
+     * default graph guard), so raising only the graph guard does not silently disable retries.
+     */
+    public static final int DEFAULT_SEARCH_WORK_BUDGET = Math.max(4_096, Integer.getInteger(
+            "thunderbolt.maxCraftSearchWork",
+            (int) Math.min(Integer.MAX_VALUE - 1, 4L * MAX_REACHABLE_PLANNING_WORK)));
+
+    private static final int MIN_SEARCH_WORK_BUDGET = 4_096;
+    private static final int FALLBACK_WORK_PER_REACHABLE_UNIT = 64;
+    private static final int MAX_FALLBACK_WORK_BUDGET = 262_144;
     /** Generic exact-flow gate; ordinary and individually wide components skip dense solving. */
     private static final int MAX_LOW_WIDTH_SEPARATOR = 12;
     /** Unsafe-but-validated byproduct balances may need a wider frontier than ordinary flow. */
@@ -220,9 +226,19 @@ public final class CraftPlannerV2<K> {
     private final FallbackBudget fallbackBudget;
     private boolean repairFeedbackSeeds = true;
     private boolean explicitCuts;
-    private record Orientation<K>(List<K> roots, boolean explicitCuts) {
+    private record Orientation<K>(List<K> roots, boolean explicitCuts, int producibilityMode) {
         private Orientation { roots = List.copyOf(roots); }
+        private Orientation(List<K> roots, boolean explicitCuts) { this(roots, explicitCuts, 0); }
     }
+    /**
+     * Cuts every SCC along the order in which its members first become producible from stock or raw
+     * leaves, instead of along DFS arrival order. Any acyclic route that is producible from funded
+     * sources therefore keeps at least one producer per member, whatever the cycle structure.
+     */
+    private boolean producibilityRanked;
+    private boolean producibilityStockSeeded;
+    private final Map<K, Integer> producibilityOrdinal = new HashMap<>();
+    private CycleAnalysis<K> producibilityCycles;
     private final Map<K, Set<K>> explicitCutMembers = new HashMap<>();
     private final Map<K, Integer> explicitCutRanks = new HashMap<>();
     private final Map<K, Set<K>> explicitRankMembers = new HashMap<>();
@@ -626,10 +642,25 @@ public final class CraftPlannerV2<K> {
         }
         CraftPlan<K> dagOrdered = firstPlanner.tryMaterialDagOrders(target, amount);
         if (dagOrdered != null) return finish(dagOrdered, diagnostics, budget, started, graph, target, amount);
+        CraftPlan<K> ranked = null;
+        for (boolean stockSeeded : new boolean[] {true, false}) {
+            if (firstPlanner.cutOutputs.isEmpty()) break;
+            // Same charge as an orientation retry: the ranked DAG is one more whole-graph run.
+            if (!budget.tryConsume(orientationCharge)) break;
+            CraftPlan<K> candidate = producibilityRankedRun(
+                    graph, target, amount, visitCap, budget, lowWidthWorkBudget, diagnostics,
+                    objectiveDistances, preparedByOrientation, stockSeeded);
+            if (candidate.feasible()) {
+                return finish(candidate, diagnostics, budget, started, graph, target, amount);
+            }
+            if (!candidate.budgetExhausted()) {
+                ranked = ranked == null ? candidate : betterPlan(ranked, candidate, objectiveDistances);
+            }
+        }
         if (first.budgetExhausted()) {
             return finish(firstPlanner.guaranteeReplenishment(first, target, amount), diagnostics, budget, started, graph, target, amount);
         }
-        CraftPlan<K> bestIncomplete = first;
+        CraftPlan<K> bestIncomplete = ranked == null ? first : betterPlan(first, ranked, objectiveDistances);
 
         CycleAnalysis<K> cycleAnalysis = firstPlanner.cutOutputs.isEmpty()
                 ? null : CycleAnalysis.analyze(graph, target);
@@ -708,6 +739,31 @@ public final class CraftPlannerV2<K> {
             bestIncomplete = markBudgetExhausted(bestIncomplete);
         }
         return finish(firstPlanner.guaranteeReplenishment(bestIncomplete, target, amount), diagnostics, budget, started, graph, target, amount);
+    }
+
+    /**
+     * One extra whole-graph compilation, independent of the bounded DFS retry frontier. The DFS view
+     * can cut every producer of a needed member when an unused reverse recipe is visited first; this
+     * view instead keeps the producible direction of every SCC at once. The caller charges it like
+     * one orientation retry; search inside it still draws from the shared budget.
+     */
+    private static <K> CraftPlan<K> producibilityRankedRun(
+            CraftGraph<K> graph, K target, long amount, int visitCap, SearchBudget budget,
+            BoundedIntegerLinearSolver.WorkBudget lowWidthWorkBudget, DiagnosticsCollector diagnostics,
+            Map<K, Integer> objectiveDistances, Map<Orientation<K>, PreparedGraph<K>> preparedByOrientation,
+            boolean stockSeeded) {
+        Orientation<K> key = new Orientation<>(List.of(), false, stockSeeded ? 1 : 2);
+        PreparedGraph<K> prepared = preparedByOrientation.get(key);
+        CraftPlannerV2<K> planner = prepared == null
+                ? new CraftPlannerV2<>(graph, visitCap, budget, lowWidthWorkBudget, diagnostics)
+                : new CraftPlannerV2<>(prepared, visitCap, budget, lowWidthWorkBudget, diagnostics);
+        planner.objectiveDistances = objectiveDistances;
+        planner.producibilityRanked = true;
+        planner.producibilityStockSeeded = stockSeeded;
+        CraftPlan<K> plan = UnorderedByproductSafety.protect(
+                graph, planner.run(target, amount, List.of()), target, amount);
+        preparedByOrientation.putIfAbsent(key, planner.preparedGraph);
+        return plan;
     }
 
     /** Small material-order portfolio; every result is a complete ordinary DAG replay, never a splice. */
@@ -2480,6 +2536,7 @@ public final class CraftPlannerV2<K> {
             List<K> postOrderOut,
             Set<K> itemsOut) {
         Map<K, Integer> color = new HashMap<>();
+        if (producibilityRanked) rankProducibleRoutes(target);
         if (explicitCuts && !priorityRoots.isEmpty()) {
             CycleAnalysis<K> cycles = CycleAnalysis.analyze(graph, target);
             for (K root : priorityRoots) explicitCutMembers.put(root, cycles.membersOf(root));
@@ -2568,6 +2625,94 @@ public final class CraftPlannerV2<K> {
         }
     }
 
+    /**
+     * Hyperedge Kahn order over the whole reachable graph, O(E log V). Sources are tiered: input-free
+     * recipes (and, when {@link #producibilityStockSeeded}, stocked raw leaves) first, then stocked
+     * intermediates when stock-seeded, then the remaining raw leaves.
+     * A recipe becomes ready once every consumed input has been ranked, so the first recipe to rank
+     * each member always survives {@link #retainsProducibleRoute}.
+     */
+    private void rankProducibleRoutes(K target) {
+        producibilityCycles = CycleAnalysis.analyze(graph, target);
+        Map<K, Integer> stableRank = new LinkedHashMap<>();
+        Deque<K> visit = new ArrayDeque<>();
+        stableRank.put(target, 0);
+        visit.add(target);
+        while (!visit.isEmpty()) {
+            PlanningCancellation.check();
+            for (CraftPattern<K> pattern : graph.patternsFor(visit.removeFirst())) {
+                for (CraftInput<K> input : pattern.inputs()) {
+                    if (!stableRank.containsKey(input.key())) {
+                        stableRank.put(input.key(), stableRank.size());
+                        visit.addLast(input.key());
+                    }
+                }
+            }
+        }
+        record Ranked<K>(K key, int tier, int level) {}
+        var ready = new java.util.PriorityQueue<Ranked<K>>(
+                java.util.Comparator.<Ranked<K>>comparingInt(Ranked::tier)
+                        .thenComparingInt(Ranked::level)
+                        .thenComparingInt(item -> -objectiveDistances.getOrDefault(item.key(), 0))
+                        .thenComparingInt(item -> stableRank.getOrDefault(item.key(), Integer.MAX_VALUE)));
+        Map<CraftPattern<K>, Integer> pending = new IdentityHashMap<>();
+        Map<K, List<CraftPattern<K>>> consumers = new HashMap<>();
+        for (K key : stableRank.keySet()) {
+            PlanningCancellation.check();
+            List<CraftPattern<K>> patterns = graph.patternsFor(key);
+            if (patterns.isEmpty()) {
+                ready.add(new Ranked<>(key, producibilityStockSeeded && graph.stock(key) > 0L ? 0 : 2, 0));
+                continue;
+            }
+            // Stock-seeded ranking prefers stocked cycle members as cut points. The stock-free
+            // ranking is the zero-inventory DAG itself, so any route producible from raw sources
+            // survives, and inventory only reduces what the retained recipes must make.
+            if (producibilityStockSeeded && graph.stock(key) > 0L) ready.add(new Ranked<>(key, 1, 0));
+            for (CraftPattern<K> pattern : patterns) {
+                Set<K> dependencies = new HashSet<>();
+                for (CraftInput<K> input : pattern.inputs()) {
+                    if (ranksAsDependency(pattern, input)) dependencies.add(input.key());
+                }
+                if (dependencies.isEmpty()) {
+                    ready.add(new Ranked<>(key, 0, 1));
+                    continue;
+                }
+                pending.put(pattern, dependencies.size());
+                for (K input : dependencies) {
+                    consumers.computeIfAbsent(input, ignored -> new ArrayList<>()).add(pattern);
+                }
+            }
+        }
+        while (!ready.isEmpty()) {
+            PlanningCancellation.check();
+            Ranked<K> next = ready.remove();
+            if (producibilityOrdinal.putIfAbsent(next.key(), producibilityOrdinal.size()) != null) continue;
+            for (CraftPattern<K> pattern : consumers.getOrDefault(next.key(), List.of())) {
+                // Pops are monotone in (tier, level), so the last dependency is also the latest.
+                if (pending.merge(pattern, -1, Integer::sum) == 0) {
+                    ready.add(new Ranked<>(pattern.output(), next.tier(), next.level() + 1));
+                }
+            }
+        }
+    }
+
+    private boolean ranksAsDependency(CraftPattern<K> pattern, CraftInput<K> input) {
+        return !isSelfReturnedSeed(pattern, input) && !isHostBackedReusableSeed(input);
+    }
+
+    /** Edges between distinct SCCs cannot close a cycle; inside one, retain only earlier-ranked inputs. */
+    private boolean retainsProducibleRoute(K output, CraftPattern<K> pattern) {
+        Set<K> members = producibilityCycles.membersOf(output);
+        if (members.isEmpty()) return true;
+        Integer own = producibilityOrdinal.get(output);
+        for (CraftInput<K> input : pattern.inputs()) {
+            if (!ranksAsDependency(pattern, input) || !members.contains(input.key())) continue;
+            Integer dependency = producibilityOrdinal.get(input.key());
+            if (own == null || dependency == null || dependency >= own) return false;
+        }
+        return true;
+    }
+
     private void buildDagRoot(
             K root,
             Map<K, Integer> color,
@@ -2602,6 +2747,10 @@ public final class CraftPlannerV2<K> {
         for (CraftPattern<K> p : all) {
             for (CraftOutput<K> byproduct : p.byproducts()) {
                 reachableByproductKeys.add(byproduct.key());
+            }
+            if (producibilityRanked && !retainsProducibleRoute(x, p)) {
+                cutOutputs.add(x);
+                continue;
             }
             Set<K> cutMembers = explicitCutMembers.get(x);
             if (cutMembers != null && p.inputs().stream().anyMatch(input -> !input.returned()
