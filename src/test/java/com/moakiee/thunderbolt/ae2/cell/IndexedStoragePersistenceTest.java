@@ -164,6 +164,29 @@ class IndexedStoragePersistenceTest {
     }
 
     @Test
+    void truncatedAmountArraysPreserveAnExistingExactOverride() {
+        var exact = java.math.BigInteger.ONE.shiftLeft(127);
+        var root = encoded(List.of(A, B), new long[] {7L}, new long[] {0L});
+        root.putBoolean("arbitraryPrecision", true);
+        var wide = new CompoundTag();
+        wide.putByteArray("1", exact.toByteArray());
+        root.put("bigAmounts", wide);
+
+        var storage = new IndexedStorage();
+        storage.load(root, IndexedStoragePersistenceTest::decode, null);
+
+        assertEquals(7L, storage.getAmount(A));
+        assertEquals(exact, storage.getAmountExact(B));
+        assertTrue(storage.needsPersist());
+
+        var healed = storage.persist(root, (key, ignored) -> key.toTag(), null);
+        var restored = new IndexedStorage();
+        restored.load(healed, IndexedStoragePersistenceTest::decode, null);
+        assertEquals(storage.snapshotExact(), restored.snapshotExact());
+        assertFalse(restored.needsPersist());
+    }
+
+    @Test
     void duplicateKeysWithTruncatedAmountArraysUseZeroForMissingParts() {
         var missingHigh = new IndexedStorage();
         missingHigh.load(encoded(List.of(A, A), new long[] {7L, 5L}, new long[] {0L}),

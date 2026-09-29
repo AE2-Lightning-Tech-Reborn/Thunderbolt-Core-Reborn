@@ -565,6 +565,27 @@ public final class IndexedStorage {
         int[] mergedInto = new int[size];
         Arrays.fill(mergedInto, -1);
         boolean hasDuplicates = false;
+        java.math.BigInteger[] loadedAmounts = null;
+        var wide = root.getCompound("bigAmounts");
+        for (var index : wide.getAllKeys()) {
+            try {
+                int sourceId = Integer.parseInt(index);
+                if (!arbitraryPrecision || sourceId < 0 || sourceId >= size) {
+                    healed = true;
+                    continue;
+                }
+                var exactAmount = com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(
+                        new java.math.BigInteger(wide.getByteArray(index)));
+                if (exactAmount.compareTo(MAX_126) <= 0) {
+                    healed = true;
+                    continue;
+                }
+                if (loadedAmounts == null) loadedAmounts = new java.math.BigInteger[size];
+                loadedAmounts[sourceId] = exactAmount;
+            } catch (RuntimeException malformed) {
+                healed = true;
+            }
+        }
 
         for (int id = 0; id < size; id++) {
             CompoundTag entry = keys.getCompound(id);
@@ -593,11 +614,13 @@ public final class IndexedStorage {
                 continue;
             }
 
-            if (entryLo < 0L || entryHi < 0L || (entryLo == 0L && entryHi == 0L)) {
+            boolean invalidProjection = entryLo < 0L || entryHi < 0L || (entryLo == 0L && entryHi == 0L);
+            if (invalidProjection && (loadedAmounts == null || loadedAmounts[id] == null)) {
                 addFree(id);
                 healed = true;
                 continue;
             }
+            if (invalidProjection) healed = true;
             int existingId = keyToId.getInt(key);
             if (existingId != -1) {
                 mergedInto[id] = existingId;
@@ -617,28 +640,9 @@ public final class IndexedStorage {
             mergedInto[id] = id;
         }
 
-        java.math.BigInteger[] loadedAmounts = null;
-        var wide = root.getCompound("bigAmounts");
-        for (var index : wide.getAllKeys()) {
-            try {
-                int sourceId = Integer.parseInt(index);
-                if (!arbitraryPrecision
-                        || sourceId < 0
-                        || sourceId >= nextId
-                        || mergedInto[sourceId] < 0) {
-                    healed = true;
-                    continue;
-                }
-                var exactAmount = com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(
-                        new java.math.BigInteger(wide.getByteArray(index)));
-                if (exactAmount.compareTo(MAX_126) <= 0) {
-                    healed = true;
-                    continue;
-                }
-                if (loadedAmounts == null) loadedAmounts = new java.math.BigInteger[size];
-                loadedAmounts[sourceId] = exactAmount;
-            } catch (RuntimeException malformed) {
-                healed = true;
+        if (loadedAmounts != null) {
+            for (int id = 0; id < size; id++) {
+                if (loadedAmounts[id] != null && mergedInto[id] < 0) healed = true;
             }
         }
         if (hasDuplicates) {
