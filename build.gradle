@@ -71,6 +71,10 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven {
+        url = "https://api.modrinth.com/maven"
+        content { includeModule "maven.modrinth", "neoecoae" }
+    }
+    maven {
         url = "https://www.cursemaven.com"
         content {
             includeGroup "curse.maven"
@@ -87,6 +91,9 @@ def enableAe2DevRuntime = providers.gradleProperty('thunderboltEnableAe2DevRunti
         .toBoolean()
 
 dependencies {
+    // Optional local compatibility artifacts for contract tests; never bundled into the mod.
+    providers.gradleProperty('thunderboltBatchTestMods').getOrElse('').split(File.pathSeparator)
+            .findAll { !it.isBlank() }.each { testRuntimeOnly files(it) }
     // CP-SAT is opt-in. Bundle only the small, platform-neutral Java API and protobuf runtime;
     // the matching native runtime is downloaded and verified at game startup when enabled.
     compileOnly "com.google.ortools:ortools-java:${ortools_version}"
@@ -114,6 +121,10 @@ dependencies {
     compileOnly "curse.maven:extendedae-892005:7727948"
     compileOnly "curse.maven:glodium-957920:5821676"
     compileOnly "curse.maven:applied-flux-965012:7429565"
+
+    // Optional public FastPath API; never bundled or required at runtime.
+    compileOnly "maven.modrinth:neoecoae:21.2.0-beta3"
+    testRuntimeOnly "maven.modrinth:neoecoae:21.2.0-beta3"
 
     // Unit tests for the pure planner core (no Minecraft/AE2 needed).
     testImplementation platform("org.junit:junit-bom:5.10.2")

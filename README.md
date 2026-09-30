@@ -56,7 +56,11 @@ properties:
 - `-Dthunderbolt.planningStopGraceMs=<ms>`: total post-deadline grace before
   isolation (default: `5000`)
 - `-Dthunderbolt.maxCraftSearchWork=<count>`: planner search-work budget
+  (default: 4 × `thunderbolt.maxReachablePlanningWork`, i.e. `262144`)
 - `-Dthunderbolt.maxCraftDepth=<count>`: planner depth limit
+- `-Dthunderbolt.feasibleOptimizationStallMs=<ms>`: stop optional plan
+  optimization once this long passes without cutting executions by 1%
+  (default: `500`; `0` runs to the 2.8 s cap)
 
 ## Development
 

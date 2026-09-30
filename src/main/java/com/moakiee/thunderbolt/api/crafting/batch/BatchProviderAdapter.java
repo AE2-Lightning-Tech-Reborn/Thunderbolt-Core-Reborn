@@ -8,9 +8,10 @@ import appeng.api.networking.crafting.ICraftingProvider;
 /**
  * Per-dispatch adapter for optional provider APIs.
  *
- * <p>The adapter belongs to the CPU integration that invokes the batch executor. It does not add
- * an interface to the provider and is never consulted by callers that do not pass it explicitly.
- * This keeps provider-owned protocols independent from Thunderbolt's native batch contract.</p>
+ * <p>Register shared integrations with {@link BatchProviderAdapters}, or pass a private adapter
+ * explicitly to the executor. Omitting the argument or passing {@code null} uses the global
+ * registry; a non-null adapter replaces global lookup for that call. Native providers take
+ * precedence in either case. Returning null declines the provider without taking ownership.</p>
  *
  * <p>Pattern/job-dependent adapters are evaluated on every dispatch. Implement
  * {@link BatchProviderResolver} for context-free capability resolution that can be cached
