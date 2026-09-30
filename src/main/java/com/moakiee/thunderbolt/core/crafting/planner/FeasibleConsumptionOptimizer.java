@@ -3,18 +3,30 @@ package com.moakiee.thunderbolt.core.crafting.planner;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
  * Optional anytime improvement of an already certified plan; probes never replace its witness.
  * Fewer executions come first. Stock is only a tie-break inside the same probes and never grows:
  * every probe is limited to the incumbent's draws.
+ *
+ * <p>Candidates are pruned before the planner runs. A forward fixpoint from the incumbent's stock
+ * keeps only patterns that can ever fire, and a dual-feasible cost potential over them bounds the
+ * executions (and stock units) of every plan inside the probed pattern set. A probe whose bound
+ * cannot beat the incumbent by 1% executions, or by stock at equal executions, never enters the
+ * planner, and once the whole reachable graph is bounded that way the search stops.
+ *
+ * <p>Each probe plans only a local region: the incumbent's routes plus the cheapest fireable
+ * alternatives around them. The first proposal is the cheapest route per item over the whole
+ * reachable graph, with scarce stock priced up until its fixed replay fits the incumbent's draws.
  */
 final class FeasibleConsumptionOptimizer {
     static final int MAX_PROBES = 32;
@@ -28,8 +40,19 @@ final class FeasibleConsumptionOptimizer {
     static final long STALL_NANOS = Math.max(0L, Long.getLong("thunderbolt.feasibleOptimizationStallMs", 500L))
             * 1_000_000L;
     static final int MIN_GAIN_PERCENT = 1;
+    /** Cheapest fireable alternatives kept per key the incumbent touches. */
+    static final int REGION_ALTERNATIVES = 8;
+    static final int MAX_REGION_PATTERNS = 2048;
+    /** Stock price rounds for the whole-graph policy proposal. */
+    static final int POLICY_ROUNDS = 6;
+    /** Largest set of same-item producers withdrawn together. */
+    static final int MAX_WITHDRAWN = 4;
 
-    record Result<K>(CraftPlan<K> plan, int probes, int improvements) {}
+    // Evaluation-only trace.
+    static final boolean TRACE = Boolean.getBoolean("thunderbolt.feasibleOptimizationTrace");
+    static final ThreadLocal<String> LAST_TRACE = new ThreadLocal<>();
+
+    record Result<K>(CraftPlan<K> plan, int probes, int improvements, int pruned) {}
 
     private FeasibleConsumptionOptimizer() {}
 
@@ -40,8 +63,10 @@ final class FeasibleConsumptionOptimizer {
             state.run();
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             // External cancellation and the enclosing router deadline must still propagate.
+            state.stop = "time";
         }
-        return new Result<>(state.best, state.probes, state.improvements);
+        if (TRACE) LAST_TRACE.set(state.trace());
+        return new Result<>(state.best, state.probes, state.improvements, state.pruned);
     }
 
     private static final class Search<K> {
@@ -53,8 +78,35 @@ final class FeasibleConsumptionOptimizer {
         private CraftPlan<K> best;
         private int probes;
         private int improvements;
+        private int pruned;
         private long lastGain;
         private boolean exhausted;
+
+        private Index<K> index;
+        private long[] limits;
+        private int[] limited;
+        private Prop global;
+        /** Withdrawal sets extended by the substitutes the planner chose last time. */
+        private final ArrayDeque<int[]> chains = new ArrayDeque<>();
+        /** The last confirmed candidate within the stock limits, improving or not. */
+        private CraftPlan<K> lastCandidate;
+        private double[] globalCost;
+        private int[] globalArgmin;
+        private long execBound;
+        private long stockBound;
+        private int[] region;
+        private int regionVersion;
+        /** Whether the region also offers the alternative producers of its filled inputs. */
+        private boolean extendRegion;
+        private boolean regionExtensible;
+
+        // Trace
+        private String stop = "none";
+        private final long started = System.nanoTime();
+        private long indexNanos, propagationNanos;
+        private long initialExecutions, initialStock;
+        private final List<Long> oracleNanos = new ArrayList<>();
+        private int regionSize;
 
         Search(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial, int limit,
                 Function<CraftGraph<K>, CraftPlan<K>> oracle) {
@@ -73,87 +125,473 @@ final class FeasibleConsumptionOptimizer {
             if (best.usedStock().values().stream().anyMatch(Sat::isSaturated)
                     || best.firings().values().stream().anyMatch(Sat::isSaturated)
                     || best.grossDemand().values().stream().anyMatch(Sat::isSaturated)) return;
-            var patterns = new LinkedHashMap<K, List<CraftPattern<K>>>();
-            var pending = new ArrayDeque<K>();
-            pending.add(target);
-            boolean choices = false;
-            while (!pending.isEmpty()) {
-                PlanningCancellation.check();
-                K key = pending.removeFirst();
-                if (patterns.containsKey(key)) continue;
-                var routes = graph.patternsFor(key);
-                patterns.put(key, routes);
-                choices |= routes.size() > 1;
-                for (var pattern : routes) {
-                    if (pattern.exactOutputAmount().compareTo(BigInteger.valueOf(Sat.SAT)) >= 0) return;
-                    for (var output : pattern.byproducts())
-                        if (output.exactAmount().compareTo(BigInteger.valueOf(Sat.SAT)) >= 0) return;
-                    for (var input : pattern.inputs()) {
-                        if (input.exactAmount().compareTo(BigInteger.valueOf(Sat.SAT)) >= 0) return;
-                        pending.addLast(input.key());
-                    }
+            initialExecutions = executionCount(best);
+            initialStock = stockCount(best);
+            long indexStarted = System.nanoTime();
+            index = Index.build(graph, target);
+            indexNanos = System.nanoTime() - indexStarted;
+            if (index == null) {
+                stop = "saturated";
+                return;
+            }
+            if (!index.choices) {
+                stop = "fixed"; // Fixed ordinary recipe chains have no allocation to improve.
+                return;
+            }
+
+            long propagationStarted = System.nanoTime();
+            limits = new long[index.keys.size()];
+            var limitedKeys = new IntBuf();
+            best.usedStock().forEach((key, value) -> {
+                Integer id = index.ids.get(key);
+                if (id != null && value > 0) {
+                    limits[id] = value;
+                    limitedKeys.add(id);
+                }
+            });
+            limited = limitedKeys.toArray();
+            int[] all = new int[index.patterns.size()];
+            for (int p = 0; p < all.length; p++) all[p] = p;
+            global = propagate(all);
+            globalCost = global.cost;
+            globalArgmin = global.argmin;
+            execBound = global.execBound;
+            stockBound = global.stockBound;
+            // The bounds assume every executable plan fires only patterns the fixpoint reaches.
+            // The incumbent is executable; if the model disagrees with it, trust no bound.
+            for (var pattern : best.firings().keySet()) {
+                Integer id = index.patternIds.get(pattern);
+                if (id == null || !global.fired[id]) {
+                    execBound = 0;
+                    stockBound = 0;
+                    break;
                 }
             }
-            if (!choices) return; // Fixed ordinary recipe chains have no allocation to improve.
+            propagationNanos = System.nanoTime() - propagationStarted;
+            if (proven()) {
+                stop = "lb";
+                return;
+            }
 
-            // A single cheap whole-DAG proposal. It is only a heuristic: stock, batch rounding and
-            // shared inputs are checked by the oracle.
+            probePolicy();
+            // The stall clock times withdrawals only. Indexing, bounds and the policy proposal
+            // are paid once and grow with the pack; a slow machine must still get to reroute.
             lastGain = System.nanoTime();
-            List<K> order = dagOrder(patterns);
-            if (!order.isEmpty()) probePolicy(executionPolicy(order, patterns), order);
-
-            // Then withdraw the busiest remaining route choice, one at a time, and let the planner
-            // reroute that output. Stateful patterns keep their firings, so they are never withdrawn.
-            var tried = new HashSet<CraftPattern<K>>();
-            while (!exhausted && probes < limit
-                    && (STALL_NANOS == 0 || System.nanoTime() - lastGain < STALL_NANOS)) {
+            var tried = new HashSet<Integer>();
+            while (!exhausted && probes < limit && !stalled()) {
                 PlanningCancellation.check();
-                CraftPattern<K> busiest = null;
-                long most = 0;
-                for (var routes : patterns.values()) {
-                    if (routes.size() < 2) continue;
-                    for (var pattern : routes) {
-                        long firings = best.firings().getOrDefault(pattern, 0L);
-                        if (firings > most && !tried.contains(pattern) && !stateful(pattern)) {
-                            busiest = pattern;
-                            most = firings;
-                        }
-                    }
+                if (proven()) {
+                    stop = "lb";
+                    return;
                 }
-                if (busiest == null) break;
-                tried.add(busiest);
-                var selected = new HashMap<>(patterns);
-                var routes = new ArrayList<>(patterns.get(busiest.output()));
-                routes.remove(busiest);
-                selected.put(busiest.output(), routes);
-                probe(graph.withPatterns(selected).withStockLimits(best.usedStock()));
+                if (!withdraw(tried)) {
+                    // Every route has had its turn in the closed region; widen it once and retry.
+                    if (!extendRegion && regionExtensible) {
+                        extendRegion = true;
+                        region = null;
+                        tried.clear();
+                        chains.clear();
+                        continue;
+                    }
+                    stop = "done";
+                    return;
+                }
+            }
+            stop = exhausted ? "budget" : probes >= limit ? "probes" : stalled() ? "stall" : stop;
+        }
+
+        private boolean stalled() {
+            return STALL_NANOS != 0 && System.nanoTime() - lastGain >= STALL_NANOS;
+        }
+
+        private boolean proven() {
+            return execBound > executionCount(best) - minimumGain(executionCount(best))
+                    && stockBound >= stockCount(best);
+        }
+
+        private boolean worthwhile(long executions, long stock) {
+            long current = executionCount(best);
+            return executions <= current - minimumGain(current)
+                    || executions <= current && stock < stockCount(best);
+        }
+
+        /**
+         * Whole-graph proposals: the cheapest producer per key, with stock free up to a price.
+         * A proposal that overdraws some stock raises that item's price (a Lagrangian step on its
+         * limit) and is recomputed, so a route that only looked cheap because it spent scarce
+         * stock gives way to one that produces it. The fixed DAG's exact replay decides each
+         * proposal before the planner is asked to confirm it.
+         */
+        private void probePolicy() {
+            double[] price = new double[index.keys.size()];
+            Map<K, List<CraftPattern<K>>> previous = null;
+            Set<K> overdrawn = Set.of();
+            for (int round = 0; round < POLICY_ROUNDS && !exhausted && probes < limit; round++) {
+                var selected = policy(price);
+                if (selected == null) return;
+                if (selected.equals(previous)) {
+                    // The price was too low to move the argmin; raise it again without replanning.
+                    if (!raise(price, overdrawn, round)) return;
+                    continue;
+                }
+                previous = selected;
+                List<K> order = dagOrder(selected);
+                if (order.isEmpty()) return;
+                boolean changesRoute = best.firings().keySet().stream().anyMatch(p ->
+                        !selected.getOrDefault(p.output(), List.of()).contains(p));
+                if (!changesRoute) return;
+                var candidate = graph.withPatterns(selected).withStockLimits(best.usedStock());
+                // The ordinary fixed DAG has a cheap exact shortage test. Do not launch a whole
+                // alternative search for a policy already known to exceed the incumbent's stock.
+                var fixed = ConservativeReplenishment.compileFixed(candidate, order, selected);
+                if (fixed == null) return;
+                var proposal = fixed.plan(target, amount, Map.of());
+                if (proposal == null) return;
+                if (proposal.feasible()) {
+                    if (worthwhile(executionCount(proposal), stockCount(proposal))) probe(candidate);
+                    else pruned++;
+                    return;
+                }
+                overdrawn = proposal.missing().keySet();
+                if (!raise(price, overdrawn, round)) return;
             }
         }
 
-        private void probePolicy(Map<K, List<CraftPattern<K>>> selected, List<K> order) {
-            boolean changesRoute = best.firings().keySet().stream().anyMatch(p ->
-                    !selected.getOrDefault(p.output(), List.of()).contains(p));
-            if (!changesRoute || exhausted || probes >= limit) return;
+        /** Price overdrawn stock higher: 0, 1, 8, 64, ..., and prohibitive on the last round. */
+        private boolean raise(double[] price, Set<K> overdrawn, int round) {
+            boolean raised = false;
+            for (var key : overdrawn) {
+                Integer id = index.ids.get(key);
+                if (id == null || limits[id] == 0 || Double.isInfinite(price[id])) continue;
+                price[id] = round + 2 >= POLICY_ROUNDS ? Double.POSITIVE_INFINITY
+                        : price[id] == 0 ? 1 : price[id] * 8;
+                raised = true;
+            }
+            return raised;
+        }
+
+        /**
+         * Cheapest producer per key with limited stock at {@code price}. When the argmin is cyclic,
+         * only producers whose inputs all became available strictly earlier are admitted.
+         */
+        private Map<K, List<CraftPattern<K>>> policy(double[] price) {
+            int n = index.keys.size();
+            double[] cost = stockCost(price);
+            int[] choice = new int[n];
+            Arrays.fill(choice, -1);
+            relax(global, 1, cost, choice);
+            var selected = select(choice);
+            if (selected != null && !dagOrder(selected).isEmpty()) return selected;
+            Integer[] byRank = new Integer[n];
+            int count = 0;
+            for (int k = 0; k < n; k++) if (global.rank[k] >= 0) byRank[count++] = k;
+            Arrays.sort(byRank, 0, count, (a, b) -> Integer.compare(global.rank[a], global.rank[b]));
+            cost = stockCost(price);
+            Arrays.fill(choice, -1);
+            for (int r = 0; r < count; r++) {
+                PlanningCancellation.check();
+                int key = byRank[r];
+                for (int j = index.producerStart[key]; j < index.producerStart[key + 1]; j++) {
+                    int p = index.producer[j];
+                    if (!global.fired[p]) continue;
+                    boolean earlier = true;
+                    for (int i = index.needStart[p]; i < index.needStart[p + 1] && earlier; i++)
+                        earlier = global.rank[index.needKey[i]] >= 0
+                                && global.rank[index.needKey[i]] < global.rank[key];
+                    if (!earlier) continue;
+                    double value = 1;
+                    for (int i = index.useStart[p]; i < index.useStart[p + 1]; i++)
+                        value += cost[index.useKey[i]] * index.useAmount[i];
+                    value /= index.outAmount[p];
+                    if (value < cost[key]) {
+                        cost[key] = value;
+                        choice[key] = p;
+                    }
+                }
+            }
+            return select(choice);
+        }
+
+        private double[] stockCost(double[] price) {
+            double[] cost = new double[index.keys.size()];
+            Arrays.fill(cost, Double.POSITIVE_INFINITY);
+            for (int key : limited) cost[key] = price[key];
+            for (int k = 0; k < cost.length; k++) if (global.side[k]) cost[k] = 0;
+            return cost;
+        }
+
+        private Map<K, List<CraftPattern<K>>> select(int[] choice) {
+            var selected = new HashMap<K, List<CraftPattern<K>>>();
+            var pending = new ArrayDeque<Integer>();
+            pending.add(index.ids.get(target));
+            while (!pending.isEmpty()) {
+                PlanningCancellation.check();
+                int key = pending.removeFirst();
+                K item = index.keys.get(key);
+                if (selected.containsKey(item)) continue;
+                int p = choice[key];
+                if (p < 0) {
+                    if (limits[key] == 0 && !global.side[key]) return null;
+                    selected.put(item, List.of());
+                    continue;
+                }
+                selected.put(item, List.of(index.patterns.get(p)));
+                for (int j = index.needStart[p]; j < index.needStart[p + 1]; j++) pending.add(index.needKey[j]);
+            }
+            // Held inputs (catalysts, returned containers) come from stock; the replay checks them.
+            for (var routes : List.copyOf(selected.values()))
+                for (var pattern : routes)
+                    for (var input : pattern.inputs()) selected.putIfAbsent(input.key(), List.of());
+            return selected;
+        }
+
+        /**
+         * Withdraw the busiest remaining ordinary route and let the planner reroute it inside the
+         * local region. Stateful patterns keep their firings, so they are never withdrawn. A
+         * reroute that loses overall may still hold a better route for the withdrawn item alone,
+         * so that part is grafted onto the incumbent and confirmed separately. When the planner
+         * only swaps in another producer of a withdrawn item, that producer is withdrawn together
+         * with it later, so a cheaper route further away gets its turn.
+         */
+        private boolean withdraw(HashSet<Integer> tried) {
+            int busiest = -1;
+            long most = 0;
+            for (var entry : best.firings().entrySet()) {
+                Integer id = index.patternIds.get(entry.getKey());
+                if (id == null || index.stateful[id] || tried.contains(id)) continue;
+                // Ties go to the lowest id: pattern maps iterate in identity-hash order.
+                if (entry.getValue() > most || entry.getValue() == most && id < busiest) {
+                    busiest = id;
+                    most = entry.getValue();
+                }
+            }
+            int[] withdrawn;
+            if (busiest >= 0) {
+                tried.add(busiest);
+                withdrawn = new int[] {busiest};
+            } else {
+                // Single withdrawals first; extended ones only once every route has had its turn.
+                withdrawn = chains.pollFirst();
+                if (withdrawn == null) return false;
+            }
+            int[] shared = sharedRegion();
+            var candidate = new IntBuf();
+            outer:
+            for (int p : shared) {
+                for (int q : withdrawn) if (p == q) continue outer;
+                candidate.add(p);
+            }
+            int[] patterns = candidate.toArray();
+            Prop local = propagate(patterns);
+            if (!local.targetAvailable || !worthwhile(local.execBound, local.stockBound)) {
+                pruned++;
+                return true;
+            }
+            int version = regionVersion;
+            boolean improved = probe(regionGraph(patterns));
+            var rerouted = lastCandidate;
+            if (!improved && rerouted != null) improved = graft(withdrawn, rerouted);
+            if (!improved && version == regionVersion && rerouted != null
+                    && withdrawn.length < MAX_WITHDRAWN) {
+                var outputs = new HashSet<Integer>();
+                for (int q : withdrawn) outputs.add(index.out[q]);
+                var next = new IntBuf();
+                for (int q : withdrawn) next.add(q);
+                for (int id : ids(rerouted)) {
+                    if (!index.stateful[id] && outputs.contains(index.out[id])
+                            && !best.firings().containsKey(index.patterns.get(id)) && next.size < MAX_WITHDRAWN) next.add(id);
+                }
+                if (next.size > withdrawn.length) chains.addLast(next.toArray());
+            }
+            if (improved) chains.clear();
+            return true;
+        }
+
+        /**
+         * The planner reroutes a withdrawn item but may also disturb unrelated items. Keep only
+         * its new routes for the withdrawn items and whatever those newly need, graft them onto
+         * the incumbent's routes, and confirm the single-route result.
+         */
+        private boolean graft(int[] withdrawn, CraftPlan<K> rerouted) {
+            var incumbent = new HashMap<K, List<CraftPattern<K>>>();
+            var replacement = new HashMap<K, List<CraftPattern<K>>>();
+            for (int id : ids(best))
+                incumbent.computeIfAbsent(index.keys.get(index.out[id]), ignored -> new ArrayList<>()).add(index.patterns.get(id));
+            for (int id : ids(rerouted))
+                replacement.computeIfAbsent(index.keys.get(index.out[id]), ignored -> new ArrayList<>()).add(index.patterns.get(id));
+            var selected = new HashMap<K, List<CraftPattern<K>>>();
+            var pending = new ArrayDeque<K>();
+            for (int q : withdrawn) {
+                K key = index.keys.get(index.out[q]);
+                if (!selected.containsKey(key)) {
+                    selected.put(key, replacement.getOrDefault(key, List.of()));
+                    pending.add(key);
+                }
+            }
+            pending.add(target);
+            boolean changed = false;
+            while (!pending.isEmpty()) {
+                PlanningCancellation.check();
+                K key = pending.removeFirst();
+                List<CraftPattern<K>> routes = selected.get(key);
+                if (routes == null) {
+                    routes = incumbent.getOrDefault(key, replacement.getOrDefault(key, List.of()));
+                    selected.put(key, routes);
+                }
+                for (var pattern : routes) {
+                    changed |= !best.firings().containsKey(pattern);
+                    for (var input : pattern.inputs()) if (!selected.containsKey(input.key())) pending.add(input.key());
+                }
+            }
+            if (!changed || selected.equals(replacement)) return false;
             var candidate = graph.withPatterns(selected).withStockLimits(best.usedStock());
-            // The ordinary fixed DAG has a cheap exact shortage test. Do not launch a whole
-            // alternative search for a policy already known to exceed the incumbent's stock.
-            var policy = ConservativeReplenishment.compileFixed(candidate, order, selected);
-            if (policy == null) return;
-            var proposal = policy.plan(target, amount, Map.of());
-            if (proposal != null && proposal.feasible()) probe(candidate);
+            List<K> order = dagOrder(selected);
+            if (!order.isEmpty()) {
+                var fixed = ConservativeReplenishment.compileFixed(candidate, order, selected);
+                var proposal = fixed == null ? null : fixed.plan(target, amount, Map.of());
+                if (proposal != null && (!proposal.feasible()
+                        || !worthwhile(executionCount(proposal), stockCount(proposal)))) {
+                    pruned++;
+                    return false;
+                }
+            }
+            return probe(candidate);
+        }
+
+        /**
+         * The incumbent's patterns, the cheapest fireable alternatives for every key it touches,
+         * and producers for inputs those alternatives would otherwise lack; once widened, also
+         * alternative producers of those inputs.
+         */
+        private int[] sharedRegion() {
+            if (region != null) return region;
+            int n = index.keys.size();
+            boolean[] in = new boolean[index.patterns.size()];
+            boolean[] produced = new boolean[n];
+            boolean[] incumbent = new boolean[index.patterns.size()];
+            var list = new IntBuf();
+            var touched = new LinkedHashSet<Integer>();
+            for (int p : ids(best)) {
+                incumbent[p] = true;
+                in[p] = true;
+                produced[index.out[p]] = true;
+                list.add(p);
+                touched.add(index.out[p]);
+                for (int j = index.needStart[p]; j < index.needStart[p + 1]; j++) touched.add(index.needKey[j]);
+            }
+            touched.add(index.ids.get(target));
+            for (int key : touched) {
+                PlanningCancellation.check();
+                var alternatives = new ArrayList<Integer>();
+                for (int j = index.producerStart[key]; j < index.producerStart[key + 1]; j++) {
+                    int p = index.producer[j];
+                    if (!in[p] && global.fired[p] && !index.stateful[p]) alternatives.add(p);
+                }
+                alternatives.sort((a, b) -> Double.compare(patternCost(a), patternCost(b)));
+                for (int i = 0; i < alternatives.size() && i < REGION_ALTERNATIVES
+                        && list.size < MAX_REGION_PATTERNS; i++) {
+                    int p = alternatives.get(i);
+                    in[p] = true;
+                    produced[key] = true;
+                    list.add(p);
+                }
+            }
+            var filled = new IntBuf();
+            for (int i = 0; i < list.size && list.size < MAX_REGION_PATTERNS; i++) {
+                int p = list.data[i];
+                for (int j = index.needStart[p]; j < index.needStart[p + 1]; j++) {
+                    int key = index.needKey[j];
+                    if (produced[key] || limits[key] > 0) continue;
+                    produced[key] = true;
+                    filled.add(key);
+                    for (int extra : new int[] {globalArgmin[key], global.first[key]}) {
+                        if (extra >= 0 && !in[extra] && (!index.stateful[extra] || incumbent[extra])
+                                && list.size < MAX_REGION_PATTERNS) {
+                            in[extra] = true;
+                            list.add(extra);
+                        }
+                    }
+                }
+            }
+            // Equally cheap producers of those inputs can differ in which stock they draw. Once
+            // the region is closed, the widened region also offers the cheapest few that need
+            // nothing it lacks. They crowd the planner's choices, so they come second.
+            int closed = list.size;
+            for (int f = 0; f < filled.size && list.size < MAX_REGION_PATTERNS; f++) {
+                PlanningCancellation.check();
+                int key = filled.data[f];
+                var alternatives = new ArrayList<Integer>();
+                outer:
+                for (int k = index.producerStart[key]; k < index.producerStart[key + 1]; k++) {
+                    int q = index.producer[k];
+                    if (in[q] || !global.fired[q] || index.stateful[q]) continue;
+                    for (int j = index.needStart[q]; j < index.needStart[q + 1]; j++)
+                        if (!produced[index.needKey[j]] && limits[index.needKey[j]] == 0) continue outer;
+                    alternatives.add(q);
+                }
+                alternatives.sort((a, b) -> Double.compare(patternCost(a), patternCost(b)));
+                for (int i = 0; i < alternatives.size() && i < REGION_ALTERNATIVES
+                        && list.size < MAX_REGION_PATTERNS; i++) {
+                    in[alternatives.get(i)] = true;
+                    list.add(alternatives.get(i));
+                }
+            }
+            regionExtensible = list.size > closed;
+            region = extendRegion ? list.toArray() : Arrays.copyOf(list.data, closed);
+            regionSize = region.length;
+            return region;
+        }
+
+        /** A plan's fired pattern ids in index order, independent of map iteration order. */
+        private int[] ids(CraftPlan<K> plan) {
+            var ids = new IntBuf();
+            for (var pattern : plan.firings().keySet()) {
+                Integer id = index.patternIds.get(pattern);
+                if (id != null) ids.add(id);
+            }
+            int[] sorted = ids.toArray();
+            Arrays.sort(sorted);
+            return sorted;
+        }
+
+        private double patternCost(int p) {
+            double value = 1;
+            for (int j = index.useStart[p]; j < index.useStart[p + 1]; j++) {
+                double cost = globalCost[index.useKey[j]];
+                value += (Double.isInfinite(cost) ? 0 : cost) * index.useAmount[j];
+            }
+            return value / index.outAmount[p];
+        }
+
+        private CraftGraph<K> regionGraph(int[] patterns) {
+            int[] sorted = patterns.clone();
+            Arrays.sort(sorted); // Index order keeps each key's original route order.
+            var selected = new HashMap<K, List<CraftPattern<K>>>();
+            // The incumbent's routes lead, so a rerouted item does not disturb the others.
+            for (int pass = 0; pass < 2; pass++)
+                for (int p : sorted) {
+                    var pattern = index.patterns.get(p);
+                    if (best.firings().containsKey(pattern) == (pass == 0))
+                        selected.computeIfAbsent(index.keys.get(index.out[p]), ignored -> new ArrayList<>()).add(pattern);
+                }
+            return graph.withPatterns(selected).withStockLimits(best.usedStock());
         }
 
         private boolean probe(CraftGraph<K> candidateGraph) {
             PlanningCancellation.check();
             if (exhausted || probes >= limit) return false;
             probes++;
+            long probeStarted = System.nanoTime();
             CraftPlan<K> candidate = oracle.apply(candidateGraph);
+            oracleNanos.add(System.nanoTime() - probeStarted);
+            lastCandidate = null;
             if (candidate == null) {
                 exhausted = true;
                 return false;
             }
             for (var entry : candidate.usedStock().entrySet())
                 if (entry.getValue() > candidateGraph.stock(entry.getKey())) return false;
+            lastCandidate = candidate;
             if (!improves(best, candidate)) return false;
             BigInteger before = executions(best);
             BigInteger gain = before.subtract(executions(candidate));
@@ -162,7 +600,407 @@ final class FeasibleConsumptionOptimizer {
                     .compareTo(before.multiply(BigInteger.valueOf(MIN_GAIN_PERCENT))) >= 0) lastGain = System.nanoTime();
             best = candidate;
             improvements++;
+            region = null;
+            regionVersion++;
             return true;
+        }
+
+        /**
+         * Forward fixpoint and dual costs over the given patterns under the incumbent's stock.
+         * Every executable plan fires only reached patterns: a first firing needs its inputs from
+         * stock or from an earlier firing. On reached patterns, y = c / s satisfies
+         * y(out) * out - sum y(in) * in <= 1 (byproduct keys priced at 0), so amount * y(target)
+         * bounds executions; a second potential that also prices limited stock subtracts it.
+         */
+        private Prop propagate(int[] patterns) {
+            int n = index.keys.size(), m = patterns.length;
+            var prop = new Prop();
+            prop.patterns = patterns;
+            int[] head = new int[n + 1];
+            for (int p : patterns)
+                for (int j = index.needStart[p]; j < index.needStart[p + 1]; j++) head[index.needKey[j] + 1]++;
+            for (int k = 0; k < n; k++) head[k + 1] += head[k];
+            int[] consumer = new int[head[n]];
+            int[] fill = Arrays.copyOf(head, n);
+            int[] missing = new int[m];
+            for (int li = 0; li < m; li++) {
+                int p = patterns[li];
+                missing[li] = index.needStart[p + 1] - index.needStart[p];
+                for (int j = index.needStart[p]; j < index.needStart[p + 1]; j++) consumer[fill[index.needKey[j]]++] = li;
+            }
+            prop.consumerStart = head;
+            prop.consumer = consumer;
+            prop.avail = new boolean[n];
+            prop.side = new boolean[n];
+            prop.produced = new boolean[n];
+            prop.rank = new int[n];
+            prop.first = new int[n];
+            Arrays.fill(prop.rank, -1);
+            Arrays.fill(prop.first, -1);
+            prop.fired = new boolean[m];
+            prop.order = new int[m];
+            int[] queue = new int[n];
+            int qh = 0, qt = 0, rank = 0;
+            for (int key : limited) {
+                if (!prop.avail[key]) {
+                    prop.avail[key] = true;
+                    prop.rank[key] = rank++;
+                    queue[qt++] = key;
+                }
+            }
+            var ready = new IntBuf();
+            for (int li = 0; li < m; li++) if (missing[li] == 0) ready.add(li);
+            int readyAt = 0;
+            while (readyAt < ready.size || qh < qt) {
+                PlanningCancellation.check();
+                while (readyAt < ready.size) {
+                    int li = ready.data[readyAt++];
+                    int p = patterns[li];
+                    prop.fired[li] = true;
+                    prop.order[prop.firedCount++] = li;
+                    int out = index.out[p];
+                    prop.produced[out] = true;
+                    if (!prop.avail[out]) {
+                        prop.avail[out] = true;
+                        prop.rank[out] = rank++;
+                        prop.first[out] = p;
+                        queue[qt++] = out;
+                    }
+                    for (int j = index.sideStart[p]; j < index.sideStart[p + 1]; j++) {
+                        int side = index.sideKey[j];
+                        prop.side[side] = true;
+                        if (!prop.avail[side]) {
+                            prop.avail[side] = true;
+                            prop.rank[side] = rank++;
+                            prop.first[side] = p;
+                            queue[qt++] = side;
+                        }
+                    }
+                }
+                if (qh < qt) {
+                    int key = queue[qh++];
+                    for (int j = head[key]; j < head[key + 1]; j++) if (--missing[consumer[j]] == 0) ready.add(consumer[j]);
+                }
+            }
+            int t = index.ids.get(target);
+            prop.targetAvailable = prop.avail[t];
+            if (!prop.targetAvailable) return prop;
+
+            // Stock free up to its limit.
+            double[] free = new double[n];
+            Arrays.fill(free, Double.POSITIVE_INFINITY);
+            for (int key : limited) free[key] = 0;
+            for (int k = 0; k < n; k++) if (prop.side[k]) free[k] = 0;
+            relax(prop, 1, free, null);
+            double scale = settle(prop, free);
+            double freeBound = amount * free[t] / scale;
+            // Stock priced by production, then charged for its limit.
+            double[] priced = new double[n];
+            Arrays.fill(priced, Double.POSITIVE_INFINITY);
+            for (int k = 0; k < n; k++) if (prop.side[k] || prop.avail[k] && !prop.produced[k]) priced[k] = 0;
+            int[] argmin = new int[n];
+            Arrays.fill(argmin, -1);
+            relax(prop, 1, priced, argmin);
+            for (int k = 0; k < n; k++) if (prop.avail[k] && Double.isInfinite(priced[k])) priced[k] = 0;
+            relax(prop, 1, priced, argmin);
+            scale = settle(prop, priced);
+            double charged = amount * priced[t];
+            for (int key : limited) charged -= limits[key] * priced[key] * (1 + 1e-9);
+            double bound = Math.max(freeBound, charged / scale);
+            prop.execBound = Math.max(0L, (long) Math.ceil(bound * (1 - 1e-9) - 1e-9));
+            prop.cost = priced;
+            prop.argmin = argmin;
+
+            // Stock units: y <= 1 on limited keys, y(out) * out <= sum y(in) * in.
+            double[] units = new double[n];
+            Arrays.fill(units, Double.POSITIVE_INFINITY);
+            for (int key : limited) units[key] = 1;
+            for (int k = 0; k < n; k++) if (prop.side[k]) units[k] = 0;
+            boolean exact = relax(prop, 0, units, null);
+            for (int k = 0; k < n; k++) if (prop.avail[k] && Double.isInfinite(units[k])) units[k] = 0;
+            for (int i = 0; i < prop.firedCount && exact; i++) {
+                int p = patterns[prop.order[i]];
+                double consumed = 0;
+                for (int j = index.useStart[p]; j < index.useStart[p + 1]; j++)
+                    consumed += units[index.useKey[j]] * index.useAmount[j];
+                exact = units[index.out[p]] * index.outAmount[p] <= consumed * (1 + 1e-9) + 1e-9;
+            }
+            prop.stockBound = exact ? Math.max(0L, (long) Math.ceil(amount * units[t] * (1 - 1e-9) - 1e-9)) : 0L;
+            return prop;
+        }
+
+        /** Label-correcting shortest costs over reached patterns; false when the work cap stops it. */
+        private boolean relax(Prop prop, double work, double[] cost, int[] argmin) {
+            int m = prop.patterns.length;
+            int[] ring = new int[m + 1];
+            boolean[] queued = new boolean[m];
+            int head = 0, tail = 0, size = 0;
+            for (int i = 0; i < prop.firedCount; i++) {
+                int li = prop.order[i];
+                ring[tail] = li;
+                tail = tail + 1 == ring.length ? 0 : tail + 1;
+                size++;
+                queued[li] = true;
+            }
+            long budget = 8L * prop.firedCount + 1024;
+            while (size > 0 && budget-- > 0) {
+                if ((budget & 4095) == 0) PlanningCancellation.check();
+                int li = ring[head];
+                head = head + 1 == ring.length ? 0 : head + 1;
+                size--;
+                queued[li] = false;
+                int p = prop.patterns[li];
+                double value = work;
+                for (int j = index.useStart[p]; j < index.useStart[p + 1] && value < Double.POSITIVE_INFINITY; j++)
+                    value += cost[index.useKey[j]] * index.useAmount[j];
+                if (Double.isInfinite(value)) continue;
+                value /= index.outAmount[p];
+                int out = index.out[p];
+                if (!(value < cost[out] * (1 - 1e-12))) continue;
+                cost[out] = value;
+                if (argmin != null) argmin[out] = p;
+                for (int j = prop.consumerStart[out]; j < prop.consumerStart[out + 1]; j++) {
+                    int next = prop.consumer[j];
+                    if (!prop.fired[next] || queued[next]) continue;
+                    queued[next] = true;
+                    ring[tail] = next;
+                    tail = tail + 1 == ring.length ? 0 : tail + 1;
+                    size++;
+                }
+            }
+            return size == 0;
+        }
+
+        /** Scale that keeps the potential dual feasible even if relaxation stopped early. */
+        private double settle(Prop prop, double[] cost) {
+            for (int k = 0; k < cost.length; k++) if (prop.avail[k] && Double.isInfinite(cost[k])) cost[k] = 0;
+            double scale = 1;
+            for (int i = 0; i < prop.firedCount; i++) {
+                int p = prop.patterns[prop.order[i]];
+                double excess = cost[index.out[p]] * index.outAmount[p];
+                for (int j = index.useStart[p]; j < index.useStart[p + 1]; j++)
+                    excess -= cost[index.useKey[j]] * index.useAmount[j];
+                scale = Math.max(scale, excess * (1 + 1e-9));
+            }
+            return scale;
+        }
+
+        private long minimumGain(long executions) {
+            return Math.max(1L, (executions * MIN_GAIN_PERCENT + 99) / 100);
+        }
+
+        String trace() {
+            var text = new StringBuilder("{\"stop\":\"").append(stop).append('"');
+            if (index != null) text.append(",\"keys\":").append(index.keys.size())
+                    .append(",\"patterns\":").append(index.patterns.size());
+            if (global != null) text.append(",\"fired\":").append(global.firedCount);
+            text.append(",\"region\":").append(regionSize);
+            text.append(",\"execBound\":").append(execBound).append(",\"stockBound\":").append(stockBound);
+            text.append(",\"exec0\":").append(initialExecutions).append(",\"exec1\":").append(executionCount(best));
+            text.append(",\"stock0\":").append(initialStock).append(",\"stock1\":").append(stockCount(best));
+            text.append(",\"oracle\":").append(probes).append(",\"improvements\":").append(improvements);
+            text.append(",\"pruned\":").append(pruned);
+            text.append(",\"indexMs\":").append(indexNanos / 1e6).append(",\"propMs\":").append(propagationNanos / 1e6);
+            text.append(",\"oracleMs\":[");
+            for (int i = 0; i < oracleNanos.size(); i++) text.append(i == 0 ? "" : ",").append(oracleNanos.get(i) / 1e6);
+            text.append("],\"totalMs\":").append((System.nanoTime() - started) / 1e6).append('}');
+            return text.toString();
+        }
+    }
+
+    private static final class Prop {
+        int[] patterns;
+        int[] consumerStart;
+        int[] consumer;
+        boolean[] fired;
+        int[] order;
+        int firedCount;
+        boolean[] avail;
+        boolean[] side;
+        boolean[] produced;
+        int[] rank;
+        int[] first;
+        boolean targetAvailable;
+        double[] cost;
+        int[] argmin;
+        long execBound;
+        long stockBound;
+    }
+
+    /** Integer view of the reachable graph, built once per request. */
+    private static final class Index<K> {
+        final ArrayList<K> keys = new ArrayList<>();
+        final HashMap<K, Integer> ids = new HashMap<>();
+        final ArrayList<CraftPattern<K>> patterns = new ArrayList<>();
+        final HashMap<CraftPattern<K>, Integer> patternIds = new HashMap<>();
+        final LinkedHashMap<K, List<CraftPattern<K>>> routes = new LinkedHashMap<>();
+        boolean choices;
+        int[] out;
+        long[] outAmount;
+        boolean[] stateful;
+        /** Inputs that must be present to fire: all but host-owned reusable stock. */
+        int[] needStart, needKey;
+        /** Consumed (non-returned) inputs, merged per key. */
+        int[] useStart, useKey;
+        long[] useAmount;
+        /** Byproducts other than the output key. */
+        int[] sideStart, sideKey;
+        long[] sideAmount;
+        int[] producerStart, producer;
+
+        private int id(K key) {
+            Integer id = ids.get(key);
+            if (id == null) {
+                id = keys.size();
+                ids.put(key, id);
+                keys.add(key);
+            }
+            return id;
+        }
+
+        static <K> Index<K> build(CraftGraph<K> graph, K target) {
+            var index = new Index<K>();
+            var sat = BigInteger.valueOf(Sat.SAT);
+            var outs = new IntBuf();
+            var outAmounts = new LongBuf();
+            var states = new IntBuf();
+            var needStart = new IntBuf();
+            var needKey = new IntBuf();
+            var useStart = new IntBuf();
+            var useKey = new IntBuf();
+            var useAmount = new LongBuf();
+            var sideStart = new IntBuf();
+            var sideKey = new IntBuf();
+            var sideAmount = new LongBuf();
+            needStart.add(0);
+            useStart.add(0);
+            sideStart.add(0);
+            var pending = new ArrayDeque<K>();
+            pending.add(target);
+            index.id(target);
+            while (!pending.isEmpty()) {
+                PlanningCancellation.check();
+                K key = pending.removeFirst();
+                if (index.routes.containsKey(key)) continue;
+                var routes = graph.patternsFor(key);
+                index.routes.put(key, routes);
+                index.choices |= routes.size() > 1;
+                int keyId = index.id(key);
+                for (var pattern : routes) {
+                    if (pattern.exactOutputAmount().compareTo(sat) >= 0) return null;
+                    long produced = pattern.exactOutputAmount().longValueExact();
+                    int sideFrom = sideKey.size;
+                    for (var side : pattern.byproducts()) {
+                        if (side.exactAmount().compareTo(sat) >= 0) return null;
+                        long value = side.exactAmount().longValueExact();
+                        int sideId = index.id(side.key());
+                        if (sideId == keyId) {
+                            produced = Sat.add(produced, value);
+                            continue;
+                        }
+                        int at = sideKey.indexOf(sideId, sideFrom);
+                        if (at >= 0) sideAmount.data[at] = Sat.add(sideAmount.data[at], value);
+                        else {
+                            sideKey.add(sideId);
+                            sideAmount.add(value);
+                        }
+                    }
+                    int needFrom = needKey.size, useFrom = useKey.size;
+                    boolean stateful = false;
+                    for (var input : pattern.inputs()) {
+                        if (input.exactAmount().compareTo(sat) >= 0) return null;
+                        pending.addLast(input.key());
+                        int inputId = index.id(input.key());
+                        stateful |= input.returned() || input.remainder() != null || input.reusableStockSource() != null;
+                        if (input.reusableStockSource() == null && needKey.indexOf(inputId, needFrom) < 0)
+                            needKey.add(inputId);
+                        if (input.remainder() != null) {
+                            // The container handed back is produced like any byproduct.
+                            long value = input.exactAmount().longValueExact();
+                            int remainderId = index.id(input.remainder());
+                            if (remainderId == keyId) produced = Sat.add(produced, value);
+                            else {
+                                int at = sideKey.indexOf(remainderId, sideFrom);
+                                if (at >= 0) sideAmount.data[at] = Sat.add(sideAmount.data[at], value);
+                                else {
+                                    sideKey.add(remainderId);
+                                    sideAmount.add(value);
+                                }
+                            }
+                        }
+                        if (!input.returned()) {
+                            long value = input.exactAmount().longValueExact();
+                            int at = useKey.indexOf(inputId, useFrom);
+                            if (at >= 0) useAmount.data[at] = Sat.add(useAmount.data[at], value);
+                            else {
+                                useKey.add(inputId);
+                                useAmount.add(value);
+                            }
+                        }
+                    }
+                    index.patternIds.put(pattern, index.patterns.size());
+                    index.patterns.add(pattern);
+                    outs.add(keyId);
+                    outAmounts.add(produced);
+                    states.add(stateful ? 1 : 0);
+                    needStart.add(needKey.size);
+                    useStart.add(useKey.size);
+                    sideStart.add(sideKey.size);
+                }
+            }
+            index.out = outs.toArray();
+            index.outAmount = outAmounts.toArray();
+            index.stateful = new boolean[index.out.length];
+            for (int p = 0; p < index.out.length; p++) index.stateful[p] = states.data[p] != 0;
+            index.needStart = needStart.toArray();
+            index.needKey = needKey.toArray();
+            index.useStart = useStart.toArray();
+            index.useKey = useKey.toArray();
+            index.useAmount = useAmount.toArray();
+            index.sideStart = sideStart.toArray();
+            index.sideKey = sideKey.toArray();
+            index.sideAmount = sideAmount.toArray();
+            int n = index.keys.size();
+            index.producerStart = new int[n + 1];
+            for (int key : index.out) index.producerStart[key + 1]++;
+            for (int k = 0; k < n; k++) index.producerStart[k + 1] += index.producerStart[k];
+            index.producer = new int[index.out.length];
+            int[] fill = Arrays.copyOf(index.producerStart, n);
+            for (int p = 0; p < index.out.length; p++) index.producer[fill[index.out[p]]++] = p;
+            return index;
+        }
+    }
+
+    private static final class IntBuf {
+        int[] data = new int[16];
+        int size;
+
+        void add(int value) {
+            if (size == data.length) data = Arrays.copyOf(data, size * 2);
+            data[size++] = value;
+        }
+
+        int indexOf(int value, int from) {
+            for (int i = from; i < size; i++) if (data[i] == value) return i;
+            return -1;
+        }
+
+        int[] toArray() {
+            return Arrays.copyOf(data, size);
+        }
+    }
+
+    private static final class LongBuf {
+        long[] data = new long[16];
+        int size;
+
+        void add(long value) {
+            if (size == data.length) data = Arrays.copyOf(data, size * 2);
+            data[size++] = value;
+        }
+
+        long[] toArray() {
+            return Arrays.copyOf(data, size);
         }
     }
 
@@ -230,6 +1068,18 @@ final class FeasibleConsumptionOptimizer {
         return total;
     }
 
+    private static long executionCount(CraftPlan<?> plan) {
+        long total = 0;
+        for (long count : plan.firings().values()) total = Sat.add(total, count);
+        return total;
+    }
+
+    private static long stockCount(CraftPlan<?> plan) {
+        long total = 0;
+        for (long count : plan.usedStock().values()) total = Sat.add(total, count);
+        return total;
+    }
+
     private static <K> List<K> dagOrder(Map<K, List<CraftPattern<K>>> patterns) {
         var edges = new LinkedHashMap<K, LinkedHashSet<K>>();
         var degree = new HashMap<K, Integer>();
@@ -250,29 +1100,5 @@ final class FeasibleConsumptionOptimizer {
             for (K input : edges.get(key)) if (degree.merge(input, -1, Integer::sum) == 0) pending.addLast(input);
         }
         return result.size() == patterns.size() ? result : List.of();
-    }
-
-    private static <K> Map<K, List<CraftPattern<K>>> executionPolicy(List<K> order,
-            Map<K, List<CraftPattern<K>>> patterns) {
-        var cost = new HashMap<K, Double>();
-        var selected = new HashMap<K, List<CraftPattern<K>>>();
-        for (int i = order.size() - 1; i >= 0; i--) {
-            PlanningCancellation.check();
-            K key = order.get(i);
-            CraftPattern<K> best = null;
-            double minimum = Double.POSITIVE_INFINITY;
-            for (var pattern : patterns.get(key)) {
-                double value = 1;
-                for (var input : pattern.inputs()) value += cost.get(input.key()) * input.amount();
-                value /= pattern.outputAmount();
-                if (best == null || value < minimum) {
-                    best = pattern;
-                    minimum = value;
-                }
-            }
-            if (best != null) selected.put(key, List.of(best));
-            cost.put(key, best == null ? 0 : minimum);
-        }
-        return selected;
     }
 }

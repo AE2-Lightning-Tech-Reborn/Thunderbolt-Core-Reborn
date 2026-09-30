@@ -540,14 +540,16 @@ public final class CraftPlannerV2<K> {
         long reserve = Math.max(FeasibleConsumptionOptimizer.EXPORT_RESERVE_NANOS, remaining / 10);
         long allowance = Math.min(FeasibleConsumptionOptimizer.MAX_NANOS - session.consumptionOptimizationNanos,
                 remaining - reserve);
-        if (allowance <= 0 || session.searchWorkBudget.remaining < reachableWork) return initial;
+        if (allowance <= 0 || session.searchWorkBudget.remaining <= 0) return initial;
         long optimizationStarted = System.nanoTime();
         FeasibleConsumptionOptimizer.Result<K> optimized;
         try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
             optimized = FeasibleConsumptionOptimizer.optimize(graph, target, amount, initial.plan(),
                     FeasibleConsumptionOptimizer.MAX_PROBES - session.consumptionOptimizationProbes,
                     candidateGraph -> {
-                        if (!session.searchWorkBudget.tryConsume(reachableWork)) return null;
+                        // A probe plans only its local region; charge that region, not the pack.
+                        int work = reachableWorkEstimate(candidateGraph, target);
+                        if (!session.searchWorkBudget.tryConsume(work)) return null;
                         var probe = new PlanningSession<K>();
                         probe.optimizeFeasible = false;
                         probe.refineMissing = false;
@@ -558,7 +560,7 @@ public final class CraftPlannerV2<K> {
                         // Stock-dependent capacities are rebuilt; sharing PreparedGraph would reuse
                         // the incumbent's larger stock. Patterns and all work limits remain shared.
                         return planCore(candidateGraph, target, amount, visitCap, searchWorkBudget,
-                                reachableWork, probe).plan();
+                                work, probe).plan();
                     });
         } finally {
             session.consumptionOptimizationNanos += Math.max(0L, System.nanoTime() - optimizationStarted);
