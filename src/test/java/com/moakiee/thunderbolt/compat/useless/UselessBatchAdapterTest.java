@@ -54,6 +54,28 @@ class UselessBatchAdapterTest {
     }
 
     @Test
+    void admissionAppliesRuntimeThrottleOnlyOnce() throws Exception {
+        var provider = new Provider();
+        provider.target.limit = BigInteger.valueOf(1000);
+        provider.target.throttlePercent = 50;
+        var input = inputs();
+        assertEquals(4, adapter().resolve(provider).pushBatch(null, input, 8));
+        assertEquals(BigInteger.valueOf(8), provider.target.offered);
+        assertEquals(2, input[0].get(appeng.api.stacks.AEItemKey.of(Items.STONE)));
+        assertEquals(0, provider.ordinaryCalls);
+    }
+
+    @Test
+    void minimumThrottleDoesNotCollapseCpuBatchToOneCopy() throws Exception {
+        var provider = new Provider();
+        provider.target.limit = BigInteger.valueOf(1000);
+        provider.target.throttlePercent = 2;
+        assertEquals(251, adapter().resolve(provider).pushBatch(null, inputs(), 256));
+        assertEquals(BigInteger.valueOf(256), provider.target.offered);
+        assertEquals(0, provider.ordinaryCalls);
+    }
+
+    @Test
     void longLimitClampsRemoteCapacity() throws Exception {
         var provider = new Provider();
         provider.target.limit = BigInteger.ONE.shiftLeft(100);
@@ -113,16 +135,20 @@ class UselessBatchAdapterTest {
     public static final class Target {
         BigInteger limit = BigInteger.valueOf(3);
         BigInteger offered;
+        int throttlePercent = 100;
         boolean success = true;
         RuntimeException failure;
         public Capacity capacity(IPatternDetails pattern, KeyCounter[] input, BigInteger requested) {
-            return new Capacity(limit);
+            var accepted = limit.min(requested);
+            return new Capacity(accepted.signum() <= 0 ? BigInteger.ZERO
+                    : accepted.multiply(BigInteger.valueOf(throttlePercent)).divide(BigInteger.valueOf(100)).max(BigInteger.ONE));
         }
         public Batch admit(IPatternDetails pattern, KeyCounter[] input, BigInteger requested, Binding binding) {
             offered = requested;
             assertNull(binding);
+            var accepted = capacity(pattern, input, requested).accepted();
             return new Batch() {
-                public BigInteger count() { return requested; }
+                public BigInteger count() { return accepted; }
                 public boolean commit(KeyCounter[] prototype) {
                     assertSame(input, prototype);
                     if (failure != null) throw failure;
