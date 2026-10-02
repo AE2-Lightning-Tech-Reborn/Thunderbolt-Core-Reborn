@@ -78,8 +78,10 @@ public final class UselessBatchAdapter implements BatchProviderResolver {
                     // BatchExecutor has already reserved every offered copy. Only the
                     // prototype is consumed here; it refunds the unaccepted copies.
                     // Outputs return through ME storage and normal CPU waiting-for accounting.
+                    // admit recalculates capacity, including the runtime throttle. Keep the
+                    // original request so an already throttled count is not scaled twice.
                     var batch = UselessBatchApi.invoke(api.admit, target,
-                            details, prototype, capacityCount.min(requested), null);
+                            details, prototype, requested, null);
                     if (batch != null) {
                         var count = (BigInteger) UselessBatchApi.invoke(api.count, batch);
                         if (count.signum() <= 0 || count.compareTo(requested) > 0) {
