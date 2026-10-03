@@ -47,8 +47,10 @@ independent material balance, cancellation and incumbent retention are covered.
 
 - The global batch-provider adapters from `7559206` already exist in destination
   baseline `2fcb92e`; they are not reimported.
-- Deferred: `0297f2d`, the Useless/Omni Alloy Furnace batch-throttle compatibility
-  correction, including its tests. Existing optional-mod bridges remain unchanged.
+- Not applicable to official Useless 1.20.1: the Useless/Omni Alloy Furnace
+  batch-throttle correction (`0297f2d`) requires the 1.21.1 BigInteger API.
+  The inactive Useless bridges and their dedicated tests were removed after the
+  2026-10-04 source audit; see `global-batch-provider-adapters.zh-CN.md`.
 - Not applicable: `9c95dd4` makes a client injection optional because AE2 19.2.18
   removed `CPUSelectionList.formatStorage`. The actual AE2 15.4.10 sources still
   define that method with the expected descriptor, so its required injection is

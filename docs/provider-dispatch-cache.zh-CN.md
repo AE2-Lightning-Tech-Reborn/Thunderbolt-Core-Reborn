@@ -25,8 +25,8 @@ Mixin 在该处维护修订号，经 `CraftingServiceAccessor` 暴露给调度�
 缓存按解析器和提供器的对象身份区分。普通 `BatchProviderAdapter` 仍每次接收实际 job/pattern；
 `cacheResolutionForTick=false` 仍绕过缓存。
 
-首次在一个 tick 使用缓存的适配器端点前，会调用 `beginDispatchTick(tick)`。TB 的 NeoECO/
-Useless 端点利用它清除临时的普通投递降级，不能把本 tick 拒绝 FastPath 永久缓存。
+首次在一个 tick 使用缓存的适配器端点前，会调用 `beginDispatchTick(tick)`。TB 的 NeoECO
+端点利用它清除临时的普通投递降级，不能把本 tick 拒绝 FastPath 永久缓存。
 调用是惰性的，不在 tick 边界遍历所有已缓存提供器。
 
 使用按身份比较的有界 LRU：每个调度器最多 4096 个样板，最多 8 个解析器，每个解析器最多

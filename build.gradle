@@ -307,7 +307,7 @@ tasks.register('optimizationBenchmark', JavaExec) {
     group = 'verification'
     description = 'Runs opt-in planner and batch-dispatch allocation benchmarks in a separate JVM.'
     dependsOn 'testClasses'
-    mainClass = 'com.moakiee.thunderbolt.compat.useless.OptimizationBenchmark'
+    mainClass = 'com.moakiee.thunderbolt.core.OptimizationBenchmark'
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
     def baseline = providers.gradleProperty('optimizationBaseline').getOrElse('false').toBoolean()
     classpath = baseline
