@@ -68,25 +68,27 @@ public final class UselessBatchAdapter implements BatchProviderResolver {
         public long pushBatch(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft) {
             if (maxCraft <= 0L) return 0L;
             // Targets are live machine views: never retain one across dispatches/ticks.
-            var target = UselessBatchApi.invoke(api.target, delegate);
-            var prototype = copyInputs(oneCopy);
+            var target = api.target(delegate);
             if (target != null) {
+                var prototype = copyInputs(oneCopy);
                 var requested = BigInteger.valueOf(maxCraft);
-                var capacity = UselessBatchApi.invoke(api.capacity, target, details, prototype, requested);
-                var capacityCount = (BigInteger) UselessBatchApi.invoke(api.accepted, capacity);
+                var capacity = api.capacity(target, details, prototype, requested);
+                var capacityCount = api.accepted(capacity);
                 if (capacityCount.signum() > 0) {
                     // BatchExecutor has already reserved every offered copy. Only the
                     // prototype is consumed here; it refunds the unaccepted copies.
                     // Outputs return through ME storage and normal CPU waiting-for accounting.
-                    var batch = UselessBatchApi.invoke(api.admit, target,
-                            details, prototype, capacityCount.min(requested), null);
+                    // admit recalculates capacity, including the runtime throttle. Keep the
+                    // original request so an already throttled count is not scaled twice.
+                    var batch = api.admit(target,
+                            details, prototype, requested, null);
                     if (batch != null) {
-                        var count = (BigInteger) UselessBatchApi.invoke(api.count, batch);
+                        var count = api.count(batch);
                         if (count.signum() <= 0 || count.compareTo(requested) > 0) {
                             return maxCraft;
                         }
                         long accepted = count.longValueExact();
-                        if ((boolean) UselessBatchApi.invoke(api.commit, batch, (Object) prototype)) {
+                        if (api.commit(batch, prototype)) {
                             return maxCraft - accepted;
                         }
                     }

@@ -58,7 +58,12 @@ final class FeasibleConsumptionOptimizer {
 
     static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
             int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle) {
-        var state = new Search<>(graph, target, amount, initial, probeLimit, oracle);
+        return optimize(graph, target, amount, initial, probeLimit, oracle, new IndexCache<>());
+    }
+
+    static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
+            int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache) {
+        var state = new Search<>(graph, target, amount, initial, probeLimit, oracle, cache);
         try {
             state.run();
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
@@ -69,12 +74,34 @@ final class FeasibleConsumptionOptimizer {
         return new Result<>(state.best, state.probes, state.improvements, state.pruned);
     }
 
+    /** Calculation-owned recipe index. Stock limits and propagation remain private to each probe. */
+    static final class IndexCache<K> {
+        private CraftGraph<K> graph;
+        private K target;
+        private Index<K> index;
+        private boolean compiled;
+
+        Index<K> get(CraftGraph<K> candidate, K key) {
+            PlanningCancellation.check();
+            if (!compiled || graph != candidate || !java.util.Objects.equals(target, key)) {
+                // Publish only a completed scan, so cancellation cannot leave a partial index.
+                var prepared = Index.build(candidate, key);
+                graph = candidate;
+                target = key;
+                index = prepared;
+                compiled = true;
+            }
+            return index;
+        }
+    }
+
     private static final class Search<K> {
         private final CraftGraph<K> graph;
         private final K target;
         private final long amount;
         private final int limit;
         private final Function<CraftGraph<K>, CraftPlan<K>> oracle;
+        private final IndexCache<K> cache;
         private CraftPlan<K> best;
         private int probes;
         private int improvements;
@@ -109,13 +136,14 @@ final class FeasibleConsumptionOptimizer {
         private int regionSize;
 
         Search(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial, int limit,
-                Function<CraftGraph<K>, CraftPlan<K>> oracle) {
+                Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache) {
             this.graph = graph;
             this.target = target;
             this.amount = amount;
             this.best = initial;
             this.limit = Math.min(MAX_PROBES, limit);
             this.oracle = oracle;
+            this.cache = cache;
         }
 
         void run() {
@@ -128,7 +156,7 @@ final class FeasibleConsumptionOptimizer {
             initialExecutions = executionCount(best);
             initialStock = stockCount(best);
             long indexStarted = System.nanoTime();
-            index = Index.build(graph, target);
+            index = cache.get(graph, target);
             indexNanos = System.nanoTime() - indexStarted;
             if (index == null) {
                 stop = "saturated";

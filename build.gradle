@@ -92,6 +92,54 @@ mixin {
     add sourceSets.main, "${mod_id}.refmap.json"
 }
 
+// MixinGradle writes these beside javac's temporary incremental state. Track the
+// generated files explicitly so compileJava cache restores include the refmap and mappings.
+tasks.named('compileJava', JavaCompile) {
+    outputs.file(layout.buildDirectory.file('tmp/compileJava/compileJava-refmap.json'))
+            .withPropertyName('mixinProcessorRefmap')
+    outputs.file(layout.buildDirectory.file("tmp/compileJava/${mod_id}.refmap.json"))
+            .withPropertyName('mixinReleaseRefmap')
+    outputs.file(layout.buildDirectory.file('tmp/compileJava/compileJava-mappings.tsrg'))
+            .withPropertyName('mixinMappings')
+}
+
+tasks.register('verifyReleaseJar') {
+    group = 'verification'
+    description = 'Checks the remapped release jar contains its generated Mixin refmap and configuration.'
+    dependsOn 'reobfJarJar'
+    def releaseJar = tasks.named('jarJar', Jar).flatMap { it.archiveFile }
+    inputs.file(releaseJar)
+    inputs.file(layout.buildDirectory.file("tmp/compileJava/${mod_id}.refmap.json"))
+    doLast {
+        def expected = layout.buildDirectory.file("tmp/compileJava/${mod_id}.refmap.json").get().asFile
+        if (!expected.isFile()) throw new GradleException('Generated Mixin refmap is missing')
+        def archive = new java.util.zip.ZipFile(releaseJar.get().asFile)
+        try {
+            def refmaps = java.util.Collections.list(archive.entries()).findAll {
+                it.name == "${mod_id}.refmap.json"
+            }
+            if (refmaps.size() != 1) throw new GradleException('Release jar must contain exactly one Mixin refmap')
+            if (archive.getInputStream(refmaps[0]).text != expected.getText('UTF-8')) {
+                throw new GradleException('Release Mixin refmap differs from the generated refmap')
+            }
+            def refmap = new groovy.json.JsonSlurper().parse(expected, 'UTF-8')
+            if (!refmap.mappings) throw new GradleException('Release Mixin refmap has no mappings')
+            def manifest = archive.getEntry('META-INF/MANIFEST.MF')
+            if (manifest == null || !archive.getInputStream(manifest).text.contains("MixinConfigs: ${mod_id}.mixins.json")) {
+                throw new GradleException('Release jar is missing its Mixin manifest declaration')
+            }
+            if (archive.getEntry("${mod_id}.mixins.json") == null
+                    || archive.getEntry('META-INF/jarjar/metadata.json') == null) {
+                throw new GradleException('Release jar is missing Mixin configuration or JarJar metadata')
+            }
+        } finally {
+            archive.close()
+        }
+    }
+}
+
+tasks.named('build') { dependsOn 'verifyReleaseJar' }
+
 // Forge discovers Mixin configs from the mod manifest. Registering the config through
 // MixinGradle's `config` method also adds an early `--mixin.config` launch argument; on
 // ForgeGradle 6 userdev that argument is processed before exploded mod resources join the
@@ -253,6 +301,20 @@ tasks.register("referenceCapabilityTest", Test) {
 tasks.register('prepareOptionalModShapeArtifacts', Sync) {
     from configurations.optionalModShapeArtifacts
     into layout.buildDirectory.dir('optional-mod-shapes')
+}
+
+tasks.register('optimizationBenchmark', JavaExec) {
+    group = 'verification'
+    description = 'Runs opt-in planner and batch-dispatch allocation benchmarks in a separate JVM.'
+    dependsOn 'testClasses'
+    mainClass = 'com.moakiee.thunderbolt.compat.useless.OptimizationBenchmark'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    def baseline = providers.gradleProperty('optimizationBaseline').getOrElse('false').toBoolean()
+    classpath = baseline
+            ? files(layout.buildDirectory.dir('optimization-baseline/classes')) + sourceSets.test.runtimeClasspath
+            : sourceSets.test.runtimeClasspath
+    def label = providers.gradleProperty('optimizationBenchmarkLabel').getOrElse(baseline ? 'before' : 'after')
+    args layout.buildDirectory.file("optimization-benchmark/${label}.json").get().asFile.absolutePath
 }
 
 processResources {

@@ -1,5 +1,6 @@
 package com.moakiee.thunderbolt.compat.useless;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -13,25 +14,33 @@ import org.jetbrains.annotations.Nullable;
 /** Uses Useless's released Smart Doubling protocol, including already-scaled patterns. */
 public final class UselessScaledBatchAdapter implements BatchProviderResolver {
     private final Class<?> providerType;
-    private final Method scale;
-    private final Method unwrap;
-    private final Method operations;
-    private final Method maximum;
+    private final MethodHandle scale;
+    private final MethodHandle unwrap;
+    private final MethodHandle operations;
+    private final MethodHandle maximum;
 
     UselessScaledBatchAdapter(Class<?> providerType, Class<?> patterns) throws NoSuchMethodException {
         this.providerType = providerType;
-        scale = patterns.getMethod("scale", IPatternDetails.class, long.class);
-        unwrap = patterns.getMethod("unwrap", IPatternDetails.class);
-        operations = patterns.getMethod("operationsPerPush", IPatternDetails.class);
-        maximum = patterns.getMethod("maximumSafeMultiplier", IPatternDetails.class);
-        for (var method : List.of(scale, unwrap, operations, maximum)) {
+        Method scaleMethod = patterns.getMethod("scale", IPatternDetails.class, long.class);
+        Method unwrapMethod = patterns.getMethod("unwrap", IPatternDetails.class);
+        Method operationsMethod = patterns.getMethod("operationsPerPush", IPatternDetails.class);
+        Method maximumMethod = patterns.getMethod("maximumSafeMultiplier", IPatternDetails.class);
+        for (var method : List.of(scaleMethod, unwrapMethod, operationsMethod, maximumMethod)) {
             if (!Modifier.isStatic(method.getModifiers())) throw new NoSuchMethodException(method.toString());
         }
-        if (!IPatternDetails.class.isAssignableFrom(scale.getReturnType())
-                || unwrap.getReturnType() != IPatternDetails.class
-                || operations.getReturnType() != long.class || maximum.getReturnType() != long.class) {
+        if (!IPatternDetails.class.isAssignableFrom(scaleMethod.getReturnType())
+                || unwrapMethod.getReturnType() != IPatternDetails.class
+                || operationsMethod.getReturnType() != long.class || maximumMethod.getReturnType() != long.class) {
             throw new NoSuchMethodException("Incompatible Useless Smart Doubling signatures");
         }
+        scale = UselessBatchApi.staticMethod(patterns, "scale", scaleMethod.getReturnType(),
+                IPatternDetails.class, long.class);
+        unwrap = UselessBatchApi.staticMethod(patterns, "unwrap", unwrapMethod.getReturnType(),
+                IPatternDetails.class);
+        operations = UselessBatchApi.staticMethod(patterns, "operationsPerPush", operationsMethod.getReturnType(),
+                IPatternDetails.class);
+        maximum = UselessBatchApi.staticMethod(patterns, "maximumSafeMultiplier", maximumMethod.getReturnType(),
+                IPatternDetails.class);
     }
 
     static @Nullable BatchProviderResolver loadAdapter(ClassLoader loader) {
@@ -57,9 +66,9 @@ public final class UselessScaledBatchAdapter implements BatchProviderResolver {
 
         @Override public long getBatchCapacity(IPatternDetails details) {
             if (isBusy()) return 0;
-            var original = (IPatternDetails) UselessBatchApi.invoke(unwrap, null, details);
-            long factor = (long) UselessBatchApi.invoke(operations, null, details);
-            long limit = (long) UselessBatchApi.invoke(maximum, null, original);
+            var original = (IPatternDetails) UselessBatchApi.invokeStatic(unwrap, details);
+            long factor = (long) UselessBatchApi.invokeStatic(operations, details);
+            long limit = (long) UselessBatchApi.invokeStatic(maximum, original);
             return factor > 0 && limit > 0 ? limit / factor : 0;
         }
 
@@ -80,7 +89,7 @@ public final class UselessScaledBatchAdapter implements BatchProviderResolver {
                 owned[i] = new KeyCounter();
                 for (var entry : template[i]) owned[i].add(entry.getKey(), Math.multiplyExact(entry.getLongValue(), count));
             }
-            var pattern = (IPatternDetails) UselessBatchApi.invoke(scale, null, details, count);
+            var pattern = (IPatternDetails) UselessBatchApi.invokeStatic(scale, details, count);
             // Do not swallow push exceptions: ownership may already have transferred.
             return delegate.pushPattern(pattern, owned) ? requested - count : requested;
         }
