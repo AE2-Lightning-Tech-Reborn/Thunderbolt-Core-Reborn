@@ -313,7 +313,8 @@ public final class FastCraftingPlanner {
             var exact = CraftPlannerV2.planExactDiagnostic(compiled.graph, output,
                     BigInteger.valueOf(amount), session.plannerSession, compiled.emittable);
             return FastAttempt.handled(ExactPlanPreview.create(output, amount, multi,
-                    exact, compiled.durability, compiled.emittable), Map.of());
+                    exact, compiled.durability, compiled.emittable,
+                    key -> usableStock(snapshot, key, reservedStock)), Map.of());
         }
         // Emittable shortfalls are supplied by emitters, not crafted, so they don't make a plan
         // infeasible — only a non-emittable shortfall does.
@@ -538,9 +539,9 @@ public final class FastCraftingPlanner {
                 itemUnitKeys.add(key); // this node is priced in whole items from here on
             }
 
-            // Emitable items (e.g. via level/energy emitters) are an infinite on-demand source: keep
-            // them as a leaf with their current real stock, and treat any shortfall as emitted (handled
-            // in toAe2Plan) rather than crafted. Never decline just because an item is emittable.
+            // Emittable items (e.g. via level/energy emitters) are an infinite on-demand source.
+            // This virtual stock includes real inventory; plan conversion splits it back into
+            // policy-allowed physical stock and the shortfall supplied by the emitter.
             if (!lateBound && craftingService.canEmitFor(key)) {
                 emittable.add(key);
                 builder.stock(key, Sat.SAT);
@@ -1506,7 +1507,10 @@ public final class FastCraftingPlanner {
         for (Map.Entry<AEKey, Long> e : plan.usedStock().entrySet()) {
             PlanningCancellation.check();
             if (emittable.contains(e.getKey())) {
-                emittedItems.add(e.getKey(), e.getValue());
+                long fromStock = Math.min(e.getValue(), usableStock(snapshot, e.getKey(), reservedStock));
+                if (fromStock > 0) usedItems.add(e.getKey(), fromStock);
+                long fromEmitter = e.getValue() - fromStock;
+                if (fromEmitter > 0) emittedItems.add(e.getKey(), fromEmitter);
                 continue;
             }
             DurabilityChain<AEKey> chain = durability.get(e.getKey());
