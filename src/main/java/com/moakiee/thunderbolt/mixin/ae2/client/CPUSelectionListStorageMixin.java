@@ -12,7 +12,8 @@ import com.moakiee.thunderbolt.core.storage.InfiniteCpuStorageFormat;
 
 @Mixin(value = CPUSelectionList.class, remap = false)
 public abstract class CPUSelectionListStorageMixin {
-    @Inject(method = "formatStorage", at = @At("HEAD"), cancellable = true)
+    // AE2 versions without this formatter use TooltipsByteAmountMixin instead.
+    @Inject(method = "formatStorage", at = @At("HEAD"), cancellable = true, require = 0)
     private void thunderbolt$formatInfiniteStorage(
             CraftingStatusMenu.CraftingCpuListEntry cpu,
             CallbackInfoReturnable<String> cir) {

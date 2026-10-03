@@ -159,6 +159,8 @@ public final class CraftPlannerV2<K> {
         private List<ConservativeReplenishment<K>> cutPolicies = List.of();
         private boolean refineMissing = true;
         boolean optimizeFeasible = true;
+        private final FeasibleConsumptionOptimizer.IndexCache<K> consumptionIndex =
+                new FeasibleConsumptionOptimizer.IndexCache<>();
         private int consumptionOptimizationProbes;
         private long consumptionOptimizationNanos;
         private int missingRefinementProbes;
@@ -563,7 +565,7 @@ public final class CraftPlannerV2<K> {
                         // the incumbent's larger stock. Patterns and all work limits remain shared.
                         return planCore(candidateGraph, target, amount, visitCap, searchWorkBudget,
                                 work, probe).plan();
-                    });
+                    }, session.consumptionIndex);
         } finally {
             session.consumptionOptimizationNanos += Math.max(0L, System.nanoTime() - optimizationStarted);
         }

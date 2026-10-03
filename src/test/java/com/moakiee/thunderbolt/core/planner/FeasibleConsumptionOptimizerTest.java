@@ -13,6 +13,40 @@ import org.junit.jupiter.api.Test;
 
 class FeasibleConsumptionOptimizerTest {
     @Test
+    void indexCacheIsCalculationScopedAndCancellationDoesNotPublishPartialState() {
+        var graph = batchGraph(1);
+        var cache = new FeasibleConsumptionOptimizer.IndexCache<String>();
+        try (var ignored = PlanningCancellation.limitOptionalWork(0)) {
+            assertThrows(PlanningCancellation.OptionalWorkLimit.class, () -> cache.get(graph, "T"));
+        }
+        var index = cache.get(graph, "T");
+        assertNotNull(index);
+        assertSame(index, cache.get(graph, "T"));
+        assertNotSame(index, cache.get(graph.withStockLimits(Map.of("raw", 2L)), "T"));
+        assertNotSame(index, cache.get(graph, "raw"));
+        assertNotSame(index, cache.get(graph, "T"));
+        try (var ignored = PlanningCancellation.limitOptionalWork(0)) {
+            assertThrows(PlanningCancellation.OptionalWorkLimit.class, () -> cache.get(graph, "T"));
+        }
+    }
+
+    @Test
+    void cachedIndexRecomputesQuantityAndStockPropagation() {
+        var graph = batchGraph(1);
+        var cache = new FeasibleConsumptionOptimizer.IndexCache<String>();
+        for (long amount : new long[] {1, 2, 1}) {
+            var initial = baseline(graph, "T", amount);
+            var uncached = FeasibleConsumptionOptimizer.optimize(graph, "T", amount, initial,
+                    32, candidate -> baseline(candidate, "T", amount));
+            var cached = FeasibleConsumptionOptimizer.optimize(graph, "T", amount, initial,
+                    32, candidate -> baseline(candidate, "T", amount), cache);
+            assertEquals(uncached.plan().usedStock(), cached.plan().usedStock());
+            assertEquals(executions(uncached.plan()), executions(cached.plan()));
+            assertBalance(graph, cached.plan(), "T", amount);
+        }
+    }
+
+    @Test
     void improvesAnAlreadyFeasibleBatchChoiceAtUnitAndTrillionScale() {
         for (long scale : new long[] {1, 1_000_000, 1_000_000_000_000L}) {
             var graph = batchGraph(scale);
