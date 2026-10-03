@@ -55,7 +55,7 @@ properties:
   (default: `2000`)
 - `-Dthunderbolt.planningStopGraceMs=<ms>`: total post-deadline grace before
   isolation (default: `5000`)
-- `-Dthunderbolt.maxCraftSearchWork=<count>`: planner search-work budget
+- `-Dthunderbolt.maxCraftSearchWork=<count>`: planner search-work budget (defaults to four times `thunderbolt.maxReachablePlanningWork`, or `262144` with the default graph guard)
 - `-Dthunderbolt.maxCraftDepth=<count>`: planner depth limit
 
 ## Development

@@ -36,7 +36,7 @@
 - `-Dthunderbolt.planningTimeoutMs=<毫秒>`：协作退出期限（默认：`3000`）
 - `-Dthunderbolt.planningInterruptGraceMs=<毫秒>`：发送中断前的宽限时间（默认：`2000`）
 - `-Dthunderbolt.planningStopGraceMs=<毫秒>`：超时后到隔离的总宽限时间（默认：`5000`）
-- `-Dthunderbolt.maxCraftSearchWork=<数量>`：规划器搜索工作量上限
+- `-Dthunderbolt.maxCraftSearchWork=<数量>`：规划器搜索工作量上限（默认：`thunderbolt.maxReachablePlanningWork` 的 4 倍，即 `262144`）
 - `-Dthunderbolt.maxCraftDepth=<数量>`：规划深度上限
 
 ## 开发构建
