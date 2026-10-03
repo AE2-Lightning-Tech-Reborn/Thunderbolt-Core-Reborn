@@ -38,6 +38,7 @@
 - `-Dthunderbolt.planningStopGraceMs=<毫秒>`：超时后到隔离的总宽限时间（默认：`5000`）
 - `-Dthunderbolt.maxCraftSearchWork=<数量>`：规划器搜索工作量上限（默认：`thunderbolt.maxReachablePlanningWork` 的 4 倍，即 `262144`）
 - `-Dthunderbolt.maxCraftDepth=<数量>`：规划深度上限
+- `-Dthunderbolt.feasibleOptimizationStallMs=<毫秒>`：可选的方案优化连续这么久没有把执行次数减少 1% 就停止（默认：`500`；`0` 表示跑满 2.8 秒上限）
 
 ## 开发构建
 

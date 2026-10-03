@@ -134,14 +134,39 @@ class FeasibleConsumptionOptimizerTest {
     }
 
     @Test
-    void optionalProbeLimitFallsWithReachableGraphWork() {
-        assertEquals(FeasibleConsumptionOptimizer.MAX_PROBES,
-                CraftPlannerV2.consumptionOptimizationProbeLimit(4_096));
-        assertEquals(8, CraftPlannerV2.consumptionOptimizationProbeLimit(4_097));
-        assertEquals(8, CraftPlannerV2.consumptionOptimizationProbeLimit(8_192));
-        assertEquals(2, CraftPlannerV2.consumptionOptimizationProbeLimit(8_193));
-        assertEquals(2, CraftPlannerV2.consumptionOptimizationProbeLimit(16_384));
-        assertEquals(0, CraftPlannerV2.consumptionOptimizationProbeLimit(16_385));
+    void wideGraphsStillOptimizeWhenOnlyTheLocalProbeFitsTheSearchBudget() {
+        var builder = CraftGraph.<String>builder().stock("raw", 1)
+                .pattern("T", 1, List.of(CraftInput.of("A", 1)))
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1)))
+                .pattern("A", 1, List.of(CraftInput.of("raw", 1)));
+        // Unfunded alternatives enlarge the reachable graph, but cannot fire inside the
+        // incumbent's stock limits. A useful probe only needs the direct raw -> T route.
+        for (int i = 0; i < 6_000; i++) {
+            builder.pattern("T", 1, List.of(CraftInput.of("unavailable" + i, 1)));
+        }
+        var graph = builder.build();
+        assertTrue(CraftPlannerV2.reachableWorkEstimate(graph, "T") > 16_384);
+        var initial = baseline(graph, "T", 1);
+        assertEquals(2, executions(initial));
+        var result = CraftPlannerV2.planDetailed(graph, "T", 1, CraftPlannerV2.DEFAULT_VISIT_CAP, 256);
+        assertTrue(result.plan().feasible(), result::toString);
+        assertEquals(1, executions(result.plan()));
+        assertEquals(initial.usedStock(), result.plan().usedStock());
+        assertTrue(result.diagnostics().consumptionOptimizationProbes() > 0);
+        assertBalance(graph, result.plan(), "T", 1);
+    }
+
+    @Test
+    void insufficientSearchBudgetRetainsTheCertifiedIncumbent() {
+        var graph = CraftGraph.<String>builder().stock("raw", 1)
+                .pattern("T", 1, List.of(CraftInput.of("A", 1)))
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1)))
+                .pattern("A", 1, List.of(CraftInput.of("raw", 1))).build();
+        var result = CraftPlannerV2.planDetailed(graph, "T", 1, CraftPlannerV2.DEFAULT_VISIT_CAP, 1);
+        assertTrue(result.plan().feasible());
+        assertEquals(2, executions(result.plan()));
+        assertEquals(0, result.diagnostics().consumptionOptimizationImprovements());
+        assertBalance(graph, result.plan(), "T", 1);
     }
 
     @Test
@@ -170,7 +195,7 @@ class FeasibleConsumptionOptimizerTest {
     @Test
     void randomBatchAlternativesAgreeWithIndependentMinimumAndNeverLoseFeasibility() {
         var random = new Random(180926);
-        int improved = 0;
+        int improved = 0, fewestFound = 0, optimal = 0;
         for (int sample = 0; sample < 256; sample++) {
             int n = 1 + random.nextInt(8);
             int aOut = 1 + random.nextInt(8), bOut = 1 + random.nextInt(8);
@@ -181,15 +206,27 @@ class FeasibleConsumptionOptimizerTest {
             var initial = baseline(graph, "T", n);
             var optimized = CraftPlannerV2.plan(graph, "T", n);
             assertTrue(optimized.feasible());
-            assertTrue(optimized.usedStock().get("raw") <= initial.usedStock().get("raw"));
-            long optimum = Long.MAX_VALUE;
-            for (int a = 0; a <= n; a++) for (int b = 0; b <= n; b++)
-                if (a*aOut+b*bOut >= n) optimum = Math.min(optimum, a*aCost+b*bCost);
-            assertEquals(optimum, optimized.usedStock().get("raw"), "sample="+sample);
-            if (optimized.usedStock().get("raw") < initial.usedStock().get("raw")) improved++;
+            long limit = initial.usedStock().get("raw"), raw = optimized.usedStock().get("raw");
+            long executions = executions(optimized), before = executions(initial);
+            // Fewer executions first, then less raw. Probes never draw more than the incumbent.
+            assertTrue(raw <= limit, "sample="+sample);
+            assertTrue(executions < before || executions == before && raw <= limit, "sample="+sample);
+            long fewest = Long.MAX_VALUE, optimum = Long.MAX_VALUE;
+            for (int a = 0; a <= n; a++) for (int b = 0; b <= n; b++) {
+                long cost = a*aCost+b*bCost;
+                if (a*aOut+b*bOut < n || cost > limit) continue;
+                if (a+b < fewest || a+b == fewest && cost < optimum) { fewest = a+b; optimum = cost; }
+            }
+            if (executions == fewest) fewestFound++;
+            if (executions == fewest && raw == optimum) optimal++;
+            if (executions < before || raw < limit) improved++;
             assertBalance(graph, optimized, "T", n);
         }
         assertTrue(improved > 20, "the corpus must exercise real optimization");
+        // Probes withdraw one route at a time or pin one pattern per output, so a few mixed
+        // allocations remain out of reach. Stock has no probes of its own, only the tie-break.
+        assertTrue(fewestFound >= 253, "fewestFound=" + fewestFound);
+        assertTrue(optimal >= 249, "optimal=" + optimal);
     }
 
     private static CraftGraph<String> batchGraph(long scale) {

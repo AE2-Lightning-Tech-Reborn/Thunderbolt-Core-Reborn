@@ -57,6 +57,9 @@ properties:
   isolation (default: `5000`)
 - `-Dthunderbolt.maxCraftSearchWork=<count>`: planner search-work budget (defaults to four times `thunderbolt.maxReachablePlanningWork`, or `262144` with the default graph guard)
 - `-Dthunderbolt.maxCraftDepth=<count>`: planner depth limit
+- `-Dthunderbolt.feasibleOptimizationStallMs=<ms>`: stop optional optimization after
+  this long without a 1% execution reduction (default: `500`; `0` uses the full
+  2.8-second optimization allowance)
 
 ## Development
 

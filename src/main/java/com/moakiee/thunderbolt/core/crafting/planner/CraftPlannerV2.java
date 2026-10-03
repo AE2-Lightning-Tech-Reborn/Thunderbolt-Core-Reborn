@@ -70,16 +70,6 @@ public final class CraftPlannerV2<K> {
      */
     public static final int DEFAULT_VISIT_CAP = 256;
 
-    /** Optional feasible-plan probes are useful on small graphs but too expensive on wide DAGs. */
-    private static final int MAX_CONSUMPTION_OPTIMIZATION_WORK = Math.max(
-            4_096, Integer.getInteger("thunderbolt.maxConsumptionOptimizationWork", 16_384));
-
-    static int consumptionOptimizationProbeLimit(int reachableWork) {
-        if (reachableWork > MAX_CONSUMPTION_OPTIMIZATION_WORK) return 0;
-        if (reachableWork > 8_192) return 2;
-        if (reachableWork > 4_096) return 8;
-        return FeasibleConsumptionOptimizer.MAX_PROBES;
-    }
     /**
      * Whole-graph preprocessing guard. Optional exact/local stages have their own smaller budgets,
      * but even linear normalization becomes disruptive on a deliberately enormous reachable graph.
@@ -542,10 +532,9 @@ public final class CraftPlannerV2<K> {
                                 workBefore - session.searchWorkBudget.remaining, System.nanoTime() - started));
             }
         }
-        int probeLimit = consumptionOptimizationProbeLimit(reachableWork);
         if (!session.optimizeFeasible || !initial.plan().feasible() || amount <= 0
                 || amount >= Sat.SAT || initial.plan().usedStock().isEmpty()
-                || session.consumptionOptimizationProbes >= probeLimit)
+                || session.consumptionOptimizationProbes >= FeasibleConsumptionOptimizer.MAX_PROBES)
             return initial;
         // Fixed ordinary chains need no optional scan or second planning pass.
         if (initial.diagnostics().contendedOutputs() == 0) return initial;
@@ -553,14 +542,16 @@ public final class CraftPlannerV2<K> {
         long reserve = Math.max(FeasibleConsumptionOptimizer.EXPORT_RESERVE_NANOS, remaining / 10);
         long allowance = Math.min(FeasibleConsumptionOptimizer.MAX_NANOS - session.consumptionOptimizationNanos,
                 remaining - reserve);
-        if (allowance <= 0 || session.searchWorkBudget.remaining < reachableWork) return initial;
+        if (allowance <= 0 || session.searchWorkBudget.remaining <= 0) return initial;
         long optimizationStarted = System.nanoTime();
         FeasibleConsumptionOptimizer.Result<K> optimized;
         try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
             optimized = FeasibleConsumptionOptimizer.optimize(graph, target, amount, initial.plan(),
-                    probeLimit - session.consumptionOptimizationProbes,
+                    FeasibleConsumptionOptimizer.MAX_PROBES - session.consumptionOptimizationProbes,
                     candidateGraph -> {
-                        if (!session.searchWorkBudget.tryConsume(reachableWork)) return null;
+                        // A probe plans only its local region; charge that region, not the pack.
+                        int work = reachableWorkEstimate(candidateGraph, target);
+                        if (!session.searchWorkBudget.tryConsume(work)) return null;
                         var probe = new PlanningSession<K>();
                         probe.optimizeFeasible = false;
                         probe.refineMissing = false;
@@ -571,7 +562,7 @@ public final class CraftPlannerV2<K> {
                         // Stock-dependent capacities are rebuilt; sharing PreparedGraph would reuse
                         // the incumbent's larger stock. Patterns and all work limits remain shared.
                         return planCore(candidateGraph, target, amount, visitCap, searchWorkBudget,
-                                reachableWork, probe).plan();
+                                work, probe).plan();
                     });
         } finally {
             session.consumptionOptimizationNanos += Math.max(0L, System.nanoTime() - optimizationStarted);
