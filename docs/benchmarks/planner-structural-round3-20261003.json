@@ -1,0 +1,175 @@
+{
+  "date": "2026-10-03",
+  "scope": "Third-round structural allocation and deferred diagnostic work; no optimizer/search-policy change",
+  "baseline_commit": "deeb91e6a577b2274a15bdabdb095a5c0ad0cc12",
+  "changes": [
+    "Freeze privately owned pattern and capacity tables after discovery, publish immutable capacity-order lists once, and share these tables with prepared replays; continue copying the mutable capacity-score memo.",
+    "Aggregate the first direct-raw input key in local variables, preserve sequential saturating addition for repeated keys, and allocate a mutable per-recipe map only for a second distinct raw key.",
+    "Compute diagnostic raw unit costs only when a missing-route tie needs them and memoize only within that linear pass; preserve shared-input dominance and recursive fallback order."
+  ],
+  "safety_boundaries": [
+    "Prepared graphs remain bound to one graph identity, target, owner thread and cut orientation; inventory projections compile separate snapshots.",
+    "Only structural tables are shared. Recipe lists are immutable, and mutable stock, demand, byproduct and score memo state remain independent.",
+    "Post-compilation whole-table traversal performs counting, set union or boolean checks. Route priority uses explicit item order and per-output lists.",
+    "Deferred diagnostic cost evaluation reads only immutable recipe metadata and item order, not pass-local demand or stock state."
+  ],
+  "protocol": {
+    "sequence": [
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline",
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline"
+    ],
+    "repeats_per_dataset_per_process": 3,
+    "discarded_repeat": 0,
+    "warm_samples_per_variant_per_dataset": 8,
+    "jvm": "Temurin 21.0.11+10, -Xmx3g -Xss16m",
+    "system_properties": [
+      "-Dthunderbolt.maxReachablePlanningWork=2000000",
+      "-Dthunderbolt.maxCraftSearchWork=2000000",
+      "-Dthunderbolt.feasibleOptimizationTrace=true"
+    ],
+    "planner": "CraftPlannerV2.planDetailed",
+    "coordination": "The coordinating instance, its internal agents and third instance paused CPU-intensive tasks for the formal serial ABBA window.",
+    "limitations": "Offline normalized recipe graphs, not in-game TPS or a global speed guarantee. All warm samples including the candidate ATM 612 ms outlier are retained. TB counts existing target stock toward demand; AW excludes it."
+  },
+  "class_snapshots": {
+    "baseline": {
+      "count": 459,
+      "sha256_of_sorted_json_manifest": "a0cae5e0dbd25a5e4101a9c2391623726d020536bf1890674377471a8b68021b"
+    },
+    "candidate": {
+      "count": 460,
+      "sha256_of_sorted_json_manifest": "95221736970c4f075de7f2827481a4f9b24a27a6d46fdf40a422a39eb3912c18"
+    }
+  },
+  "validation": {
+    "targeted_tests": {
+      "tests": 207,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "full_test_build": {
+      "tests": 1011,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "command": "./gradlew --offline --no-daemon test build",
+    "benchmark_compiled_classes_equal": 460,
+    "jar_compiled_classes_equal": 460,
+    "jar_sha256": "d0e698225b82fe5df475c911b3330b56aaff7213b012187bd66c8b92f6815f2b",
+    "direct_raw_independent_arithmetic_samples": 512,
+    "diagnostic_route_independent_big_integer_samples": 768,
+    "all_48_benchmark_records_balance_and_replay_passed": true,
+    "all_48_benchmark_full_plan_fingerprints_identical": true,
+    "full_plan_differential_audit": {
+      "mode": null,
+      "samples": 3000,
+      "feasible0": 2867,
+      "feasible1": 2867,
+      "changed": [],
+      "regressions": [],
+      "candidateInvalid": [],
+      "baselineReplayFail": [],
+      "candidateReplayFail": [],
+      "replays0": 8601,
+      "replays1": 8601
+    }
+  },
+  "results": [
+    {
+      "dataset": "recipes-atm",
+      "baseline_ms": 524.3191045000001,
+      "candidate_ms": 470.5525625,
+      "reduction_percent": 10.254545664757497,
+      "fingerprint_sha256": "cfca7a047a6417bb027f0119c966ea030f8b487d0e27e97cda77a6cb3d6ad3bf",
+      "all_24_plans_identical": true,
+      "baseline_samples_ms": [
+        533.595917,
+        500.497958,
+        570.876,
+        522.733042,
+        551.356334,
+        498.531708,
+        525.872959,
+        522.76525
+      ],
+      "candidate_samples_ms": [
+        511.34025,
+        451.620542,
+        469.162292,
+        459.770459,
+        525.511375,
+        471.942833,
+        612.383708,
+        451.539958
+      ],
+      "target_zero_based": 64457,
+      "amount": 100000,
+      "stock": "random20",
+      "real_executions": 100,
+      "tag_executions": 0,
+      "existing_target_stock": 0,
+      "aw_target_stock_exclusion_shortfalls": {},
+      "inputs": {
+        "graph_sha256": "aa5cde5d2dda745824ceb22535f8a588e9849be4d5f726dd7d1cc5fd6a7fed07",
+        "stock_sha256": "26ff15252ffc4a9707a84f8d5fe36e13fc5baa8f1274e09f9914c41acc343204"
+      }
+    },
+    {
+      "dataset": "recipes-nast",
+      "baseline_ms": 434.065313,
+      "candidate_ms": 415.23010450000004,
+      "reduction_percent": 4.3392567744753086,
+      "fingerprint_sha256": "f495fbf7bf5569e411dac02131e64f10f397c1148f351c614191edd105f77125",
+      "all_24_plans_identical": true,
+      "baseline_samples_ms": [
+        449.650584,
+        413.377541,
+        464.139875,
+        418.480042,
+        477.49,
+        413.839417,
+        472.34875,
+        409.447541
+      ],
+      "candidate_samples_ms": [
+        451.901042,
+        389.38975,
+        433.880417,
+        395.549916,
+        425.971,
+        394.392709,
+        442.347833,
+        404.489209
+      ],
+      "target_zero_based": 6870,
+      "amount": 100000,
+      "stock": "random20",
+      "real_executions": 560511624,
+      "tag_executions": 9735296,
+      "existing_target_stock": 1206,
+      "aw_target_stock_exclusion_shortfalls": {
+        "6871": 1206
+      },
+      "inputs": {
+        "graph_sha256": "38bee92efcef25027b5b0598c0b080a8d64097f5e7b2948724c5d6052f734cc9",
+        "stock_sha256": "ccffbe94803687144b24d747f9f6bd2ade5e3d22f251c8c093dbeb16c56e1b67"
+      }
+    }
+  ],
+  "profiling_notes": {
+    "purpose": "Exploratory hotspot selection; nonexclusive profiling elapsed times are not used as a speed claim.",
+    "full_stack_export": "JFR recordings were exported with jfr print --json --stack-depth 128. Default export depth 5 hides outer optimizer oracle frames even when the recorded stack is not truncated.",
+    "baseline_nast_tb_samples": 980,
+    "baseline_nast_optimizer_inclusive_samples": 880,
+    "baseline_nast_oracle_lambda_inclusive_samples": 728,
+    "interpretation": "Most structural compilation work is reached through optimizer oracle probes; outside-optimizer phase labels from earlier shallow JFR exports are not reliable. Nearest-method samples and ABBA measurements are unaffected."
+  }
+}

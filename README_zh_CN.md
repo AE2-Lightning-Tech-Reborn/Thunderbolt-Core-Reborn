@@ -25,6 +25,9 @@
 
 ## 配置
 
+V2 会在预算内继续优化可行方案，优先减少配方执行次数，并允许为此使用其他已有库存。
+执行次数相同时，只接受不增加其他材料用量的节省方案。这是有预算限制的优化，不保证全局最优。
+
 通用配置位于 `config/thunderbolt-common.toml`：
 
 - `planning.enableCpSatPlanner`：启用实验性的 OR-Tools CP-SAT 规划器（默认：`false`）。启用后，Thunderbolt 会在启动时下载并校验匹配的原生运行库；加载失败不会影响其他规划器。

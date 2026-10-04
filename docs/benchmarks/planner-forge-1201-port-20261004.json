@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-04",
+  "source_commit": "0a7829218e0e4a8679b4677bfd57f679144cf84f",
+  "destination_baseline": "28a1f2596882119accc364603dc8895d8f0963be",
+  "destination_branch": "1.20.1",
+  "platform": {
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10",
+    "java": "Temurin 17.0.19+10"
+  },
+  "validation": {
+    "command": "gradlew.bat test build --console=plain",
+    "result": "BUILD SUCCESSFUL",
+    "tests": 1089,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "release_jar": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "sha256": "c38fb1d2b6e777c292e35aa7823c0abc59639625d33698300f907b45f9cd5a95",
+    "production_classes": 472,
+    "class_major_versions": [
+      61
+    ],
+    "production_class_names_match_compiled_output": true,
+    "ported_planner_classes_present": 92,
+    "legacy_nested_material_footprint_classes": 0,
+    "verified_resources": [
+      "META-INF/mods.toml",
+      "thunderbolt.mixins.json",
+      "thunderbolt.refmap.json",
+      "META-INF/jarjar/metadata.json",
+      "META-INF/LICENSE"
+    ],
+    "refmap_matches_generated_output": true,
+    "embedded_mixinextras_forge": true,
+    "forge_reobfuscation_and_verifyReleaseJar": "passed"
+  },
+  "port_adaptations": [
+    "Java 17 List.get(0) instead of Java 21 List.getFirst()",
+    "Retain calculation-scoped IndexCache alongside shared work callback",
+    "Retain Forge replenishment certification, Java 17 verification allowances and bootstrap scratch reuse",
+    "Adapt reflective constructor tests and cover cached mixed-batch budget rejection/reuse"
+  ],
+  "limitations": [
+    "Historical alpha benchmarks were not rerun on Forge 1.20.1",
+    "No interactive client or server gameplay session was launched",
+    "Forge reobfuscation transforms class bytes; artifact audit compares class names and Java version rather than pre-remapping byte identity"
+  ]
+}

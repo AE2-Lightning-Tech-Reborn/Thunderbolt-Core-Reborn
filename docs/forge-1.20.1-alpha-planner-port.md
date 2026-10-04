@@ -75,3 +75,48 @@ independent material balance, cancellation and incumbent retention are covered.
   client or server gameplay session was launched for this backport.
 
 Artifact: `build/libs/thunderbolt-forge-1.20.1-2.0.0.jar`.
+
+## Stock-aware and bounded planning backport (2026-10-04)
+
+Source: `0a7829218e0e4a8679b4677bfd57f679144cf84f`;
+destination baseline: `28a1f25` on `1.20.1`.
+
+- Port inventory-aware execution reduction, bounded ordinary pair/triple and
+  upstream batch search, terminal-route optimization, preprocessing reuse and
+  material-footprint extraction. Port the cancellation and shared recovery-budget
+  reporting fixes together with their regression tests.
+- Preserve the destination's calculation-scoped `IndexCache`. The optimizer now
+  receives both that cache and the shared work callback, so cache reuse cannot
+  reset or bypass mixed-batch work/probe limits. A regression verifies budget
+  rejection followed by repeated cached searches with fresh work accounting.
+- Replace Java 21 `List.getFirst()` calls with Java 17 `List.get(0)` in production
+  and test sources. The new components depend only on Java and the planner core;
+  no NeoForge or AE2 19 APIs are imported.
+- Preserve Forge-specific direct replenishment certification, Java 17 optional
+  verification allowances and bootstrap-reserve scratch reuse. Forge 47.1.3,
+  AE2 15.4.10, Java 17, Forge remapping, Mixin refmaps and JarJar packaging remain
+  the destination platform baseline.
+- Retain all four destination optimizer regressions in addition to the source
+  commit's tests. Adapt the two reflective target-bound tests to the constructor
+  that also accepts the retained cache.
+
+The imported `planner-alpha-*` and structural benchmark records describe the
+original Java 21 alpha validation. Their timing improvements are historical source
+evidence, not a Forge 1.20.1 performance measurement.
+
+Validation of this backport:
+
+- `gradlew.bat test build --console=plain` with Temurin 17.0.19+10:
+  1,089 tests, 1,088 passed, no failures/errors, one optional ExtendedAE Plus
+  runtime probe skipped. Forge remapping and `verifyReleaseJar` succeeded.
+- The distributable contains 472 production classes, all Java 17 (major 61),
+  with the same class names as the tested compiler output and all 92 classes
+  belonging to the 15 ported planner components. Obsolete nested material
+  footprint classes are absent.
+- Forge metadata, Mixin configuration, generated refmap, embedded MixinExtras and
+  license were verified. Forge reobfuscation transforms bytecode, so this audit
+  does not claim byte identity with pre-remapping compiler output.
+- No interactive client/server session or Forge performance benchmark was run.
+
+Artifact and validation provenance:
+[`benchmarks/planner-forge-1201-port-20261004.json`](benchmarks/planner-forge-1201-port-20261004.json).

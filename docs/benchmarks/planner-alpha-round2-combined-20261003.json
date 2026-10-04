@@ -1,0 +1,398 @@
+{
+  "date": "2026-10-03",
+  "baseline": "ea0b4da (delivered first alpha optimization round)",
+  "protocol": {
+    "sequence": [
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline",
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline"
+    ],
+    "repeats_per_dataset_per_process": 3,
+    "discarded_repeat": 0,
+    "warm_samples_per_variant_per_dataset": 8,
+    "jvm": "Temurin 21.0.11+10, -Xmx3g -Xss16m",
+    "system_properties": [
+      "-Dthunderbolt.maxReachablePlanningWork=2000000",
+      "-Dthunderbolt.maxCraftSearchWork=2000000",
+      "-Dthunderbolt.feasibleOptimizationTrace=true"
+    ],
+    "limitations": "Offline single-output normalized recipe graphs, not in-game TPS or a global optimality proof. TB counts existing target inventory toward demand; AW excludes it. The NAST case has 1206 target items already in stock."
+  },
+  "class_snapshots": {
+    "baseline": {
+      "count": 452,
+      "sha256": "9bd1e8c866498ce54c75e689e9a0ea553d47562819cfdfa606c665e6b434d643"
+    },
+    "candidate": {
+      "count": 459,
+      "sha256": "669f4f9aaff35a87b0d507db7d92a752fed1909c0a5e2985ada0d03bca2fc8bc"
+    }
+  },
+  "results": [
+    {
+      "dataset": "recipes-atm",
+      "amount": 100000,
+      "stock": "random20",
+      "real_executions": 100,
+      "tag_executions": 0,
+      "existing_target_stock": 0,
+      "aw_target_stock_exclusion_shortfalls": {},
+      "identical_plan_fingerprints": true,
+      "baseline": {
+        "planning_ms_samples": [
+          945.04625,
+          884.686792,
+          958.212875,
+          837.37975,
+          925.2735,
+          900.117833,
+          982.978084,
+          867.482666
+        ],
+        "planning_ms_median": 912.6956665,
+        "optimizer_ms_median": 286.7005835
+      },
+      "candidate": {
+        "planning_ms_samples": [
+          580.392458,
+          532.01375,
+          584.469,
+          497.816958,
+          554.936,
+          527.725042,
+          467.228958,
+          508.807791
+        ],
+        "planning_ms_median": 529.869396,
+        "optimizer_ms_median": 117.3296665
+      },
+      "planning_reduction_percent": 41.94456975653888
+    },
+    {
+      "dataset": "recipes-nast",
+      "amount": 100000,
+      "stock": "random20",
+      "real_executions": 560511624,
+      "tag_executions": 9735296,
+      "existing_target_stock": 1206,
+      "aw_target_stock_exclusion_shortfalls": {
+        "6871": 1206
+      },
+      "identical_plan_fingerprints": true,
+      "baseline": {
+        "planning_ms_samples": [
+          545.260166,
+          505.501541,
+          546.724791,
+          511.101375,
+          538.633334,
+          501.87875,
+          542.103333,
+          504.172333
+        ],
+        "planning_ms_median": 524.8673545,
+        "optimizer_ms_median": 484.172729
+      },
+      "candidate": {
+        "planning_ms_samples": [
+          468.127959,
+          430.648417,
+          480.37675,
+          440.684042,
+          457.931958,
+          425.668334,
+          470.042125,
+          429.569417
+        ],
+        "planning_ms_median": 449.308,
+        "optimizer_ms_median": 413.256625
+      },
+      "planning_reduction_percent": 14.395895239470457
+    }
+  ],
+  "all_48_records_balance_and_replay_passed": true,
+  "scope": "Second complete alpha optimization round, measured against the delivered ea0b4da baseline.",
+  "changes": [
+    "Reuse immutable preprocessing tables, exact small-input material canonicalization, stable identity source groups, conservative acyclic preflight and host-seed metadata.",
+    "Allocate DFS temporary collections only when used; preserve complete seed scans and registration order, and skip empty side-output scheduling.",
+    "Use an exact target-only execution/stock certificate, unique input enqueue and converged relaxation reuse; count normalized container remainders once.",
+    "Allow two-recipe proposals to use additional ordinary inventory only when executions decrease; retain per-key caps for equal-execution proposals.",
+    "Add bounded three-source terminal mixes and upstream expansion with final full DAG replay, original recipe identities, cancellation and shared work/probe limits.",
+    "Normalize surplus-covered ordinary stock only after all mixed-route search finishes. Preserve target-stock search opportunities and the latest completed witness."
+  ],
+  "limits": {
+    "mixed_graph_index_entries": 16,
+    "pairs_per_pass": 256,
+    "triples_per_pass": 16,
+    "pair_calls_per_triple": 36,
+    "residue_steps_per_triple": 8192,
+    "upstream_candidates_per_pass": 64,
+    "shared_complete_probes": 32,
+    "optional_session_time_ms": 2800,
+    "statement": "Bounded improvement search; no general optimality guarantee. Existing entry/search budgets and stateful/byproduct restrictions are preserved."
+  },
+  "tests_and_artifact": {
+    "tests": {
+      "tests": 992,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "test_suites": 130,
+    "jar": {
+      "filename": "thunderbolt-2.0.0.jar",
+      "bytes": 5039494,
+      "sha256": "5a8f22f67f274c038547ec5da799b732a3f821c96a1666c6f2d2c12079cdadce"
+    },
+    "production_classes": {
+      "count": 459,
+      "sha256": "669f4f9aaff35a87b0d507db7d92a752fed1909c0a5e2985ada0d03bca2fc8bc",
+      "jar_byte_identical": true,
+      "java_major": 65
+    },
+    "zip_integrity_passed": true
+  },
+  "differential_audit": {
+    "baseline": "ea0b4da",
+    "samples": 3000,
+    "baseline_feasible": 2867,
+    "candidate_feasible": 2867,
+    "status_delta": 0,
+    "regression": 0,
+    "invalid": 0,
+    "replay_fail": 0,
+    "fewer_executions": 222,
+    "equal_execution_less_stock": 934,
+    "changed": 1156
+  },
+  "terminal_exact_oracle": {
+    "generated": 5000,
+    "baseline": {
+      "misses": 113,
+      "plannerFeasible": 4210,
+      "invalid": 0,
+      "falseNegative": 0,
+      "allThreeOptMisses": 2,
+      "exactFeasible": 4210,
+      "samples": 5000
+    },
+    "candidate": {
+      "exactFeasible": 4210,
+      "allThreeOptMisses": 0,
+      "falseNegative": 0,
+      "invalid": 0,
+      "plannerFeasible": 4210,
+      "misses": 0,
+      "samples": 5000
+    },
+    "objective": "Minimum executions, then minimum raw draw, for each feasible one-resource three-recipe graph."
+  },
+  "two_layer_exact_oracle": {
+    "samples": 1000,
+    "feasible": 996,
+    "exact_execution_hits": 996,
+    "stock_dominated": 0,
+    "balance_failures": 0,
+    "replay_failures": 0,
+    "replay_passes": 2988,
+    "fewer_executions": 23,
+    "same_execution_less_stock": 277,
+    "full_final_snapshot_independent_oracle_checked": true
+  },
+  "target_bound_small_domain_proof": {
+    "alternativeComparisons": 55361,
+    "equalExecutionOrder": "no resource increases and at least one strictly decreases",
+    "violations": 0,
+    "domain": "2/3 recipes; output 1..3; each of 2 inputs 0/1; each stock 0..2; demand 1..3",
+    "graphs": 11934,
+    "feasibleWitnesses": 41572,
+    "acceptedBounds": 12500
+  },
+  "corpus_regression": {
+    "queries": 192,
+    "datasets": [
+      {
+        "dataset": "recipes-vanilla",
+        "queries": 48,
+        "baseline_feasible": 20,
+        "candidate_feasible": 20,
+        "baseline_budget_exhausted": 10,
+        "candidate_budget_exhausted": 10,
+        "status_changes": 0,
+        "execution_regressions": 0,
+        "equal_execution_stock_increases": 0,
+        "invalid": 0,
+        "improved": 0,
+        "plan_changes": 0
+      },
+      {
+        "dataset": "recipes-small",
+        "queries": 48,
+        "baseline_feasible": 2,
+        "candidate_feasible": 2,
+        "baseline_budget_exhausted": 42,
+        "candidate_budget_exhausted": 42,
+        "status_changes": 0,
+        "execution_regressions": 0,
+        "equal_execution_stock_increases": 0,
+        "invalid": 0,
+        "improved": 0,
+        "plan_changes": 0
+      },
+      {
+        "dataset": "recipes-nast",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": 0,
+        "execution_regressions": 0,
+        "equal_execution_stock_increases": 0,
+        "invalid": 0,
+        "improved": 0,
+        "plan_changes": 0
+      },
+      {
+        "dataset": "recipes-atm",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": 0,
+        "execution_regressions": 0,
+        "equal_execution_stock_increases": 0,
+        "invalid": 0,
+        "improved": 0,
+        "plan_changes": 0
+      }
+    ],
+    "limitations": "Serial correctness regression, not a timing benchmark. Existing baseline budget cutoffs and infeasible cases are retained explicitly; target inventory follows TB semantics."
+  },
+  "input_provenance": {
+    "recipes-vanilla": [
+      {
+        "path": "normalized/recipes-vanilla.bin",
+        "bytes": 69580,
+        "sha256": "6a16e79133572147470324a468f4dd426e17a346dd479fa055e196948f190bb9"
+      },
+      {
+        "path": "AW/bench/plans/recipes-vanilla.targets.tsv",
+        "bytes": 371,
+        "sha256": "79ee58fdcdd3183041b7d18183cfa679c7bd3308b0382b281e2df260df5bc43f"
+      },
+      {
+        "path": "AW/bench/plans/recipes-vanilla.stock.none.tsv",
+        "bytes": 16,
+        "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+      },
+      {
+        "path": "AW/bench/plans/recipes-vanilla.stock.leaves.tsv",
+        "bytes": 6041,
+        "sha256": "63006c959876465de6f7627a19cfaf427bb1da637bf933b06efc7866f8caae8c"
+      },
+      {
+        "path": "AW/bench/plans/recipes-vanilla.stock.random20.tsv",
+        "bytes": 2307,
+        "sha256": "ba0f39d81d3ccf87c99576bb69aa4a89daaccbd64ecc92a6b8eac9f559598a2e"
+      }
+    ],
+    "recipes-small": [
+      {
+        "path": "normalized/recipes-small.bin",
+        "bytes": 214216,
+        "sha256": "fb2762ccd9af4887df93d75654c85242c9f74eb7af93b1790b5323f6efa455c7"
+      },
+      {
+        "path": "AW/bench/plans/recipes-small.targets.tsv",
+        "bytes": 414,
+        "sha256": "865f02174c117cbdab8a0631e2b6f0333cef2237fa422037e85edf7aba6294cf"
+      },
+      {
+        "path": "AW/bench/plans/recipes-small.stock.none.tsv",
+        "bytes": 16,
+        "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+      },
+      {
+        "path": "AW/bench/plans/recipes-small.stock.leaves.tsv",
+        "bytes": 5018,
+        "sha256": "e995a440c691f983d934db59ce118a1bf33398a87ecf0ebe695d36927e3befa3"
+      },
+      {
+        "path": "AW/bench/plans/recipes-small.stock.random20.tsv",
+        "bytes": 4043,
+        "sha256": "aa7331fcefcd572f54b0a61ab0b5a7360b3b75b998ca0294e6f813fed11c70d6"
+      }
+    ],
+    "recipes-nast": [
+      {
+        "path": "normalized/recipes-nast.bin",
+        "bytes": 1255472,
+        "sha256": "38bee92efcef25027b5b0598c0b080a8d64097f5e7b2948724c5d6052f734cc9"
+      },
+      {
+        "path": "AW/bench/plans/recipes-nast.targets.tsv",
+        "bytes": 484,
+        "sha256": "597652504a502266ea1aa443d9eeea5101c509c5717f921d6efdd68fa185e3bd"
+      },
+      {
+        "path": "AW/bench/plans/recipes-nast.stock.none.tsv",
+        "bytes": 16,
+        "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+      },
+      {
+        "path": "AW/bench/plans/recipes-nast.stock.leaves.tsv",
+        "bytes": 16808,
+        "sha256": "e625261c34d258a997797b32b8962dc879d38a0604b85894fbb044e2be6416f6"
+      },
+      {
+        "path": "AW/bench/plans/recipes-nast.stock.random20.tsv",
+        "bytes": 23231,
+        "sha256": "ccffbe94803687144b24d747f9f6bd2ade5e3d22f251c8c093dbeb16c56e1b67"
+      }
+    ],
+    "recipes-atm": [
+      {
+        "path": "normalized/recipes-atm.bin",
+        "bytes": 12966108,
+        "sha256": "aa5cde5d2dda745824ceb22535f8a588e9849be4d5f726dd7d1cc5fd6a7fed07"
+      },
+      {
+        "path": "AW/bench/plans/recipes-atm.targets.tsv",
+        "bytes": 536,
+        "sha256": "5cfc20ee7333edfefc9cce62a94c07c46e327b7478ddcd213050ec2ac9fb33f0"
+      },
+      {
+        "path": "AW/bench/plans/recipes-atm.stock.none.tsv",
+        "bytes": 16,
+        "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+      },
+      {
+        "path": "AW/bench/plans/recipes-atm.stock.leaves.tsv",
+        "bytes": 80100,
+        "sha256": "a0a3978fdbdd8d3554209d38cba128faac63101dafd4b9a141b32a4410226e42"
+      },
+      {
+        "path": "AW/bench/plans/recipes-atm.stock.random20.tsv",
+        "bytes": 134464,
+        "sha256": "26ff15252ffc4a9707a84f8d5fe36e13fc5baa8f1274e09f9914c41acc343204"
+      }
+    ]
+  },
+  "reproduction_artifacts": {
+    "tb-alpha-round2-20261003/final_abba.py": "beae4182f8c34cda59b9126633ea570ef806b4240c9bdaba295bdd7b0706c39f",
+    "tb-issue-5-20261003/CorpusBench.java": "6fd08b353c1c68036b91a8241ede1b012b2d2964b0d84ed05b55087c549ca397",
+    "tb-issue-5-20261003/Issue5Bench.java": "9da5b2bbfb210a9ae835f66af70a832a61d3636d0cfc7e1c8eb881534fe454be",
+    "tb-issue-5-20261003/alpha-experiments/FinalAudit.java": "e4635dddd9b7c8ceae784d00a7c1b423147067bd91db24741a3a5865f5a143c0",
+    "tb-alpha-round2-20261003/run_combined_audit.py": "901706991fbfd5defd0dce9f6703d9270139fbecf20c6445aebecd2a90c8b514",
+    "tb-alpha-round2-20261003/QualityCases.java": "e09e80f30ceab19feacb41a2ab1c8494cfa80f4e55f1b83e7836df1304f558ed",
+    "tb-alpha-round2-20261003/CorpusRegression.java": "f75b6bb8e0a58188f3f7749ec9eb83950dc2138b8007135443586a13fc305f84",
+    "tb-alpha-round2-20261003/upstream-quality/TwoLayerQuality.java": "b400c494e90f460e80f155e578ba775708e9e2782d290060aced7e3d0d9f13bc"
+  }
+}
