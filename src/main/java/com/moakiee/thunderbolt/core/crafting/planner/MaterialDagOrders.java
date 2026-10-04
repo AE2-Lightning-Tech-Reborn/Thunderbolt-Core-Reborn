@@ -20,7 +20,8 @@ final class MaterialDagOrders {
     static final int MAX_GRAPH_WORK = 128;
 
     record Candidate<K>(CraftGraph<K> graph, long optimisticCapacity,
-                        Map<CraftPattern<K>, CraftPattern<K>> originals) {
+                        Map<CraftPattern<K>, CraftPattern<K>> originals,
+                        List<CraftPattern<K>> supplyOrder) {
         boolean maySupply(long amount) {
             return Sat.isSaturated(optimisticCapacity) || optimisticCapacity >= amount;
         }
@@ -49,8 +50,27 @@ final class MaterialDagOrders {
             result.addAll(compile(graph, target, 0, budget));
             result.addAll(compile(graph, target, 2, budget));
             result.addAll(compile(graph, target, 1, budget));
-        } catch (WorkLimit exhausted) {
-            // Already completed projection families remain valid; unfinished ones are discarded.
+        } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
+            // Already completed supports remain valid even if the next family expires.
+        }
+        return List.copyOf(result);
+    }
+
+    /** Reuse only immutable arc admission/order; capacities and graph stock are probe-local. */
+    static <K> List<Candidate<K>> withAdditionalStock(List<Candidate<K>> templates,
+            Map<K, Long> supplied, K target, BoundedIntegerLinearSolver.WorkBudget budget) {
+        var result = new ArrayList<Candidate<K>>(templates.size());
+        try {
+            for (var template : templates) {
+                charge(budget, 1);
+                for (var pattern : template.supplyOrder())
+                    charge(budget, 4L * (1L + pattern.inputs().size() + pattern.byproducts().size()));
+                var graph = template.graph().withAdditionalStock(supplied);
+                result.add(new Candidate<>(graph, optimisticCapacity(graph, target, template.supplyOrder()),
+                        template.originals(), template.supplyOrder()));
+            }
+        } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
+            // Only fully refreshed supports can be used after shared work exhaustion.
         }
         return List.copyOf(result);
     }
@@ -103,7 +123,13 @@ final class MaterialDagOrders {
         }
         if (ordered.size() > MAX_ORDERED_ITEMS) return List.of();
         var result = new ArrayList<Candidate<K>>();
-        permute(graph, target, reachable, ordered, 0, patterns, new HashSet<>(), Map.copyOf(originals), result, budget);
+        try {
+            permute(graph, target, reachable, ordered, 0, patterns, new HashSet<>(), Map.copyOf(originals), result, budget);
+        } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
+            // A timeout must not discard already completed supports and force replenishment
+            // to repeat the same permutations. Every retained projection is self-contained;
+            // user cancellation and router exits are deliberately not caught here.
+        }
         return List.copyOf(result);
     }
 
@@ -176,7 +202,10 @@ final class MaterialDagOrders {
         // forward schedule even when a side output lies before that producer's primary output.
         supplyOrder.sort(Comparator.comparingInt(pattern -> lastInputRank(pattern, rank)));
         long capacity = optimisticCapacity(graph, target, supplyOrder);
-        if (capacity > 0) result.add(new Candidate<>(graph.withPatterns(selected), capacity, originals));
+        // A zero-stock support can become productive after replenishment. Retain it as a
+        // topology template, but maySupply still rejects its current zero capacity. Filtering
+        // here would make reuse silently miss routes enabled by the hypothetical inventory.
+        result.add(new Candidate<>(graph.withPatterns(selected), capacity, originals, List.copyOf(supplyOrder)));
     }
 
     private static void charge(BoundedIntegerLinearSolver.WorkBudget budget, long work) {
