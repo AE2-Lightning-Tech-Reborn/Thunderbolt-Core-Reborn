@@ -1,0 +1,214 @@
+{
+  "date": "2026-10-04",
+  "baseline": "0a7829218e0e4a8679b4677bfd57f679144cf84f",
+  "contributions": {
+    "upstream_prefix": "1e763c23902d7526ebe5ad11e4f80c26f7ff72c1",
+    "terminal_recovery": "7f0ba3532ae69a5616da4701ff5e4b306937eb72"
+  },
+  "changes": [
+    "Reuse complete fixed upstream prefixes only within one Search",
+    "Recover strictly bounded ordinary terminal inventories after stable Pareto reduction and original-graph replay",
+    "Reject narrow targets before charged terminal preprocessing even when upstream registrations exceed the cheap total-pattern threshold"
+  ],
+  "scope": {
+    "terminal_original_identities": [
+      17,
+      64
+    ],
+    "terminal_raw_resources": [
+      1,
+      4
+    ],
+    "terminal_amount_and_original_total_stock_max": 256,
+    "terminal_reduced_frontier_max": 16,
+    "shared_recovery_nanos": 20000000,
+    "recovery_firings_max": 32,
+    "recovery_state_limit": 4096,
+    "upstream_pattern_max": 16,
+    "upstream_candidate_limit": 64,
+    "shared_replay_probe_limit": 32,
+    "budgets_increased": false,
+    "terminal_admission_intentionally_extended_beyond_old_general_reachable_work_128": true
+  },
+  "build": {
+    "tests": {
+      "tests": 1125,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "test_suites": 143,
+    "baseline": "0a7829218e0e4a8679b4677bfd57f679144cf84f",
+    "production_classes": {
+      "count": 475,
+      "sha256": "0dcc020a22baad7f2f508d12edee513803507049d9386f4837707d8ecb8f2248"
+    },
+    "changed_classes": [
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$1.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$1Ranked.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$BorrowedReusableSeed.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ByproductBarrier.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ByproductLink.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ByproductSchedule.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$CapacityGroup.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ConsumableProofState.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$DiagnosticsCollector.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$FallbackBudget.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$FeedbackRequirement.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$FeedbackSeedBootstrap.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$FixedPatternAllocation.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$Frame.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$IntDisjointSet.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$LazyDiagnosticUnitCosts.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$LinearPassState.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$LowWidthAnalysis.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$LowWidthComponent.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$LowWidthSolve.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$Orientation.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$PlanningSession.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$PreparedGraph.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ReusableSeedAcquisition.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SccFrame.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ScheduleItem.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SearchBudget.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SearchFailure.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SeedActivation.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SeedGroupModel.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SeedReserveKey.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SharedCounterBudget.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SolvedLowWidthComponent.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/SmallConservativeSearch.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/TerminalBatchRecovery$Budget.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/TerminalBatchRecovery$Route.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/TerminalBatchRecovery.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Budget.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$FixedPrefix.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Model.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$PairCache.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$PairDemand.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$ProposalState.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Search.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.class"
+    ],
+    "all_other_classes_byte_equal": true
+  },
+  "jar": {
+    "sha256": "3db0cd0c0784c854f5e23b5c450ba44e85b116680d0a8af624afe275769bbb56",
+    "bytes": 5079733,
+    "all_classes_match": true
+  },
+  "source_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/TerminalBatchRecovery.java": "6e22ee1d3d3ea815f1aab68a26b6859ef3970ab371704c877ea5551f7575b496",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.java": "570a4b8208db8158bfc703706744e1dcdf442fac4f2b791c50d204e0e7b6f4ba",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.java": "adf845e618a679fa2d74eb77c9a43c276936e74bfc7976578a89d0e1ad27d67c",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/SmallConservativeSearch.java": "9fe90d3c0c7e98a2b4186cccbbc6a085857002fad92dd61365050b91b7483b55"
+  },
+  "combined_validation": {
+    "public": {
+      "samples": 3000,
+      "feasible": 2867,
+      "all_plan_and_non_timing_diagnostics_equal_prefix_only": true,
+      "all_balance_and_replays_passed": true
+    },
+    "terminal": {
+      "generated": 1500,
+      "certified": 1454,
+      "feasible": 1454,
+      "recoveries": 12,
+      "all_plans_and_non_timing_diagnostics_equal_terminal_only": true
+    },
+    "prefix": {
+      "fixtures": 320,
+      "runs": 3516,
+      "all_results_work_candidates_and_probes_equal_prefix_only": true
+    },
+    "snapshot_and_sources_unchanged": true
+  },
+  "corpus": {
+    "baseline": "0a782921",
+    "query_count": 192,
+    "datasets": [
+      {
+        "dataset": "recipes-vanilla",
+        "queries": 48,
+        "baseline_feasible": 20,
+        "candidate_feasible": 20,
+        "baseline_budget_exhausted": 10,
+        "candidate_budget_exhausted": 10,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-small",
+        "queries": 48,
+        "baseline_feasible": 2,
+        "candidate_feasible": 2,
+        "baseline_budget_exhausted": 42,
+        "candidate_budget_exhausted": 42,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-nast",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-atm",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      }
+    ],
+    "note": "Serial correctness regression, not a timing benchmark. Existing baseline budget cutoffs and infeasible cases are retained explicitly; target inventory follows TB semantics."
+  },
+  "added_joint_regressions": [
+    "laterEqualOutputDominatorRemovesTheOldFrontierAndKeepsItsOriginalIdentity",
+    "publicMultiUnitRecoveryRefusalMarksCutoffAndPreservesTheCoreMissingWitness",
+    "upstreamDuplicateRegistrationsDoNotAdmitASingleRouteTarget"
+  ],
+  "performance": {
+    "upstream_standalone_report": "planner-upstream-prefix-reuse-20261004.json",
+    "long_prefix_public_cpu_reduction_percent": 37.65,
+    "two_level_prefix_public_cpu_reduction_percent": 7.5,
+    "multi_fixture_no_benefit_control_cpu_increase_percent_range": [
+      2.3,
+      4.5
+    ],
+    "isolated_short_prefix_helper_p95_increase_percent": 12.9,
+    "combined_timing_not_measured": true,
+    "interpretation": "Standalone synthetic prefix benchmarks establish workload-specific gains, not universal acceleration or modpack TPS improvement. Keep negative controls; the combined run here verifies correctness."
+  },
+  "limitations": [
+    "Terminal random oracle has two resources, no target stock, and certificates within12 firings; remaining generated graphs without certificates are not asserted infeasible.",
+    "Fixed 3/4-resource and target-stock boundaries are separately covered by focused tests.",
+    "No general global-optimality claim.",
+    "Existing corpus cutoffs remain, not mathematical infeasibility proofs."
+  ]
+}

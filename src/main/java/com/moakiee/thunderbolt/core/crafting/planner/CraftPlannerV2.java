@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
@@ -508,9 +509,10 @@ public final class CraftPlannerV2<K> {
             PlanningSession<K> session) {
         long started = System.nanoTime();
         PlanningResult<K> initial = planCore(graph, target, amount, visitCap, searchWorkBudget, reachableWork, session);
+        boolean terminalRecovery = TerminalBatchRecovery.hasBoundedFootprint(graph, target, initial.diagnostics());
         if (session.refineMissing && !initial.plan().feasible()
                 && session.searchWorkBudget.remaining > 0
-                && reachableWork <= SmallConservativeSearch.MAX_WORK) {
+                && (reachableWork <= SmallConservativeSearch.MAX_WORK || terminalRecovery)) {
             long allowance = Math.min(SmallConservativeSearch.MAX_NANOS - session.conservativeSearchNanos,
                     PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 8L);
             if (allowance > 0) {
@@ -519,12 +521,18 @@ public final class CraftPlannerV2<K> {
                 boolean[] recoveryWorkRejected = {false};
                 CraftPlan<K> recovered = null;
                 try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
-                    recovered = SmallConservativeSearch.tryPlan(graph, target, amount,
-                            SmallConservativeSearch.MAX_STATES, () -> {
-                                if (session.searchWorkBudget.tryConsume(1)) return true;
-                                recoveryWorkRejected[0] = true;
-                                return false;
-                            });
+                    IntPredicate recoveryWork = work -> {
+                        if (session.searchWorkBudget.tryConsume(work)) return true;
+                        recoveryWorkRejected[0] = true;
+                        return false;
+                    };
+                    if (reachableWork <= SmallConservativeSearch.MAX_WORK)
+                        recovered = SmallConservativeSearch.tryPlan(graph, target, amount,
+                                SmallConservativeSearch.MAX_STATES, () -> recoveryWork.test(1));
+                    if (recovered == null && terminalRecovery && !recoveryWorkRejected[0]
+                            && session.searchWorkBudget.remaining > 0)
+                        recovered = TerminalBatchRecovery.tryPlan(graph, target, amount,
+                                SmallConservativeSearch.MAX_STATES, recoveryWork);
                 } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
                     // Optional recovery never invalidates the already-verified missing plan.
                 } finally {

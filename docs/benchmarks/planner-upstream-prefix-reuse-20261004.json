@@ -1,0 +1,606 @@
+{
+  "title": "同一 Upstream Search 内的完整单路线前缀复用",
+  "date": "2026-10-04",
+  "base_revision": "0a7829218e0e4a8679b4677bfd57f679144cf84f",
+  "scope": {
+    "production_file": "UpstreamBatchOptimizer.java",
+    "cache_owner": "One Search with fixed graph, stock, target, amount and incumbent",
+    "cut": "First key with at least two identity-deduplicated routes in the existing all-route topological order",
+    "snapshot": [
+      "Original-pattern identity counts",
+      "Exact pending BigInteger needs",
+      "Prefix execution total"
+    ],
+    "publication": "Only a complete charged copy, with cancellation checked before publication",
+    "replay": "Every changed proposal still requires the existing MaterialDagReplay certification",
+    "unchanged_limits": {
+      "patterns": 16,
+      "candidates": 64,
+      "shared_replay_probes": 32,
+      "production_helper_work": 4096,
+      "wall_clock_deadlines": "unchanged"
+    },
+    "exclusions": [
+      "No reuse across Search or accepted incumbents",
+      "No suffix caching",
+      "No admission, work, candidate, probe or time-cap increases",
+      "No TerminalBatchOptimizer or FeasibleConsumptionOptimizer changes"
+    ]
+  },
+  "budget_argument": {
+    "variables": "K prefix keys, A active single-route recipes, S original input slots, C=1+counts.size+frontier.size",
+    "old_prefix_cost": "K + 2*A + S",
+    "new_direct_cost": "K + S",
+    "capture_admission": "C <= 2*A and C <= K+S",
+    "first_use": "K+S+C <= K+2*A+S",
+    "subsequent_use": "C <= K+S",
+    "guards": [
+      "Subtract stock before checking MAX_AMOUNT",
+      "Check execution limit before input charges",
+      "Never call charge(0) for zero-input recipes",
+      "Never refund or fall back after a denied charge"
+    ],
+    "limits": "The non-regression argument uses production cumulative remaining-work accounting; arbitrary callback rejection policies and wall-clock deadlines can stop at different points."
+  },
+  "validation": {
+    "build": {
+      "suites": 142,
+      "tests": 1103,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "passed": 1102,
+      "command": "./gradlew --offline --no-daemon --max-workers=1 test build"
+    },
+    "new_tests": 12,
+    "new_coverage": [
+      "Partial stock and identity-preserving repeated registrations",
+      "Rejected suffixes and candidate-private restored maps",
+      "Accepted incumbent and changed-stock Search isolation",
+      "No-prefix and no-branch controls, plus a separate one-key-prefix fixture",
+      "Zero-input recipes",
+      "Capture cost boundaries 2A-1, 2A and 2A+1",
+      "Diamond fan-in with batched output, intermediate stock and raw shared across the cut",
+      "Exact frontier above MAX_AMOUNT before stock subtraction",
+      "Denied prefix, capture and restore work",
+      "Cancellation, optional timeout and last-copy exceptions"
+    ],
+    "independent_prefix_differential": {
+      "fixture_count": 320,
+      "rows_per_version": 3516,
+      "nonempty_structural_prefix_range": [
+        2,
+        7
+      ],
+      "pattern_count_range": [
+        8,
+        13
+      ],
+      "time_seconds": {
+        "javac": 0.384,
+        "baseline": 0.323,
+        "candidate": 0.32
+      },
+      "high_budget_changes": [],
+      "small_budget_regressions": [],
+      "small_budget_changes": 86,
+      "small_budget_improvements": 86,
+      "high_budget_improvements": 102,
+      "baseline_high_work": 132683,
+      "candidate_high_work": 109176,
+      "limitations": [
+        "Pure helper fixtures, not public planner benchmark",
+        "No wall-clock deadline imposed during helper execution",
+        "Small-budget result differences judged by exact execution and per-key stock/net-loss dominance",
+        "Only common original-pattern identity normalization, not object hash iteration order"
+      ]
+    },
+    "public_3000_differential": {
+      "samples": 3000,
+      "plan_fields": [
+        "feasible",
+        "supported",
+        "firings",
+        "used",
+        "usedReusableStock",
+        "missing",
+        "grossDemand",
+        "itemsProcessed",
+        "budgetExhausted"
+      ],
+      "diagnostic_fields": [
+        "compiledOrientations",
+        "configuredFallbackBudget",
+        "configuredResolutionBudget",
+        "configuredSearchBudget",
+        "consumedFallbackBudget",
+        "consumedResolutionBudget",
+        "consumedSearchBudget",
+        "consumptionOptimizationImprovements",
+        "consumptionOptimizationProbes",
+        "contendedOutputs",
+        "cycleCuts",
+        "dynamicCapacityEvaluations",
+        "equivalentRoutesPruned",
+        "failureMemoHits",
+        "fallbackCutoff",
+        "frontierPeak",
+        "hotNodeVisits",
+        "inputEdges",
+        "lowWidthAttempts",
+        "lowWidthCutoffs",
+        "lowWidthInfeasible",
+        "lowWidthIntegerNodes",
+        "lowWidthSolved",
+        "missingRefinementImprovements",
+        "missingRefinementProbes",
+        "planRuns",
+        "reachableItems",
+        "reachablePatterns",
+        "reachableWorkEstimate",
+        "resolutionCutoff",
+        "reusedCompilations",
+        "searchCutoff",
+        "seedOrdered",
+        "separatorWidthPeak"
+      ],
+      "feasible_baseline": 2867,
+      "feasible_candidate": 2867,
+      "plan_changes": 0,
+      "diagnostic_changes": 0,
+      "balance_failures": 0,
+      "replay_failures": 0,
+      "feasibility_regressions": 0,
+      "higher_execution_plans": 0,
+      "replays_per_variant": 8601
+    },
+    "fixed_fixtures": {
+      "fixtures": 7,
+      "common_large_budget_result_changes": [],
+      "full_plan_changes": [],
+      "common_cap_result_regressions": [],
+      "thresholds": {
+        "branches-prefix-0": {
+          "baseline": 776,
+          "candidate": 776
+        },
+        "branches-prefix-2": {
+          "baseline": 1000,
+          "candidate": 846
+        },
+        "first-candidate-prefix-2": {
+          "baseline": 115,
+          "candidate": 115
+        }
+      },
+      "fixed_16_pattern_production_4096": {
+        "baseline": {
+          "limit": 4096,
+          "work": 4095,
+          "candidates": 59,
+          "probes": 5,
+          "plan": "null"
+        },
+        "candidate": {
+          "limit": 4096,
+          "work": 2651,
+          "candidates": 64,
+          "probes": 5,
+          "plan": "null"
+        }
+      },
+      "fixed_16_pattern_same_64_candidates_diagnostic": {
+        "baseline": {
+          "limit": 1000000,
+          "work": 4423,
+          "candidates": 64,
+          "probes": 5,
+          "plan": "null"
+        },
+        "candidate": {
+          "limit": 1000000,
+          "work": 2651,
+          "candidates": 64,
+          "probes": 5,
+          "plan": "null"
+        }
+      },
+      "first_candidate_capture_neutral": {
+        "baseline": {
+          "limit": 1000000,
+          "work": 115,
+          "candidates": 1,
+          "probes": 1,
+          "plan": "true|true|{0=1, 1=1, 2=1, 3=1, 4=3}|{raw=3}|{}|{}|{A=5, P0=1, P1=1, T=4, raw=3}|5|false"
+        },
+        "candidate": {
+          "limit": 1000000,
+          "work": 115,
+          "candidates": 1,
+          "probes": 1,
+          "plan": "true|true|{0=1, 1=1, 2=1, 3=1, 4=3}|{raw=3}|{}|{}|{A=5, P0=1, P1=1, T=4, raw=3}|5|false"
+        }
+      },
+      "source_sha256": "256475ca0aa9a721268f85ad88e8f7b78a59741f3b82f24ab927f104a9d07cf8"
+    },
+    "independent_static_review": "Two reviewers found no blocking defects; final bypass delta and new semantic fixtures also reviewed."
+  },
+  "performance": {
+    "multi_fixture_protocol": {
+      "forks": 5,
+      "warmups": 1200,
+      "samples_per_fork": 4000,
+      "jvm": "JDK 21.0.11, ActiveProcessorCount=1, Xms128m/Xmx512m",
+      "note": "Sequential alternating uninstrumented JVMs; medians across five forks; no deadline changes."
+    },
+    "multi_fixture_medians": [
+      {
+        "fixture": "branches-prefix-0",
+        "mode": "full",
+        "baseline": {
+          "wall_ns": 564383750,
+          "cpu_ns": 561130000,
+          "p50_ns": 138458,
+          "p95_ns": 159625
+        },
+        "candidate": {
+          "wall_ns": 589219584,
+          "cpu_ns": 586342000,
+          "p50_ns": 145333,
+          "p95_ns": 171667
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 1.044005225168159,
+          "cpu_ns": 1.0449307647069306,
+          "p50_ns": 1.0496540467145272,
+          "p95_ns": 1.0754393108848865
+        }
+      },
+      {
+        "fixture": "branches-prefix-0",
+        "mode": "helper",
+        "baseline": {
+          "wall_ns": 129944125,
+          "cpu_ns": 129310000,
+          "p50_ns": 34041,
+          "p95_ns": 37084
+        },
+        "candidate": {
+          "wall_ns": 140027625,
+          "cpu_ns": 139429000,
+          "p50_ns": 35667,
+          "p95_ns": 37500
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 1.0775987371495248,
+          "cpu_ns": 1.0782538086768232,
+          "p50_ns": 1.0477659293205253,
+          "p95_ns": 1.0112177758602092
+        }
+      },
+      {
+        "fixture": "branches-prefix-2",
+        "mode": "full",
+        "baseline": {
+          "wall_ns": 597865542,
+          "cpu_ns": 594135000,
+          "p50_ns": 148209,
+          "p95_ns": 161583
+        },
+        "candidate": {
+          "wall_ns": 552896125,
+          "cpu_ns": 549557000,
+          "p50_ns": 135250,
+          "p95_ns": 155208
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.9247833938554699,
+          "cpu_ns": 0.924969914245079,
+          "p50_ns": 0.9125626648853983,
+          "p95_ns": 0.9605465921538776
+        }
+      },
+      {
+        "fixture": "branches-prefix-2",
+        "mode": "helper",
+        "baseline": {
+          "wall_ns": 129878083,
+          "cpu_ns": 128969000,
+          "p50_ns": 32208,
+          "p95_ns": 34750
+        },
+        "candidate": {
+          "wall_ns": 115458167,
+          "cpu_ns": 114837000,
+          "p50_ns": 28834,
+          "p95_ns": 32042
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.8889734459662452,
+          "cpu_ns": 0.8904232800130264,
+          "p50_ns": 0.8952434177844014,
+          "p95_ns": 0.9220719424460432
+        }
+      },
+      {
+        "fixture": "fixed-prefix-0",
+        "mode": "full",
+        "baseline": {
+          "wall_ns": 392656750,
+          "cpu_ns": 387914000,
+          "p50_ns": 96167,
+          "p95_ns": 110542
+        },
+        "candidate": {
+          "wall_ns": 402342333,
+          "cpu_ns": 397065000,
+          "p50_ns": 98958,
+          "p95_ns": 112167
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 1.0246667935798888,
+          "cpu_ns": 1.0235902803198647,
+          "p50_ns": 1.0290224297316126,
+          "p95_ns": 1.0147002949105317
+        }
+      },
+      {
+        "fixture": "fixed-prefix-0",
+        "mode": "helper",
+        "baseline": {
+          "wall_ns": 238965084,
+          "cpu_ns": 233019000,
+          "p50_ns": 57917,
+          "p95_ns": 72750
+        },
+        "candidate": {
+          "wall_ns": 239720334,
+          "cpu_ns": 233725000,
+          "p50_ns": 59000,
+          "p95_ns": 73625
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 1.0031605035654498,
+          "cpu_ns": 1.003029795853557,
+          "p50_ns": 1.0186991729544002,
+          "p95_ns": 1.0120274914089347
+        }
+      },
+      {
+        "fixture": "fixed-prefix-1",
+        "mode": "full",
+        "baseline": {
+          "wall_ns": 415436750,
+          "cpu_ns": 412855000,
+          "p50_ns": 103125,
+          "p95_ns": 113875
+        },
+        "candidate": {
+          "wall_ns": 425059583,
+          "cpu_ns": 422433000,
+          "p50_ns": 105375,
+          "p95_ns": 114916
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 1.023163172251853,
+          "cpu_ns": 1.0231994283707355,
+          "p50_ns": 1.0218181818181817,
+          "p95_ns": 1.0091416026344677
+        }
+      },
+      {
+        "fixture": "fixed-prefix-1",
+        "mode": "helper",
+        "baseline": {
+          "wall_ns": 275451708,
+          "cpu_ns": 273811000,
+          "p50_ns": 59250,
+          "p95_ns": 91625
+        },
+        "candidate": {
+          "wall_ns": 335455500,
+          "cpu_ns": 333888000,
+          "p50_ns": 84166,
+          "p95_ns": 113958
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 1.2178377924597947,
+          "cpu_ns": 1.219410469265296,
+          "p50_ns": 1.420523206751055,
+          "p95_ns": 1.243743519781719
+        }
+      },
+      {
+        "fixture": "fixed-prefix-10",
+        "mode": "full",
+        "baseline": {
+          "wall_ns": 831463834,
+          "cpu_ns": 825849000,
+          "p50_ns": 205542,
+          "p95_ns": 229250
+        },
+        "candidate": {
+          "wall_ns": 518847667,
+          "cpu_ns": 514915000,
+          "p50_ns": 128625,
+          "p95_ns": 138417
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.624017119907587,
+          "cpu_ns": 0.623497758064731,
+          "p50_ns": 0.6257845111947923,
+          "p95_ns": 0.6037818974918212
+        }
+      },
+      {
+        "fixture": "fixed-prefix-10",
+        "mode": "helper",
+        "baseline": {
+          "wall_ns": 496965750,
+          "cpu_ns": 493977000,
+          "p50_ns": 123334,
+          "p95_ns": 134084
+        },
+        "candidate": {
+          "wall_ns": 324091583,
+          "cpu_ns": 321611000,
+          "p50_ns": 80500,
+          "p95_ns": 88334
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.6521406817270606,
+          "cpu_ns": 0.6510647256856088,
+          "p50_ns": 0.6526991745990562,
+          "p95_ns": 0.6587959786402554
+        }
+      },
+      {
+        "fixture": "fixed-prefix-2",
+        "mode": "full",
+        "baseline": {
+          "wall_ns": 441330916,
+          "cpu_ns": 438289000,
+          "p50_ns": 110625,
+          "p95_ns": 119916
+        },
+        "candidate": {
+          "wall_ns": 387447333,
+          "cpu_ns": 385132000,
+          "p50_ns": 96791,
+          "p95_ns": 104792
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.8779066205278037,
+          "cpu_ns": 0.8787170109220173,
+          "p50_ns": 0.8749468926553672,
+          "p95_ns": 0.8738783815337403
+        }
+      },
+      {
+        "fixture": "fixed-prefix-2",
+        "mode": "helper",
+        "baseline": {
+          "wall_ns": 232445125,
+          "cpu_ns": 231044000,
+          "p50_ns": 57959,
+          "p95_ns": 62625
+        },
+        "candidate": {
+          "wall_ns": 222739625,
+          "cpu_ns": 221267000,
+          "p50_ns": 52917,
+          "p95_ns": 70458
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.95824605915052,
+          "cpu_ns": 0.9576833849829469,
+          "p50_ns": 0.913007470798323,
+          "p95_ns": 1.1250778443113771
+        }
+      }
+    ],
+    "isolated_negative_controls": {
+      "forks": 4,
+      "warmups": 10000,
+      "samples": 10000,
+      "scope": "One fixture per JVM; negative controls only; original multi-fixture timings are retained.",
+      "original_timing_source_recompiled_byte_identical": true,
+      "isolated_source_sha256": "3770c0484dc1313de5db8d08834807ea98bedabc850c5278f197a34a31c906e2",
+      "summary": [
+        {
+          "fixture": "fixed1",
+          "mode": "helper",
+          "baseline": {
+            "wall_ns": 561328521.0,
+            "cpu_ns": 557428500.0,
+            "p50_ns": 53791.5,
+            "p95_ns": 72938.0
+          },
+          "candidate": {
+            "wall_ns": 544206229.5,
+            "cpu_ns": 540159500.0,
+            "p50_ns": 51667.0,
+            "p95_ns": 82354.0
+          },
+          "candidate_over_baseline": {
+            "wall_ns": 0.9694968438990115,
+            "cpu_ns": 0.96902024205795,
+            "p50_ns": 0.9605049124861734,
+            "p95_ns": 1.1290959445008089
+          }
+        },
+        {
+          "fixture": "branches0",
+          "mode": "full",
+          "baseline": {
+            "wall_ns": 1200027917.0,
+            "cpu_ns": 1192696000.0,
+            "p50_ns": 118583.5,
+            "p95_ns": 133979.0
+          },
+          "candidate": {
+            "wall_ns": 1163711583.5,
+            "cpu_ns": 1156877500.0,
+            "p50_ns": 114916.0,
+            "p95_ns": 129229.5
+          },
+          "candidate_over_baseline": {
+            "wall_ns": 0.9697370927913171,
+            "cpu_ns": 0.969968458014448,
+            "p50_ns": 0.9690724257590643,
+            "p95_ns": 0.9645504146172161
+          }
+        }
+      ]
+    },
+    "interpretation": [
+      "Charged work and elapsed/CPU time are separate measurements.",
+      "The 16-pattern, 10-prefix fixture at the production 4096 work cap completes 64 candidates instead of 59, with the same null improvement and five probes.",
+      "The comparison of 4423 versus 2651 work for the same 64 candidates uses an external high-work diagnostic run; it does not change a production cap.",
+      "Long-prefix fixtures improve, but the multi-fixture no-cache controls include small public-planner slowdowns. Retain all measurements; this is not a claim of universal speedup.",
+      "One short-prefix helper varied substantially between measurement protocols. Profile/order sensitivity is a possible explanation, not a traced JVM cause; retain the isolated longer-warmup results alongside the multi-fixture results.",
+      "The isolated short-prefix helper median CPU time decreases about 3.1%, but its P95 increases about 12.9%; there is no guarantee of deadline neutrality.",
+      "Synthetic small DAG timings do not establish an improvement for large modpack graphs, which remain outside the 16-pattern admission gate."
+    ]
+  },
+  "artifact_binding": {
+    "sources": {
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.java": "570a4b8208db8158bfc703706744e1dcdf442fac4f2b791c50d204e0e7b6f4ba",
+      "src/test/java/com/moakiee/thunderbolt/core/planner/UpstreamPrefixReuseTest.java": "d5aefc717c8d3f5016010e77b23c93b05962e0c3af276503fc81af4d361355ed"
+    },
+    "baseline_classes": 470,
+    "candidate_classes": 472,
+    "class_delta": {
+      "baseline_count": 470,
+      "candidate_count": 472,
+      "changed": [
+        "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Budget.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Model.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$PairCache.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$PairDemand.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Search.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.class"
+      ],
+      "added": [
+        "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$FixedPrefix.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$ProposalState.class"
+      ],
+      "removed": []
+    },
+    "candidate_class_digest": "b7e34d7cf340e568bc50a60768a0278c53faca2cea5e72bdb17d180ace749bd3",
+    "candidate_jar_sha256": "6246834f1897cb115ef00c792287e7512d54a89690058b8ac5cbbf5a4645b38c",
+    "all_candidate_classes_match_built_jar": true,
+    "note": "Local verification build only; this optimization is neither merged nor published by this change."
+  },
+  "local_evidence_directory": "outputs/tb-alpha-upstream-prefix-round6-20261004",
+  "evidence_sha256": {
+    "final-binding.json": "9cdbd1eece8cd0835d8ab7b1e5dee333ad7a9f64f81b93e4468aaa39c759fcd5",
+    "review/manifest.json": "8f4f04f8cf32147ac8816bb9d3a0a508f8c91ed52627fdbc0f941f936573b9c3",
+    "review/summary.json": "25833a12f702303728350d76f37b188ab66d8b619e3ebedff0bfa967ebd5defe",
+    "public-audit/summary.json": "4de74979638c1f8a81b4e58c03d578ce0402eab1242ec3c0d7305c200521025e",
+    "test-summary.json": "a26ef566076d7bb2f983a0d800562b653db97823d1ecb7ec9b657a82227dfa7e",
+    "fixture-summary.json": "e1ae248bff5c118e522ae6ed06b4befb3cbb494f2916a6090958b6432daa461d",
+    "timing/summary.json": "5ef3251bb443d4bf74dd364597810b0d9dbef411d9b69f9ad5477836fb6af651",
+    "isolated-timing/summary.json": "07550e75c31d4f74f2f28ce111380ae628447d2eb9e3bd14490f1ac6b5a43845"
+  }
+}

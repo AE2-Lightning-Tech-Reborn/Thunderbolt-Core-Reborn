@@ -19,8 +19,8 @@ final class SmallConservativeSearch {
     static final int MAX_FIRINGS = 32;
     static final long MAX_NANOS = 20_000_000L;
     private static final int MAX_ITEMS = 12;
-    private static final int MAX_PATTERNS = 16;
-    private static final int MAX_STOCK = 256;
+    static final int MAX_PATTERNS = 16;
+    static final int MAX_STOCK = 256;
 
     private SmallConservativeSearch() {}
 
