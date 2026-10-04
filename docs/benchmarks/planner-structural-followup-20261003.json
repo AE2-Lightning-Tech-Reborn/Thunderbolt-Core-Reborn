@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-03",
+  "scope": "Small structural follow-up; no optimizer changes",
+  "baseline_commit": "b03c056a1aa3c20c30a2f688606407485f5669f1",
+  "changes": [
+    "Allocate frame children, back edges and resolved-bootstrap lists only when needed; skip empty leaves.",
+    "Retain the immutable graph recipe list until the first cut, then copy the exact positional prefix and append accepted registrations.",
+    "Check cancellation and return the existing empty byproduct schedule when immutable graph metadata proves there are no byproducts."
+  ],
+  "equivalence_arguments": [
+    "All four cut exits preserve the cut-output mark and copy the prefix at its registration index, retaining repeated pattern objects and their order.",
+    "Byproduct registration remains before all cut predicates. Every recipe input is scanned before resolving back edges, including returned inputs after a rejected edge.",
+    "Resolved bootstrap candidates are installed only after every back edge succeeds; a rejected recipe installs none.",
+    "Children still use LinkedHashSet first-occurrence equality/order, with no changes to DFS loops or checkpoints. All consumers of retained recipe lists are read-only or copy before sorting.",
+    "CraftGraph recipe lists are immutable; recipe projections recompute byproduct metadata, including normalized container remainders. patternsByOutput contains retained original patterns only.",
+    "Without byproducts, the original schedule builder could only return the same empty maps and unchanged order, including its local work-cap fallback; the early return keeps an explicit cancellation checkpoint."
+  ],
+  "validation": {
+    "command": "./gradlew --offline --no-daemon test --tests \"*FrameConstructionReuseTest\" --tests \"*ByproductScheduleMetadataTest\" --tests \"*CraftPlannerV2Test\" --tests \"*StockCoveredCyclePlanningTest\" --tests \"*CombinedCycleOrientationTest\" --tests \"*HostFeedbackMetadataTest\" --tests \"*ByproductReplaySafetyTest\" --tests \"*MaterialDagSupplyTest\" --tests \"*GenericLowWidthConflictSolverTest\"",
+    "counts": {
+      "tests": 188,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "suites": [
+      {
+        "suite": "com.moakiee.thunderbolt.core.crafting.planner.ByproductReplaySafetyTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "com.moakiee.thunderbolt.core.crafting.planner.ByproductScheduleMetadataTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "com.moakiee.thunderbolt.core.crafting.planner.CombinedCycleOrientationTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+        "tests": 105,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "com.moakiee.thunderbolt.core.crafting.planner.FrameConstructionReuseTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "com.moakiee.thunderbolt.core.crafting.planner.GenericLowWidthConflictSolverTest",
+        "tests": 28,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "com.moakiee.thunderbolt.core.crafting.planner.HostFeedbackMetadataTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagSupplyTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "com.moakiee.thunderbolt.core.crafting.planner.StockCoveredCyclePlanningTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "independent_frame_filter_and_order_cases": 256,
+    "explicit_cut_kinds": 4,
+    "positions_per_cut_kind": 3
+  },
+  "performance": "Not benchmarked independently. The coordinating instance owns full-suite regression, artifact build, broader corpus differential and final combined ABBA."
+}

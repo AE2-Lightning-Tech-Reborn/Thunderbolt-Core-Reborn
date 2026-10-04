@@ -1,0 +1,232 @@
+{
+  "date": "2026-10-03",
+  "baseline_commit": "38e6d17b9f8119d613d301083a4126bffb8dde94",
+  "purpose": "Extract conservative material-equivalence compilation from CraftPlannerV2 behind one package-private build operation. This is a maintainability change; no speedup is claimed.",
+  "boundary": {
+    "inputs": [
+      "frozen CraftGraph inventory",
+      "dependency order",
+      "selected producer table after graph cuts"
+    ],
+    "output": "Read-only map retaining CraftPattern identity semantics; ids are local to one build.",
+    "preserved": [
+      "dynamic-pool pre-scan and reverse-order traversal",
+      "recipe ordering, bounded long arithmetic and exact-overflow rejection",
+      "per-build interner and scratch storage",
+      "original cancellation check locations",
+      "PreparedGraph snapshot/replay table references",
+      "all original producers for exact continuation"
+    ],
+    "not_changed": [
+      "search policy and budgets",
+      "public API",
+      "cache scope",
+      "wide-slot cancellation behavior"
+    ]
+  },
+  "validation": {
+    "targeted": {
+      "suites": 11,
+      "tests": 200,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "candidate_classes": 467
+    },
+    "independent_review": "Method bodies, three records and interner compared with baseline; unchanged apart from explicit parameters, static declaration and result return.",
+    "differential": {
+      "samples": 3000,
+      "plan_fields": [
+        "feasible",
+        "supported",
+        "firings",
+        "used",
+        "usedReusableStock",
+        "missing",
+        "grossDemand",
+        "itemsProcessed",
+        "budgetExhausted"
+      ],
+      "non_timing_diagnostic_fields": [
+        "compiledOrientations",
+        "configuredFallbackBudget",
+        "configuredResolutionBudget",
+        "configuredSearchBudget",
+        "consumedFallbackBudget",
+        "consumedResolutionBudget",
+        "consumedSearchBudget",
+        "consumptionOptimizationImprovements",
+        "consumptionOptimizationProbes",
+        "contendedOutputs",
+        "cycleCuts",
+        "dynamicCapacityEvaluations",
+        "equivalentRoutesPruned",
+        "failureMemoHits",
+        "fallbackCutoff",
+        "frontierPeak",
+        "hotNodeVisits",
+        "inputEdges",
+        "lowWidthAttempts",
+        "lowWidthCutoffs",
+        "lowWidthInfeasible",
+        "lowWidthIntegerNodes",
+        "lowWidthSolved",
+        "missingRefinementImprovements",
+        "missingRefinementProbes",
+        "planRuns",
+        "reachableItems",
+        "reachablePatterns",
+        "reachableWorkEstimate",
+        "resolutionCutoff",
+        "reusedCompilations",
+        "searchCutoff",
+        "seedOrdered",
+        "separatorWidthPeak"
+      ],
+      "feasible_baseline": 2867,
+      "feasible_candidate": 2867,
+      "plan_changes": [],
+      "balance_failures": [],
+      "replay_failures": [],
+      "replays_per_version": 8601
+    },
+    "non_timing_diagnostics": {
+      "fields": 34,
+      "exactly_equal_cases": 2999,
+      "existing_variant_case": 878,
+      "variable_fields": [
+        "consumedSearchBudget",
+        "dynamicCapacityEvaluations"
+      ],
+      "first_cross_version_values": {
+        "baseline": [
+          78,
+          50
+        ],
+        "candidate": [
+          82,
+          54
+        ]
+      },
+      "second_full_prefix_run": {
+        "baseline_self": {
+          "plan_changes": [],
+          "diagnostic_changes": []
+        },
+        "candidate_self": {
+          "plan_changes": [],
+          "diagnostic_changes": []
+        },
+        "second_pair": {
+          "plan_changes": [],
+          "diagnostic_changes": [
+            {
+              "sample": 878,
+              "fields": {
+                "consumedSearchBudget": [
+                  78,
+                  82
+                ],
+                "dynamicCapacityEvaluations": [
+                  50,
+                  54
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "same_jvm_30_rebuilds_per_version": {
+        "baseline": [
+          {
+            "consumedSearchBudget": 78,
+            "dynamicCapacityEvaluations": 50,
+            "runs": 12
+          },
+          {
+            "consumedSearchBudget": 82,
+            "dynamicCapacityEvaluations": 54,
+            "runs": 18
+          }
+        ],
+        "candidate": [
+          {
+            "consumedSearchBudget": 78,
+            "dynamicCapacityEvaluations": 50,
+            "runs": 13
+          },
+          {
+            "consumedSearchBudget": 82,
+            "dynamicCapacityEvaluations": 54,
+            "runs": 17
+          }
+        ]
+      },
+      "explanation": "Both variants exhibit both count pairs while the complete plan is identical. Existing allocationRepair consumes one search unit and one dynamic evaluation per sweep. Its blame tie selection follows the IdentityHashMap firing order; equal shares retain the first encountered route. This unchanged order-sensitive path is consistent with the observed counter variants; its individual tie decisions were not instrumented.",
+      "limitations": "All 34 fields were compared. Exact equality of the two variable counters is not claimed, and they were not silently excluded."
+    }
+  },
+  "class_snapshots": {
+    "baseline_count": 466,
+    "candidate_count": 467,
+    "baseline_matches_delivered_jar_byte_for_byte": true,
+    "delivered_baseline_jar_sha256": "8cc66cceeb45745dfcce6a2d070a9c97f71a0c2e02151ba6b5bf7001d710261a",
+    "delta": {
+      "unchanged": 435,
+      "changed": [
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$1.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$BorrowedReusableSeed.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ByproductBarrier.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ByproductLink.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ByproductSchedule.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$CapacityGroup.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ConsumableProofState.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$DiagnosticsCollector.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$FallbackBudget.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$FeedbackSeedBootstrap.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$IntDisjointSet.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$LazyDiagnosticUnitCosts.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$LinearPassState.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$LowWidthAnalysis.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$LowWidthComponent.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$LowWidthSolve.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$PreparedGraph.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ReusableSeedAcquisition.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$ScheduleItem.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SearchBudget.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SearchFailure.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SeedActivation.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SeedGroupModel.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SeedReserveKey.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SharedCounterBudget.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$SolvedLowWidthComponent.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.class"
+      ],
+      "removed": [
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$FootprintInterner.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$MaterialLeaf.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$MaterialRecipe.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2$MaterialTerm.class"
+      ],
+      "added": [
+        "com/moakiee/thunderbolt/core/crafting/planner/MaterialFootprintIndex$FootprintInterner.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/MaterialFootprintIndex$MaterialLeaf.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/MaterialFootprintIndex$MaterialRecipe.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/MaterialFootprintIndex$MaterialTerm.class",
+        "com/moakiee/thunderbolt/core/crafting/planner/MaterialFootprintIndex.class"
+      ]
+    }
+  },
+  "reproduction_sha256": {
+    "ArchitectureAudit.java": "8f4901eae7afa84f2797aec1f9f096d44a3165680fe03306c34e64eb6133b409",
+    "ArchitectureRepeatAudit.java": "8a10db06a3ae2eb6fcc43169b191355cccf6eeea8b214add3a5622a552dbc604",
+    "run_audit.py": "23be64b9fc9418de6b20c769b28a3bced5a4c4469f69a0b15acd32ef46c8f2c6",
+    "run_repeat.py": "2ca522414c36a63637bf569d43d9bf2f48c0afe26676638717f1406683e7fcc7",
+    "run_self_compare.py": "c61076b8fe01b647e14416b7e8bf8ff7fa13591cdf861ec06dc867e698ea193e"
+  },
+  "limits": [
+    "Generated graphs and direct tests do not prove all possible plan outcomes.",
+    "Full integration build, real-corpus regression and timing acceptance remain with the coordinating instance.",
+    "The pre-existing wide-slot cancellation delay is intentionally left for a separate fix."
+  ]
+}

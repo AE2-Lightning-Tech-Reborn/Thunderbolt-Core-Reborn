@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -11,22 +12,25 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
 
 /**
  * Optional anytime improvement of an already certified plan; probes never replace its witness.
- * Fewer executions come first. Stock is only a tie-break inside the same probes and never grows:
- * every probe is limited to the incumbent's draws.
+ * Fewer executions come first, using any ordinary stock in the inventory snapshot. At equal
+ * executions, stock and net resource loss must improve without increasing any material's draw.
  *
- * <p>Candidates are pruned before the planner runs. A forward fixpoint from the incumbent's stock
+ * <p>Candidates are pruned before the planner runs. A forward fixpoint from the available stock
  * keeps only patterns that can ever fire, and a dual-feasible cost potential over them bounds the
  * executions (and stock units) of every plan inside the probed pattern set. A probe whose bound
  * cannot beat the incumbent by 1% executions, or by stock at equal executions, never enters the
  * planner, and once the whole reachable graph is bounded that way the search stops.
  *
- * <p>Each probe plans only a local region: the incumbent's routes plus the cheapest fireable
- * alternatives around them. The first proposal is the cheapest route per item over the whole
- * reachable graph, with scarce stock priced up until its fixed replay fits the incumbent's draws.
+ * <p>The first proposal is the cheapest route per item over the whole reachable graph, with scarce
+ * stock priced up until its fixed replay fits the inventory snapshot. Subsequent local probes use
+ * the incumbent's draws: adding unrelated stocked routes to every withdrawal dilutes the bounded
+ * search and can hide the improvements it already finds within the incumbent's materials.
  */
 final class FeasibleConsumptionOptimizer {
     static final int MAX_PROBES = 32;
@@ -47,6 +51,8 @@ final class FeasibleConsumptionOptimizer {
     static final int POLICY_ROUNDS = 6;
     /** Largest set of same-item producers withdrawn together. */
     static final int MAX_WITHDRAWN = 4;
+    /** Larger graphs retain their existing probe allocation and local-search behavior. */
+    private static final int MAX_MIXED_PATTERNS = 16;
 
     // Evaluation-only trace.
     static final boolean TRACE = Boolean.getBoolean("thunderbolt.feasibleOptimizationTrace");
@@ -58,9 +64,16 @@ final class FeasibleConsumptionOptimizer {
 
     static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
             int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle) {
-        var state = new Search<>(graph, target, amount, initial, probeLimit, oracle);
+        return optimize(graph, target, amount, initial, probeLimit, oracle, work -> true);
+    }
+
+    static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
+            int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IntPredicate spendWork) {
+        var state = new Search<>(graph, target, amount, initial, probeLimit, oracle, spendWork);
         try {
             state.run();
+            state.mixSmallBatches();
+            state.mixTerminalBatches();
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             // External cancellation and the enclosing router deadline must still propagate.
             state.stop = "time";
@@ -75,16 +88,20 @@ final class FeasibleConsumptionOptimizer {
         private final long amount;
         private final int limit;
         private final Function<CraftGraph<K>, CraftPlan<K>> oracle;
+        private final IntPredicate spendWork;
         private CraftPlan<K> best;
         private int probes;
+        private int mixedProbes;
         private int improvements;
         private int pruned;
         private long lastGain;
         private boolean exhausted;
+        private boolean targetOptimal;
 
         private Index<K> index;
         private long[] limits;
         private int[] limited;
+        private boolean availableStock = true;
         private Prop global;
         /** Withdrawal sets extended by the substitutes the planner chose last time. */
         private final ArrayDeque<int[]> chains = new ArrayDeque<>();
@@ -109,13 +126,88 @@ final class FeasibleConsumptionOptimizer {
         private int regionSize;
 
         Search(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial, int limit,
-                Function<CraftGraph<K>, CraftPlan<K>> oracle) {
+                Function<CraftGraph<K>, CraftPlan<K>> oracle, IntPredicate spendWork) {
             this.graph = graph;
             this.target = target;
             this.amount = amount;
             this.best = initial;
             this.limit = Math.min(MAX_PROBES, limit);
             this.oracle = oracle;
+            this.spendWork = spendWork;
+        }
+
+        /** Finish small ordinary DAGs with integer batch mixes under the same budgets. */
+        private void mixSmallBatches() {
+            if (targetOptimal || index == null || !index.choices || index.patterns.size() > MAX_MIXED_PATTERNS
+                    || exhausted || probes >= limit)
+                return;
+            for (var pattern : index.patterns)
+                if (stateful(pattern) || !pattern.byproducts().isEmpty()) return;
+            IntPredicate charge = work -> {
+                if (exhausted || !spendWork.test(work)) {
+                    exhausted = true;
+                    stop = "budget";
+                    return false;
+                }
+                return true;
+            };
+            BooleanSupplier reserve = () -> {
+                if (exhausted || probes >= limit) return false;
+                probes++;
+                mixedProbes++;
+                return true;
+            };
+            while (!exhausted && probes < limit) {
+                PlanningCancellation.check();
+                var ordinary = OrdinaryBatchOptimizer.startSearch(graph, target, amount, best, charge, reserve);
+                var candidate = ordinary.tryWhole(index.keys);
+                UpstreamBatchOptimizer.Search<K> upstream = null;
+                if (candidate == null && !exhausted && probes < limit) {
+                    upstream = UpstreamBatchOptimizer.startSearch(graph, target, amount, best, index.keys,
+                            charge, reserve);
+                    if (upstream != null) candidate = upstream.tryEstablished();
+                }
+                // New neighborhoods must not preempt the established upstream replacement path.
+                if (candidate == null && !exhausted && probes < limit)
+                    candidate = ordinary.tryAdditional();
+                // Keep the same upstream allowance after the earlier local neighborhoods finish.
+                if (candidate == null && upstream != null && !exhausted && probes < limit)
+                    candidate = upstream.tryAdditional();
+                if (candidate == null || !improves(best, candidate)) break;
+                best = candidate;
+                improvements++;
+            }
+            if (!exhausted && probes < limit) {
+                var normalized = OrdinaryBatchOptimizer.normalizeStock(graph, target, amount, best, charge, reserve);
+                if (normalized != null && improves(best, normalized)) {
+                    best = normalized;
+                    improvements++;
+                }
+            }
+        }
+
+        /** Larger terminal portfolios use only the allowance left by the established search. */
+        private void mixTerminalBatches() {
+            if (targetOptimal || index == null || !TerminalBatchOptimizer.acceptsRouteCount(index.patterns.size())
+                    || exhausted || probes >= limit) return;
+            var candidate = TerminalBatchOptimizer.tryImprove(graph, target, amount, best, index.patterns,
+                    work -> {
+                        if (exhausted || !spendWork.test(work)) {
+                            exhausted = true;
+                            stop = "budget";
+                            return false;
+                        }
+                        return true;
+                    }, () -> {
+                        if (exhausted || probes >= limit) return false;
+                        probes++;
+                        mixedProbes++;
+                        return true;
+                    });
+            if (candidate != null && improves(best, candidate)) {
+                best = candidate;
+                improvements++;
+            }
         }
 
         void run() {
@@ -127,6 +219,11 @@ final class FeasibleConsumptionOptimizer {
                     || best.grossDemand().values().stream().anyMatch(Sat::isSaturated)) return;
             initialExecutions = executionCount(best);
             initialStock = stockCount(best);
+            if (targetOnlyBound()) {
+                targetOptimal = true;
+                stop = "target-lb";
+                return;
+            }
             long indexStarted = System.nanoTime();
             index = Index.build(graph, target);
             indexNanos = System.nanoTime() - indexStarted;
@@ -139,41 +236,24 @@ final class FeasibleConsumptionOptimizer {
                 return;
             }
 
-            long propagationStarted = System.nanoTime();
-            limits = new long[index.keys.size()];
-            var limitedKeys = new IntBuf();
-            best.usedStock().forEach((key, value) -> {
-                Integer id = index.ids.get(key);
-                if (id != null && value > 0) {
-                    limits[id] = value;
-                    limitedKeys.add(id);
-                }
-            });
-            limited = limitedKeys.toArray();
-            int[] all = new int[index.patterns.size()];
-            for (int p = 0; p < all.length; p++) all[p] = p;
-            global = propagate(all);
-            globalCost = global.cost;
-            globalArgmin = global.argmin;
-            execBound = global.execBound;
-            stockBound = global.stockBound;
-            // The bounds assume every executable plan fires only patterns the fixpoint reaches.
-            // The incumbent is executable; if the model disagrees with it, trust no bound.
-            for (var pattern : best.firings().keySet()) {
-                Integer id = index.patternIds.get(pattern);
-                if (id == null || !global.fired[id]) {
-                    execBound = 0;
-                    stockBound = 0;
-                    break;
-                }
-            }
-            propagationNanos = System.nanoTime() - propagationStarted;
+            propagateStock();
             if (proven()) {
                 stop = "lb";
                 return;
             }
 
             probePolicy();
+            if (targetOnlyBound()) {
+                targetOptimal = true;
+                stop = "target-lb";
+                return;
+            }
+            // Keep the full-inventory proposal separate from the established local search. Its
+            // confirmed improvement becomes the new incumbent; rejected proposals cannot divert
+            // local withdrawals through unrelated stock. Both phases share the same work limits.
+            availableStock = false;
+            propagateStock();
+            if (!proven()) probePolicy();
             // The stall clock times withdrawals only. Indexing, bounds and the policy proposal
             // are paid once and grow with the pack; a slow machine must still get to reroute.
             lastGain = System.nanoTime();
@@ -200,13 +280,90 @@ final class FeasibleConsumptionOptimizer {
             stop = exhausted ? "budget" : probes >= limit ? "probes" : stalled() ? "stall" : stop;
         }
 
+        /**
+         * A target-only plan at the largest possible target yield cannot reserve any firing for
+         * upstream production. When every target producer consumes only other ordinary keys, all
+         * of those inputs must come from inventory. Matching both lower bounds therefore leaves
+         * no strict componentwise stock or net-loss improvement at the same execution count.
+         */
+        private boolean targetOnlyBound() {
+            if (graph.hasByproducts() || graph.stock(target) != 0 || best.firings().isEmpty()) return false;
+            BigInteger largestOutput = BigInteger.ZERO;
+            BigInteger smallestDraw = null;
+            for (var pattern : graph.patternsFor(target)) {
+                PlanningCancellation.check();
+                if (stateful(pattern)) return false;
+                BigInteger draw = BigInteger.ZERO;
+                for (var input : pattern.inputs()) {
+                    PlanningCancellation.check();
+                    if (input.key().equals(target)) return false;
+                    draw = draw.add(input.exactAmount());
+                }
+                largestOutput = largestOutput.max(pattern.exactOutputAmount());
+                smallestDraw = smallestDraw == null ? draw : smallestDraw.min(draw);
+            }
+            if (largestOutput.signum() <= 0) return false;
+            var needed = BigInteger.valueOf(amount);
+            var lowerExecutions = needed.add(largestOutput).subtract(BigInteger.ONE).divide(largestOutput);
+            if (!executions(best).equals(lowerExecutions)) return false;
+            for (var pattern : best.firings().keySet()) if (!pattern.output().equals(target)) return false;
+            BigInteger used = BigInteger.ZERO;
+            for (long value : best.usedStock().values()) used = used.add(BigInteger.valueOf(value));
+            return smallestDraw.multiply(lowerExecutions).compareTo(used) >= 0;
+        }
+
+        private void propagateStock() {
+            long propagationStarted = System.nanoTime();
+            limits = new long[index.keys.size()];
+            var limitedKeys = new IntBuf();
+            for (int id = 0; id < index.keys.size(); id++) {
+                K key = index.keys.get(id);
+                long value = availableStock ? graph.stock(key) : best.usedStock().getOrDefault(key, 0L);
+                if (value > 0) {
+                    limits[id] = value;
+                    limitedKeys.add(id);
+                }
+            }
+            limited = limitedKeys.toArray();
+            int[] all = new int[index.patterns.size()];
+            for (int p = 0; p < all.length; p++) all[p] = p;
+            global = propagate(all, true);
+            globalCost = global.cost;
+            globalArgmin = global.argmin;
+            execBound = global.execBound;
+            stockBound = global.stockBound;
+            // The bounds assume every executable plan fires only patterns the fixpoint reaches.
+            // The incumbent is executable; if the model disagrees with it, trust no bound.
+            for (var pattern : best.firings().keySet()) {
+                Integer id = index.patternIds.get(pattern);
+                if (id == null || !global.fired[id]) {
+                    execBound = 0;
+                    stockBound = 0;
+                    global.stockBound = 0;
+                    global.stockBoundComputed = true;
+                    break;
+                }
+            }
+            propagationNanos += System.nanoTime() - propagationStarted;
+        }
+
         private boolean stalled() {
             return STALL_NANOS != 0 && System.nanoTime() - lastGain >= STALL_NANOS;
         }
 
         private boolean proven() {
-            return execBound > executionCount(best) - minimumGain(executionCount(best))
-                    && stockBound >= stockCount(best);
+            long current = executionCount(best);
+            if (execBound <= current - minimumGain(current)) return false;
+            if (execBound > current || stockCount(best) == 0) return true;
+            stockBound = stockBound(global);
+            return stockBound >= stockCount(best);
+        }
+
+        private boolean worthwhile(Prop prop) {
+            long current = executionCount(best);
+            if (prop.execBound <= current - minimumGain(current)) return true;
+            if (prop.execBound > current || stockCount(best) == 0) return false;
+            return stockBound(prop) < stockCount(best);
         }
 
         private boolean worthwhile(long executions, long stock) {
@@ -240,9 +397,9 @@ final class FeasibleConsumptionOptimizer {
                 boolean changesRoute = best.firings().keySet().stream().anyMatch(p ->
                         !selected.getOrDefault(p.output(), List.of()).contains(p));
                 if (!changesRoute) return;
-                var candidate = graph.withPatterns(selected).withStockLimits(best.usedStock());
+                var candidate = candidateGraph(selected);
                 // The ordinary fixed DAG has a cheap exact shortage test. Do not launch a whole
-                // alternative search for a policy already known to exceed the incumbent's stock.
+                // alternative search for a policy already known to exceed the available stock.
                 var fixed = ConservativeReplenishment.compileFixed(candidate, order, selected);
                 if (fixed == null) return;
                 var proposal = fixed.plan(target, amount, Map.of());
@@ -275,11 +432,16 @@ final class FeasibleConsumptionOptimizer {
          * only producers whose inputs all became available strictly earlier are admitted.
          */
         private Map<K, List<CraftPattern<K>>> policy(double[] price) {
+            if (!global.targetAvailable) return null;
             int n = index.keys.size();
             double[] cost = stockCost(price);
             int[] choice = new int[n];
             Arrays.fill(choice, -1);
-            relax(global, 1, cost, choice);
+            boolean free = true;
+            for (double value : price) free &= value == 0;
+            // The zero-price first round has already been relaxed for the execution bound.
+            if (free) choice = global.freeArgmin.clone();
+            else relax(global, 1, cost, choice);
             var selected = select(choice);
             if (selected != null && !dagOrder(selected).isEmpty()) return selected;
             Integer[] byRank = new Integer[n];
@@ -382,8 +544,8 @@ final class FeasibleConsumptionOptimizer {
                 candidate.add(p);
             }
             int[] patterns = candidate.toArray();
-            Prop local = propagate(patterns);
-            if (!local.targetAvailable || !worthwhile(local.execBound, local.stockBound)) {
+            Prop local = propagate(patterns, false);
+            if (!local.targetAvailable || !worthwhile(local)) {
                 pruned++;
                 return true;
             }
@@ -444,7 +606,7 @@ final class FeasibleConsumptionOptimizer {
                 }
             }
             if (!changed || selected.equals(replacement)) return false;
-            var candidate = graph.withPatterns(selected).withStockLimits(best.usedStock());
+            var candidate = candidateGraph(selected);
             List<K> order = dagOrder(selected);
             if (!order.isEmpty()) {
                 var fixed = ConservativeReplenishment.compileFixed(candidate, order, selected);
@@ -574,7 +736,12 @@ final class FeasibleConsumptionOptimizer {
                     if (best.firings().containsKey(pattern) == (pass == 0))
                         selected.computeIfAbsent(index.keys.get(index.out[p]), ignored -> new ArrayList<>()).add(pattern);
                 }
-            return graph.withPatterns(selected).withStockLimits(best.usedStock());
+            return candidateGraph(selected);
+        }
+
+        private CraftGraph<K> candidateGraph(Map<K, List<CraftPattern<K>>> selected) {
+            var candidate = graph.withPatterns(selected);
+            return availableStock ? candidate : candidate.withStockLimits(best.usedStock());
         }
 
         private boolean probe(CraftGraph<K> candidateGraph) {
@@ -590,7 +757,7 @@ final class FeasibleConsumptionOptimizer {
                 return false;
             }
             for (var entry : candidate.usedStock().entrySet())
-                if (entry.getValue() > candidateGraph.stock(entry.getKey())) return false;
+                if (entry.getValue() < 0 || entry.getValue() > candidateGraph.stock(entry.getKey())) return false;
             lastCandidate = candidate;
             if (!improves(best, candidate)) return false;
             BigInteger before = executions(best);
@@ -606,13 +773,13 @@ final class FeasibleConsumptionOptimizer {
         }
 
         /**
-         * Forward fixpoint and dual costs over the given patterns under the incumbent's stock.
+         * Forward fixpoint and dual costs over the given patterns under the available stock.
          * Every executable plan fires only reached patterns: a first firing needs its inputs from
          * stock or from an earlier firing. On reached patterns, y = c / s satisfies
          * y(out) * out - sum y(in) * in <= 1 (byproduct keys priced at 0), so amount * y(target)
          * bounds executions; a second potential that also prices limited stock subtracts it.
          */
-        private Prop propagate(int[] patterns) {
+        private Prop propagate(int[] patterns, boolean keepChoices) {
             int n = index.keys.size(), m = patterns.length;
             var prop = new Prop();
             prop.patterns = patterns;
@@ -691,18 +858,34 @@ final class FeasibleConsumptionOptimizer {
             Arrays.fill(free, Double.POSITIVE_INFINITY);
             for (int key : limited) free[key] = 0;
             for (int k = 0; k < n; k++) if (prop.side[k]) free[k] = 0;
-            relax(prop, 1, free, null);
+            if (keepChoices) {
+                prop.freeArgmin = new int[n];
+                Arrays.fill(prop.freeArgmin, -1);
+            }
+            relax(prop, 1, free, prop.freeArgmin);
             double scale = settle(prop, free);
             double freeBound = amount * free[t] / scale;
+            if (availableStock) {
+                // This phase only proposes a whole-inventory policy. The local region uses the
+                // next, capped-stock propagation, so production prices are not needed yet.
+                prop.execBound = Math.max(0L, (long) Math.ceil(freeBound * (1 - 1e-9) - 1e-9));
+                prop.cost = free;
+                prop.argmin = prop.freeArgmin;
+                return prop;
+            }
             // Stock priced by production, then charged for its limit.
             double[] priced = new double[n];
             Arrays.fill(priced, Double.POSITIVE_INFINITY);
             for (int k = 0; k < n; k++) if (prop.side[k] || prop.avail[k] && !prop.produced[k]) priced[k] = 0;
-            int[] argmin = new int[n];
-            Arrays.fill(argmin, -1);
-            relax(prop, 1, priced, argmin);
-            for (int k = 0; k < n; k++) if (prop.avail[k] && Double.isInfinite(priced[k])) priced[k] = 0;
-            relax(prop, 1, priced, argmin);
+            int[] argmin = keepChoices ? new int[n] : null;
+            if (argmin != null) Arrays.fill(argmin, -1);
+            boolean settled = relax(prop, 1, priced, argmin);
+            for (int k = 0; k < n; k++) if (prop.avail[k] && Double.isInfinite(priced[k])) {
+                priced[k] = 0;
+                settled = false;
+            }
+            // Without new seeds, a drained work queue already represents the fixed point.
+            if (!settled) relax(prop, 1, priced, argmin);
             scale = settle(prop, priced);
             double charged = amount * priced[t];
             for (int key : limited) charged -= limits[key] * priced[key] * (1 + 1e-9);
@@ -711,6 +894,13 @@ final class FeasibleConsumptionOptimizer {
             prop.cost = priced;
             prop.argmin = argmin;
 
+            return prop;
+        }
+
+        /** Stock units can reject a probe only after executions cannot improve enough. */
+        private long stockBound(Prop prop) {
+            if (prop.stockBoundComputed) return prop.stockBound;
+            int n = index.keys.size(), t = index.ids.get(target);
             // Stock units: y <= 1 on limited keys, y(out) * out <= sum y(in) * in.
             double[] units = new double[n];
             Arrays.fill(units, Double.POSITIVE_INFINITY);
@@ -719,14 +909,15 @@ final class FeasibleConsumptionOptimizer {
             boolean exact = relax(prop, 0, units, null);
             for (int k = 0; k < n; k++) if (prop.avail[k] && Double.isInfinite(units[k])) units[k] = 0;
             for (int i = 0; i < prop.firedCount && exact; i++) {
-                int p = patterns[prop.order[i]];
+                int p = prop.patterns[prop.order[i]];
                 double consumed = 0;
                 for (int j = index.useStart[p]; j < index.useStart[p + 1]; j++)
                     consumed += units[index.useKey[j]] * index.useAmount[j];
                 exact = units[index.out[p]] * index.outAmount[p] <= consumed * (1 + 1e-9) + 1e-9;
             }
             prop.stockBound = exact ? Math.max(0L, (long) Math.ceil(amount * units[t] * (1 - 1e-9) - 1e-9)) : 0L;
-            return prop;
+            prop.stockBoundComputed = true;
+            return prop.stockBound;
         }
 
         /** Label-correcting shortest costs over reached patterns; false when the work cap stops it. */
@@ -798,7 +989,8 @@ final class FeasibleConsumptionOptimizer {
             text.append(",\"execBound\":").append(execBound).append(",\"stockBound\":").append(stockBound);
             text.append(",\"exec0\":").append(initialExecutions).append(",\"exec1\":").append(executionCount(best));
             text.append(",\"stock0\":").append(initialStock).append(",\"stock1\":").append(stockCount(best));
-            text.append(",\"oracle\":").append(probes).append(",\"improvements\":").append(improvements);
+            text.append(",\"oracle\":").append(probes - mixedProbes).append(",\"mixed\":").append(mixedProbes)
+                    .append(",\"improvements\":").append(improvements);
             text.append(",\"pruned\":").append(pruned);
             text.append(",\"indexMs\":").append(indexNanos / 1e6).append(",\"propMs\":").append(propagationNanos / 1e6);
             text.append(",\"oracleMs\":[");
@@ -823,17 +1015,20 @@ final class FeasibleConsumptionOptimizer {
         boolean targetAvailable;
         double[] cost;
         int[] argmin;
+        /** First-round policy choices before stock is charged a scarcity price. */
+        int[] freeArgmin;
         long execBound;
         long stockBound;
+        boolean stockBoundComputed;
     }
 
     /** Integer view of the reachable graph, built once per request. */
     private static final class Index<K> {
+        private static final int LINEAR_SLOT_LIMIT = 32;
         final ArrayList<K> keys = new ArrayList<>();
         final HashMap<K, Integer> ids = new HashMap<>();
         final ArrayList<CraftPattern<K>> patterns = new ArrayList<>();
         final HashMap<CraftPattern<K>, Integer> patternIds = new HashMap<>();
-        final LinkedHashMap<K, List<CraftPattern<K>>> routes = new LinkedHashMap<>();
         boolean choices;
         int[] out;
         long[] outAmount;
@@ -845,7 +1040,6 @@ final class FeasibleConsumptionOptimizer {
         long[] useAmount;
         /** Byproducts other than the output key. */
         int[] sideStart, sideKey;
-        long[] sideAmount;
         int[] producerStart, producer;
 
         private int id(K key) {
@@ -871,26 +1065,29 @@ final class FeasibleConsumptionOptimizer {
             var useAmount = new LongBuf();
             var sideStart = new IntBuf();
             var sideKey = new IntBuf();
-            var sideAmount = new LongBuf();
             needStart.add(0);
             useStart.add(0);
             sideStart.add(0);
-            var pending = new ArrayDeque<K>();
-            pending.add(target);
-            index.id(target);
-            while (!pending.isEmpty()) {
+            var pending = new IntBuf();
+            var enqueued = new BitSet();
+            pending.add(index.id(target));
+            enqueued.set(0);
+            for (int cursor = 0; cursor < pending.size; cursor++) {
                 PlanningCancellation.check();
-                K key = pending.removeFirst();
-                if (index.routes.containsKey(key)) continue;
-                var routes = graph.patternsFor(key);
-                index.routes.put(key, routes);
+                int keyId = pending.data[cursor];
+                var routes = graph.patternsFor(index.keys.get(keyId));
                 index.choices |= routes.size() > 1;
-                int keyId = index.id(key);
                 for (var pattern : routes) {
+                    // Repeated registration does not add another firing variable. Keep the
+                    // first identity in graph order, including distinct fuzzy expansions.
+                    if (index.patternIds.containsKey(pattern)) continue;
                     if (pattern.exactOutputAmount().compareTo(sat) >= 0) return null;
                     long produced = pattern.exactOutputAmount().longValueExact();
                     int sideFrom = sideKey.size;
+                    var wideSide = pattern.byproducts().size() > LINEAR_SLOT_LIMIT ? new HashSet<Integer>() : null;
+                    int checkedSides = 0;
                     for (var side : pattern.byproducts()) {
+                        if ((++checkedSides & 255) == 0) PlanningCancellation.check();
                         if (side.exactAmount().compareTo(sat) >= 0) return null;
                         long value = side.exactAmount().longValueExact();
                         int sideId = index.id(side.key());
@@ -898,41 +1095,36 @@ final class FeasibleConsumptionOptimizer {
                             produced = Sat.add(produced, value);
                             continue;
                         }
-                        int at = sideKey.indexOf(sideId, sideFrom);
-                        if (at >= 0) sideAmount.data[at] = Sat.add(sideAmount.data[at], value);
-                        else {
+                        if (wideSide == null ? sideKey.indexOf(sideId, sideFrom) < 0 : wideSide.add(sideId))
                             sideKey.add(sideId);
-                            sideAmount.add(value);
-                        }
                     }
                     int needFrom = needKey.size, useFrom = useKey.size;
+                    // Short recipes keep allocation-free linear scans. Wide recipes retain
+                    // first-seen array order without repeatedly scanning all previous slots.
+                    var wideNeed = pattern.inputs().size() > LINEAR_SLOT_LIMIT ? new HashSet<Integer>() : null;
+                    var wideUse = pattern.inputs().size() > LINEAR_SLOT_LIMIT ? new HashMap<Integer, Integer>() : null;
                     boolean stateful = false;
+                    int checkedInputs = 0;
                     for (var input : pattern.inputs()) {
+                        if ((++checkedInputs & 255) == 0) PlanningCancellation.check();
                         if (input.exactAmount().compareTo(sat) >= 0) return null;
-                        pending.addLast(input.key());
                         int inputId = index.id(input.key());
-                        stateful |= input.returned() || input.remainder() != null || input.reusableStockSource() != null;
-                        if (input.reusableStockSource() == null && needKey.indexOf(inputId, needFrom) < 0)
-                            needKey.add(inputId);
-                        if (input.remainder() != null) {
-                            // The container handed back is produced like any byproduct.
-                            long value = input.exactAmount().longValueExact();
-                            int remainderId = index.id(input.remainder());
-                            if (remainderId == keyId) produced = Sat.add(produced, value);
-                            else {
-                                int at = sideKey.indexOf(remainderId, sideFrom);
-                                if (at >= 0) sideAmount.data[at] = Sat.add(sideAmount.data[at], value);
-                                else {
-                                    sideKey.add(remainderId);
-                                    sideAmount.add(value);
-                                }
-                            }
+                        // Side-only keys are indexed but are not traversed until used as an input.
+                        if (!enqueued.get(inputId)) {
+                            enqueued.set(inputId);
+                            pending.add(inputId);
                         }
+                        stateful |= input.returned() || input.remainder() != null || input.reusableStockSource() != null;
+                        if (input.reusableStockSource() == null
+                                && (wideNeed == null ? needKey.indexOf(inputId, needFrom) < 0 : wideNeed.add(inputId)))
+                            needKey.add(inputId);
+                        // CraftPattern already includes consumed-container remainders in byproducts.
                         if (!input.returned()) {
                             long value = input.exactAmount().longValueExact();
-                            int at = useKey.indexOf(inputId, useFrom);
+                            int at = wideUse == null ? useKey.indexOf(inputId, useFrom) : wideUse.getOrDefault(inputId, -1);
                             if (at >= 0) useAmount.data[at] = Sat.add(useAmount.data[at], value);
                             else {
+                                if (wideUse != null) wideUse.put(inputId, useKey.size);
                                 useKey.add(inputId);
                                 useAmount.add(value);
                             }
@@ -959,7 +1151,6 @@ final class FeasibleConsumptionOptimizer {
             index.useAmount = useAmount.toArray();
             index.sideStart = sideStart.toArray();
             index.sideKey = sideKey.toArray();
-            index.sideAmount = sideAmount.toArray();
             int n = index.keys.size();
             index.producerStart = new int[n + 1];
             for (int key : index.out) index.producerStart[key + 1]++;
@@ -1005,17 +1196,18 @@ final class FeasibleConsumptionOptimizer {
     }
 
     /**
-     * Fewer executions first; equal executions then prefer less stock and net resource loss. No
-     * material substitution or greater seed occupancy is accepted either way.
+     * Fewer executions may use different ordinary stock from the same inventory snapshot.
+     * Equal executions require no greater material draws and less stock or net resource loss.
+     * Host-private reusable stock and stateful firings retain the incumbent's constraints.
      */
     static <K> boolean improves(CraftPlan<K> best, CraftPlan<K> candidate) {
         if (!candidate.supported() || !candidate.feasible() || !candidate.missing().isEmpty()
-                || !noMore(candidate.usedStock(), best.usedStock())
                 || !noMore(candidate.usedReusableStock(), best.usedReusableStock())
                 || !statefulFirings(best).equals(statefulFirings(candidate))) return false;
         // Saving a few items is not worth hundreds of extra machine operations.
         int executions = executions(candidate).compareTo(executions(best));
         if (executions != 0) return executions < 0;
+        if (!noMore(candidate.usedStock(), best.usedStock())) return false;
         var oldLoss = netLoss(best);
         var newLoss = netLoss(candidate);
         for (var entry : newLoss.entrySet())

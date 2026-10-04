@@ -34,6 +34,11 @@ server.
 
 ## Configuration
 
+V2 improves feasible plans by preferring fewer recipe executions and may use different
+available inventory to shorten a route. At equal execution counts, it only accepts
+material savings without increasing another material's draw. This optimization is bounded
+by the planning budget; it does not guarantee a globally optimal plan.
+
 Common options are written to `config/thunderbolt-common.toml`:
 
 - `planning.enableCpSatPlanner`: enables the experimental OR-Tools CP-SAT
