@@ -133,7 +133,7 @@ final class FeasibleConsumptionOptimizer {
         BigInteger smallestDraw = null;
         for (var pattern : graph.patternsFor(target)) {
             PlanningCancellation.check();
-            if (stateful(pattern)) return false;
+            if (stateful(pattern) || pattern.executionCost() != 1) return false;
             BigInteger draw = BigInteger.ZERO;
             for (var input : pattern.inputs()) {
                 PlanningCancellation.check();
@@ -319,6 +319,9 @@ final class FeasibleConsumptionOptimizer {
                     || best.firings().values().stream().anyMatch(Sat::isSaturated)
                     || best.grossDemand().values().stream().anyMatch(Sat::isSaturated)) return;
             initialExecutions = executionCount(best);
+            // Optional bounds use a saturating long. A weighted objective can saturate even
+            // when every individual firing count is executable; do not turn that into a proof.
+            if (Sat.isSaturated(initialExecutions)) return;
             initialStock = stockCount(best);
             if (targetOnlyBound()) {
                 targetOptimal = true;
@@ -1124,7 +1127,7 @@ final class FeasibleConsumptionOptimizer {
                 double excess = cost[index.out[p]] * index.outAmount[p];
                 for (int j = index.useStart[p]; j < index.useStart[p + 1]; j++)
                     excess -= cost[index.useKey[j]] * index.useAmount[j];
-                scale = Math.max(scale, excess * (1 + 1e-9));
+                scale = Math.max(scale, excess / index.executionCost[p] * (1 + 1e-9));
             }
             return scale;
         }
@@ -1418,7 +1421,8 @@ final class FeasibleConsumptionOptimizer {
     private static long executionCount(CraftPlan<?> plan) {
         long total = 0;
         for (var entry : plan.firings().entrySet())
-            if (entry.getKey().executionCost() != 0) total = Sat.add(total, entry.getValue());
+            if (entry.getKey().executionCost() != 0)
+                total = Sat.add(total, Sat.mul(entry.getValue(), entry.getKey().executionCost()));
         return total;
     }
 

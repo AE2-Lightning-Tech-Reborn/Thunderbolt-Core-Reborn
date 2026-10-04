@@ -31,7 +31,7 @@ public final class CraftPattern<K> {
     private final List<CraftOutput<K>> byproducts;
     private final Object source;
     private final List<List<CraftInput<K>>> executionSlots;
-    private final boolean tagConversion;
+    private final int executionCost;
 
     public CraftPattern(K output, long outputAmount, List<CraftInput<K>> inputs, Object source) {
         this(output, outputAmount, inputs, List.of(), source);
@@ -50,12 +50,14 @@ public final class CraftPattern<K> {
     public CraftPattern(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
                         List<CraftOutput<K>> byproducts, Object source,
                         List<List<CraftInput<K>>> executionSlots) {
-        this(output, outputAmount, inputs, byproducts, source, executionSlots, false);
+        this(output, outputAmount, inputs, byproducts, source, executionSlots, 1, false);
     }
 
     private CraftPattern(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
                          List<CraftOutput<K>> byproducts, Object source,
-                         List<List<CraftInput<K>>> executionSlots, boolean tagConversion) {
+                         List<List<CraftInput<K>>> executionSlots, int executionCost, boolean tagConversion) {
+        if (tagConversion ? executionCost != 0 : executionCost <= 0)
+            throw new IllegalArgumentException("ordinary executionCost must be positive; only tag conversion is free");
         this.output = Objects.requireNonNull(output, "output");
         if (outputAmount.signum() <= 0) {
             throw new IllegalArgumentException("outputAmount must be > 0, was " + outputAmount);
@@ -67,7 +69,7 @@ public final class CraftPattern<K> {
         this.source = source;
         this.executionSlots = executionSlots.isEmpty() ? List.of()
                 : executionSlots.stream().map(List::copyOf).toList();
-        this.tagConversion = tagConversion;
+        this.executionCost = executionCost;
     }
 
     /**
@@ -77,12 +79,38 @@ public final class CraftPattern<K> {
      */
     public static <K> CraftPattern<K> tagConversion(K member, K tag, Object source) {
         return new CraftPattern<>(tag, BigInteger.ONE, List.of(CraftInput.of(member, 1)),
-                List.of(), source, List.of(), true);
+                List.of(), source, List.of(), 0, true);
     }
 
-    /** Real machine executions per firing: one for ordinary recipes, zero for tag conversion. */
+    /**
+     * An ordinary recipe with an explicit positive execution cost per firing. All outputs belong
+     * to that same firing: byproducts do not add another execution charge. Zero remains reserved
+     * for the pure member-to-tag factory, never inferred from a recipe's inputs or source.
+     */
+    public static <K> CraftPattern<K> weighted(K output, long outputAmount, List<CraftInput<K>> inputs,
+            List<CraftOutput<K>> byproducts, Object source, int executionCost) {
+        return weighted(output, BigInteger.valueOf(outputAmount), inputs, byproducts, source, executionCost);
+    }
+
+    public static <K> CraftPattern<K> weighted(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
+            List<CraftOutput<K>> byproducts, Object source, int executionCost) {
+        return new CraftPattern<>(output, outputAmount, inputs, byproducts, source, List.of(), executionCost, false);
+    }
+
+    /** Cost per firing: one by default, a positive explicit weight, or zero for tag conversion. */
     public int executionCost() {
-        return tagConversion ? 0 : 1;
+        return executionCost;
+    }
+
+    /** Preserve objective/source metadata when an internal material projection drops side outputs. */
+    CraftPattern<K> projectMaterials(List<CraftInput<K>> inputs, List<CraftOutput<K>> byproducts) {
+        if (executionCost == 0) {
+            if (!this.inputs.equals(inputs) || !byproducts.isEmpty())
+                throw new IllegalArgumentException("a tag projection must retain its pure 1:1 material edge");
+            return this;
+        }
+        return new CraftPattern<>(output, exactOutputAmount, inputs, byproducts, source,
+                executionSlots, executionCost, false);
     }
 
     /**

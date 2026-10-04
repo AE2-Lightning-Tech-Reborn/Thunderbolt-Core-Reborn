@@ -285,6 +285,7 @@ public final class CpSatBridge {
                 || recipeCount != primaryOutputAmounts.length
                 || recipeCount != firingUpperBounds.length
                 || !validExecutionCosts(executionCosts, recipeCount)
+                || java.util.Arrays.stream(firingUpperBounds).anyMatch(bound -> bound < 0)
                 || rankGroups.length != itemCount
                 || itemDistances.length != itemCount
                 || missingAllowed.length != itemCount
@@ -299,6 +300,7 @@ public final class CpSatBridge {
             return new long[] {MODEL_INVALID, 0L};
         }
 
+        if (!safeExecutionDomain(executionCosts, firingUpperBounds)) return new long[] {UNKNOWN, 0L};
         var model = new CpModel();
         var firings = new IntVar[recipeCount];
         var active = new BoolVar[recipeCount];
@@ -734,7 +736,19 @@ public final class CpSatBridge {
 
     private static boolean validExecutionCosts(int[] costs, int count) {
         if (costs == null || costs.length != count) return false;
-        for (int cost : costs) if (cost != 0 && cost != 1) return false;
+        for (int cost : costs) if (cost < 0) return false;
+        return true;
+    }
+
+    /** Never let a valid material model overflow when its weighted objective is installed. */
+    private static boolean safeExecutionDomain(int[] costs, long[] upper) {
+        var total = java.math.BigInteger.ZERO;
+        var safe = java.math.BigInteger.valueOf(Long.MAX_VALUE / 4L);
+        for (int r = 0; r < costs.length; r++) {
+            total = total.add(java.math.BigInteger.valueOf(upper[r])
+                    .multiply(java.math.BigInteger.valueOf(costs[r])));
+            if (total.compareTo(safe) > 0) return false;
+        }
         return true;
     }
 
@@ -752,7 +766,9 @@ public final class CpSatBridge {
         int items = stocks.length, recipes = upper.length;
         if (items == 0 || recipes == 0 || variables.length != items || coefficients.length != items
                 || producers.length != items || distances.length != items || batches.length != recipes
-                || amount <= 0 || !validExecutionCosts(executionCosts, recipes)) return new long[] {MODEL_INVALID, 0};
+                || amount <= 0 || !validExecutionCosts(executionCosts, recipes)
+                || java.util.Arrays.stream(upper).anyMatch(bound -> bound < 0)) return new long[] {MODEL_INVALID, 0};
+        if (!safeExecutionDomain(executionCosts, upper)) return new long[] {UNKNOWN, 0};
         var model = new CpModel();
         var firings = new IntVar[recipes];
         var active = new BoolVar[recipes];
@@ -857,14 +873,14 @@ public final class CpSatBridge {
     /** Optimal objectives are fixed only with proof; an unfinished objective retains its witness. */
     private static RankedOptimum optimizeRanked(CpModel model, IntVar[] firings, int[] executionCosts, IntVar[] missing,
             int[] distances, java.util.List<IntVar> allUsed, boolean cyclic, double maxSeconds) {
-        // A zero-cost tag edge still participates in all material and execution constraints.
-        // Only the objective omits it, including the optimum fixed before the stock tie-break.
-        IntVar[] executions = java.util.stream.IntStream.range(0, firings.length)
-                .filter(i -> executionCosts[i] != 0).mapToObj(i -> firings[i]).toArray(IntVar[]::new);
+        // A zero-cost tag edge still participates in every material/execution constraint.
+        // All positive recipe weights enter both the objective and its stock tie-break lock.
+        long[] weights = java.util.Arrays.stream(executionCosts).asLongStream().toArray();
+        LinearExpr executionObjective = LinearExpr.weightedSum(firings, weights);
         long deadline = deadlineNanos(maxSeconds);
         CpModel zero = model.getClone();
         zero.addEquality(LinearExpr.sum(missing), 0L);
-        zero.minimize(LinearExpr.sum(executions));
+        zero.minimize(executionObjective);
         // Zero-missing is a shortcut, not a prerequisite for returning a replenishment plan.
         long zeroDeadline = cyclic ? Math.min(deadline,
                 deadlineNanos(Math.min(0.05D, maxSeconds / 4.0D))) : deadline;
@@ -893,15 +909,16 @@ public final class CpSatBridge {
                 model.clearObjective();
                 incumbent = attempt;
             }
-            model.minimize(LinearExpr.sum(executions));
+            model.minimize(executionObjective);
             attempt = solveOptimal(model, deadline, cyclic);
             branches = saturatedAdd(branches, attempt.branches);
             if (attempt.status != CpSolverStatus.OPTIMAL) return keepWitness(attempt, incumbent, branches);
             incumbent = attempt;
         }
         long executionOptimum = 0L;
-        for (IntVar firing : executions) executionOptimum = Math.addExact(executionOptimum, attempt.solver.value(firing));
-        model.addEquality(LinearExpr.sum(executions), executionOptimum);
+        for (int r = 0; r < firings.length; r++) executionOptimum = Math.addExact(executionOptimum,
+                Math.multiplyExact(weights[r], attempt.solver.value(firings[r])));
+        model.addEquality(executionObjective, executionOptimum);
         model.clearObjective();
         if (!allUsed.isEmpty()) {
             model.minimize(LinearExpr.sum(allUsed.toArray(IntVar[]::new)));

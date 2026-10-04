@@ -80,8 +80,7 @@ final class MaterialDagOrders {
                 if (ignoreSideOutputs && !pattern.byproducts().isEmpty()) {
                     var inputs = sidePolicy == 2 ? conservativeInputs(pattern) : pattern.inputs();
                     retainedSelfReturn |= inputs.stream().anyMatch(CraftInput::returned);
-                    projected = new CraftPattern<>(pattern.output(), pattern.exactOutputAmount(),
-                            inputs, List.of(), pattern.source(), pattern.executionSlots());
+                    projected = pattern.projectMaterials(inputs, List.of());
                     originals.put(projected, pattern);
                 }
                 patterns.add(projected);

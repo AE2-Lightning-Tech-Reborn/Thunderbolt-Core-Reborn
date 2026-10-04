@@ -19,6 +19,9 @@ import time
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 MAX_LONG = (1 << 63) - 1
+MAX_COST = (1 << 31) - 1
+NORMALIZED_MAGIC = -0x415752
+NORMALIZED_VERSION = 2
 
 
 def sha256(path):
@@ -82,6 +85,16 @@ def positive_long(value, label):
         raise ValueError(f"{label}: expected a positive signed-long amount, got {value!r}")
 
 
+def recipe_cost(rec, n_real):
+    # Older awrlib versions expose only v1 fields. Their real columns cost one;
+    # pseudo-resource columns still use the explicit zero-cost tag contract.
+    return getattr(rec, "cost", 0 if rec.out >= n_real else 1)
+
+
+def byproducts(rec):
+    return getattr(rec, "byproducts", ())
+
+
 def normalize(Graph, awr, meta_path, destination):
     metadata = {}
     for line in meta_path.read_text(encoding="utf-8").splitlines():
@@ -107,11 +120,20 @@ def normalize(Graph, awr, meta_path, destination):
     # never inferred from the shape of a real recipe, and never expanded into combinations.
     for rid, rec in enumerate(graph.recipes):
         fields = set(getattr(rec, "__dict__", {})) | set(getattr(type(rec), "__slots__", ()))
-        if fields - {"out", "out_amt", "inputs", "ws"}:
+        if fields - {"out", "out_amt", "inputs", "ws", "byproducts", "cost"}:
             raise ValueError(f"recipe {rid}: unsupported AWR recipe metadata {fields}")
         if type(rec.out) is not int or not 0 <= rec.out < graph.n_item:
             raise ValueError(f"recipe {rid}: output outside item domain")
         positive_long(rec.out_amt, f"recipe {rid} output")
+        cost = recipe_cost(rec, graph.n_real)
+        if type(cost) is not int or not 0 <= cost <= MAX_COST:
+            raise ValueError(f"recipe {rid}: cost must fit the nonnegative int execution-cost API")
+        outputs = {rec.out}
+        for item, amount in byproducts(rec):
+            if type(item) is not int or not 0 <= item < graph.n_real or item in outputs:
+                raise ValueError(f"recipe {rid}: duplicate/non-real/out-of-range byproduct {item}")
+            outputs.add(item)
+            positive_long(amount, f"recipe {rid} byproduct {item}")
         seen = set()
         for item, amount in rec.inputs:
             if type(item) is not int or not 0 <= item < graph.n_item or item in seen:
@@ -120,12 +142,20 @@ def normalize(Graph, awr, meta_path, destination):
             positive_long(amount, f"recipe {rid} input {item}")
         if rec.out >= graph.n_real:
             if (rec.out_amt != 1 or len(rec.inputs) != 1 or rec.inputs[0][1] != 1
-                    or rec.inputs[0][0] >= graph.n_real or rec.ws):
+                    or rec.inputs[0][0] >= graph.n_real or rec.ws or byproducts(rec) or cost != 0):
                 raise ValueError(f"recipe {rid}: pseudo output is not a pure real-member-to-tag 1:1 edge")
+        elif cost == 0:
+            raise ValueError(f"recipe {rid}: a real recipe must have positive execution cost")
     with destination.open("wb") as out:
-        out.write(struct.pack(">iii", graph.n_real, graph.n_item, len(graph.recipes)))
+        out.write(struct.pack(">iiiii", NORMALIZED_MAGIC, NORMALIZED_VERSION,
+                              graph.n_real, graph.n_item, len(graph.recipes)))
         for rec in graph.recipes:
-            out.write(struct.pack(">iqi", rec.out, rec.out_amt, len(rec.inputs)))
+            extras = byproducts(rec)
+            out.write(struct.pack(">iqii", rec.out, rec.out_amt,
+                                  recipe_cost(rec, graph.n_real), len(extras)))
+            for item, amount in extras:
+                out.write(struct.pack(">iq", item, amount))
+            out.write(struct.pack(">i", len(rec.inputs)))
             for item, amount in rec.inputs:
                 out.write(struct.pack(">iq", item, amount))
     return counts, (time.perf_counter() - started) * 1000
@@ -174,7 +204,8 @@ def build_classpath(out, env):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--aw-root", type=Path, required=True, help="AW checkout containing bench/awrlib.py")
+    parser.add_argument("--aw-root", type=Path, help="optional AW checkout for reader/data/manifest defaults and revision metadata")
+    parser.add_argument("--awrlib", type=Path, help="explicit trusted awrlib.py; overrides AW_ROOT/bench/awrlib.py")
     parser.add_argument("--datasets", default="recipes-vanilla", help="comma-separated manifest/data basenames")
     parser.add_argument("--data-dir", type=Path, help="AWR directory; default AW_ROOT/temp")
     parser.add_argument("--plan-dir", type=Path, help="saved AW manifests; default AW_ROOT/bench/plans")
@@ -190,15 +221,17 @@ def main():
     datasets = args.datasets.split(",")
     if not datasets or len(set(datasets)) != len(datasets) or any(not re.fullmatch(r"[A-Za-z0-9_-]+", d) for d in datasets):
         parser.error("datasets must be unique, comma-separated basenames")
-    aw = args.aw_root.resolve()
+    aw = args.aw_root.resolve() if args.aw_root else None
+    if aw is None and not all((args.awrlib, args.data_dir, args.plan_dir)):
+        parser.error("without --aw-root, provide --awrlib, --data-dir, and --plan-dir")
     data_dir = (args.data_dir or aw / "temp").resolve()
     plan_dir = (args.plan_dir or aw / "bench" / "plans").resolve()
     out = (args.out_dir or REPO / "build" / "awr-benchmark" / time.strftime("%Y%m%d-%H%M%S")).resolve()
     out.mkdir(parents=True, exist_ok=True)
-    reader_path = aw / "bench" / "awrlib.py"
+    reader_path = (args.awrlib or aw / "bench" / "awrlib.py").resolve()
     Graph = load_reader(reader_path)
     java, javac, env = java_environment(args.java_home)
-    versions = {"tb": git_state(REPO), "aw": git_state(aw)}
+    versions = {"tb": git_state(REPO), "aw": git_state(aw) if aw else None}
     sources = {"normalizer": source(reader_path), "runner_python": source(HERE / "run.py"),
                "runner_java": source(HERE / "AwrBench.java"), "tb_source_tree": tb_source_hash()}
     configs = []
@@ -224,6 +257,12 @@ def main():
                   "output_path": str(out / (dataset + ".tb-v2.jsonl")),
                   "item_id_base": 1, "recipe_id_base": 0,
                   "recipe_ids": "AW Graph.prepare() order", "tag_policy": "explicit nReal, pure 1:1, cost=0",
+                  "normalized_schema": NORMALIZED_VERSION,
+                  "cost_unit": "underlying_recipe_executions",
+                  "recipe_exec_unit": "physical_prepared_recipe_executions_excluding_tags",
+                  "cost_policy": "sum Recipe.cost * physical executions; v1/v2 real default=1, tags=0",
+                  "recipe_exec_policy": "unweighted physical executions excluding tags, compatible with old AW cost",
+                  "multi_output_policy": "one full-output projection per anchor; sum firings by original recipe id",
                   "workstations": "recipe registry metadata; no capacity or inventory charge",
                   "firings_include_tag_transfers": True, "jvm_arguments": ["-Xmx3g", "-Xss16m"]}
         path = run_dir / "config.json"

@@ -1175,9 +1175,9 @@ public final class CraftPlannerV2<K> {
         if (comparison < 0) return candidate;
         if (comparison > 0) return current;
 
-        long candidateExecutions = executionTotal(candidate);
-        long currentExecutions = executionTotal(current);
-        return candidateExecutions < currentExecutions ? candidate : current;
+        BigInteger candidateExecutions = executionTotal(candidate);
+        BigInteger currentExecutions = executionTotal(current);
+        return candidateExecutions.compareTo(currentExecutions) < 0 ? candidate : current;
     }
 
     private static <K> java.util.NavigableMap<Integer, Long> gradedAmounts(
@@ -1211,11 +1211,8 @@ public final class CraftPlannerV2<K> {
         return 0;
     }
 
-    private static long executionTotal(CraftPlan<?> plan) {
-        long total = 0L;
-        for (var entry : plan.firings().entrySet())
-            if (entry.getKey().executionCost() != 0) total = Sat.add(total, entry.getValue());
-        return total;
+    private static BigInteger executionTotal(CraftPlan<?> plan) {
+        return plan.executionCount();
     }
 
     private static <K> Map<K, Integer> shortestInputDistances(CraftGraph<K> graph, K target) {

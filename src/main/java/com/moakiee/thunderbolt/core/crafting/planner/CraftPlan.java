@@ -43,12 +43,13 @@ public record CraftPlan<K>(
         int itemsProcessed,
         boolean budgetExhausted) {
 
-    /** Exact number of real recipe executions; virtual tag transfers remain in {@link #firings}. */
+    /** Exact weighted recipe execution cost; virtual tag transfers remain in {@link #firings}. */
     public BigInteger executionCount() {
         BigInteger total = BigInteger.ZERO;
         for (var entry : firings.entrySet()) {
             if (entry.getKey().executionCost() != 0)
-                total = total.add(BigInteger.valueOf(entry.getValue()));
+                total = total.add(BigInteger.valueOf(entry.getValue())
+                        .multiply(BigInteger.valueOf(entry.getKey().executionCost())));
         }
         return total;
     }
