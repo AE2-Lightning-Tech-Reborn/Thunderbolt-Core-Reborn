@@ -12,6 +12,16 @@ import org.junit.jupiter.api.Test;
 
 class TwoRouteBatchOptimizerTest {
     @Test
+    void provenOptimalPortfolioSkipsOptionalAllocationAndSearch() {
+        var graph = graph(1000, 1, 500, 1).withStockLimits(Map.of("raw", 100L));
+        var result = CraftPlannerV2.planDetailed(graph, "T", 100000);
+        assertEquals(100, executions(result.plan()));
+        assertEquals(Map.of("raw", 100L), result.plan().usedStock());
+        assertEquals(0, result.diagnostics().consumptionOptimizationNanos());
+        balance(graph, result.plan(), 100000);
+    }
+
+    @Test
     void moreAvailableStockMayReplaceTheEqualStockMixWithThreeExecutions() {
         var graph = graph(8, 12, 2, 3).withStockLimits(Map.of("raw", 36L));
         var result = CraftPlannerV2.planDetailed(graph, "T", 19).plan();

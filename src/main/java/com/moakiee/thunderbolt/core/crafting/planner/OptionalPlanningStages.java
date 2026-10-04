@@ -23,7 +23,9 @@ final class OptionalPlanningStages {
         if (session.refineMissing && !initial.plan().feasible()
                 && session.searchWorkBudget.remaining > 0
                 && (reachableWork <= SmallConservativeSearch.MAX_WORK || terminalRecovery)) {
-            long allowance = Math.min(SmallConservativeSearch.MAX_NANOS - session.conservativeSearchNanos,
+            long recoveryLimit = terminalRecovery
+                    ? TerminalBatchRecovery.MAX_NANOS : SmallConservativeSearch.MAX_NANOS;
+            long allowance = Math.min(recoveryLimit - session.conservativeSearchNanos,
                     PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 8L);
             if (allowance > 0) {
                 long recoveryStarted = System.nanoTime();
@@ -74,6 +76,12 @@ final class OptionalPlanningStages {
         CraftPlan<K> seed = initial.plan();
         int mixedProbes = 0, mixedImprovements = 0;
         try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
+            // Apply the established lower-bound certificate before allocating a mixed-batch search.
+            // Keep this extra check restricted to the small portfolios accepted by those helpers.
+            int targetRoutes = graph.patternsFor(target).size();
+            if (targetRoutes >= 2 && targetRoutes <= 6
+                    && FeasibleConsumptionOptimizer.targetOnlyBound(graph, target, amount, initial.plan()))
+                return initial;
             var mixed = TwoRouteBatchOptimizer.solve(graph, target, amount, seed,
                     session.searchWorkBudget::tryConsume);
             if (mixed.status() == BatchOptimizationResult.Status.UNSUPPORTED) {

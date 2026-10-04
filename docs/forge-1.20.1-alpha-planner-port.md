@@ -168,3 +168,64 @@ Validation with Temurin 17.0.19+10, Forge 47.1.3 and AE2 15.4.10:
 Artifact: `build/libs/thunderbolt-forge-1.20.1-2.0.0.jar`.
 Validation provenance:
 [`benchmarks/planner-forge-1201-round6-round7-port-20261004.json`](benchmarks/planner-forge-1201-round6-round7-port-20261004.json).
+
+## Bounded-portfolio follow-up backport (2026-10-04)
+
+Source: alpha `2132894`; destination baseline: `6fa3a80` on `1.20.1`.
+
+Most round-eight alpha changes originated in this Forge branch and are already
+present. This follow-up ports only the remaining behavioral differences:
+
+- Reuse the existing target-only execution/stock lower-bound certificate before
+  the two-to-six-route mixed search, within the optional-stage deadline. A public
+  planner regression verifies that a proven optimum skips optional search.
+- Give the admitted terminal recovery portfolio a cumulative 100 ms allowance.
+  Ordinary small-graph recovery retains 20 ms. Shared work, caller deadline,
+  4096-state and 32-execution limits, and route/resource admission remain intact.
+- Preserve Forge's `thunderbolt.maxConsumptionOptimizationNanos` override,
+  Java 17 collection adaptations, direct replenishment checks, graph-scaled
+  verification allowances, topology extraction and platform integrations.
+
+Validation with Java 17, Forge 47.1.3 and AE2 15.4.10:
+
+- Offline `test build` passed: 1191 ordinary tests, 1190 passed, one skipped,
+  zero failures/errors; the separate cold CP-SAT refinement test also passed.
+  Forge reobfuscation and `verifyReleaseJar` succeeded.
+- Two independent runs of 192 locally generated inventory/target queries match
+  the preserved `6fa3a80` snapshot in support, feasibility, budget cutoff, stock,
+  missing materials and firing vectors. All 124 feasible plans per run passed
+  stock/balance checks and execution replay. The other 68 retain their existing
+  missing/budget-limited outcomes; this is not an infeasibility proof.
+- The release JAR contains 492 production classes, all Java 17 (major 61), with
+  names matching the tested compiler output. Forge metadata, Mixin config/refmap
+  and JarJar metadata are present. Reobfuscation changes bytecode, so compiled
+  classes and release classes are not claimed to be byte-identical.
+
+A separate Java 17 synthetic-control comparison used serial ABBA order, two JVM
+forks per endpoint, 500 warmups and 500 measured calls per case per fork. Values
+below are medians of per-fork medians; negative change means lower elapsed time.
+
+| Control | Baseline μs | Candidate μs | Wall-time change |
+| --- | ---: | ---: | ---: |
+| additional-inventory-control | 20.550 | 21.500 | +4.6% |
+| already-optimal-control | 18.725 | 15.625 | -16.6% |
+| fixed-chain-control | 133.250 | 142.850 | +7.2% |
+| shared-quantity-probes | 804.050 | 750.275 | -6.7% |
+| three-route-mix | 23.350 | 23.000 | -1.5% |
+| two-route-mix | 26.600 | 31.650 | +19.0% |
+
+The already-optimal control allocates 28,496 → 21,176 bytes per call, but the
+additional early certificate also adds work when it cannot prove optimality.
+The two-route control regresses by about 5.05 μs; all unfavorable controls are
+retained. These small synthetic measurements do not establish a general Forge
+speedup. No pack timing benchmark, interactive gameplay or server TPS measurement
+was performed for this follow-up. Alpha round-eight timings in the Chinese
+optimization document remain Java 21 source evidence.
+
+Raw data, local scripts and reports remain untracked under
+`build/recipe-benchmark/forge-followup/`; `measurements/summary.json` records input,
+source, compiled-class and artifact hashes, both corpus runs and all micro samples.
+This query set differs from the historical published 192-query corpus.
+
+Artifact: `build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.5.jar`.
+SHA-256: `b9a321b852be569bc0067988784af2cf0f55ed05280c05c9f43f328443c8f3e0`.

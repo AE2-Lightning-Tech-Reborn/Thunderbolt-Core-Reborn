@@ -17,6 +17,9 @@ import java.util.function.IntPredicate;
  * unsupported by primary demand. Every result still needs the original graph's certificate.
  */
 final class TerminalBatchRecovery {
+    // Reduction and the existing 4096-state search share this bounded cold-start window.
+    // Ordinary small-cycle recovery retains its separate 20 ms allowance.
+    static final long MAX_NANOS = 100_000_000L;
     private static final int MIN_ROUTES = 17;
     private static final int MAX_ROUTES = 64;
     private static final int MAX_RESOURCES = 4;
