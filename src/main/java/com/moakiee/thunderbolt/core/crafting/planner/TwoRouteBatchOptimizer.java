@@ -34,6 +34,9 @@ final class TwoRouteBatchOptimizer {
         var a = routes.get(0);
         var b = routes.get(1);
         if (a == b) return BatchOptimizationResult.unsupported(initial);
+        // The count-based optimum below is a certificate only for unit-cost routes.
+        if (a.executionCost() != 1 || b.executionCost() != 1)
+            return BatchOptimizationResult.unsupported(initial);
         if (a.inputs().size() + (long) b.inputs().size() > MAX_INPUTS) return BatchOptimizationResult.unsupported(initial);
         var budget = new Budget(sharedWork);
         if (!budget.charge(1 + a.inputs().size() + b.inputs().size())) return BatchOptimizationResult.exhausted(initial);

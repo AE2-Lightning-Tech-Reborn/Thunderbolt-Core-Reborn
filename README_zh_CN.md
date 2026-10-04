@@ -43,6 +43,11 @@ V2 会在预算内继续优化可行方案，优先减少配方执行次数，�
 - `-Dthunderbolt.maxCraftDepth=<数量>`：规划深度上限
 - `-Dthunderbolt.feasibleOptimizationStallMs=<毫秒>`：可选的方案优化连续这么久没有把执行次数减少 1% 就停止（默认：`500`；`0` 表示跑满 2.8 秒上限）
 
+## 致谢
+
+感谢 **AdUhTkJm（[AW 项目](https://github.com/AdUhTkJm/AW)）**提供的优化研究与对照案例，
+为减少配方执行次数的改进提供了参考。雷电核心的有界候选仍沿用自身的库存核算与执行验证。
+
 ## 开发构建
 
 构建可分发 JAR：

@@ -196,6 +196,7 @@ public final class CpSatRankedFlowSolver<K> {
                     compilation.missingCutProducers,
                     blocks.stream().map(PetriBlockCatalog.Block::wire).toArray(long[][]::new),
                     PetriBlockCatalog.STAGES,
+                    compilation.patterns.stream().mapToInt(CraftPattern::executionCost).toArray(),
                     remainingNanos / 1_000_000_000.0D);
         } catch (RuntimeException | LinkageError failure) {
             return Candidate.status(Status.INVALID);
@@ -463,10 +464,8 @@ public final class CpSatRankedFlowSolver<K> {
                     .subtract(BigInteger.valueOf(incumbent.missing().getOrDefault(key, 0L))), BigInteger::add);
         }
         for (BigInteger difference : tiers.values()) if (difference.signum() != 0) return difference.signum() < 0;
-        BigInteger candidateCount = candidate.firings().values().stream().map(BigInteger::valueOf)
-                .reduce(BigInteger.ZERO, BigInteger::add);
-        BigInteger incumbentCount = incumbent.firings().values().stream().map(BigInteger::valueOf)
-                .reduce(BigInteger.ZERO, BigInteger::add);
+        BigInteger candidateCount = candidate.executionCount();
+        BigInteger incumbentCount = incumbent.executionCount();
         return candidateCount.compareTo(incumbentCount) < 0;
     }
 

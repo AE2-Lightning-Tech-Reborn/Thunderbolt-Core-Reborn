@@ -104,7 +104,8 @@ final class CpSatSparseDag {
         final long[] raw;
         try {
             raw = CpSatRuntime.solveSparseDag(variables, coefficients, producerIds, batches, upper,
-                    stocks, distance, amount, remaining / 1_000_000_000.0);
+                    stocks, distance, amount, patterns.stream().mapToInt(CraftPattern::executionCost).toArray(),
+                    remaining / 1_000_000_000.0);
         } catch (RuntimeException | LinkageError invalid) {
             // Keep router cancellation visible, including cancellation concurrent with native work.
             PlanningCancellation.check();

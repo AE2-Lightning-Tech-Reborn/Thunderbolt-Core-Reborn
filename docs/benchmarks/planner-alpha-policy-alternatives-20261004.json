@@ -1,0 +1,3084 @@
+{
+  "schema": 1,
+  "baseline_commit": "988d5cc29d6b71e4e156f170be06b34c6c3246c1",
+  "candidate_binding": "Source and complete production-class hashes below; local commit created after validation.",
+  "objective": "Reduce real recipe executions through bounded supplemental proposals; retain the previously certified incumbent when optional work cannot improve it.",
+  "implementation": {
+    "component": "FeasibleConsumptionOptimizer",
+    "new_solver": false,
+    "production_insertions": 65,
+    "ordering": "After all existing route, small-batch and terminal searches.",
+    "proposal": "Change one active producer of the first full-inventory free policy; reuse its upstream choices, exactly evaluate the resulting fixed material DAG, then confirm with the existing planner.",
+    "limits": {
+      "max_reachable_patterns": 2048,
+      "max_cheap_candidates": 32,
+      "shared_complete_probes": 32,
+      "shared_optional_time_seconds": 2.8,
+      "minimum_execution_gain_percent": 1,
+      "shared_search_work": true
+    },
+    "safety": [
+      "Full stock snapshot restored only for the supplemental candidates.",
+      "Saved execution bound is the validated full-inventory Search bound, not the later capped-stock bound.",
+      "No byproducts, stateful inputs or private reusable-stock usage in the new phase.",
+      "Existing strict improvement, inventory and execution checks remain authoritative.",
+      "External cancellation propagates; optional cutoff retains the last complete certificate."
+    ]
+  },
+  "build": {
+    "tests": {
+      "tests": 1172,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "production_classes": {
+      "count": 483,
+      "sha256": "6c5b49dc84581e300aefd5e8a218fc5e3a0f15c2d2d63b271cfbb26c817d94d4"
+    },
+    "changed_classes": [
+      "com/moakiee/thunderbolt/core/crafting/planner/FeasibleConsumptionOptimizer$Index.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/FeasibleConsumptionOptimizer$IntBuf.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/FeasibleConsumptionOptimizer$LongBuf.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/FeasibleConsumptionOptimizer$Prop.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/FeasibleConsumptionOptimizer$Search.class",
+      "com/moakiee/thunderbolt/core/crafting/planner/FeasibleConsumptionOptimizer.class"
+    ],
+    "all_other_classes_byte_equal": true,
+    "jar": {
+      "sha256": "30c04cbf22d581522342054ba84c2dbc93618cfee9da0b0123c07cd8cc4bfed5",
+      "bytes": 5096013,
+      "all_classes_match": true
+    },
+    "jar_name": "thunderbolt-2.0.0.jar",
+    "source_sha256": "3c279fd9ad3a2ab3aca2be409a8ecf75eae062558deca05aef7cd1795037aa51",
+    "test_source_sha256": "4fab1c8747b34d2ebd09ca4814b960589d01d851eb0e589f0b9f02715967e702"
+  },
+  "correctness": {
+    "public": {
+      "cases": 7500,
+      "groups": [
+        {
+          "label": "public",
+          "runs": 3000,
+          "improvements": [],
+          "equal_execution_changes": [],
+          "regressions": [],
+          "invalid": [],
+          "diagnostic_changes": 0
+        },
+        {
+          "label": "heldout-public",
+          "runs": 1500,
+          "improvements": [],
+          "equal_execution_changes": [],
+          "regressions": [],
+          "invalid": [],
+          "diagnostic_changes": 0
+        },
+        {
+          "label": "fresh-public",
+          "runs": 3000,
+          "improvements": [
+            {
+              "sample": 2180,
+              "before": 3,
+              "after": 2
+            }
+          ],
+          "equal_execution_changes": [],
+          "regressions": [],
+          "invalid": [],
+          "diagnostic_changes": 1
+        }
+      ]
+    },
+    "ordinary_oracle": {
+      "unique_scenarios": 210,
+      "registration_orders": [
+        "original",
+        "reverse"
+      ],
+      "runs": 420,
+      "complete_oracle_cases": 210,
+      "oracle_max_nodes": 1285,
+      "candidate_initial_and_final_replays": 808,
+      "baseline_final_replays": 404,
+      "summary_by_order": {
+        "original": {
+          "counts": {
+            "runs": 210,
+            "baseline_feasible": 202,
+            "candidate_feasible": 202,
+            "full_plan_changes": 8,
+            "equal_execution_pairs": 194,
+            "execution_optimal": 196,
+            "execution_improvements": 8,
+            "missed_feasible": 1,
+            "execution_gap": 6,
+            "oracle_infeasible": 7
+          },
+          "families": {
+            "shared_pressing": {
+              "execution_optimal": 48,
+              "execution_improvements": 6
+            },
+            "dual_assembly": {
+              "execution_optimal": 93,
+              "missed_feasible": 1,
+              "execution_gap": 2,
+              "execution_improvements": 1
+            },
+            "three_branch_setup": {
+              "execution_optimal": 25,
+              "execution_gap": 2
+            },
+            "shared_stock": {
+              "execution_optimal": 28,
+              "oracle_infeasible": 6,
+              "execution_improvements": 1,
+              "execution_gap": 2
+            },
+            "stock_boundary": {
+              "execution_optimal": 2,
+              "oracle_infeasible": 1
+            }
+          }
+        },
+        "reverse": {
+          "counts": {
+            "runs": 210,
+            "baseline_feasible": 202,
+            "candidate_feasible": 202,
+            "full_plan_changes": 11,
+            "equal_execution_pairs": 191,
+            "execution_optimal": 194,
+            "execution_improvements": 11,
+            "execution_gap": 8,
+            "missed_feasible": 1,
+            "oracle_infeasible": 7
+          },
+          "families": {
+            "shared_pressing": {
+              "execution_optimal": 48,
+              "execution_improvements": 7
+            },
+            "dual_assembly": {
+              "execution_optimal": 92,
+              "execution_gap": 3,
+              "missed_feasible": 1,
+              "execution_improvements": 1
+            },
+            "three_branch_setup": {
+              "execution_optimal": 27
+            },
+            "shared_stock": {
+              "execution_optimal": 25,
+              "oracle_infeasible": 6,
+              "execution_improvements": 3,
+              "execution_gap": 5
+            },
+            "stock_boundary": {
+              "execution_optimal": 2,
+              "oracle_infeasible": 1
+            }
+          }
+        }
+      },
+      "unique_scenarios_improved": 11,
+      "execution_improvements": [
+        {
+          "id": "shared-press-4-5-2-2-2",
+          "order": "original",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "ore": 2
+          }
+        },
+        {
+          "id": "shared-press-4-5-3-5-2",
+          "order": "original",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "ore": 2
+          }
+        },
+        {
+          "id": "shared-press-4-5-9-9-2",
+          "order": "original",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "ore": 2
+          }
+        },
+        {
+          "id": "shared-press-5-3-2-2-2",
+          "order": "original",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "dust": 2
+          }
+        },
+        {
+          "id": "shared-press-5-3-3-5-2",
+          "order": "original",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "dust": 2
+          }
+        },
+        {
+          "id": "shared-press-5-3-9-9-2",
+          "order": "original",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "dust": 2
+          }
+        },
+        {
+          "id": "assembly-3-5-8-3-9-0",
+          "order": "original",
+          "family": "dual_assembly",
+          "before": 8,
+          "after": 6,
+          "minimum": 6,
+          "before_stock": {
+            "ore": 6
+          },
+          "after_stock": {
+            "dust": 2,
+            "ore": 4
+          }
+        },
+        {
+          "id": "shared-stock-3-3-3-0-1",
+          "order": "original",
+          "family": "shared_stock",
+          "before": 5,
+          "after": 4,
+          "minimum": 4,
+          "before_stock": {
+            "dust": 3
+          },
+          "after_stock": {
+            "dust": 3,
+            "ore": 3
+          }
+        },
+        {
+          "id": "shared-press-4-5-2-2-2",
+          "order": "reverse",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "ore": 2
+          }
+        },
+        {
+          "id": "shared-press-4-5-3-5-2",
+          "order": "reverse",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "ore": 2
+          }
+        },
+        {
+          "id": "shared-press-4-5-6-3-2",
+          "order": "reverse",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "ore": 2
+          }
+        },
+        {
+          "id": "shared-press-4-5-9-9-2",
+          "order": "reverse",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "ore": 2
+          }
+        },
+        {
+          "id": "shared-press-5-3-2-2-2",
+          "order": "reverse",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "dust": 2
+          }
+        },
+        {
+          "id": "shared-press-5-3-3-5-2",
+          "order": "reverse",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "dust": 2
+          }
+        },
+        {
+          "id": "shared-press-5-3-9-9-2",
+          "order": "reverse",
+          "family": "shared_pressing",
+          "before": 8,
+          "after": 7,
+          "minimum": 7,
+          "before_stock": {
+            "dust": 1,
+            "ore": 1
+          },
+          "after_stock": {
+            "dust": 2
+          }
+        },
+        {
+          "id": "assembly-3-5-8-3-9-0",
+          "order": "reverse",
+          "family": "dual_assembly",
+          "before": 8,
+          "after": 6,
+          "minimum": 6,
+          "before_stock": {
+            "ore": 6
+          },
+          "after_stock": {
+            "dust": 2,
+            "ore": 4
+          }
+        },
+        {
+          "id": "shared-stock-3-3-3-0-1",
+          "order": "reverse",
+          "family": "shared_stock",
+          "before": 5,
+          "after": 4,
+          "minimum": 4,
+          "before_stock": {
+            "dust": 3
+          },
+          "after_stock": {
+            "dust": 3,
+            "ore": 3
+          }
+        },
+        {
+          "id": "shared-stock-3-2-5-2-1",
+          "order": "reverse",
+          "family": "shared_stock",
+          "before": 5,
+          "after": 4,
+          "minimum": 4,
+          "before_stock": {
+            "dust": 2,
+            "alloy": 2
+          },
+          "after_stock": {
+            "dust": 3,
+            "alloy": 2,
+            "ore": 1
+          }
+        },
+        {
+          "id": "shared-stock-5-2-5-2-1",
+          "order": "reverse",
+          "family": "shared_stock",
+          "before": 5,
+          "after": 4,
+          "minimum": 4,
+          "before_stock": {
+            "dust": 2
+          },
+          "after_stock": {
+            "dust": 3,
+            "alloy": 2,
+            "ore": 1
+          }
+        }
+      ],
+      "regressions": [],
+      "limitations": [
+        "The deterministic ordinary DAG grid is not a modpack frequency estimate.",
+        "All firings are real recipes; no synthetic tags or stateful inputs occur.",
+        "Global execution minima use the original finite full inventory.",
+        "This audit contains no performance measurements."
+      ]
+    },
+    "raw_corpus": [
+      {
+        "dataset": "recipes-vanilla",
+        "queries": 48,
+        "improvements": [
+          {
+            "key": {
+              "stock": "random20",
+              "target": 97,
+              "amount": 1
+            },
+            "before": 4,
+            "after": 3,
+            "before_real": 3,
+            "after_real": 2,
+            "before_tag": 1,
+            "after_tag": 1
+          }
+        ],
+        "regressions": [],
+        "invalid": [],
+        "feasible": 20,
+        "budget_exhausted": 10
+      },
+      {
+        "dataset": "recipes-small",
+        "queries": 48,
+        "improvements": [],
+        "regressions": [],
+        "invalid": [],
+        "feasible": 2,
+        "budget_exhausted": 42
+      },
+      {
+        "dataset": "recipes-nast",
+        "queries": 48,
+        "improvements": [],
+        "regressions": [],
+        "invalid": [],
+        "feasible": 48,
+        "budget_exhausted": 0
+      },
+      {
+        "dataset": "recipes-atm",
+        "queries": 48,
+        "improvements": [],
+        "regressions": [],
+        "invalid": [],
+        "feasible": 48,
+        "budget_exhausted": 0
+      }
+    ],
+    "exact_vanilla": {
+      "requests": 48,
+      "ancestor_union_original_recipes": 675,
+      "ancestor_union_original_real_recipes": 140,
+      "expanded_physical_patterns": 685,
+      "changes": [
+        {
+          "stock": "random20",
+          "target": 97,
+          "amount": 1,
+          "fields": [
+            "cost",
+            "used_stock",
+            "firings"
+          ],
+          "before": {
+            "cost": 3,
+            "used_stock": {
+              "1300": 1,
+              "665": 2
+            },
+            "firings": [
+              [
+                19,
+                1
+              ],
+              [
+                30,
+                1
+              ],
+              [
+                278,
+                1
+              ]
+            ]
+          },
+          "after": {
+            "cost": 2,
+            "used_stock": {
+              "1300": 1,
+              "118": 1
+            },
+            "firings": [
+              [
+                30,
+                1
+              ],
+              [
+                13,
+                1
+              ]
+            ]
+          }
+        }
+      ],
+      "successful_candidate_plans_independently_lifted": [
+        {
+          "stock": "leaves",
+          "target": 97,
+          "amount": 1,
+          "physical_firings": 5,
+          "lifted_real_firings": 5,
+          "lifted_tag_conversions": 1,
+          "lifted_original_firings": [
+            [
+              66,
+              1
+            ],
+            [
+              69,
+              1
+            ],
+            [
+              1202,
+              1
+            ],
+            [
+              1211,
+              2
+            ],
+            [
+              2104,
+              1
+            ]
+          ],
+          "real_original_firings": [
+            [
+              66,
+              1
+            ],
+            [
+              69,
+              1
+            ],
+            [
+              1202,
+              1
+            ],
+            [
+              1211,
+              2
+            ]
+          ],
+          "used_stock": {
+            "580": 1,
+            "1134": 8
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 97,
+          "amount": 100000,
+          "physical_firings": 233338,
+          "lifted_real_firings": 233338,
+          "lifted_tag_conversions": 66668,
+          "lifted_original_firings": [
+            [
+              67,
+              33334
+            ],
+            [
+              69,
+              66668
+            ],
+            [
+              76,
+              66668
+            ],
+            [
+              1211,
+              66668
+            ],
+            [
+              2119,
+              66668
+            ]
+          ],
+          "real_original_firings": [
+            [
+              67,
+              33334
+            ],
+            [
+              69,
+              66668
+            ],
+            [
+              76,
+              66668
+            ],
+            [
+              1211,
+              66668
+            ]
+          ],
+          "used_stock": {
+            "580": 66668,
+            "1134": 266672
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 247,
+          "amount": 1,
+          "physical_firings": 1,
+          "lifted_real_firings": 1,
+          "lifted_tag_conversions": 0,
+          "lifted_original_firings": [
+            [
+              203,
+              1
+            ]
+          ],
+          "real_original_firings": [
+            [
+              203,
+              1
+            ]
+          ],
+          "used_stock": {
+            "244": 1
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 1
+        },
+        {
+          "stock": "leaves",
+          "target": 247,
+          "amount": 100000,
+          "physical_firings": 25000,
+          "lifted_real_firings": 25000,
+          "lifted_tag_conversions": 0,
+          "lifted_original_firings": [
+            [
+              202,
+              25000
+            ]
+          ],
+          "real_original_firings": [
+            [
+              202,
+              25000
+            ]
+          ],
+          "used_stock": {
+            "244": 150000
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 1
+        },
+        {
+          "stock": "leaves",
+          "target": 290,
+          "amount": 1,
+          "physical_firings": 3,
+          "lifted_real_firings": 3,
+          "lifted_tag_conversions": 3,
+          "lifted_original_firings": [
+            [
+              240,
+              1
+            ],
+            [
+              243,
+              1
+            ],
+            [
+              1004,
+              1
+            ],
+            [
+              1318,
+              2
+            ],
+            [
+              2191,
+              1
+            ]
+          ],
+          "real_original_firings": [
+            [
+              240,
+              1
+            ],
+            [
+              243,
+              1
+            ],
+            [
+              1004,
+              1
+            ]
+          ],
+          "used_stock": {
+            "300": 1
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 290,
+          "amount": 100000,
+          "physical_firings": 300000,
+          "lifted_real_firings": 300000,
+          "lifted_tag_conversions": 300000,
+          "lifted_original_firings": [
+            [
+              7,
+              25000
+            ],
+            [
+              55,
+              25000
+            ],
+            [
+              240,
+              100000
+            ],
+            [
+              243,
+              50000
+            ],
+            [
+              1004,
+              100000
+            ],
+            [
+              1310,
+              25000
+            ],
+            [
+              1314,
+              100000
+            ],
+            [
+              1316,
+              100000
+            ],
+            [
+              1362,
+              25000
+            ],
+            [
+              2191,
+              50000
+            ]
+          ],
+          "real_original_firings": [
+            [
+              7,
+              25000
+            ],
+            [
+              55,
+              25000
+            ],
+            [
+              240,
+              100000
+            ],
+            [
+              243,
+              50000
+            ],
+            [
+              1004,
+              100000
+            ]
+          ],
+          "used_stock": {
+            "84": 25000,
+            "8": 25000,
+            "300": 50000
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 310,
+          "amount": 1,
+          "physical_firings": 2,
+          "lifted_real_firings": 2,
+          "lifted_tag_conversions": 0,
+          "lifted_original_firings": [
+            [
+              264,
+              1
+            ],
+            [
+              940,
+              1
+            ]
+          ],
+          "real_original_firings": [
+            [
+              264,
+              1
+            ],
+            [
+              940,
+              1
+            ]
+          ],
+          "used_stock": {
+            "1022": 4
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 310,
+          "amount": 100000,
+          "physical_firings": 125000,
+          "lifted_real_firings": 125000,
+          "lifted_tag_conversions": 0,
+          "lifted_original_firings": [
+            [
+              263,
+              25000
+            ],
+            [
+              940,
+              100000
+            ]
+          ],
+          "real_original_firings": [
+            [
+              263,
+              25000
+            ],
+            [
+              940,
+              100000
+            ]
+          ],
+          "used_stock": {
+            "1022": 400000
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 324,
+          "amount": 1,
+          "physical_firings": 3,
+          "lifted_real_firings": 3,
+          "lifted_tag_conversions": 1,
+          "lifted_original_firings": [
+            [
+              275,
+              1
+            ],
+            [
+              282,
+              1
+            ],
+            [
+              1211,
+              1
+            ],
+            [
+              2041,
+              1
+            ]
+          ],
+          "real_original_firings": [
+            [
+              275,
+              1
+            ],
+            [
+              282,
+              1
+            ],
+            [
+              1211,
+              1
+            ]
+          ],
+          "used_stock": {
+            "1134": 4,
+            "883": 1
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 324,
+          "amount": 100000,
+          "physical_firings": 250000,
+          "lifted_real_firings": 250000,
+          "lifted_tag_conversions": 100000,
+          "lifted_original_firings": [
+            [
+              275,
+              50000
+            ],
+            [
+              282,
+              100000
+            ],
+            [
+              1211,
+              100000
+            ],
+            [
+              2041,
+              100000
+            ]
+          ],
+          "real_original_firings": [
+            [
+              275,
+              50000
+            ],
+            [
+              282,
+              100000
+            ],
+            [
+              1211,
+              100000
+            ]
+          ],
+          "used_stock": {
+            "1134": 400000,
+            "883": 50000
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 840,
+          "amount": 1,
+          "physical_firings": 3,
+          "lifted_real_firings": 3,
+          "lifted_tag_conversions": 1,
+          "lifted_original_firings": [
+            [
+              721,
+              1
+            ],
+            [
+              729,
+              1
+            ],
+            [
+              1211,
+              1
+            ],
+            [
+              1936,
+              1
+            ]
+          ],
+          "real_original_firings": [
+            [
+              721,
+              1
+            ],
+            [
+              729,
+              1
+            ],
+            [
+              1211,
+              1
+            ]
+          ],
+          "used_stock": {
+            "1176": 1,
+            "1134": 4
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 840,
+          "amount": 100000,
+          "physical_firings": 300000,
+          "lifted_real_firings": 300000,
+          "lifted_tag_conversions": 100000,
+          "lifted_original_firings": [
+            [
+              721,
+              100000
+            ],
+            [
+              729,
+              100000
+            ],
+            [
+              1211,
+              100000
+            ],
+            [
+              1936,
+              100000
+            ]
+          ],
+          "real_original_firings": [
+            [
+              721,
+              100000
+            ],
+            [
+              729,
+              100000
+            ],
+            [
+              1211,
+              100000
+            ]
+          ],
+          "used_stock": {
+            "1176": 100000,
+            "1134": 400000
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 1227,
+          "amount": 1,
+          "physical_firings": 4,
+          "lifted_real_firings": 4,
+          "lifted_tag_conversions": 4,
+          "lifted_original_firings": [
+            [
+              1004,
+              1
+            ],
+            [
+              1083,
+              2
+            ],
+            [
+              1085,
+              1
+            ],
+            [
+              1324,
+              2
+            ],
+            [
+              2233,
+              2
+            ]
+          ],
+          "real_original_firings": [
+            [
+              1004,
+              1
+            ],
+            [
+              1083,
+              2
+            ],
+            [
+              1085,
+              1
+            ]
+          ],
+          "used_stock": {
+            "1155": 2
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "leaves",
+          "target": 1227,
+          "amount": 100000,
+          "physical_firings": 95836,
+          "lifted_real_firings": 95836,
+          "lifted_tag_conversions": 70836,
+          "lifted_original_firings": [
+            [
+              1004,
+              8334
+            ],
+            [
+              1083,
+              54168
+            ],
+            [
+              1085,
+              33334
+            ],
+            [
+              1324,
+              16668
+            ],
+            [
+              2233,
+              54168
+            ]
+          ],
+          "real_original_firings": [
+            [
+              1004,
+              8334
+            ],
+            [
+              1083,
+              54168
+            ],
+            [
+              1085,
+              33334
+            ]
+          ],
+          "used_stock": {
+            "1155": 54168
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "random20",
+          "target": 97,
+          "amount": 1,
+          "physical_firings": 2,
+          "lifted_real_firings": 2,
+          "lifted_tag_conversions": 1,
+          "lifted_original_firings": [
+            [
+              66,
+              1
+            ],
+            [
+              70,
+              1
+            ],
+            [
+              2091,
+              1
+            ]
+          ],
+          "real_original_firings": [
+            [
+              66,
+              1
+            ],
+            [
+              70,
+              1
+            ]
+          ],
+          "used_stock": {
+            "1300": 1,
+            "118": 1
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 1
+        },
+        {
+          "stock": "random20",
+          "target": 247,
+          "amount": 1,
+          "physical_firings": 1,
+          "lifted_real_firings": 1,
+          "lifted_tag_conversions": 0,
+          "lifted_original_firings": [
+            [
+              203,
+              1
+            ]
+          ],
+          "real_original_firings": [
+            [
+              203,
+              1
+            ]
+          ],
+          "used_stock": {
+            "244": 1
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 1
+        },
+        {
+          "stock": "random20",
+          "target": 310,
+          "amount": 1,
+          "physical_firings": 1,
+          "lifted_real_firings": 1,
+          "lifted_tag_conversions": 0,
+          "lifted_original_firings": [
+            [
+              264,
+              1
+            ]
+          ],
+          "real_original_firings": [
+            [
+              264,
+              1
+            ]
+          ],
+          "used_stock": {
+            "1023": 1
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 1
+        },
+        {
+          "stock": "random20",
+          "target": 840,
+          "amount": 1,
+          "physical_firings": 2,
+          "lifted_real_firings": 2,
+          "lifted_tag_conversions": 1,
+          "lifted_original_firings": [
+            [
+              721,
+              1
+            ],
+            [
+              729,
+              1
+            ],
+            [
+              1930,
+              1
+            ]
+          ],
+          "real_original_firings": [
+            [
+              721,
+              1
+            ],
+            [
+              729,
+              1
+            ]
+          ],
+          "used_stock": {
+            "1176": 1,
+            "665": 1
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "random20",
+          "target": 1227,
+          "amount": 1,
+          "physical_firings": 4,
+          "lifted_real_firings": 4,
+          "lifted_tag_conversions": 4,
+          "lifted_original_firings": [
+            [
+              1004,
+              1
+            ],
+            [
+              1083,
+              2
+            ],
+            [
+              1085,
+              1
+            ],
+            [
+              1324,
+              2
+            ],
+            [
+              2234,
+              2
+            ]
+          ],
+          "real_original_firings": [
+            [
+              1004,
+              1
+            ],
+            [
+              1083,
+              2
+            ],
+            [
+              1085,
+              1
+            ]
+          ],
+          "used_stock": {
+            "1221": 2
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 2
+        },
+        {
+          "stock": "random20",
+          "target": 1227,
+          "amount": 100000,
+          "physical_firings": 95836,
+          "lifted_real_firings": 95836,
+          "lifted_tag_conversions": 70836,
+          "lifted_original_firings": [
+            [
+              151,
+              4167
+            ],
+            [
+              1004,
+              8334
+            ],
+            [
+              1083,
+              50001
+            ],
+            [
+              1085,
+              33334
+            ],
+            [
+              1317,
+              16668
+            ],
+            [
+              2163,
+              4167
+            ],
+            [
+              2234,
+              50001
+            ]
+          ],
+          "real_original_firings": [
+            [
+              151,
+              4167
+            ],
+            [
+              1004,
+              8334
+            ],
+            [
+              1083,
+              50001
+            ],
+            [
+              1085,
+              33334
+            ]
+          ],
+          "used_stock": {
+            "212": 4167,
+            "1221": 50001
+          },
+          "exact_lifting_replay": "pass",
+          "rounds": 1
+        }
+      ],
+      "no_status_execution_or_missing_regression": true,
+      "semantic_adapter_fixture_count": 6,
+      "semantic_adapter_finite_state_comparisons": 384,
+      "scope": "All ancestors of the eight supplied Vanilla targets, preserving every mixed tag-member input allocation; not the full Vanilla graph."
+    }
+  },
+  "performance": {
+    "forks": 4,
+    "matched_pairs": 2560,
+    "measured_requests": 5120,
+    "warmup_pairs_per_fork": {
+      "ordinary": 512,
+      "exact_vanilla": 256
+    },
+    "measured_pairs_per_case_per_fork": 128,
+    "order": "AB/BA alternation inside each matched pair, complete isolated production classloaders in each JVM",
+    "timing_scope": "CraftPlannerV2.planDetailed only. Existing graph and stock reused; preparation, validation, reflection, JSON, class loading and JVM startup excluded.",
+    "heap_scope": "Allocated bytes is total per-request thread allocation, not retained heap, RSS or peak memory.",
+    "statistical_scope": "Four-fork descriptive medians/ranges and per-fork nearest-rank p95; no confidence/significance claim from this small fork count.",
+    "all_samples_verified": true,
+    "all_full_plans_stable": true,
+    "production_hashes_unchanged": true,
+    "cases": [
+      {
+        "id": "shared-press-4-5-2-2-2",
+        "kind": "ordinary",
+        "executions": {
+          "baseline": 8,
+          "candidate": 7
+        },
+        "metrics": {
+          "cpu_ns": {
+            "fork_median_change_percent": 2.116044685598717,
+            "fork_change_percent_range": [
+              1.3990672884743427,
+              4.156171284634769
+            ],
+            "fork_median_p95_change_percent": 1.2873510558358503,
+            "fork_p95_change_percent_range": [
+              -4.554079696394686,
+              4.198895027624316
+            ],
+            "fork_median_absolute_delta": 16500.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 831000.0,
+                  "p95": 1069000,
+                  "minimum": 706000,
+                  "maximum": 1393000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 843500.0,
+                  "p95": 1102000,
+                  "minimum": 720000,
+                  "maximum": 1271000
+                },
+                "median_change_pct": 1.504211793020449,
+                "p95_change_pct": 3.0869971936389184,
+                "median_paired_change_pct": 1.678346674176534,
+                "candidate_lower_pairs": 57
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 750500.0,
+                  "p95": 905000,
+                  "minimum": 690000,
+                  "maximum": 1270000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 761000.0,
+                  "p95": 943000,
+                  "minimum": 698000,
+                  "maximum": 1106000
+                },
+                "median_change_pct": 1.3990672884743427,
+                "p95_change_pct": 4.198895027624316,
+                "median_paired_change_pct": 0.8052963548319525,
+                "candidate_lower_pairs": 58
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 751500.0,
+                  "p95": 976000,
+                  "minimum": 702000,
+                  "maximum": 1476000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 772000.0,
+                  "p95": 971000,
+                  "minimum": 723000,
+                  "maximum": 1091000
+                },
+                "median_change_pct": 2.727877578176985,
+                "p95_change_pct": -0.5122950819672178,
+                "median_paired_change_pct": 3.227046585255544,
+                "candidate_lower_pairs": 37
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 794000.0,
+                  "p95": 1054000,
+                  "minimum": 745000,
+                  "maximum": 1223000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 827000.0,
+                  "p95": 1006000,
+                  "minimum": 774000,
+                  "maximum": 1167000
+                },
+                "median_change_pct": 4.156171284634769,
+                "p95_change_pct": -4.554079696394686,
+                "median_paired_change_pct": 3.1089405493328615,
+                "candidate_lower_pairs": 38
+              }
+            ]
+          },
+          "wall_ns": {
+            "fork_median_change_percent": 2.1521050902007954,
+            "fork_change_percent_range": [
+              1.2974423184880957,
+              4.269151976816543
+            ],
+            "fork_median_p95_change_percent": 1.8156216879573084,
+            "fork_p95_change_percent_range": [
+              -5.69502500332566,
+              7.233530904119179
+            ],
+            "fork_median_absolute_delta": 16781.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 829687.5,
+                  "p95": 1073708,
+                  "minimum": 705917,
+                  "maximum": 4036500
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 842770.5,
+                  "p95": 1151375,
+                  "minimum": 718917,
+                  "maximum": 3586750
+                },
+                "median_change_pct": 1.5768587570621495,
+                "p95_change_pct": 7.233530904119179,
+                "median_paired_change_pct": 1.3406573122395127,
+                "candidate_lower_pairs": 57
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 749937.0,
+                  "p95": 910041,
+                  "minimum": 689041,
+                  "maximum": 1980292
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 759667.0,
+                  "p95": 948750,
+                  "minimum": 696875,
+                  "maximum": 1796584
+                },
+                "median_change_pct": 1.2974423184880957,
+                "p95_change_pct": 4.253544620517102,
+                "median_paired_change_pct": 0.8137107092877405,
+                "candidate_lower_pairs": 58
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 750875.0,
+                  "p95": 984250,
+                  "minimum": 701250,
+                  "maximum": 1554166
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 771354.0,
+                  "p95": 978125,
+                  "minimum": 721709,
+                  "maximum": 2224292
+                },
+                "median_change_pct": 2.7273514233394414,
+                "p95_change_pct": -0.6223012446024856,
+                "median_paired_change_pct": 3.162455949377485,
+                "candidate_lower_pairs": 38
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 792979.5,
+                  "p95": 1067458,
+                  "minimum": 743583,
+                  "maximum": 2193875
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 826833.0,
+                  "p95": 1006666,
+                  "minimum": 773209,
+                  "maximum": 2192208
+                },
+                "median_change_pct": 4.269151976816543,
+                "p95_change_pct": -5.69502500332566,
+                "median_paired_change_pct": 3.246092669576006,
+                "candidate_lower_pairs": 37
+              }
+            ]
+          },
+          "allocated_bytes": {
+            "fork_median_change_percent": 2.57695392917191,
+            "fork_change_percent_range": [
+              2.362708737315744,
+              2.7687218102959044
+            ],
+            "fork_median_p95_change_percent": 2.5603817702686604,
+            "fork_p95_change_percent_range": [
+              2.362708737315744,
+              2.705508087691144
+            ],
+            "fork_median_absolute_delta": 43432.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 1668368.0,
+                  "p95": 1676008,
+                  "minimum": 1666192,
+                  "maximum": 1676008
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 1710016.0,
+                  "p95": 1717912,
+                  "minimum": 1691296,
+                  "maximum": 1717912
+                },
+                "median_change_pct": 2.496331744555169,
+                "p95_change_pct": 2.500226729228028,
+                "median_paired_change_pct": 2.496331744555169,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 1699744.0,
+                  "p95": 1699744,
+                  "minimum": 1699744,
+                  "maximum": 1699744
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 1739904.0,
+                  "p95": 1739904,
+                  "minimum": 1739904,
+                  "maximum": 1739904
+                },
+                "median_change_pct": 2.362708737315744,
+                "p95_change_pct": 2.362708737315744,
+                "median_paired_change_pct": 2.362708737315744,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 1701400.0,
+                  "p95": 1725448,
+                  "minimum": 1701400,
+                  "maximum": 1726568
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 1746616.0,
+                  "p95": 1770664,
+                  "minimum": 1746616,
+                  "maximum": 1770664
+                },
+                "median_change_pct": 2.657576113788651,
+                "p95_change_pct": 2.620536811309293,
+                "median_paired_change_pct": 2.657576113788651,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 1663728.0,
+                  "p95": 1664752,
+                  "minimum": 1663728,
+                  "maximum": 1688800
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 1709792.0,
+                  "p95": 1709792,
+                  "minimum": 1708768,
+                  "maximum": 1733840
+                },
+                "median_change_pct": 2.7687218102959044,
+                "p95_change_pct": 2.705508087691144,
+                "median_paired_change_pct": 2.7071732879413,
+                "candidate_lower_pairs": 0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "assembly-3-5-8-3-9-0",
+        "kind": "ordinary",
+        "executions": {
+          "baseline": 8,
+          "candidate": 6
+        },
+        "metrics": {
+          "cpu_ns": {
+            "fork_median_change_percent": 13.718489202443429,
+            "fork_change_percent_range": [
+              5.789473684210522,
+              15.286624203821653
+            ],
+            "fork_median_p95_change_percent": 12.332885830955975,
+            "fork_p95_change_percent_range": [
+              8.294930875576046,
+              27.464788732394375
+            ],
+            "fork_median_absolute_delta": 24000.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 177000.0,
+                  "p95": 202000,
+                  "minimum": 158000,
+                  "maximum": 295000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 204000.0,
+                  "p95": 229000,
+                  "minimum": 186000,
+                  "maximum": 293000
+                },
+                "median_change_pct": 15.254237288135597,
+                "p95_change_pct": 13.366336633663355,
+                "median_paired_change_pct": 15.236164417481735,
+                "candidate_lower_pairs": 4
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 197000.0,
+                  "p95": 284000,
+                  "minimum": 154000,
+                  "maximum": 494000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 221000.0,
+                  "p95": 362000,
+                  "minimum": 176000,
+                  "maximum": 393000
+                },
+                "median_change_pct": 12.182741116751261,
+                "p95_change_pct": 27.464788732394375,
+                "median_paired_change_pct": 12.192118226600979,
+                "candidate_lower_pairs": 12
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 157000.0,
+                  "p95": 177000,
+                  "minimum": 143000,
+                  "maximum": 207000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 181000.0,
+                  "p95": 197000,
+                  "minimum": 166000,
+                  "maximum": 215000
+                },
+                "median_change_pct": 15.286624203821653,
+                "p95_change_pct": 11.299435028248595,
+                "median_paired_change_pct": 14.383989993746082,
+                "candidate_lower_pairs": 4
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 190000.0,
+                  "p95": 217000,
+                  "minimum": 170000,
+                  "maximum": 258000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 201000.0,
+                  "p95": 235000,
+                  "minimum": 180000,
+                  "maximum": 308000
+                },
+                "median_change_pct": 5.789473684210522,
+                "p95_change_pct": 8.294930875576046,
+                "median_paired_change_pct": 5.894886363636365,
+                "candidate_lower_pairs": 19
+              }
+            ]
+          },
+          "wall_ns": {
+            "fork_median_change_percent": 13.300979706846295,
+            "fork_change_percent_range": [
+              6.132933068369195,
+              15.538665598736667
+            ],
+            "fork_median_p95_change_percent": 11.817715624036508,
+            "fork_p95_change_percent_range": [
+              8.736264244915336,
+              23.80824760687461
+            ],
+            "fork_median_absolute_delta": 23166.75,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 176041.5,
+                  "p95": 201375,
+                  "minimum": 158500,
+                  "maximum": 365166
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 203396.0,
+                  "p95": 227000,
+                  "minimum": 184750,
+                  "maximum": 291500
+                },
+                "median_change_pct": 15.538665598736667,
+                "p95_change_pct": 12.7250155183116,
+                "median_paired_change_pct": 15.21296114188454,
+                "candidate_lower_pairs": 4
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 196458.5,
+                  "p95": 291042,
+                  "minimum": 152708,
+                  "maximum": 493750
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 219604.0,
+                  "p95": 360334,
+                  "minimum": 175709,
+                  "maximum": 391000
+                },
+                "median_change_pct": 11.781368584204799,
+                "p95_change_pct": 23.80824760687461,
+                "median_paired_change_pct": 12.974646150962243,
+                "candidate_lower_pairs": 13
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 156458.0,
+                  "p95": 175667,
+                  "minimum": 142375,
+                  "maximum": 206417
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 179646.0,
+                  "p95": 194833,
+                  "minimum": 165917,
+                  "maximum": 215000
+                },
+                "median_change_pct": 14.82059082948779,
+                "p95_change_pct": 10.910415729761414,
+                "median_paired_change_pct": 14.438523914705282,
+                "candidate_lower_pairs": 4
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 189208.0,
+                  "p95": 216042,
+                  "minimum": 169250,
+                  "maximum": 256167
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 200812.0,
+                  "p95": 234916,
+                  "minimum": 179334,
+                  "maximum": 395583
+                },
+                "median_change_pct": 6.132933068369195,
+                "p95_change_pct": 8.736264244915336,
+                "median_paired_change_pct": 6.088080533721629,
+                "candidate_lower_pairs": 20
+              }
+            ]
+          },
+          "allocated_bytes": {
+            "fork_median_change_percent": 18.14129093405765,
+            "fork_change_percent_range": [
+              17.738640184136333,
+              18.397802938052177
+            ],
+            "fork_median_p95_change_percent": 18.198107648502017,
+            "fork_p95_change_percent_range": [
+              17.738640184136333,
+              18.397802938052177
+            ],
+            "fork_median_absolute_delta": 56212.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 309336.0,
+                  "p95": 309336,
+                  "minimum": 309336,
+                  "maximum": 309336
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 364208.0,
+                  "p95": 364208,
+                  "minimum": 364208,
+                  "maximum": 364208
+                },
+                "median_change_pct": 17.738640184136333,
+                "p95_change_pct": 17.738640184136333,
+                "median_paired_change_pct": 17.738640184136333,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 309768.0,
+                  "p95": 309768,
+                  "minimum": 309160,
+                  "maximum": 309768
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 365536.0,
+                  "p95": 365888,
+                  "minimum": 365536,
+                  "maximum": 365888
+                },
+                "median_change_pct": 18.003150745073725,
+                "p95_change_pct": 18.11678417396245,
+                "median_paired_change_pct": 18.11678417396245,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 308776.0,
+                  "p95": 308776,
+                  "minimum": 308776,
+                  "maximum": 308776
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 365584.0,
+                  "p95": 365584,
+                  "minimum": 365584,
+                  "maximum": 365584
+                },
+                "median_change_pct": 18.397802938052177,
+                "p95_change_pct": 18.397802938052177,
+                "median_paired_change_pct": 18.397802938052177,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 309944.0,
+                  "p95": 309944,
+                  "minimum": 309944,
+                  "maximum": 309944
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 366600.0,
+                  "p95": 366600,
+                  "minimum": 366600,
+                  "maximum": 366600
+                },
+                "median_change_pct": 18.27943112304158,
+                "p95_change_pct": 18.27943112304158,
+                "median_paired_change_pct": 18.27943112304158,
+                "candidate_lower_pairs": 0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "shared-stock-3-3-3-0-1",
+        "kind": "ordinary",
+        "executions": {
+          "baseline": 5,
+          "candidate": 4
+        },
+        "metrics": {
+          "cpu_ns": {
+            "fork_median_change_percent": 8.127062706270626,
+            "fork_change_percent_range": [
+              6.38977635782747,
+              21.266233766233753
+            ],
+            "fork_median_p95_change_percent": 10.113924050632917,
+            "fork_p95_change_percent_range": [
+              6.158357771260992,
+              19.895287958115194
+            ],
+            "fork_median_absolute_delta": 23750.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 303000.0,
+                  "p95": 341000,
+                  "minimum": 280000,
+                  "maximum": 462000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 327000.0,
+                  "p95": 362000,
+                  "minimum": 291000,
+                  "maximum": 612000
+                },
+                "median_change_pct": 7.920792079207928,
+                "p95_change_pct": 6.158357771260992,
+                "median_paired_change_pct": 7.7703589567996385,
+                "candidate_lower_pairs": 22
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 308000.0,
+                  "p95": 400000,
+                  "minimum": 260000,
+                  "maximum": 504000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 373500.0,
+                  "p95": 448000,
+                  "minimum": 307000,
+                  "maximum": 509000
+                },
+                "median_change_pct": 21.266233766233753,
+                "p95_change_pct": 12.00000000000001,
+                "median_paired_change_pct": 23.736023227696734,
+                "candidate_lower_pairs": 6
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 313000.0,
+                  "p95": 382000,
+                  "minimum": 263000,
+                  "maximum": 501000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 333000.0,
+                  "p95": 458000,
+                  "minimum": 287000,
+                  "maximum": 641000
+                },
+                "median_change_pct": 6.38977635782747,
+                "p95_change_pct": 19.895287958115194,
+                "median_paired_change_pct": 7.905174849492513,
+                "candidate_lower_pairs": 17
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 282000.0,
+                  "p95": 316000,
+                  "minimum": 261000,
+                  "maximum": 370000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 305500.0,
+                  "p95": 342000,
+                  "minimum": 284000,
+                  "maximum": 424000
+                },
+                "median_change_pct": 8.333333333333325,
+                "p95_change_pct": 8.227848101265822,
+                "median_paired_change_pct": 9.48591840270836,
+                "candidate_lower_pairs": 5
+              }
+            ]
+          },
+          "wall_ns": {
+            "fork_median_change_percent": 8.418899832701355,
+            "fork_change_percent_range": [
+              6.294949909239045,
+              21.41070193285859
+            ],
+            "fork_median_p95_change_percent": 10.728756852965514,
+            "fork_p95_change_percent_range": [
+              6.450141410455257,
+              14.678036476328504
+            ],
+            "fork_median_absolute_delta": 24489.5,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 302250.0,
+                  "p95": 339791,
+                  "minimum": 278334,
+                  "maximum": 460042
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 326375.0,
+                  "p95": 361708,
+                  "minimum": 289875,
+                  "maximum": 611125
+                },
+                "median_change_pct": 7.981803143093469,
+                "p95_change_pct": 6.450141410455257,
+                "median_paired_change_pct": 7.724713851854482,
+                "candidate_lower_pairs": 22
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 307187.5,
+                  "p95": 398834,
+                  "minimum": 259542,
+                  "maximum": 540083
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 372958.5,
+                  "p95": 457375,
+                  "minimum": 306125,
+                  "maximum": 3150542
+                },
+                "median_change_pct": 21.41070193285859,
+                "p95_change_pct": 14.678036476328504,
+                "median_paired_change_pct": 23.807271883222157,
+                "candidate_lower_pairs": 6
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 312083.5,
+                  "p95": 411084,
+                  "minimum": 262041,
+                  "maximum": 510875
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 331729.0,
+                  "p95": 465750,
+                  "minimum": 286208,
+                  "maximum": 2601625
+                },
+                "median_change_pct": 6.294949909239045,
+                "p95_change_pct": 13.298012085121291,
+                "median_paired_change_pct": 8.20679932231435,
+                "candidate_lower_pairs": 21
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 280646.0,
+                  "p95": 315583,
+                  "minimum": 259958,
+                  "maximum": 369208
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 305500.0,
+                  "p95": 341333,
+                  "minimum": 284292,
+                  "maximum": 594500
+                },
+                "median_change_pct": 8.85599652230924,
+                "p95_change_pct": 8.159501620809738,
+                "median_paired_change_pct": 9.503142243350759,
+                "candidate_lower_pairs": 5
+              }
+            ]
+          },
+          "allocated_bytes": {
+            "fork_median_change_percent": 10.528764536283209,
+            "fork_change_percent_range": [
+              10.445853917000413,
+              10.78152725217092
+            ],
+            "fork_median_p95_change_percent": 10.528764536283209,
+            "fork_p95_change_percent_range": [
+              10.303181223930768,
+              10.78152725217092
+            ],
+            "fork_median_absolute_delta": 54336.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 516064.0,
+                  "p95": 516064,
+                  "minimum": 516000,
+                  "maximum": 516064
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 570768.0,
+                  "p95": 570768,
+                  "minimum": 570768,
+                  "maximum": 570768
+                },
+                "median_change_pct": 10.600235629689347,
+                "p95_change_pct": 10.600235629689347,
+                "median_paired_change_pct": 10.600235629689347,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 516080.0,
+                  "p95": 516080,
+                  "minimum": 512240,
+                  "maximum": 516080
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 570048.0,
+                  "p95": 570048,
+                  "minimum": 566208,
+                  "maximum": 570048
+                },
+                "median_change_pct": 10.45729344287707,
+                "p95_change_pct": 10.45729344287707,
+                "median_paired_change_pct": 10.45729344287707,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 513352.0,
+                  "p95": 514016,
+                  "minimum": 513352,
+                  "maximum": 514016
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 566976.0,
+                  "p95": 566976,
+                  "minimum": 566736,
+                  "maximum": 566976
+                },
+                "median_change_pct": 10.445853917000413,
+                "p95_change_pct": 10.303181223930768,
+                "median_paired_change_pct": 10.445853917000413,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 509464.0,
+                  "p95": 509464,
+                  "minimum": 508848,
+                  "maximum": 509464
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 564392.0,
+                  "p95": 564392,
+                  "minimum": 564392,
+                  "maximum": 564392
+                },
+                "median_change_pct": 10.78152725217092,
+                "p95_change_pct": 10.78152725217092,
+                "median_paired_change_pct": 10.78152725217092,
+                "candidate_lower_pairs": 0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "three-branch-3-1-1",
+        "kind": "ordinary",
+        "executions": {
+          "baseline": 6,
+          "candidate": 6
+        },
+        "metrics": {
+          "cpu_ns": {
+            "fork_median_change_percent": -3.5483870967741913,
+            "fork_change_percent_range": [
+              -7.098765432098764,
+              0.8645533141210304
+            ],
+            "fork_median_p95_change_percent": -1.578282828282823,
+            "fork_p95_change_percent_range": [
+              -6.217616580310881,
+              2.3809523809523725
+            ],
+            "fork_median_absolute_delta": -5500.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 185000.0,
+                  "p95": 198000,
+                  "minimum": 169000,
+                  "maximum": 223000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 185000.0,
+                  "p95": 200000,
+                  "minimum": 169000,
+                  "maximum": 219000
+                },
+                "median_change_pct": 0.0,
+                "p95_change_pct": 1.0101010101010166,
+                "median_paired_change_pct": 0.5434782608695565,
+                "candidate_lower_pairs": 52
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 155000.0,
+                  "p95": 192000,
+                  "minimum": 145000,
+                  "maximum": 221000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 144000.0,
+                  "p95": 184000,
+                  "minimum": 135000,
+                  "maximum": 228000
+                },
+                "median_change_pct": -7.096774193548383,
+                "p95_change_pct": -4.1666666666666625,
+                "median_paired_change_pct": -5.442176870748295,
+                "candidate_lower_pairs": 99
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 162000.0,
+                  "p95": 193000,
+                  "minimum": 147000,
+                  "maximum": 281000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 150500.0,
+                  "p95": 181000,
+                  "minimum": 139000,
+                  "maximum": 413000
+                },
+                "median_change_pct": -7.098765432098764,
+                "p95_change_pct": -6.217616580310881,
+                "median_paired_change_pct": -5.865556625842849,
+                "candidate_lower_pairs": 106
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 173500.0,
+                  "p95": 210000,
+                  "minimum": 148000,
+                  "maximum": 489000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 175000.0,
+                  "p95": 215000,
+                  "minimum": 144000,
+                  "maximum": 428000
+                },
+                "median_change_pct": 0.8645533141210304,
+                "p95_change_pct": 2.3809523809523725,
+                "median_paired_change_pct": 0.628002204898026,
+                "candidate_lower_pairs": 51
+              }
+            ]
+          },
+          "wall_ns": {
+            "fork_median_change_percent": -3.2493868828079475,
+            "fork_change_percent_range": [
+              -7.325198188730164,
+              0.833736910330507
+            ],
+            "fork_median_p95_change_percent": -2.148367301017823,
+            "fork_p95_change_percent_range": [
+              -6.1078622482131255,
+              5.7634673019288485
+            ],
+            "fork_median_absolute_delta": -5208.25,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 184041.5,
+                  "p95": 198125,
+                  "minimum": 168000,
+                  "maximum": 441625
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 184291.5,
+                  "p95": 198542,
+                  "minimum": 167708,
+                  "maximum": 221584
+                },
+                "median_change_pct": 0.13583892763318062,
+                "p95_change_pct": 0.21047318611986388,
+                "median_paired_change_pct": 0.5926849560080938,
+                "candidate_lower_pairs": 57
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 154146.0,
+                  "p95": 192292,
+                  "minimum": 144000,
+                  "maximum": 230375
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 142854.5,
+                  "p95": 183625,
+                  "minimum": 134916,
+                  "maximum": 232833
+                },
+                "median_change_pct": -7.325198188730164,
+                "p95_change_pct": -4.50720778815551,
+                "median_paired_change_pct": -5.6098351166771145,
+                "candidate_lower_pairs": 100
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 160770.5,
+                  "p95": 192375,
+                  "minimum": 147000,
+                  "maximum": 288375
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 150104.0,
+                  "p95": 180625,
+                  "minimum": 138083,
+                  "maximum": 464125
+                },
+                "median_change_pct": -6.634612693249076,
+                "p95_change_pct": -6.1078622482131255,
+                "median_paired_change_pct": -5.951996143229243,
+                "candidate_lower_pairs": 106
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 172416.5,
+                  "p95": 208208,
+                  "minimum": 147042,
+                  "maximum": 488042
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 173854.0,
+                  "p95": 220208,
+                  "minimum": 144125,
+                  "maximum": 2036375
+                },
+                "median_change_pct": 0.833736910330507,
+                "p95_change_pct": 5.7634673019288485,
+                "median_paired_change_pct": 0.7732418793076179,
+                "candidate_lower_pairs": 56
+              }
+            ]
+          },
+          "allocated_bytes": {
+            "fork_median_change_percent": 0.02539360562474613,
+            "fork_change_percent_range": [
+              0.024629675240128712,
+              0.025404659940475582
+            ],
+            "fork_median_p95_change_percent": 0.025404659940475582,
+            "fork_p95_change_percent_range": [
+              0.025382551309016677,
+              0.15129657647514616
+            ],
+            "fork_median_absolute_delta": 56.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 220432.0,
+                  "p95": 220432,
+                  "minimum": 220432,
+                  "maximum": 220432
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 220488.0,
+                  "p95": 220488,
+                  "minimum": 220488,
+                  "maximum": 220488
+                },
+                "median_change_pct": 0.025404659940475582,
+                "p95_change_pct": 0.025404659940475582,
+                "median_paired_change_pct": 0.025404659940475582,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 220432.0,
+                  "p95": 220432,
+                  "minimum": 220432,
+                  "maximum": 220432
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 220488.0,
+                  "p95": 220488,
+                  "minimum": 220488,
+                  "maximum": 220488
+                },
+                "median_change_pct": 0.025404659940475582,
+                "p95_change_pct": 0.025404659940475582,
+                "median_paired_change_pct": 0.025404659940475582,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 220624.0,
+                  "p95": 220624,
+                  "minimum": 220624,
+                  "maximum": 220624
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 220680.0,
+                  "p95": 220680,
+                  "minimum": 220680,
+                  "maximum": 220680
+                },
+                "median_change_pct": 0.025382551309016677,
+                "p95_change_pct": 0.025382551309016677,
+                "median_paired_change_pct": 0.025382551309016677,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 227368.0,
+                  "p95": 227368,
+                  "minimum": 227368,
+                  "maximum": 227368
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 227424.0,
+                  "p95": 227712,
+                  "minimum": 227424,
+                  "maximum": 227760
+                },
+                "median_change_pct": 0.024629675240128712,
+                "p95_change_pct": 0.15129657647514616,
+                "median_paired_change_pct": 0.024629675240128712,
+                "candidate_lower_pairs": 0
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "exact-vanilla-97-random20-1",
+        "kind": "physical",
+        "executions": {
+          "baseline": 3,
+          "candidate": 2
+        },
+        "metrics": {
+          "cpu_ns": {
+            "fork_median_change_percent": 2.7890677179207346,
+            "fork_change_percent_range": [
+              0.875273522975939,
+              9.515570934256058
+            ],
+            "fork_median_p95_change_percent": -0.9549940111477528,
+            "fork_p95_change_percent_range": [
+              -2.020202020202022,
+              8.827785817655576
+            ],
+            "fork_median_absolute_delta": 17250.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 586500.0,
+                  "p95": 662000,
+                  "minimum": 557000,
+                  "maximum": 722000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 594000.0,
+                  "p95": 659000,
+                  "minimum": 545000,
+                  "maximum": 849000
+                },
+                "median_change_pct": 1.278772378516635,
+                "p95_change_pct": -0.45317220543806824,
+                "median_paired_change_pct": 0.5048489274613988,
+                "candidate_lower_pairs": 56
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 685500.0,
+                  "p95": 961000,
+                  "minimum": 565000,
+                  "maximum": 1376000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 691500.0,
+                  "p95": 947000,
+                  "minimum": 585000,
+                  "maximum": 1254000
+                },
+                "median_change_pct": 0.875273522975939,
+                "p95_change_pct": -1.4568158168574374,
+                "median_paired_change_pct": 1.093008742119661,
+                "candidate_lower_pairs": 56
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 578000.0,
+                  "p95": 691000,
+                  "minimum": 527000,
+                  "maximum": 983000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 633000.0,
+                  "p95": 752000,
+                  "minimum": 588000,
+                  "maximum": 904000
+                },
+                "median_change_pct": 9.515570934256058,
+                "p95_change_pct": 8.827785817655576,
+                "median_paired_change_pct": 8.932596808391924,
+                "candidate_lower_pairs": 11
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 628000.0,
+                  "p95": 792000,
+                  "minimum": 588000,
+                  "maximum": 939000
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 655000.0,
+                  "p95": 776000,
+                  "minimum": 613000,
+                  "maximum": 1021000
+                },
+                "median_change_pct": 4.299363057324834,
+                "p95_change_pct": -2.020202020202022,
+                "median_paired_change_pct": 4.385251112523836,
+                "candidate_lower_pairs": 27
+              }
+            ]
+          },
+          "wall_ns": {
+            "fork_median_change_percent": 2.74811020229192,
+            "fork_change_percent_range": [
+              0.9565344543958965,
+              9.596704452697558
+            ],
+            "fork_median_p95_change_percent": -0.3307023261860387,
+            "fork_p95_change_percent_range": [
+              -3.1495642740735352,
+              2.769407783417943
+            ],
+            "fork_median_absolute_delta": 16968.75,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 586271.0,
+                  "p95": 661875,
+                  "minimum": 556584,
+                  "maximum": 1159584
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 593645.5,
+                  "p95": 658042,
+                  "minimum": 543708,
+                  "maximum": 852750
+                },
+                "median_change_pct": 1.2578653898964731,
+                "p95_change_pct": -0.5791123701605283,
+                "median_paired_change_pct": 0.32012917473353,
+                "candidate_lower_pairs": 57
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 683875.0,
+                  "p95": 961208,
+                  "minimum": 564458,
+                  "maximum": 4677333
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 690416.5,
+                  "p95": 960417,
+                  "minimum": 584625,
+                  "maximum": 1262417
+                },
+                "median_change_pct": 0.9565344543958965,
+                "p95_change_pct": -0.08229228221154905,
+                "median_paired_change_pct": 1.100763385400394,
+                "candidate_lower_pairs": 58
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 577021.0,
+                  "p95": 738750,
+                  "minimum": 525750,
+                  "maximum": 3942084
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 632396.0,
+                  "p95": 759209,
+                  "minimum": 587125,
+                  "maximum": 3811125
+                },
+                "median_change_pct": 9.596704452697558,
+                "p95_change_pct": 2.769407783417943,
+                "median_paired_change_pct": 9.116562181116738,
+                "candidate_lower_pairs": 11
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 626729.0,
+                  "p95": 805667,
+                  "minimum": 586500,
+                  "maximum": 3636333
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 653292.0,
+                  "p95": 780292,
+                  "minimum": 612167,
+                  "maximum": 1020458
+                },
+                "median_change_pct": 4.238355014687367,
+                "p95_change_pct": -3.1495642740735352,
+                "median_paired_change_pct": 4.214925665124991,
+                "candidate_lower_pairs": 30
+              }
+            ]
+          },
+          "allocated_bytes": {
+            "fork_median_change_percent": 4.558663286821707,
+            "fork_change_percent_range": [
+              3.1338453799430788,
+              5.079119969434531
+            ],
+            "fork_median_p95_change_percent": 3.2389898001611073,
+            "fork_p95_change_percent_range": [
+              -1.051760019692527,
+              5.079119969434531
+            ],
+            "fork_median_absolute_delta": 45880.0,
+            "forks": [
+              {
+                "fork": 0,
+                "baseline": {
+                  "n": 128,
+                  "median": 1001784.0,
+                  "p95": 1001808,
+                  "minimum": 1001784,
+                  "maximum": 1001808
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 1042544.0,
+                  "p95": 1042544,
+                  "minimum": 1042544,
+                  "maximum": 1042544
+                },
+                "median_change_pct": 4.068741365404116,
+                "p95_change_pct": 4.066248223212421,
+                "median_paired_change_pct": 4.068741365404116,
+                "candidate_lower_pairs": 0
+              },
+              {
+                "fork": 1,
+                "baseline": {
+                  "n": 128,
+                  "median": 1065528.0,
+                  "p95": 1073088,
+                  "minimum": 1065528,
+                  "maximum": 1073088
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 1098920.0,
+                  "p95": 1098968,
+                  "minimum": 1036360,
+                  "maximum": 1106552
+                },
+                "median_change_pct": 3.1338453799430788,
+                "p95_change_pct": 2.4117313771097937,
+                "median_paired_change_pct": 2.4083765730303575,
+                "candidate_lower_pairs": 62
+              },
+              {
+                "fork": 2,
+                "baseline": {
+                  "n": 128,
+                  "median": 1010184.0,
+                  "p95": 1072488,
+                  "minimum": 1010184,
+                  "maximum": 1072488
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 1061184.0,
+                  "p95": 1061208,
+                  "minimum": 1061184,
+                  "maximum": 1061208
+                },
+                "median_change_pct": 5.048585208239298,
+                "p95_change_pct": -1.051760019692527,
+                "median_paired_change_pct": 5.048585208239298,
+                "candidate_lower_pairs": 11
+              },
+              {
+                "fork": 3,
+                "baseline": {
+                  "n": 128,
+                  "median": 1005056.0,
+                  "p95": 1005056,
+                  "minimum": 1005056,
+                  "maximum": 1005056
+                },
+                "candidate": {
+                  "n": 128,
+                  "median": 1056104.0,
+                  "p95": 1056104,
+                  "minimum": 1056080,
+                  "maximum": 1056104
+                },
+                "median_change_pct": 5.079119969434531,
+                "p95_change_pct": 5.079119969434531,
+                "median_paired_change_pct": 5.079119969434531,
+                "candidate_lower_pairs": 0
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "interpretation": "The improved examples take fewer recipe executions at modest additional planning CPU/allocation cost. This is not a claim of general planning speedup or server TPS improvement."
+  },
+  "rejected_experiment": {
+    "variant": "Strictly fewer executions without the existing 1% gain threshold",
+    "raw_case": "Vanilla target 1227 / leaves / amount 100000",
+    "total_firings": [
+      166672,
+      166670
+    ],
+    "real_firings": [
+      95836,
+      116669
+    ],
+    "tag_conversion_firings": [
+      70836,
+      50001
+    ],
+    "decision": "Supplemental search follows the existing 1% significant execution-gain threshold. The final candidate retains the baseline result for this case.",
+    "scope": "The raw adapter counts synthetic tag conversions as firings. The 1% gate limits marginal rerouting cost; it does not fix or align that artificial objective. Physical execution claims use the exact external adapter."
+  },
+  "limitations": [
+    "This bounded single-producer neighborhood does not enumerate all mixed integer route combinations.",
+    "The original-order ordinary grid retains six execution gaps and one missed feasible case; reverse order retains eight gaps and the same missed feasible case.",
+    "Vanilla target 97 / leaves / amount 100000 still needs a mixed tail batch outside this neighborhood.",
+    "Existing raw-corpus budget cutoffs remain cutoffs, not mathematical infeasibility certificates.",
+    "Large-pack tag expansion was declined when exact mixed-member enumeration exceeded the external adapter cap; no member choices were silently removed.",
+    "No live Minecraft TPS or machine-duration measurements were performed."
+  ],
+  "attribution": {
+    "author": "AdUhTkJm",
+    "project": "AW",
+    "url": "https://github.com/AdUhTkJm/AW",
+    "scope": "Optimization research, comparison data and verified witness analysis; acknowledged in both READMEs."
+  },
+  "evidence_root": "outputs/tb-execution-gap-20261004",
+  "evidence_sha256": {
+    "validated/build-verification.json": "dacb18bc0bdec505a62baf914a088864ec4cf4cb51ef5e9687171e8d1b16215b",
+    "validated/public-validation.json": "e21f965b84e46f0aff687fbeab9614640e9a1c2164bbbbf56e2a0528225c5358",
+    "validated/corpus-regression/summary.json": "5cc5f7537a99a3476002ea2d056552b98c787ee4a6e085cc956278ecb14b4cff",
+    "execution-oracle/suite.jsonl": "d85b71ad6809e73132fa034aabb03fff904db85208c6ade83403752e504bbf91",
+    "execution-oracle/oracle_suite.py": "7991c8e2b8f35834d543a375bc86aa7565abf77dffb02776ab4958fc754b3b6e",
+    "execution-oracle/final-v4-independent-audit.json": "4708ad911cdb8225ab760d3120fbe761e4c461d06304f8d3e2f913a715b21a22",
+    "execution-oracle/final-v4-independent-comparison.json": "702e3fd56ebf2f19f1838db02c7524005c3bc25b862945ebdc30694e925c0f96",
+    "execution-oracle/final-v4-original.jsonl": "da128ca4c9492d7b5b917f7276c2dcf2cbfb0c1fd514fbd657b3f047d3d80189",
+    "execution-oracle/final-v4-reverse.jsonl": "0960385f5bad27db96716a6388d91bf3d886fc0797c7bea6bc9d3a49f050ded8",
+    "aligned/quality-summary.json": "b3dcfa58617c6042e6359f3dc47e86fbdab0d4d10722a984f6dfc0f84edabc4a",
+    "aligned/policy-trace/conclusion.json": "84c8be92121b47ad085716fca2cbb9e5de0af23c1f62c750be69c16fdb451cae",
+    "aligned/performance/final-v4-quality-summary.json": "840511222744e9d1a1bd85a712176f80141caf460ca7d8e31883db757db78a52",
+    "aligned/performance/runs/final-v4/manifest.json": "01603829b4023c5c76365ce6db1a3ec0750a326c3c8df2642f853076e04b507a",
+    "aligned/performance/runs/final-v4/summary.json": "ccc3e2a92ba2ccd616ed4d28e6f5938b87f3eb608b4d623ac0fe9dd47fd15e4b",
+    "gradle-accepted.log": "28bb41d7642fed193353e028b52ef0b03f6823bc8799884ffb74666676a5ac9e",
+    "aligned/performance/runs/final-v4/fork-0.jsonl": "3d0c0a469139afbab69a5f01f1cda763fd32cf1aaceb350fe7b40ea3105e3f94",
+    "aligned/performance/runs/final-v4/fork-1.jsonl": "6d7fd5eee41b2b2d726e5023b580a15174900b68bac18fca17915ca3f2601ae5",
+    "aligned/performance/runs/final-v4/fork-2.jsonl": "29ae7d61f9abc5ff2073b5b8257be11d7adfa88bea341021bb6c1f35efbee0d3",
+    "aligned/performance/runs/final-v4/fork-3.jsonl": "0d81b631e2652cc88355f160e54f2293691a0339629641742b41eaf1868310eb",
+    "aligned/performance/final-audit.json": "c1edf99a6b733b9d9ea2edd74795e9e92f32788189f67a7032fe442cd62bdae8",
+    "validated/corpus-regression/canonical-plan-comparison.json": "9d99ec517685b1a84e81af18a723a8f336b7faca0ea8292d0e4de6c58e60c02c"
+  }
+}

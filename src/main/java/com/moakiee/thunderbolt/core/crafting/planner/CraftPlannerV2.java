@@ -1213,7 +1213,8 @@ public final class CraftPlannerV2<K> {
 
     private static long executionTotal(CraftPlan<?> plan) {
         long total = 0L;
-        for (long executions : plan.firings().values()) total = Sat.add(total, executions);
+        for (var entry : plan.firings().entrySet())
+            if (entry.getKey().executionCost() != 0) total = Sat.add(total, entry.getValue());
         return total;
     }
 

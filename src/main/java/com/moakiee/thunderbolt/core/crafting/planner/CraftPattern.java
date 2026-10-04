@@ -31,6 +31,7 @@ public final class CraftPattern<K> {
     private final List<CraftOutput<K>> byproducts;
     private final Object source;
     private final List<List<CraftInput<K>>> executionSlots;
+    private final boolean tagConversion;
 
     public CraftPattern(K output, long outputAmount, List<CraftInput<K>> inputs, Object source) {
         this(output, outputAmount, inputs, List.of(), source);
@@ -49,6 +50,12 @@ public final class CraftPattern<K> {
     public CraftPattern(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
                         List<CraftOutput<K>> byproducts, Object source,
                         List<List<CraftInput<K>>> executionSlots) {
+        this(output, outputAmount, inputs, byproducts, source, executionSlots, false);
+    }
+
+    private CraftPattern(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
+                         List<CraftOutput<K>> byproducts, Object source,
+                         List<List<CraftInput<K>>> executionSlots, boolean tagConversion) {
         this.output = Objects.requireNonNull(output, "output");
         if (outputAmount.signum() <= 0) {
             throw new IllegalArgumentException("outputAmount must be > 0, was " + outputAmount);
@@ -60,6 +67,22 @@ public final class CraftPattern<K> {
         this.source = source;
         this.executionSlots = executionSlots.isEmpty() ? List.of()
                 : executionSlots.stream().map(List::copyOf).toList();
+        this.tagConversion = tagConversion;
+    }
+
+    /**
+     * A graph export's virtual member-to-tag edge, not a machine operation. The edge still
+     * consumes one member and supplies one tag unit, so stock accounting and execution proofs
+     * retain it. Exporters must identify tags explicitly; an ordinary 1:1 recipe is not free.
+     */
+    public static <K> CraftPattern<K> tagConversion(K member, K tag, Object source) {
+        return new CraftPattern<>(tag, BigInteger.ONE, List.of(CraftInput.of(member, 1)),
+                List.of(), source, List.of(), true);
+    }
+
+    /** Real machine executions per firing: one for ordinary recipes, zero for tag conversion. */
+    public int executionCost() {
+        return tagConversion ? 0 : 1;
     }
 
     /**

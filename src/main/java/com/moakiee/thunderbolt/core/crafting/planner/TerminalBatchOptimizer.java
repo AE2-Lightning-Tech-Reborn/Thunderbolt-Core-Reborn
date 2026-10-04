@@ -43,7 +43,8 @@ final class TerminalBatchOptimizer {
         var budget = new Budget(spendWork);
         long originalExecutions = 0;
         for (var entry : incumbent.firings().entrySet()) {
-            if (!budget.spend(1) || !entry.getKey().output().equals(target)) return null;
+            if (!budget.spend(1) || !entry.getKey().output().equals(target)
+                    || entry.getKey().executionCost() != 1) return null;
             long count = entry.getValue();
             if (count <= 0 || count >= Sat.SAT || originalExecutions >= Sat.SAT - count) return null;
             originalExecutions += count;
@@ -60,6 +61,7 @@ final class TerminalBatchOptimizer {
             if (inputs.containsKey(pattern)) continue;
             if (routes.size() >= MAX_ROUTES || !budget.spend(pattern.inputs().size())
                     || !target.equals(pattern.output()) || pattern.inputs().isEmpty()
+                    || pattern.executionCost() != 1
                     || !pattern.executionSlots().isEmpty() || !OrdinaryBatchOptimizer.ordinary(pattern)) return null;
             var consumed = new LinkedHashMap<K, Long>();
             for (var input : pattern.inputs()) {

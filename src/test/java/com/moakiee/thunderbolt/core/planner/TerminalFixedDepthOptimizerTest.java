@@ -7,6 +7,7 @@ import com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot;
 import com.moakiee.thunderbolt.core.crafting.pattern.ReusableStockSource;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,29 @@ class TerminalFixedDepthOptimizerTest {
         assertCertified(fixture, candidate, 1);
         assertEquals(Map.of(first, 1L), candidate.firings(),
                 "B removes A's query marker, but A must remain a candidate");
+    }
+
+    @Test
+    void reusedMergeBuffersPreserveOriginalIdentitiesAcrossEverySupportedWidth() {
+        for (int count = 17; count <= 64; count++) {
+            for (int order = 0; order < 3; order++) {
+                var first = route(10, 3, 3);
+                var tied = route(10, 3, 3);
+                var second = route(9, 2, 2);
+                var dominated = route(8, 3, 3);
+                var slow = route(6, 1, 1);
+                var registrations = wide(count, List.of(first, second, dominated, slow, tied));
+                if (order == 1) Collections.reverse(registrations);
+                if (order == 2) Collections.rotate(registrations, count / 2);
+                var expected = registrations.indexOf(first) < registrations.indexOf(tied) ? first : tied;
+                var fixture = fixture(3, 3, registrations, 10, Map.of(slow, 2L));
+                var candidate = improve(fixture);
+                assertCertified(fixture, candidate, 1);
+                assertSame(expected, candidate.firings().keySet().iterator().next(),
+                        "stable ties and retained prefixes must survive both merge-buffer parities");
+                assertEquals(registrations, fixture.graph().patternsFor("T"));
+            }
+        }
     }
 
     @Test
@@ -283,17 +307,43 @@ class TerminalFixedDepthOptimizerTest {
     }
 
     @Test
-    void publicPortfolioKeepsItsEstablishedImprovementWhenTheSupplementRunsOutOfWork() {
+    void reducedPreparationWorkFitsTheExistingPublicBudget() {
         var fixture = seed2Sample233();
         var budget = new WorkBudget(2878);
+        var probes = new AtomicInteger();
+        assertCertified(fixture, TerminalFixedDepthOptimizer.tryImprove(fixture.graph(), "T", fixture.amount(),
+                fixture.incumbent(), budget, () -> { probes.incrementAndGet(); return true; }), 5);
+        assertEquals(0, budget.rejected);
+        assertEquals(2738, budget.used);
+        assertEquals(1, probes.get());
+
+        var result = CraftPlannerV2.planDetailed(fixture.graph(), "T", fixture.amount());
+        assertCertified(fixture, result.plan(), 5);
+        assertEquals(Map.of(fixture.routes().get(3), 2L, fixture.routes().get(27), 1L,
+                fixture.routes().get(46), 2L), result.plan().firings());
+        // The established objective prioritizes executions: raw draw may rise within stock.
+        assertEquals(Map.of("R", 21L, "S", 15L), result.plan().usedStock());
+        assertEquals(4096, result.diagnostics().configuredSearchBudget());
+        assertFalse(result.plan().budgetExhausted());
+        assertFalse(result.diagnostics().searchCutoff());
+        assertEquals(6, result.diagnostics().consumptionOptimizationProbes());
+        assertEquals(2, result.diagnostics().consumptionOptimizationImprovements());
+    }
+
+    @Test
+    void publicPortfolioKeepsItsEstablishedImprovementWhenTheSupplementRunsOutOfWork() {
+        var fixture = seed2Sample233();
+        var budget = new WorkBudget(2737);
         var probes = new AtomicInteger();
         assertNull(TerminalFixedDepthOptimizer.tryImprove(fixture.graph(), "T", fixture.amount(),
                 fixture.incumbent(), budget, () -> { probes.incrementAndGet(); return true; }));
         assertEquals(1, budget.rejected);
         assertEquals(0, probes.get());
+        assertEquals(6, executions(fixture.incumbent()));
 
         // The established portfolio already reduced core 9 to 6 before this optional failure.
-        var result = CraftPlannerV2.planDetailed(fixture.graph(), "T", fixture.amount());
+        var result = CraftPlannerV2.planDetailed(fixture.graph(), "T", fixture.amount(),
+                CraftPlannerV2.DEFAULT_VISIT_CAP, 3955);
         assertCertified(fixture, result.plan(), 6);
         assertEquals(Map.of(fixture.routes().get(27), 4L, fixture.routes().get(46), 2L), result.plan().firings());
         assertEquals(Map.of("R", 20L, "S", 10L), result.plan().usedStock());

@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "base_alpha": "21328947b9f9c68775695d88d44cb2ee86734eec",
+  "incorporated_local_optimization": "4d70ced240097463b47f08de36643ccb9c9b5b8c",
+  "change": "Explicit 1:1 member-to-tag edges have zero execution cost inside TB V2 and both CP-SAT models; material transfers remain in the complete plan.",
+  "api": {
+    "tag_factory": "CraftPattern.tagConversion(member, tag, source)",
+    "ordinary_constructor_cost": 1,
+    "tag_conversion_cost": 0,
+    "plan_count": "CraftPlan.executionCount()",
+    "firings_retain_virtual_transfers": true
+  },
+  "safety": [
+    "No inference from item names, IDs or ordinary 1:1 recipe shape in the core API.",
+    "Inventory, missing, seed, material balance and replay constraints retain the virtual edges.",
+    "All execution comparisons, FCO prices/bounds and CP-SAT objectives use real execution cost.",
+    "Unverified zero-cost dual inequalities discard the bound.",
+    "Unit-cost specialized batch optimizers conservatively decline relevant zero-cost cases.",
+    "Existing graph constructors and ordinary-cost solver overloads remain compatible."
+  ],
+  "build": {
+    "tests": {
+      "tests": 1215,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "tag_cost_tests": 13,
+    "production_class_count": 492,
+    "all_classes_match_jar": true,
+    "jar_sha256": "3d5b7523be03c23f8e2c2217913b6343a2091d134b1dee8f87f42c5b39a476be",
+    "jar_bytes": 5120533
+  },
+  "benchmark": {
+    "status": "passed",
+    "measured_requests": 192,
+    "warmup_requests": 192,
+    "measured_feasible": 118,
+    "independent_replayed_feasible_arms": 236,
+    "production_classes_unchanged": true,
+    "jar_unchanged": true,
+    "datasets": [
+      {
+        "dataset": "recipes-atm",
+        "measured": 48,
+        "warmup": 48,
+        "feasible": 48,
+        "warmup_feasible": 48,
+        "missing": 0,
+        "budget_exhausted": 0,
+        "target_stock_requests": [],
+        "all_count_stock_balance_and_replay_checks_pass": true,
+        "original_normalized_graph_unchanged": true,
+        "jsonl_sha256": "0edee71952a2256d3430ae5f0216df38ae2e9dab110c00082869ae9a808e269e"
+      },
+      {
+        "dataset": "recipes-nast",
+        "measured": 48,
+        "warmup": 48,
+        "feasible": 48,
+        "warmup_feasible": 48,
+        "missing": 0,
+        "budget_exhausted": 0,
+        "target_stock_requests": [
+          {
+            "target": 2774,
+            "amount": 1,
+            "stock": "random20",
+            "target_stock": 295,
+            "effective_amount": 296,
+            "cost": 2
+          },
+          {
+            "target": 2774,
+            "amount": 100000,
+            "stock": "random20",
+            "target_stock": 295,
+            "effective_amount": 100295,
+            "cost": 21432
+          },
+          {
+            "target": 6187,
+            "amount": 1,
+            "stock": "random20",
+            "target_stock": 2,
+            "effective_amount": 3,
+            "cost": 1
+          },
+          {
+            "target": 6187,
+            "amount": 100000,
+            "stock": "random20",
+            "target_stock": 2,
+            "effective_amount": 100002,
+            "cost": 55265
+          }
+        ],
+        "all_count_stock_balance_and_replay_checks_pass": true,
+        "original_normalized_graph_unchanged": true,
+        "jsonl_sha256": "fdd0a4c2f9f90deb5f7a62d5e6820fe2647d78ba184f135f6fd2c13cbeb2c4d2"
+      },
+      {
+        "dataset": "recipes-small",
+        "measured": 48,
+        "warmup": 48,
+        "feasible": 2,
+        "warmup_feasible": 2,
+        "missing": 46,
+        "budget_exhausted": 42,
+        "target_stock_requests": [],
+        "all_count_stock_balance_and_replay_checks_pass": true,
+        "original_normalized_graph_unchanged": true,
+        "jsonl_sha256": "8a3079e73d109952378bdd8e10e8b2c8859f4b1b2cf1ec90697c84e583e1cc46"
+      },
+      {
+        "dataset": "recipes-vanilla",
+        "measured": 48,
+        "warmup": 48,
+        "feasible": 20,
+        "warmup_feasible": 20,
+        "missing": 28,
+        "budget_exhausted": 10,
+        "target_stock_requests": [],
+        "all_count_stock_balance_and_replay_checks_pass": true,
+        "original_normalized_graph_unchanged": true,
+        "jsonl_sha256": "8b9449e2422b6faf248614f1746c1facf431c5555cc7f52c29e60c899e458a35"
+      }
+    ]
+  },
+  "benchmark_configuration": {
+    "engine": "tb-v2",
+    "warmup_passes": 1,
+    "measured_repeats": 1,
+    "per_query_deadline_seconds": 40,
+    "maxReachablePlanningWork": 2000000,
+    "maxCraftSearchWork": 2000000,
+    "target_stock_policy": "additional",
+    "timing_claim": "Correctness and import/report compatibility run; no paired timing or speedup claim."
+  },
+  "aw_summarizer": {
+    "exit_code": 0,
+    "datasets": 4,
+    "queries_per_dataset": 48,
+    "warmup_excluded": true
+  },
+  "limitations": [
+    "The caller must explicitly mark synthetic edges; existing callers using ordinary constructors still declare real recipes.",
+    "The supplied AWR adapter applies the file n_real boundary and rejects unsupported pseudo-recipe shapes.",
+    "Search cutoffs or missing outcomes are not infeasibility proofs.",
+    "No AW results or current optimality ratios are asserted in this report.",
+    "The supplied single-output AWR data does not represent complete Minecraft byproduct semantics."
+  ],
+  "source_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CpSatRankedFlowSolver.java": "5a62411b3e38f0a4126584ad342c6d94f9046334235086cb53cba431bdf64d87",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CpSatRuntime.java": "8feca423b22e922120dc2d0db2982c72c971af532c3ffb6d10f14bf3ab9d4822",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CpSatSparseDag.java": "8bc72b444b2fcb4456d8343414b98fa28616cb80b358d72fb6b0601fc04fe00f",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftGraph.java": "4bb62f4646eb1e131a7bed7a49d86290475550fe27e68e98dedc0a2820396922",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPattern.java": "e63774efb87de9c46706ac0df0061046bb081347fd3d0324b21a5f4df9c08ea0",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlan.java": "6f0290ed9f116adde50543a7d1763906d4ba0f04f25725817290ae98f5ed4cbf",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.java": "f6e3d2d04f7aacc96ae7fd870bf50b3d40a56ea8721d0708156eb244c4812809",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/FeasibleConsumptionOptimizer.java": "6f9ffcaaa8d7a9166ad5edcce62fd741c535a471155cfdccb4943f9e3da6c97a",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/MaterialDagOrders.java": "f8c890b796ae51c85cf057c683a330c9932d3bdead07ce916df97e39401a5539",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/MultiRouteBatchOptimizer.java": "1acfb12e0f7361fec49e4c4a604bbc260388e7be47e281fdab81c3d5e7aa4571",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/OrdinaryBatchOptimizer.java": "7485e30b4a96a54cbc421ee2a966f582790913924c54eaa2bedfac1a88873514",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/TerminalBatchOptimizer.java": "98713b0e4fa68089ef9a4b913034589c89fd8a45e585e30b4a87cdf4c398074f",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/TerminalFixedDepthOptimizer.java": "93fc234dc5a6c777ce31a173596a0b618a9bf4aec221e8b025dbdabff44ee43e",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/TwoRouteBatchOptimizer.java": "4fe3858cf7cdb5050a6e9a7c16d1185556ae22fe02bed13ca738abd2f10fd2c0",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.java": "0cf69b4522e576b6b3dcdd121523b78dab18623271b933b07ef3a6b508f0af3a",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/cpsatbridge/CpSatBridge.java": "809bd7d97a5fba39f75ec1fed0eab28aa8eb3b4a1645ab52d55b755fcd1d7504",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/FeasiblePolicyAlternativesTest.java": "4fab1c8747b34d2ebd09ca4814b960589d01d851eb0e589f0b9f02715967e702",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/FeasiblePolicyReuseTest.java": "e2893ae48551e031f9be6f9895ec546f5e5049a6d3633a92f438c2038ffdd22f",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/TerminalFixedDepthOptimizerTest.java": "7990a3a253bcfb28d8542e3ff0954d5501580a4bf7306b53ada088554955e2ab",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/UpstreamDefaultExpansionPruningTest.java": "3f6ad3dd43a0563af19b5150a88fe1a0559279143a273e1f4dc651b512df643f",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/UpstreamPairGeometryReuseTest.java": "7a07f471cb247e1cfb31df6ef1a2676cbf5437108f1f2b794066d5dea3c1e997",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/TagConversionCostTest.java": "af118abf4348858433218e2e03a58b07a0ee80900591a78214b7c0912bbbe5a5",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/CpSatTagConversionTest.java": "75d7ae005b57e3d9aab2d6280a01d0dd9501cd56d8e070f2f71fff82684ac40e",
+    "scripts/awr-benchmark/run.py": "b595fbc6bdbe132daf41984b729a939f230f520c2704622c17f287086bbe0be1",
+    "scripts/awr-benchmark/AwrBench.java": "5c9845330f96e4903c24cefae9705f5ccbd16280e1134e594ffacb32a267658b"
+  },
+  "evidence_root": "outputs/tb-tag-cost-20261004",
+  "evidence_sha256": {
+    "build-verification.json": "33b74c3c4060abbb3afd9f78c0e0af02cfd6508345609ca40a385637d22fbc91",
+    "delivery-validation.json": "570b8b61b074d87f51224ccf6f7dd336f04dd13c73d9665c3f7eede96403880c",
+    "verify_delivery.py": "17d8140ab51803a3ce7c2f748121b7adadc8f2abef2aec269aaecbae856728ec",
+    "full-build.log": "cd9342414490d295af9a6e1127490f3772c773f5568a7b2d0128fe8812c3bca4",
+    "aw-summary.csv": "decb1f582b85a2e0f244826755de1735a3f8c8a6d0ab9dc4126790fcc49fe677",
+    "aw-summary.cells.csv": "23d291e9e7150547906c6d61606166416e00bc5f93908d02cd85278703a8b16d",
+    "aw-summary.log": "be0202b6603d89e1bc752f47223c8248988af7f244b31cf212957aedb29a8e83"
+  }
+}
