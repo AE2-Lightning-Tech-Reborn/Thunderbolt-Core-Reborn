@@ -3,6 +3,7 @@ package com.moakiee.thunderbolt.compat.appliede;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
@@ -13,11 +14,57 @@ import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import appeng.api.crafting.IPatternDetails;
 
 class AppliedEModuleBatchSupportTest {
     static {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
+    }
+
+    @Test
+    void forgePatternNameIsAcceptedAndNewPlatformOrUnrelatedTypesAreDeclined() throws Exception {
+        var output = new GenericStack(AEItemKey.of(Items.IRON_INGOT), 32);
+        var forge = pattern("gripe._90.appliede.me.misc.TransmutationPattern", output);
+        assertEquals(output, AppliedEModuleBatchSupport.primaryOutput(forge));
+        assertNull(AppliedEModuleBatchSupport.primaryOutput(
+                pattern("gripe._90.appliede.me.service.TransmutationPattern", output)));
+        assertNull(AppliedEModuleBatchSupport.primaryOutput(pattern("test.UnrelatedPattern", output)));
+        assertNull(AppliedEModuleBatchSupport.primaryOutput(null));
+        var pending = new CountingQueue();
+        assertEquals(0, AppliedEModuleBatchSupport.enqueue(
+                AppliedEModuleBatchSupport.primaryOutput(forge), pending, 1_000_000));
+        assertEquals(32_000_000, pending.getLong(output.what()));
+    }
+
+    // Controlled type-name fixture, not a replacement for the published binary-shape test.
+    private static IPatternDetails pattern(String name, GenericStack output) throws Exception {
+        String internal = name.replace('.', '/');
+        String stack = "Lappeng/api/stacks/GenericStack;";
+        var writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC, internal, null, "java/lang/Object",
+                new String[]{"appeng/api/crafting/IPatternDetails"});
+        writer.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "output", stack, null, null).visitEnd();
+        var ctor = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "(" + stack + ")V", null, null);
+        ctor.visitCode(); ctor.visitVarInsn(Opcodes.ALOAD, 0);
+        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        ctor.visitVarInsn(Opcodes.ALOAD, 0); ctor.visitVarInsn(Opcodes.ALOAD, 1);
+        ctor.visitFieldInsn(Opcodes.PUTFIELD, internal, "output", stack);
+        ctor.visitInsn(Opcodes.RETURN); ctor.visitMaxs(0, 0); ctor.visitEnd();
+        var outputs = writer.visitMethod(Opcodes.ACC_PUBLIC, "getOutputs", "()[" + stack, null, null);
+        outputs.visitCode(); outputs.visitInsn(Opcodes.ICONST_1);
+        outputs.visitTypeInsn(Opcodes.ANEWARRAY, "appeng/api/stacks/GenericStack");
+        outputs.visitInsn(Opcodes.DUP); outputs.visitInsn(Opcodes.ICONST_0);
+        outputs.visitVarInsn(Opcodes.ALOAD, 0); outputs.visitFieldInsn(Opcodes.GETFIELD, internal, "output", stack);
+        outputs.visitInsn(Opcodes.AASTORE); outputs.visitInsn(Opcodes.ARETURN);
+        outputs.visitMaxs(0, 0); outputs.visitEnd(); writer.visitEnd();
+        var bytes = writer.toByteArray();
+        var loader = new ClassLoader(AppliedEModuleBatchSupportTest.class.getClassLoader()) {
+            Class<?> define() { return defineClass(name, bytes, 0, bytes.length); }
+        };
+        return (IPatternDetails) loader.define().getConstructor(GenericStack.class).newInstance(output);
     }
 
     @Test

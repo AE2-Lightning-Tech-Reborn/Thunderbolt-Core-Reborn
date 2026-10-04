@@ -1,0 +1,104 @@
+{
+  "before": {
+    "java": "17.0.20",
+    "samples": [
+      {
+        "scenario": "chain-500",
+        "iterations": 10,
+        "p50_ns": 1888950.0,
+        "p95_ns": 2107270.0,
+        "bytes_per_op": 2355048.0
+      },
+      {
+        "scenario": "alternatives-1",
+        "iterations": 50,
+        "p50_ns": 223488.0,
+        "p95_ns": 305166.0,
+        "bytes_per_op": 107120.0
+      },
+      {
+        "scenario": "quantity-session-1",
+        "iterations": 10,
+        "p50_ns": 445190.0,
+        "p95_ns": 633900.0,
+        "bytes_per_op": 188688.0
+      },
+      {
+        "scenario": "alternatives-1000000000000",
+        "iterations": 50,
+        "p50_ns": 201862.0,
+        "p95_ns": 317004.0,
+        "bytes_per_op": 106320.0
+      },
+      {
+        "scenario": "quantity-session-1000000000000",
+        "iterations": 10,
+        "p50_ns": 253310.0,
+        "p95_ns": 462950.0,
+        "bytes_per_op": 190440.0
+      },
+      {
+        "scenario": "ordinary-bulk-extract",
+        "iterations": 3000,
+        "p50_ns": 1744.7,
+        "p95_ns": 2336.7,
+        "bytes_per_op": 3904.0
+      }
+    ]
+  },
+  "after": {
+    "java": "17.0.20",
+    "samples": [
+      {
+        "scenario": "chain-500",
+        "iterations": 10,
+        "p50_ns": 2470630.0,
+        "p95_ns": 3134640.0,
+        "bytes_per_op": 2371408.0
+      },
+      {
+        "scenario": "alternatives-1",
+        "iterations": 50,
+        "p50_ns": 69934.0,
+        "p95_ns": 92030.0,
+        "bytes_per_op": 35597.4
+      },
+      {
+        "scenario": "quantity-session-1",
+        "iterations": 10,
+        "p50_ns": 211850.0,
+        "p95_ns": 348260.0,
+        "bytes_per_op": 119280.0
+      },
+      {
+        "scenario": "alternatives-1000000000000",
+        "iterations": 50,
+        "p50_ns": 44494.0,
+        "p95_ns": 53914.0,
+        "bytes_per_op": 35536.0
+      },
+      {
+        "scenario": "quantity-session-1000000000000",
+        "iterations": 10,
+        "p50_ns": 144810.0,
+        "p95_ns": 166470.0,
+        "bytes_per_op": 119704.0
+      },
+      {
+        "scenario": "three-route-mixed",
+        "iterations": 50,
+        "p50_ns": 87042.0,
+        "p95_ns": 161218.0,
+        "bytes_per_op": 42640.0
+      },
+      {
+        "scenario": "ordinary-bulk-extract",
+        "iterations": 3000,
+        "p50_ns": 2103.6,
+        "p95_ns": 3035.3,
+        "bytes_per_op": 3936.0
+      }
+    ]
+  },
+  "scope": "Synthetic warmed microbenchmarks; not Minecraft TPS or universal speedup"
+}

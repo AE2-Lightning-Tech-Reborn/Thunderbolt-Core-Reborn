@@ -8,7 +8,7 @@ import java.util.Random;
 
 import org.junit.jupiter.api.Test;
 
-class ChannelFlowNetworkDinicRegressionTest {
+class ChannelFlowNetworkKernelTest {
 
     @Test
     void solvesKnownNetworkWithSeveralAugmentingPaths() {

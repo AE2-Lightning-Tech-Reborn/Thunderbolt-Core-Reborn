@@ -60,11 +60,15 @@ properties:
   (default: `2000`)
 - `-Dthunderbolt.planningStopGraceMs=<ms>`: total post-deadline grace before
   isolation (default: `5000`)
-- `-Dthunderbolt.maxCraftSearchWork=<count>`: planner search-work budget (defaults to four times `thunderbolt.maxReachablePlanningWork`, or `262144` with the default graph guard)
+- `-Dthunderbolt.maxCraftSearchWork=<count>`: planner search-work budget (default:
+  four times `thunderbolt.maxReachablePlanningWork`, or `262144`)
 - `-Dthunderbolt.maxCraftDepth=<count>`: planner depth limit
-- `-Dthunderbolt.feasibleOptimizationStallMs=<ms>`: stop optional optimization after
-  this long without a 1% execution reduction (default: `500`; `0` uses the full
-  2.8-second optimization allowance)
+- `-Dthunderbolt.feasibleOptimizationStallMs=<ms>`: stop optional optimization
+  after this long without a 1% execution-count gain (default: `500`; `0` disables
+  the stall cutoff, not the enclosing deadline)
+- `-Dthunderbolt.maxConsumptionOptimizationNanos=<ns>`: total optional optimization
+  allowance per calculation (default: `2800000000`; minimum: `1000000`). The
+  enclosing deadline and shared work/probe budgets can stop it earlier.
 
 ## Development
 
@@ -80,11 +84,11 @@ Publish it to the local Maven repository:
 .\gradlew.bat publishToMavenLocal
 ```
 
-- Version: `2.0.0-beta.3`
+- Version: `2.0.0-beta.5`
 - Maven coordinate:
-  `com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.3`
+  `com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.5`
 - Distributable JAR:
-  `build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.3.jar`
+  `build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.5.jar`
 
 The `-slim.jar` artifact does not contain the required MixinExtras jar-in-jar
 dependency and is only an intermediate development artifact.

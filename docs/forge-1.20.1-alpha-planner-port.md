@@ -78,6 +78,10 @@ Artifact: `build/libs/thunderbolt-forge-1.20.1-2.0.0.jar`.
 
 ## Stock-aware and bounded planning backport (2026-10-04)
 
+This section records upstream backport validation, not this workspace's later
+integration. For retained local fixes and the subsequent Forge stress/GameTest
+results, see [the local integration report](stock-aware-upstream-update-20261004.zh-CN.md).
+
 Source: `0a7829218e0e4a8679b4677bfd57f679144cf84f`;
 destination baseline: `28a1f25` on `1.20.1`.
 

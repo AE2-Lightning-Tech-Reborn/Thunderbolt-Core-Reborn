@@ -17,6 +17,66 @@ import org.junit.jupiter.api.Test;
 
 class FeasibleConsumptionOptimizerTest {
     @Test
+    void configuredAllowanceMatchesTheRetainedForgeJvmOverride() {
+        assertEquals(Math.max(1_000_000L,
+                Long.getLong("thunderbolt.maxConsumptionOptimizationNanos", 2_800_000_000L)),
+                FeasibleConsumptionOptimizer.MAX_NANOS);
+    }
+
+    @Test
+    void savingStockNeverJustifiesMoreMachineExecutions() {
+        var batch = new CraftPattern<>("T", 10, List.of(CraftInput.of("raw", 10)), null);
+        var unit = new CraftPattern<>("T", 1, List.of(CraftInput.of("raw", 1)), null);
+        var initial = plan(batch, Map.of("raw", 10L));
+        var cheaperButSlower = new CraftPlan<String>(true, true, Map.of(unit, 2L),
+                Map.of("raw", 2L), Map.of(), Map.of(), Map.of(), 0, false);
+        assertFalse(FeasibleConsumptionOptimizer.improves(initial, cheaperButSlower));
+        assertTrue(FeasibleConsumptionOptimizer.improves(cheaperButSlower, plan(unit, Map.of("raw", 1L))));
+    }
+
+    @Test
+    void invalidProbesNeverReplaceTheCertifiedWitness() {
+        var graph = batchGraph(1);
+        var initial = baseline(graph, "T", 1);
+        var calls = new AtomicInteger();
+        var result = FeasibleConsumptionOptimizer.optimize(graph, "T", 1, initial, 32, candidate -> {
+            calls.incrementAndGet();
+            return new CraftPlan<>(true, false, Map.of(), Map.of(), Map.of(), Map.of("T", 1L),
+                    Map.of(), 0, false);
+        }, work -> false); // Isolate oracle rejection from independently certified batch search.
+        assertSame(initial, result.plan());
+        assertEquals(0, result.improvements());
+        assertEquals(calls.get(), result.probes());
+        assertTrue(result.probes() > 0 && result.probes() <= FeasibleConsumptionOptimizer.MAX_PROBES);
+    }
+
+    @Test
+    void exhaustedProbeBudgetStopsWithoutReplayingTheOracle() {
+        var graph = batchGraph(1);
+        var initial = baseline(graph, "T", 1);
+        var calls = new AtomicInteger();
+        var result = FeasibleConsumptionOptimizer.optimize(graph, "T", 1, initial, 32, candidate -> {
+            calls.incrementAndGet();
+            return null;
+        });
+        assertSame(initial, result.plan());
+        assertEquals(1, calls.get());
+        assertEquals(1, result.probes());
+        assertEquals(0, result.improvements());
+    }
+
+    @Test
+    void overdrawnCandidateCannotBecomeTheNewIncumbent() {
+        var graph = batchGraph(1);
+        var initial = baseline(graph, "T", 1);
+        var result = FeasibleConsumptionOptimizer.optimize(graph, "T", 1, initial, 32,
+                candidate -> plan(graph.patternsFor("T").get(1), Map.of("raw", 11L)),
+                work -> false); // A separate valid batch witness must not mask oracle rejection.
+        assertSame(initial, result.plan());
+        assertEquals(0, result.improvements());
+    }
+
+    @Test
     void indexCacheIsCalculationScopedAndCancellationDoesNotPublishPartialState() {
         var graph = batchGraph(1);
         var cache = new FeasibleConsumptionOptimizer.IndexCache<String>();
