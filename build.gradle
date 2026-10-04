@@ -269,6 +269,7 @@ dependencies {
     optionalModShapeArtifacts "maven.modrinth:neoecoae:${neoecoae_version}"
     optionalModShapeArtifacts "curse.maven:ae2-crafting-tree-1086241:${ae2_crafting_tree_file_id}"
     optionalModShapeArtifacts "maven.modrinth:extendedae-plus:${extendedae_plus_version}"
+    optionalModShapeArtifacts "maven.modrinth:appliede:${appliede_version}"
 }
 
 // Tests that exercise SavedData/codecs need the same generated Minecraft/Forge classes as main.
@@ -280,6 +281,11 @@ test {
     dependsOn 'prepareOptionalModShapeArtifacts'
     systemProperty 'thunderbolt.optionalModShapeDir',
             layout.buildDirectory.dir('optional-mod-shapes').get().asFile.absolutePath
+    // Optional runtime protocol tests only: these jars are not production dependencies or bundled.
+    def batchTestMods = providers.gradleProperty('thunderboltBatchTestMods').getOrElse('').trim()
+    if (!batchTestMods.isEmpty()) {
+        classpath += files(batchTestMods.split(java.io.File.pathSeparator))
+    }
     testLogging {
         events "passed", "skipped", "failed"
     }
@@ -297,6 +303,22 @@ tasks.register("referenceCapabilityTest", Test) {
         showStandardStreams = true
     }
 }
+
+// Run this witness in a separate test JVM: the normal suite can hide optional-stage
+// class-loading costs by warming the same planner/certificate classes in earlier tests.
+tasks.register('cpSatColdRefinementTest', Test) {
+    group = 'verification'
+    description = 'Checks bounded CP-SAT recovery before planner/certificate classes are warmed.'
+    dependsOn 'testClasses'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.CpSatPetriRefinementTest.repeatedFreshDeadlockAlternativesUseBoundedPreflightAndRemainExecutable'
+    }
+    testLogging { events 'passed', 'failed' }
+}
+tasks.named('check') { dependsOn 'cpSatColdRefinementTest' }
 
 tasks.register('prepareOptionalModShapeArtifacts', Sync) {
     from configurations.optionalModShapeArtifacts

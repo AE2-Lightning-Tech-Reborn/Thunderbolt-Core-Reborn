@@ -45,15 +45,21 @@ BatchProviderAdapters.register(
 检查过的 NeoECO→OmniSequence 桥是让 Omni 的执行器调用 NeoECO，属于调用方协议，
 不代表 Omni 向 TB 提供可接收批量的机器端点，因此未反向注册它。
 
-官方 Useless 1.20.1 未提供 BigInteger 或 Smart Doubling 批量 API，本分支已移除对应的
-适配器、注册入口和模拟契约测试。源码核对基于官方
-[`master` / 26.7.13-Forge1.20.1](https://github.com/SorrowMist/UselessMod/tree/22864d510cd87377f2ef137f7e91aa2de9c480a6)
-及 [`develop/1.20.1`](https://github.com/SorrowMist/UselessMod/tree/b51eb2905613b9be24bf0d812789d682f2015105)。
-1.21.1 的批量降频修复不适用于这些版本；Useless 在本分支继续使用普通机器执行路径。
-
 `pushBatch` 返回**未接收份数**，输入是借用的单份只读模板。
 适配器只能向下游交付自己的副本。下游已经进入提交阶段后抛出的异常必须传给执行器，
 停止任务，不能伪装成拒收后退款/重试，也不能当成确定成功继续运行。
+
+### Forge 1.20.1 发行版边界（2026-10-04）
+
+- 参考上游 `28a1f25` 移除 Useless 适配器、注册和模拟契约测试。官方
+  `26.7.13-Forge1.20.1` 缺少 BigInteger / Smart Doubling 批量 API，继续普通执行。
+- NeoECO `20.3.0` / `20.4.2` 缺少 allocated 公开协议，不注册批量适配器。
+  模组自身 FastPath 不等于 Thunderbolt 所需 API；这两个发行版要求 Forge >=47.4.0。
+- EAEP Forge `1.5.5`（`pN9pMjiW`）没有超级矩阵 API，虚拟完成兼容另行保留。
+  Forge `1.6.3`（`HNyEHPOp`）已提供缩放样板和超级矩阵，匹配既有桥接协议；
+  实际样板类测试不能替代完整游戏内多方块执行验证。
+- AppliedE Forge `0.14.3` 的 `TransmutationPattern` 位于 `me.misc`，不是 1.21 的
+  `me.service`。原生 EMC 模块 Mixin 按本版本类型识别，额外对发行 JAR 字段/方法锁定回归。
 
 ## 验证
 

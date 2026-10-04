@@ -14,9 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
@@ -82,11 +80,7 @@ public final class CraftPlannerV2<K> {
             Math.max(4_096,
                     Integer.getInteger("thunderbolt.maxReachablePlanningWork", 65_536)));
 
-    /**
-     * Upper guard for the graph-scaled {@code O(E log E)} default search budget. Unless set
-     * explicitly it buys a few whole-graph retries at the admitted graph size (262,144 at the
-     * default graph guard), so raising only the graph guard does not silently disable retries.
-     */
+    /** Upper guard for graph-scaled search retries. */
     public static final int DEFAULT_SEARCH_WORK_BUDGET = Math.max(4_096, Integer.getInteger(
             "thunderbolt.maxCraftSearchWork",
             (int) Math.min(Integer.MAX_VALUE - 1, 4L * MAX_REACHABLE_PLANNING_WORK)));
@@ -150,28 +144,28 @@ public final class CraftPlannerV2<K> {
         private CraftGraph<K> graph;
         private K target;
         private Thread owner;
-        private BoundedIntegerLinearSolver.WorkBudget lowWidthWorkBudget;
-        private SharedCounterBudget searchWorkBudget;
-        private SharedCounterBudget resolutionWorkBudget;
-        private SharedCounterBudget fallbackWorkBudget;
+        BoundedIntegerLinearSolver.WorkBudget lowWidthWorkBudget;
+        SharedCounterBudget searchWorkBudget;
+        SharedCounterBudget resolutionWorkBudget;
+        SharedCounterBudget fallbackWorkBudget;
         private final Map<Orientation<K>, PreparedGraph<K>> preparedByOrientation = new HashMap<>();
         /** Default orientation only; recipe policy is independent of the probed quantity. */
         private ConservativeReplenishment<K> replenishment;
         private boolean replenishmentCompiled;
         private List<ConservativeReplenishment<K>> cutPolicies = List.of();
-        private boolean refineMissing = true;
+        boolean refineMissing = true;
         boolean optimizeFeasible = true;
-        private final FeasibleConsumptionOptimizer.IndexCache<K> consumptionIndex =
+        final FeasibleConsumptionOptimizer.IndexCache<K> consumptionIndex =
                 new FeasibleConsumptionOptimizer.IndexCache<>();
-        private int consumptionOptimizationProbes;
-        private long consumptionOptimizationNanos;
+        int consumptionOptimizationProbes;
+        long consumptionOptimizationNanos;
         private int missingRefinementProbes;
         private List<MaterialDagOrders.Candidate<K>> materialDagOrders;
         private final Map<Integer, PreparedGraph<K>> preparedMaterialDagOrders = new HashMap<>();
         private int preferredMaterialDagOrder;
         private int materialDagOrderAttempts;
         private long materialDagOrderNanos;
-        private long conservativeSearchNanos;
+        long conservativeSearchNanos;
         private long missingRefinementNanos;
         private int reachableWorkEstimate;
 
@@ -232,13 +226,11 @@ public final class CraftPlannerV2<K> {
     private boolean explicitCuts;
     private record Orientation<K>(List<K> roots, boolean explicitCuts, int producibilityMode) {
         private Orientation { roots = List.copyOf(roots); }
-        private Orientation(List<K> roots, boolean explicitCuts) { this(roots, explicitCuts, 0); }
+        private Orientation(List<K> roots, boolean explicitCuts) {
+            this(roots, explicitCuts, 0);
+        }
     }
-    /**
-     * Cuts every SCC along the order in which its members first become producible from stock or raw
-     * leaves, instead of along DFS arrival order. Any acyclic route that is producible from funded
-     * sources therefore keeps at least one producer per member, whatever the cycle structure.
-     */
+    /** Selects cycle cuts in the order in which routes become producible. */
     private boolean producibilityRanked;
     private boolean producibilityStockSeeded;
     private final Map<K, Integer> producibilityOrdinal = new HashMap<>();
@@ -504,94 +496,13 @@ public final class CraftPlannerV2<K> {
     }
 
     private static <K> PlanningResult<K> planDetailed(
-            CraftGraph<K> graph,
-            K target,
-            long amount,
-            int visitCap,
-            int searchWorkBudget,
-            int reachableWork,
-            PlanningSession<K> session) {
-        long started = System.nanoTime();
-        PlanningResult<K> initial = planCore(graph, target, amount, visitCap, searchWorkBudget, reachableWork, session);
-        boolean terminalRecovery = TerminalBatchRecovery.hasBoundedFootprint(graph, target, initial.diagnostics());
-        if (session.refineMissing && !initial.plan().feasible()
-                && session.searchWorkBudget.remaining > 0
-                && (reachableWork <= SmallConservativeSearch.MAX_WORK || terminalRecovery)) {
-            long allowance = Math.min(SmallConservativeSearch.MAX_NANOS - session.conservativeSearchNanos,
-                    PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 8L);
-            if (allowance > 0) {
-                long recoveryStarted = System.nanoTime();
-                int workBefore = session.searchWorkBudget.remaining;
-                boolean[] recoveryWorkRejected = {false};
-                CraftPlan<K> recovered = null;
-                try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
-                    IntPredicate recoveryWork = work -> {
-                        if (session.searchWorkBudget.tryConsume(work)) return true;
-                        recoveryWorkRejected[0] = true;
-                        return false;
-                    };
-                    if (reachableWork <= SmallConservativeSearch.MAX_WORK)
-                        recovered = SmallConservativeSearch.tryPlan(graph, target, amount,
-                                SmallConservativeSearch.MAX_STATES, () -> recoveryWork.test(1));
-                    if (recovered == null && terminalRecovery && !recoveryWorkRejected[0]
-                            && session.searchWorkBudget.remaining > 0)
-                        recovered = TerminalBatchRecovery.tryPlan(graph, target, amount,
-                                SmallConservativeSearch.MAX_STATES, recoveryWork);
-                } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
-                    // Optional recovery never invalidates the already-verified missing plan.
-                } finally {
-                    session.conservativeSearchNanos += Math.max(0L, System.nanoTime() - recoveryStarted);
-                }
-                CraftPlan<K> selected = recovered == null ? initial.plan() : recovered;
-                if (recovered == null && recoveryWorkRejected[0]) selected = markBudgetExhausted(selected);
-                initial = new PlanningResult<>(selected,
-                        initial.diagnostics().withAdditionalSearchWork(
-                                workBefore - session.searchWorkBudget.remaining, System.nanoTime() - started,
-                                recoveryWorkRejected[0]));
-            }
-        }
-        if (!session.optimizeFeasible || !initial.plan().feasible() || amount <= 0
-                || amount >= Sat.SAT
-                || session.consumptionOptimizationProbes >= FeasibleConsumptionOptimizer.MAX_PROBES)
-            return initial;
-        // Fixed ordinary chains need no optional scan or second planning pass.
-        if (initial.diagnostics().contendedOutputs() == 0) return initial;
-        long remaining = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
-        long reserve = Math.max(FeasibleConsumptionOptimizer.EXPORT_RESERVE_NANOS, remaining / 10);
-        long allowance = Math.min(FeasibleConsumptionOptimizer.MAX_NANOS - session.consumptionOptimizationNanos,
-                remaining - reserve);
-        if (allowance <= 0 || session.searchWorkBudget.remaining <= 0) return initial;
-        long optimizationStarted = System.nanoTime();
-        FeasibleConsumptionOptimizer.Result<K> optimized;
-        try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
-            optimized = FeasibleConsumptionOptimizer.optimize(graph, target, amount, initial.plan(),
-                    FeasibleConsumptionOptimizer.MAX_PROBES - session.consumptionOptimizationProbes,
-                    candidateGraph -> {
-                        // A probe plans only its local region; charge that region, not the pack.
-                        int work = reachableWorkEstimate(candidateGraph, target);
-                        if (!session.searchWorkBudget.tryConsume(work)) return null;
-                        var probe = new PlanningSession<K>();
-                        probe.optimizeFeasible = false;
-                        probe.refineMissing = false;
-                        probe.lowWidthWorkBudget = session.lowWidthWorkBudget;
-                        probe.searchWorkBudget = session.searchWorkBudget;
-                        probe.resolutionWorkBudget = session.resolutionWorkBudget;
-                        probe.fallbackWorkBudget = session.fallbackWorkBudget;
-                        // Rebuild capacities for the candidate's routes; the inventory snapshot
-                        // and all work limits remain shared.
-                        return planCore(candidateGraph, target, amount, visitCap, searchWorkBudget,
-                                work, probe).plan();
-                    }, session.consumptionIndex, session.searchWorkBudget::tryConsume);
-        } finally {
-            session.consumptionOptimizationNanos += Math.max(0L, System.nanoTime() - optimizationStarted);
-        }
-        session.consumptionOptimizationProbes += optimized.probes();
-        return new PlanningResult<>(optimized.plan(), initial.diagnostics().withConsumptionOptimization(
-                optimized.probes(), optimized.improvements(), System.nanoTime() - optimizationStarted,
-                System.nanoTime() - started));
+            CraftGraph<K> graph, K target, long amount, int visitCap,
+            int searchWorkBudget, int reachableWork, PlanningSession<K> session) {
+        return OptionalPlanningStages.planDetailed(graph, target, amount, visitCap,
+                searchWorkBudget, reachableWork, session);
     }
 
-    private static <K> PlanningResult<K> planCore(
+    static <K> PlanningResult<K> planCore(
             CraftGraph<K> graph, K target, long amount, int visitCap, int searchWorkBudget,
             int reachableWork, PlanningSession<K> session) {
         long started = System.nanoTime();
@@ -667,7 +578,6 @@ public final class CraftPlannerV2<K> {
         CraftPlan<K> ranked = null;
         for (boolean stockSeeded : new boolean[] {true, false}) {
             if (firstPlanner.cutOutputs.isEmpty()) break;
-            // Same charge as an orientation retry: the ranked DAG is one more whole-graph run.
             if (!budget.tryConsume(orientationCharge)) break;
             CraftPlan<K> candidate = producibilityRankedRun(
                     graph, target, amount, visitCap, budget, lowWidthWorkBudget, diagnostics,
@@ -764,10 +674,9 @@ public final class CraftPlannerV2<K> {
     }
 
     /**
-     * One extra whole-graph compilation, independent of the bounded DFS retry frontier. The DFS view
-     * can cut every producer of a needed member when an unused reverse recipe is visited first; this
-     * view instead keeps the producible direction of every SCC at once. The caller charges it like
-     * one orientation retry; search inside it still draws from the shared budget.
+     * Rebuilds one whole-graph cycle orientation in producibility order. DFS can encounter a
+     * reverse recipe first and cut every useful producer of a cycle member; this pass keeps the
+     * route that is actually reachable from raw or stocked sources.
      */
     private static <K> CraftPlan<K> producibilityRankedRun(
             CraftGraph<K> graph, K target, long amount, int visitCap, SearchBudget budget,
@@ -1324,7 +1233,7 @@ public final class CraftPlannerV2<K> {
         return Map.copyOf(distances);
     }
 
-    private static <K> CraftPlan<K> markBudgetExhausted(CraftPlan<K> plan) {
+    static <K> CraftPlan<K> markBudgetExhausted(CraftPlan<K> plan) {
         return new CraftPlan<>(
                 plan.supported(),
                 plan.feasible(),
@@ -2518,16 +2427,7 @@ public final class CraftPlannerV2<K> {
         }
     }
 
-    private static final class SccFrame<K> {
-        final K node;
-        final List<K> neighbors;
-        int next;
 
-        private SccFrame(K node, List<K> neighbors) {
-            this.node = node;
-            this.neighbors = neighbors;
-        }
-    }
 
     private static final class FixedPatternAllocation<K> {
         private final CraftPattern<K> pattern;
@@ -3777,7 +3677,7 @@ public final class CraftPlannerV2<K> {
         }
 
         Map<ScheduleNode<K>, Integer> components = stronglyConnectedComponents(
-                scheduleNodes, freezeAdjacency(scheduleNodes, allEdges));
+                scheduleNodes, PlannerTopology.freezeAdjacency(scheduleNodes, allEdges));
         Map<Integer, Set<K>> itemsByScc = new HashMap<>();
         for (K item : order) {
             PlanningCancellation.check();
@@ -3832,8 +3732,8 @@ public final class CraftPlannerV2<K> {
             }
         }
 
-        List<ScheduleNode<K>> scheduled = stableTopologicalOrder(
-                scheduleNodes, freezeAdjacency(scheduleNodes, replayEdges));
+        List<ScheduleNode<K>> scheduled = PlannerTopology.stableTopologicalOrder(
+                scheduleNodes, PlannerTopology.freezeAdjacency(scheduleNodes, replayEdges));
         if (scheduled.size() != scheduleNodes.size()) {
             // Defensive fail-closed path. Normal edges are already acyclic and inter-SCC candidate
             // edges cannot form a cycle, so this should be unreachable unless graph equality changed.
@@ -3865,117 +3765,15 @@ public final class CraftPlannerV2<K> {
                 freezeByproductMap(speculative), Set.copyOf(unsafeItems));
     }
 
-    private static <K> Map<K, List<K>> freezeAdjacency(
-            List<K> nodes, Map<K, LinkedHashSet<K>> mutable) {
-        Map<K, List<K>> frozen = new HashMap<>(nodes.size() * 2);
-        for (K node : nodes) {
-            frozen.put(node, List.copyOf(mutable.getOrDefault(node, new LinkedHashSet<>())));
-        }
-        return frozen;
-    }
+
 
     /** Iterative Kosaraju pass: linear in the local item and material-edge counts. */
     static <K> Map<K, Integer> stronglyConnectedComponents(
             List<K> nodes, Map<K, List<K>> adjacency) {
-        Set<K> seen = new HashSet<>();
-        List<K> finished = new ArrayList<>(nodes.size());
-        for (K start : nodes) {
-            PlanningCancellation.check();
-            if (!seen.add(start)) {
-                continue;
-            }
-            Deque<SccFrame<K>> stack = new ArrayDeque<>();
-            stack.push(new SccFrame<>(start, adjacency.getOrDefault(start, List.of())));
-            while (!stack.isEmpty()) {
-                PlanningCancellation.check();
-                SccFrame<K> frame = stack.peek();
-                if (frame.next < frame.neighbors.size()) {
-                    K next = frame.neighbors.get(frame.next++);
-                    if (seen.add(next)) {
-                        stack.push(new SccFrame<>(
-                                next, adjacency.getOrDefault(next, List.of())));
-                    }
-                } else {
-                    finished.add(frame.node);
-                    stack.pop();
-                }
-            }
-        }
-
-        Map<K, List<K>> reverse = new HashMap<>(nodes.size() * 2);
-        for (K node : nodes) {
-            PlanningCancellation.check();
-            reverse.put(node, new ArrayList<>());
-        }
-        adjacency.forEach((from, targets) -> {
-            for (K target : targets) {
-                reverse.computeIfAbsent(target, ignored -> new ArrayList<>()).add(from);
-            }
-        });
-
-        Map<K, Integer> component = new HashMap<>(nodes.size() * 2);
-        int nextComponent = 0;
-        for (int index = finished.size() - 1; index >= 0; index--) {
-            PlanningCancellation.check();
-            K start = finished.get(index);
-            if (component.containsKey(start)) {
-                continue;
-            }
-            Deque<K> stack = new ArrayDeque<>();
-            stack.push(start);
-            component.put(start, nextComponent);
-            while (!stack.isEmpty()) {
-                PlanningCancellation.check();
-                K node = stack.pop();
-                for (K previous : reverse.getOrDefault(node, List.of())) {
-                    if (!component.containsKey(previous)) {
-                        component.put(previous, nextComponent);
-                        stack.push(previous);
-                    }
-                }
-            }
-            nextComponent++;
-        }
-        return component;
+        return PlannerTopology.stronglyConnectedComponents(nodes, adjacency);
     }
 
-    private static <K> List<K> stableTopologicalOrder(
-            List<K> stableOrder, Map<K, List<K>> adjacency) {
-        Map<K, Integer> stableIndex = new HashMap<>(stableOrder.size() * 2);
-        Map<K, Integer> indegree = new HashMap<>(stableOrder.size() * 2);
-        for (int index = 0; index < stableOrder.size(); index++) {
-            PlanningCancellation.check();
-            K node = stableOrder.get(index);
-            stableIndex.put(node, index);
-            indegree.put(node, 0);
-        }
-        adjacency.forEach((ignored, targets) -> {
-            for (K target : targets) {
-                indegree.merge(target, 1, Integer::sum);
-            }
-        });
 
-        PriorityQueue<K> ready = new PriorityQueue<>(
-                java.util.Comparator.comparingInt(stableIndex::get));
-        for (K node : stableOrder) {
-            if (indegree.getOrDefault(node, 0) == 0) {
-                ready.add(node);
-            }
-        }
-        List<K> result = new ArrayList<>(stableOrder.size());
-        while (!ready.isEmpty()) {
-            PlanningCancellation.check();
-            K node = ready.poll();
-            result.add(node);
-            for (K target : adjacency.getOrDefault(node, List.of())) {
-                int remaining = indegree.merge(target, -1, Integer::sum);
-                if (remaining == 0) {
-                    ready.add(target);
-                }
-            }
-        }
-        return result;
-    }
 
     /** Safe route-summing upper bound; shared stock is deliberately counted more than once. */
     private long optimisticTargetCapacity(List<K> order, K target) {
@@ -6759,14 +6557,14 @@ public final class CraftPlannerV2<K> {
     }
 
     /** Monotonic counter shared by every quantity probe in one planning session. */
-    private static final class SharedCounterBudget {
-        private int remaining;
+    static final class SharedCounterBudget {
+        int remaining;
 
-        private SharedCounterBudget(int work) {
+        SharedCounterBudget(int work) {
             remaining = Math.max(1, work);
         }
 
-        private boolean tryConsume(int work) {
+        boolean tryConsume(int work) {
             PlanningCancellation.check();
             int requested = Math.max(1, work);
             if (remaining < requested) {

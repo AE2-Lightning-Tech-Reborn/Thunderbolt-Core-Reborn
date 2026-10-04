@@ -68,6 +68,11 @@ public final class CraftGraph<K> {
         return v == null ? 0L : Math.max(0L, v);
     }
 
+    /** Conservative equality check for an incumbent-limited optimality certificate. */
+    boolean hasSameOrdinaryStock(Map<K, Long> limits) {
+        return stock.equals(limits);
+    }
+
     /** Host-private stock is invisible to ordinary demands and is addressed by reusable inputs only. */
     public long reusableStock(Object scope, K key) {
         Long value = reusableStock.get(new ReusableStockKey<>(scope, key));

@@ -41,7 +41,8 @@ V2 会在预算内继续优化可行方案，优先减少配方执行次数，�
 - `-Dthunderbolt.planningStopGraceMs=<毫秒>`：超时后到隔离的总宽限时间（默认：`5000`）
 - `-Dthunderbolt.maxCraftSearchWork=<数量>`：规划器搜索工作量上限（默认：`thunderbolt.maxReachablePlanningWork` 的 4 倍，即 `262144`）
 - `-Dthunderbolt.maxCraftDepth=<数量>`：规划深度上限
-- `-Dthunderbolt.feasibleOptimizationStallMs=<毫秒>`：可选的方案优化连续这么久没有把执行次数减少 1% 就停止（默认：`500`；`0` 表示跑满 2.8 秒上限）
+- `-Dthunderbolt.feasibleOptimizationStallMs=<毫秒>`：可选优化连续这么久没有把执行次数减少 1% 就停止（默认：`500`；`0` 仅关闭停滞退出，不关闭外层期限）
+- `-Dthunderbolt.maxConsumptionOptimizationNanos=<纳秒>`：单次计算的可选优化总时间上限（默认：`2800000000`，最小：`1000000`）；外层期限、共享工作量和探测预算仍可使其提前退出。
 
 ## 开发构建
 
@@ -57,9 +58,9 @@ V2 会在预算内继续优化可行方案，优先减少配方执行次数，�
 .\gradlew.bat publishToMavenLocal
 ```
 
-- 版本：`2.0.0-beta.3`
-- Maven 坐标：`com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.3`
-- 可分发 JAR：`build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.3.jar`
+- 版本：`2.0.0-beta.5`
+- Maven 坐标：`com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.5`
+- 可分发 JAR：`build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.5.jar`
 
 带 `-slim.jar` 后缀的 JAR 不含运行时必需的 MixinExtras 内嵌依赖，只作为开发过程的中间产物。
 

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,14 +38,169 @@ import com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2;
 import com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlanner;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class FastCraftingPlannerPlanConversionTest {
+    @org.junit.jupiter.api.BeforeAll
+    static void bootstrapMinecraftForIsolatedPlanConversionTests() {
+        com.moakiee.thunderbolt.test.MinecraftTestBootstrap.ensureInitialized();
+    }
+
     private static final AEKey A = new TestKey("a");
     private static final AEKey B = new TestKey("b");
     private static final AEKey C = new TestKey("c");
     private static final AEKey D = new TestKey("d");
     private static final AEKey E = new TestKey("e");
     private static final AEKey TARGET = new TestKey("target");
+
+    @Test
+    void mixedBatchAttemptExportsBothRegisteredPatternsAndExactStockDraw() {
+        var large = new BatchPattern(TARGET, 8,
+                new IPatternDetails.IInput[] {new FakeInput(new GenericStack(A, 12))});
+        var small = new BatchPattern(TARGET, 2,
+                new IPatternDetails.IInput[] {new FakeInput(new GenericStack(A, 3))});
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(A, 30, Actionable.MODULATE);
+        var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(TARGET, List.of(large, small))),
+                new ChildCraftingSimulationState(inventory), null, TARGET, 19, false);
+        assertTrue(attempt.handled());
+        assertFalse(attempt.plan().simulation());
+        assertEquals(2L, attempt.plan().patternTimes().get(large));
+        assertEquals(2L, attempt.plan().patternTimes().get(small));
+        assertEquals(30L, attempt.plan().usedItems().get(A));
+        assertEquals(19L, attempt.plan().finalOutput().amount());
+        assertTrue(attempt.plan().missingItems().isEmpty());
+        assertEquals(30L, inventory.extract(A, Long.MAX_VALUE, Actionable.SIMULATE));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "100, 0, 4, 0",
+            "2, 0, 2, 2",
+            "0, 0, 0, 4",
+            "100, 98, 2, 2",
+            "100, 100, 0, 4"
+    })
+    void emittableIngredientUsesOnlyPolicyAllowedStockFirst(
+            long stock, long reserved, long expectedUsed, long expectedEmitted) {
+        var source = new FakePattern(TARGET, new FakeInput[] {new FakeInput(new GenericStack(A, 4))});
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(A, stock, Actionable.MODULATE);
+        CraftingStockPolicy policy = reserved == 0 ? null : (key, available) -> Math.max(0, available - reserved);
+
+        var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(TARGET, List.of(source)), Set.of(A)),
+                new ChildCraftingSimulationState(inventory), null, TARGET, 1, false, policy);
+
+        assertTrue(attempt.handled());
+        assertFalse(attempt.plan().simulation());
+        assertEquals(expectedUsed, attempt.plan().usedItems().get(A));
+        assertEquals(expectedEmitted, attempt.plan().emittedItems().get(A));
+        assertTrue(attempt.plan().missingItems().isEmpty());
+        assertEquals(1L, attempt.plan().patternTimes().get(source));
+        assertEquals(stock, inventory.extract(A, Long.MAX_VALUE, Actionable.SIMULATE),
+                "planning must not mutate physical inventory");
+    }
+
+    @Test
+    void togglingEmitterKeepsSufficientStockAllocationUnchanged() {
+        var source = new FakePattern(TARGET, new FakeInput[] {new FakeInput(new GenericStack(A, 4))});
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(A, 100, Actionable.MODULATE);
+        for (Set<AEKey> emitted : List.of(Set.<AEKey>of(), Set.of(A), Set.<AEKey>of())) {
+            var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(TARGET, List.of(source)), emitted),
+                    new ChildCraftingSimulationState(inventory), null, TARGET, 1, false);
+            assertFalse(attempt.plan().simulation());
+            assertEquals(4L, attempt.plan().usedItems().get(A));
+            assertTrue(attempt.plan().emittedItems().isEmpty());
+        }
+    }
+
+    @Test
+    void emittableIngredientRespectsGroupedStockPolicy() {
+        var source = new FakePattern(TARGET, new FakeInput[] {new FakeInput(new GenericStack(A, 4))});
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(A, 100, Actionable.MODULATE);
+        CraftingStockPolicy policy = new CraftingStockPolicy() {
+            @Override public long usablePreexistingStock(AEKey key, long available) {
+                throw new AssertionError("must use the grouped policy");
+            }
+            @Override public boolean groupsSecondaryVariants(AEKey key) { return true; }
+            @Override public long usablePreexistingStock(AEKey key, long available, Map<AEKey, Long> group) {
+                if (key.equals(A)) {
+                    assertEquals(100L, group.get(A));
+                    return 2;
+                }
+                return available;
+            }
+        };
+
+        var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(TARGET, List.of(source)), Set.of(A)),
+                new ChildCraftingSimulationState(inventory), null, TARGET, 1, false, policy);
+
+        assertEquals(2L, attempt.plan().usedItems().get(A));
+        assertEquals(2L, attempt.plan().emittedItems().get(A));
+    }
+
+    @Test
+    void sharedEmittableIngredientDoesNotSpendStockTwice() {
+        var makeD = new FakePattern(D, new FakeInput[] {new FakeInput(new GenericStack(A, 3))});
+        var makeE = new FakePattern(E, new FakeInput[] {new FakeInput(new GenericStack(A, 2))});
+        var target = new FakePattern(TARGET, new FakeInput[] {
+                new FakeInput(new GenericStack(D, 1)), new FakeInput(new GenericStack(E, 1))});
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(A, 4, Actionable.MODULATE);
+
+        var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(
+                D, List.of(makeD), E, List.of(makeE), TARGET, List.of(target)), Set.of(A)),
+                new ChildCraftingSimulationState(inventory), null, TARGET, 1, false);
+
+        assertFalse(attempt.plan().simulation());
+        assertEquals(4L, attempt.plan().usedItems().get(A));
+        assertEquals(1L, attempt.plan().emittedItems().get(A));
+        assertTrue(attempt.plan().missingItems().isEmpty());
+    }
+
+    @Test
+    void requestingEmittableOutputStillIgnoresExistingOutputStock() {
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(TARGET, 100, Actionable.MODULATE);
+        var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(), Set.of(TARGET)),
+                new ChildCraftingSimulationState(inventory), null, TARGET, 4, false);
+        assertFalse(attempt.plan().simulation());
+        assertTrue(attempt.plan().usedItems().isEmpty());
+        assertEquals(4L, attempt.plan().emittedItems().get(TARGET));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "2305843009213693951, 1, 9223372036854775807, 0",
+            "9223372036854775807, 3, 10, 0",
+            "9223372036854775807, 3, 0, 0",
+            "9223372036854775807, 3, 10, 8",
+            "9223372036854775807, 3, 10, 10"
+    })
+    void exactEmittablePreviewReportsOnlyThePolicyAllowedShortfallAsCrafting(
+            long ingredientAmount, long requested, long stock, long reserved) {
+        var source = new FakePattern(TARGET, new FakeInput[] {
+                new FakeInput(new GenericStack(A, ingredientAmount))});
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(key -> {});
+        inventory.insert(A, stock, Actionable.MODULATE);
+        CraftingStockPolicy policy = (key, available) -> Math.max(0, available - reserved);
+        var attempt = FastCraftingPlanner.tryAttempt(service(Map.of(TARGET, List.of(source)), Set.of(A)),
+                new ChildCraftingSimulationState(inventory), null, TARGET, requested, false, policy);
+
+        var summary = com.moakiee.thunderbolt.ae2.crafting.ThunderboltCraftingPlanSummary.fromPlan(attempt.plan());
+        var report = com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.get(summary);
+        BigInteger demand = BigInteger.valueOf(ingredientAmount).multiply(BigInteger.valueOf(requested));
+        BigInteger fromStock = demand.min(BigInteger.valueOf(stock - reserved));
+        assertTrue(attempt.plan().simulation(), "wide plans must remain non-executable previews");
+        assertTrue(attempt.plan().patternTimes().isEmpty());
+        assertEquals(demand, report.entries().get(A).stored());
+        assertEquals(BigInteger.ZERO, report.entries().get(A).missing());
+        assertEquals(demand.subtract(fromStock), report.entries().get(A).crafting());
+        assertEquals(stock, inventory.extract(A, Long.MAX_VALUE, Actionable.SIMULATE));
+    }
 
     @Test
     void feasiblePlanLeavesExecutionAllocationToTheCpu() {
@@ -176,13 +332,18 @@ class FastCraftingPlannerPlanConversionTest {
 
     private static appeng.api.networking.crafting.ICraftingService service(
             Map<AEKey, List<IPatternDetails>> patterns) {
+        return service(patterns, Set.of());
+    }
+
+    private static appeng.api.networking.crafting.ICraftingService service(
+            Map<AEKey, List<IPatternDetails>> patterns, Set<AEKey> emittable) {
         return (appeng.api.networking.crafting.ICraftingService) java.lang.reflect.Proxy.newProxyInstance(
                 FastCraftingPlannerPlanConversionTest.class.getClassLoader(),
                 new Class<?>[] {appeng.api.networking.crafting.ICraftingService.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getCraftingFor" -> patterns.getOrDefault(args[0], List.of());
                     case "getCraftables" -> patterns.keySet();
-                    case "canEmitFor" -> false;
+                    case "canEmitFor" -> emittable.contains(args[0]);
                     case "getFuzzyCraftable" -> null;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
@@ -197,6 +358,14 @@ class FastCraftingPlannerPlanConversionTest {
         var snapshot = new ChildCraftingSimulationState(new EmptyInventory());
         return (CraftingPlan) method.invoke(
                 null, TARGET, 1L, internal, true, true, Map.of(), Map.of(), Set.of(), snapshot, null);
+    }
+
+    private record BatchPattern(AEKey output, long amount, IInput[] inputs) implements IPatternDetails {
+        @Override public AEItemKey getDefinition() { return null; }
+        @Override public IInput[] getInputs() { return inputs; }
+        @Override public GenericStack[] getOutputs() {
+            return new GenericStack[] {new GenericStack(output, amount)};
+        }
     }
 
     private record FakePattern(AEKey output, IInput[] inputs) implements IPatternDetails {

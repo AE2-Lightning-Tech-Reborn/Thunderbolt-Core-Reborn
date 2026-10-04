@@ -27,8 +27,12 @@ class ReferenceCapabilityRunnerTest {
             ReferenceMaterialMode.MISSING, 1,
             CraftGraph.<String>builder().pattern(TARGET_FROM_RAW).build(),
             "target", 1, false, List.of(Map.of("raw", 2L)), Map.of());
+    // Classification fixtures create fresh workers for check, plan and refill. Their result
+    // must not depend on fitting thread startup/GC into the timeout-specific 50ms window.
     private static final ReferenceCapabilityRunner RUNNER = new ReferenceCapabilityRunner(
-            Duration.ofMillis(50), Duration.ofMillis(50));
+            Duration.ofSeconds(2), Duration.ofMillis(200));
+    private static final ReferenceCapabilityRunner TIMEOUT_RUNNER = new ReferenceCapabilityRunner(
+            Duration.ofMillis(50), Duration.ofMillis(200));
 
     @Test
     void onlyProductionPathSuccessCountsAsSupported() {
@@ -201,7 +205,7 @@ class ReferenceCapabilityRunnerTest {
         };
 
         assertEquals(ReferenceSupportStatus.ENGINE_ERROR, RUNNER.run(error, FEASIBLE).status());
-        assertEquals(ReferenceSupportStatus.ENGINE_TIMEOUT, RUNNER.run(timeout, FEASIBLE).status());
+        assertEquals(ReferenceSupportStatus.ENGINE_TIMEOUT, TIMEOUT_RUNNER.run(timeout, FEASIBLE).status());
     }
 
     @Test
@@ -222,7 +226,7 @@ class ReferenceCapabilityRunnerTest {
             }
         };
 
-        var result = RUNNER.run(planner, FEASIBLE);
+        var result = TIMEOUT_RUNNER.run(planner, FEASIBLE);
 
         assertEquals(ReferenceSupportStatus.NON_COOPERATIVE_TIMEOUT, result.status());
     }

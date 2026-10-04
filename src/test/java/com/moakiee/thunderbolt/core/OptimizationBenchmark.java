@@ -58,6 +58,17 @@ public final class OptimizationBenchmark {
                 }
             }));
         }
+        var mixed = CraftGraph.<String>builder().stock("iron", 100).stock("diamond", 100)
+                .pattern("T", 2, List.of(CraftInput.of("iron", 2), CraftInput.of("diamond", 2)))
+                .pattern("T", 4, List.of(CraftInput.of("iron", 7)))
+                .pattern("T", 4, List.of(CraftInput.of("diamond", 7))).build();
+        rows.add(measure("three-route-mixed", 50, () -> {
+            var plan = CraftPlannerV2.plan(mixed, "T", 10);
+            if (!plan.feasible() || plan.firings().values().stream().mapToLong(n -> n).sum() != 3
+                    || !plan.usedStock().equals(Map.of("iron", 9L, "diamond", 9L)))
+                throw new AssertionError("mixed-route witness changed");
+            sink = plan;
+        }));
         var key = AEItemKey.of(Items.STONE);
         var inventory = new ListCraftingInventory(ignored -> {});
         inventory.insert(key, 1000, Actionable.MODULATE);

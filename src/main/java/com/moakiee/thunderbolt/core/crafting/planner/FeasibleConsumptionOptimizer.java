@@ -34,7 +34,9 @@ import java.util.function.IntPredicate;
  */
 final class FeasibleConsumptionOptimizer {
     static final int MAX_PROBES = 32;
-    static final long MAX_NANOS = 2_800_000_000L;
+    // Retain the Forge JVM override; use the upstream allowance by default.
+    static final long MAX_NANOS = Math.max(1_000_000L,
+            Long.getLong("thunderbolt.maxConsumptionOptimizationNanos", 2_800_000_000L));
     static final long EXPORT_RESERVE_NANOS = 50_000_000L;
     /**
      * Stop once probes have spent this long without cutting executions by at least 1%; 0 disables.
@@ -99,6 +101,8 @@ final class FeasibleConsumptionOptimizer {
         private K target;
         private Index<K> index;
         private boolean compiled;
+
+        boolean isCompiled() { return compiled; }
 
         Index<K> get(CraftGraph<K> candidate, K key) {
             PlanningCancellation.check();

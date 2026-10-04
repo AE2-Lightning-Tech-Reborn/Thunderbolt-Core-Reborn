@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 
-/** AppliedE 1.x module: one native pending-output update replaces repeated single-copy pushes. */
+/** AppliedE Forge 0.14.x module: one queue update replaces repeated single-copy pushes. */
 @Pseudo
 @Mixin(targets = "gripe._90.appliede.part.EMCModulePart", remap = false)
 public abstract class AppliedETransmutationModuleBatchMixin implements IBatchCraftingProvider {
@@ -57,8 +57,6 @@ public abstract class AppliedETransmutationModuleBatchMixin implements IBatchCra
     private static @Nullable GenericStack thunderbolt$primaryOutput(IPatternDetails details) {
         // The native pattern is final. Check its exact type without loading an optional addon
         // during Thunderbolt startup; both item transmutation and EMC tier conversion are valid.
-        return details != null && details.getClass().getName().equals(
-                "gripe._90.appliede.me.service.TransmutationPattern")
-                ? details.getPrimaryOutput() : null;
+        return AppliedEModuleBatchSupport.primaryOutput(details);
     }
 }
