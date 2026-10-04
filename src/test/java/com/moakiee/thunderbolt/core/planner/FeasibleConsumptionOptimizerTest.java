@@ -17,6 +17,160 @@ import org.junit.jupiter.api.Test;
 
 class FeasibleConsumptionOptimizerTest {
     @Test
+    void savingStockNeverJustifiesMoreMachineExecutions() {
+        var batch = new CraftPattern<>("T", 10, List.of(CraftInput.of("raw", 10)), null);
+        var unit = new CraftPattern<>("T", 1, List.of(CraftInput.of("raw", 1)), null);
+        var initial = plan(batch, Map.of("raw", 10L));
+        var cheaperButSlower = new CraftPlan<String>(true, true, Map.of(unit, 2L),
+                Map.of("raw", 2L), Map.of(), Map.of(), Map.of(), 0, false);
+        assertFalse(FeasibleConsumptionOptimizer.improves(initial, cheaperButSlower));
+        assertTrue(FeasibleConsumptionOptimizer.improves(cheaperButSlower, plan(unit, Map.of("raw", 1L))));
+    }
+
+    @Test
+    void invalidProbesNeverReplaceTheCertifiedWitness() {
+        var graph = batchGraph(1);
+        var initial = baseline(graph, "T", 1);
+        var calls = new AtomicInteger();
+        var result = FeasibleConsumptionOptimizer.optimize(graph, "T", 1, initial, 32, candidate -> {
+            calls.incrementAndGet();
+            return new CraftPlan<>(true, false, Map.of(), Map.of(), Map.of(), Map.of("T", 1L),
+                    Map.of(), 0, false);
+        }, work -> false); // Isolate oracle rejection from independently certified batch search.
+        assertSame(initial, result.plan());
+        assertEquals(0, result.improvements());
+        assertEquals(calls.get(), result.probes());
+        assertTrue(result.probes() > 0 && result.probes() <= FeasibleConsumptionOptimizer.MAX_PROBES);
+    }
+
+    @Test
+    void exhaustedProbeBudgetStopsWithoutReplayingTheOracle() {
+        var graph = batchGraph(1);
+        var initial = baseline(graph, "T", 1);
+        var calls = new AtomicInteger();
+        var result = FeasibleConsumptionOptimizer.optimize(graph, "T", 1, initial, 32, candidate -> {
+            calls.incrementAndGet();
+            return null;
+        });
+        assertSame(initial, result.plan());
+        assertEquals(1, calls.get());
+        assertEquals(1, result.probes());
+        assertEquals(0, result.improvements());
+    }
+
+    @Test
+    void overdrawnCandidateCannotBecomeTheNewIncumbent() {
+        var graph = batchGraph(1);
+        var initial = baseline(graph, "T", 1);
+        var result = FeasibleConsumptionOptimizer.optimize(graph, "T", 1, initial, 32,
+                candidate -> plan(graph.patternsFor("T").get(1), Map.of("raw", 11L)),
+                work -> false); // A separate valid batch witness must not mask oracle rejection.
+        assertSame(initial, result.plan());
+        assertEquals(0, result.improvements());
+    }
+
+    @Test
+    void indexCacheIsCalculationScopedAndCancellationDoesNotPublishPartialState() {
+        var graph = batchGraph(1);
+        var cache = new FeasibleConsumptionOptimizer.IndexCache<String>();
+        try (var ignored = PlanningCancellation.limitOptionalWork(0)) {
+            assertThrows(PlanningCancellation.OptionalWorkLimit.class, () -> cache.get(graph, "T"));
+        }
+        var index = cache.get(graph, "T");
+        assertNotNull(index);
+        assertSame(index, cache.get(graph, "T"));
+        assertNotSame(index, cache.get(graph.withStockLimits(Map.of("raw", 2L)), "T"));
+        assertNotSame(index, cache.get(graph, "raw"));
+        assertNotSame(index, cache.get(graph, "T"));
+        try (var ignored = PlanningCancellation.limitOptionalWork(0)) {
+            assertThrows(PlanningCancellation.OptionalWorkLimit.class, () -> cache.get(graph, "T"));
+        }
+    }
+
+    @Test
+    void cachedIndexRecomputesQuantityAndStockPropagation() {
+        var graph = batchGraph(1);
+        var cache = new FeasibleConsumptionOptimizer.IndexCache<String>();
+        for (long amount : new long[] {1, 2, 1}) {
+            var initial = baseline(graph, "T", amount);
+            var uncached = FeasibleConsumptionOptimizer.optimize(graph, "T", amount, initial,
+                    32, candidate -> baseline(candidate, "T", amount));
+            var cached = FeasibleConsumptionOptimizer.optimize(graph, "T", amount, initial,
+                    32, candidate -> baseline(candidate, "T", amount), cache);
+            assertEquals(uncached.plan().usedStock(), cached.plan().usedStock());
+            assertEquals(executions(uncached.plan()), executions(cached.plan()));
+            assertBalance(graph, cached.plan(), "T", amount);
+        }
+    }
+
+    @Test
+    void cachedIndexDoesNotReuseMixedBatchWorkOrBudgetRejection() {
+        var graph = mixedBatchGraph();
+        var initial = baseline(graph, "T", 8);
+        var cache = new FeasibleConsumptionOptimizer.IndexCache<String>();
+        var rejectedWork = new AtomicInteger();
+        var denied = FeasibleConsumptionOptimizer.optimize(graph, "T", 8, initial, 32,
+                candidate -> baseline(candidate, "T", 8), cache, units -> {
+                    rejectedWork.addAndGet(units);
+                    return false;
+                });
+        assertTrue(rejectedWork.get() > 0);
+        assertEquals(3, executions(denied.plan()));
+        assertEquals(9, denied.plan().usedStock().get("raw"));
+        assertBalance(graph, denied.plan(), "T", 8);
+
+        for (int repeat = 0; repeat < 2; repeat++) {
+            var work = new AtomicInteger();
+            var accepted = FeasibleConsumptionOptimizer.optimize(graph, "T", 8, initial, 32,
+                    candidate -> baseline(candidate, "T", 8), cache, units -> {
+                        work.addAndGet(units);
+                        return true;
+                    });
+            assertTrue(work.get() > 0);
+            assertEquals(3, executions(accepted.plan()));
+            assertEquals(7, accepted.plan().usedStock().get("raw"));
+            assertTrue(accepted.probes() <= FeasibleConsumptionOptimizer.MAX_PROBES);
+            assertBalance(graph, accepted.plan(), "T", 8);
+        }
+    }
+
+    @Test
+    void wideGraphsStillOptimizeWhenOnlyTheLocalProbeFitsTheSearchBudget() {
+        var builder = CraftGraph.<String>builder().stock("raw", 1)
+                .pattern("T", 1, List.of(CraftInput.of("A", 1)))
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1)))
+                .pattern("A", 1, List.of(CraftInput.of("raw", 1)));
+        // Unfunded alternatives enlarge the reachable graph, but cannot fire inside the
+        // incumbent's stock limits. A useful probe only needs the direct raw -> T route.
+        for (int i = 0; i < 6_000; i++) {
+            builder.pattern("T", 1, List.of(CraftInput.of("unavailable" + i, 1)));
+        }
+        var graph = builder.build();
+        assertTrue(CraftPlannerV2.reachableWorkEstimate(graph, "T") > 16_384);
+        var initial = baseline(graph, "T", 1);
+        assertEquals(2, executions(initial));
+        var result = CraftPlannerV2.planDetailed(graph, "T", 1, CraftPlannerV2.DEFAULT_VISIT_CAP, 256);
+        assertTrue(result.plan().feasible(), result::toString);
+        assertEquals(1, executions(result.plan()));
+        assertEquals(initial.usedStock(), result.plan().usedStock());
+        assertTrue(result.diagnostics().consumptionOptimizationProbes() > 0);
+        assertBalance(graph, result.plan(), "T", 1);
+    }
+
+    @Test
+    void insufficientSearchBudgetRetainsTheCertifiedIncumbent() {
+        var graph = CraftGraph.<String>builder().stock("raw", 1)
+                .pattern("T", 1, List.of(CraftInput.of("A", 1)))
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1)))
+                .pattern("A", 1, List.of(CraftInput.of("raw", 1))).build();
+        var result = CraftPlannerV2.planDetailed(graph, "T", 1, CraftPlannerV2.DEFAULT_VISIT_CAP, 1);
+        assertTrue(result.plan().feasible());
+        assertEquals(2, executions(result.plan()));
+        assertEquals(0, result.diagnostics().consumptionOptimizationImprovements());
+        assertBalance(graph, result.plan(), "T", 1);
+    }
+
+    @Test
     void narrowAndWideSlotsPreserveIndexOrderAndExactMergedAmounts() throws ReflectiveOperationException {
         var source = new com.moakiee.thunderbolt.core.crafting.pattern.ReusableStockSource("host", "pool");
         for (int inputSlots : new int[] {16, 32, 33, 257}) {
@@ -168,7 +322,7 @@ class FeasibleConsumptionOptimizerTest {
         var graph = CraftGraph.<String>builder().stock("raw", 100)
                 .pattern("T", 1_000, List.of(CraftInput.of("raw", 1)))
                 .pattern("T", 500, List.of(CraftInput.of("raw", 1))).build();
-        var initial = MaterialDagReplay.tryPlan(graph, Map.of(graph.patternsFor("T").getFirst(), 100L), "T", 100_000);
+        var initial = MaterialDagReplay.tryPlan(graph, Map.of(graph.patternsFor("T").get(0), 100L), "T", 100_000);
         assertNotNull(initial);
         var result = FeasibleConsumptionOptimizer.optimize(graph, "T", 100_000, initial, 32,
                 candidate -> { throw new AssertionError("optimal target-only plan entered oracle"); },
@@ -197,7 +351,7 @@ class FeasibleConsumptionOptimizerTest {
         var graph = CraftGraph.<String>builder().stock("raw", 6)
                 .pattern("T", 2, List.of(CraftInput.of("raw", 3)))
                 .pattern("T", 2, List.of(CraftInput.of("raw", 1))).build();
-        var initial = MaterialDagReplay.tryPlan(graph, Map.of(graph.patternsFor("T").getFirst(), 2L), "T", 4);
+        var initial = MaterialDagReplay.tryPlan(graph, Map.of(graph.patternsFor("T").get(0), 2L), "T", 4);
         assertNotNull(initial);
         var result = FeasibleConsumptionOptimizer.optimize(graph, "T", 4, initial, 32,
                 candidate -> baseline(candidate, "T", 4));
@@ -237,7 +391,7 @@ class FeasibleConsumptionOptimizerTest {
         var graph = CraftGraph.<String>builder().stock("A", q).stock("B", q).stock("C", q)
                 .pattern("T", 1, List.of(CraftInput.of("A", q), CraftInput.of("B", q), CraftInput.of("C", q)))
                 .pattern("T", 1, List.of(CraftInput.of("A", q - 1), CraftInput.of("B", q), CraftInput.of("C", q))).build();
-        var initial = MaterialDagReplay.tryPlan(graph, Map.of(graph.patternsFor("T").getFirst(), 1L), "T", 1);
+        var initial = MaterialDagReplay.tryPlan(graph, Map.of(graph.patternsFor("T").get(0), 1L), "T", 1);
         assertNotNull(initial);
         assertFalse(targetOnlyBound(graph, "T", 1, initial));
     }
@@ -269,10 +423,12 @@ class FeasibleConsumptionOptimizerTest {
             CraftPlan<String> initial) throws ReflectiveOperationException {
         var search = Class.forName(FeasibleConsumptionOptimizer.class.getName() + "$Search");
         var constructor = search.getDeclaredConstructor(CraftGraph.class, Object.class, long.class,
-                CraftPlan.class, int.class, java.util.function.Function.class, java.util.function.IntPredicate.class);
+                CraftPlan.class, int.class, java.util.function.Function.class,
+                FeasibleConsumptionOptimizer.IndexCache.class, java.util.function.IntPredicate.class);
         constructor.setAccessible(true);
         var state = constructor.newInstance(graph, target, amount, initial, 32,
                 (java.util.function.Function<CraftGraph<String>, CraftPlan<String>>) candidate -> null,
+                new FeasibleConsumptionOptimizer.IndexCache<String>(),
                 (java.util.function.IntPredicate) work -> true);
         var proof = search.getDeclaredMethod("targetOnlyBound");
         proof.setAccessible(true);
@@ -420,8 +576,8 @@ class FeasibleConsumptionOptimizerTest {
         assertTrue(result.feasible());
         assertEquals(2, result.usedStock().get("raw"));
         assertEquals(initial.usedStock().get("tool"), result.usedStock().get("tool"));
-        assertEquals(initial.firings().get(graph.patternsFor("T").getFirst()),
-                result.firings().get(graph.patternsFor("T").getFirst()));
+        assertEquals(initial.firings().get(graph.patternsFor("T").get(0)),
+                result.firings().get(graph.patternsFor("T").get(0)));
     }
 
     @Test
@@ -553,7 +709,7 @@ class FeasibleConsumptionOptimizerTest {
     @Test
     void saturatedDisplayAmountsAreNotTreatedAsExecutableOptimizationBounds() {
         var graph = batchGraph(1);
-        var initial = plan(graph.patternsFor("T").getFirst(), Map.of("raw", Sat.SAT));
+        var initial = plan(graph.patternsFor("T").get(0), Map.of("raw", Sat.SAT));
         assertSame(initial, FeasibleConsumptionOptimizer.optimize(graph, "T", 1, initial, 32,
                 candidate -> { throw new AssertionError("display-only amount was probed"); }).plan());
     }

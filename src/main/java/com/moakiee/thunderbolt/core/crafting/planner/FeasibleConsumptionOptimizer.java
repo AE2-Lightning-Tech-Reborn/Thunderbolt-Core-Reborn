@@ -64,12 +64,23 @@ final class FeasibleConsumptionOptimizer {
 
     static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
             int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle) {
-        return optimize(graph, target, amount, initial, probeLimit, oracle, work -> true);
+        return optimize(graph, target, amount, initial, probeLimit, oracle, new IndexCache<>(), work -> true);
+    }
+
+    static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
+            int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache) {
+        return optimize(graph, target, amount, initial, probeLimit, oracle, cache, work -> true);
     }
 
     static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
             int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IntPredicate spendWork) {
-        var state = new Search<>(graph, target, amount, initial, probeLimit, oracle, spendWork);
+        return optimize(graph, target, amount, initial, probeLimit, oracle, new IndexCache<>(), spendWork);
+    }
+
+    static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
+            int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache,
+            IntPredicate spendWork) {
+        var state = new Search<>(graph, target, amount, initial, probeLimit, oracle, cache, spendWork);
         try {
             state.run();
             state.mixSmallBatches();
@@ -82,12 +93,69 @@ final class FeasibleConsumptionOptimizer {
         return new Result<>(state.best, state.probes, state.improvements, state.pruned);
     }
 
+    /** Calculation-owned recipe index. Stock limits and propagation remain private to each probe. */
+    static final class IndexCache<K> {
+        private CraftGraph<K> graph;
+        private K target;
+        private Index<K> index;
+        private boolean compiled;
+
+        boolean isCompiled() { return compiled; }
+
+        Index<K> get(CraftGraph<K> candidate, K key) {
+            PlanningCancellation.check();
+            if (!compiled || graph != candidate || !java.util.Objects.equals(target, key)) {
+                // Publish only a completed scan, so cancellation cannot leave a partial index.
+                var prepared = Index.build(candidate, key);
+                graph = candidate;
+                target = key;
+                index = prepared;
+                compiled = true;
+            }
+            return index;
+        }
+    }
+
+    /**
+     * A target-only plan at the largest possible target yield cannot reserve any firing for
+     * upstream production. When every target producer consumes only other ordinary keys, all
+     * of those inputs must come from inventory. Matching both lower bounds therefore leaves
+     * no strict componentwise stock or net-loss improvement at the same execution count.
+     */
+    static <K> boolean targetOnlyBound(CraftGraph<K> graph, K target, long amount, CraftPlan<K> best) {
+        if (graph.hasByproducts() || graph.stock(target) != 0 || best.firings().isEmpty()) return false;
+        BigInteger largestOutput = BigInteger.ZERO;
+        BigInteger smallestDraw = null;
+        for (var pattern : graph.patternsFor(target)) {
+            PlanningCancellation.check();
+            if (stateful(pattern)) return false;
+            BigInteger draw = BigInteger.ZERO;
+            for (var input : pattern.inputs()) {
+                PlanningCancellation.check();
+                if (input.key().equals(target)) return false;
+                draw = draw.add(input.exactAmount());
+            }
+            largestOutput = largestOutput.max(pattern.exactOutputAmount());
+            smallestDraw = smallestDraw == null ? draw : smallestDraw.min(draw);
+        }
+        if (largestOutput.signum() <= 0) return false;
+        var needed = BigInteger.valueOf(amount);
+        var lowerExecutions = needed.add(largestOutput).subtract(BigInteger.ONE).divide(largestOutput);
+        if (!executions(best).equals(lowerExecutions)) return false;
+        for (var pattern : best.firings().keySet()) if (!pattern.output().equals(target)) return false;
+        BigInteger used = BigInteger.ZERO;
+        for (long value : best.usedStock().values()) used = used.add(BigInteger.valueOf(value));
+        return smallestDraw.multiply(lowerExecutions).compareTo(used) >= 0;
+    }
+
+
     private static final class Search<K> {
         private final CraftGraph<K> graph;
         private final K target;
         private final long amount;
         private final int limit;
         private final Function<CraftGraph<K>, CraftPlan<K>> oracle;
+        private final IndexCache<K> cache;
         private final IntPredicate spendWork;
         private CraftPlan<K> best;
         private int probes;
@@ -126,13 +194,14 @@ final class FeasibleConsumptionOptimizer {
         private int regionSize;
 
         Search(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial, int limit,
-                Function<CraftGraph<K>, CraftPlan<K>> oracle, IntPredicate spendWork) {
+                Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache, IntPredicate spendWork) {
             this.graph = graph;
             this.target = target;
             this.amount = amount;
             this.best = initial;
             this.limit = Math.min(MAX_PROBES, limit);
             this.oracle = oracle;
+            this.cache = cache;
             this.spendWork = spendWork;
         }
 
@@ -249,7 +318,7 @@ final class FeasibleConsumptionOptimizer {
                 return;
             }
             long indexStarted = System.nanoTime();
-            index = Index.build(graph, target);
+            index = cache.get(graph, target);
             indexNanos = System.nanoTime() - indexStarted;
             if (index == null) {
                 stop = "saturated";
@@ -304,36 +373,8 @@ final class FeasibleConsumptionOptimizer {
             stop = exhausted ? "budget" : probes >= limit ? "probes" : stalled() ? "stall" : stop;
         }
 
-        /**
-         * A target-only plan at the largest possible target yield cannot reserve any firing for
-         * upstream production. When every target producer consumes only other ordinary keys, all
-         * of those inputs must come from inventory. Matching both lower bounds therefore leaves
-         * no strict componentwise stock or net-loss improvement at the same execution count.
-         */
         private boolean targetOnlyBound() {
-            if (graph.hasByproducts() || graph.stock(target) != 0 || best.firings().isEmpty()) return false;
-            BigInteger largestOutput = BigInteger.ZERO;
-            BigInteger smallestDraw = null;
-            for (var pattern : graph.patternsFor(target)) {
-                PlanningCancellation.check();
-                if (stateful(pattern)) return false;
-                BigInteger draw = BigInteger.ZERO;
-                for (var input : pattern.inputs()) {
-                    PlanningCancellation.check();
-                    if (input.key().equals(target)) return false;
-                    draw = draw.add(input.exactAmount());
-                }
-                largestOutput = largestOutput.max(pattern.exactOutputAmount());
-                smallestDraw = smallestDraw == null ? draw : smallestDraw.min(draw);
-            }
-            if (largestOutput.signum() <= 0) return false;
-            var needed = BigInteger.valueOf(amount);
-            var lowerExecutions = needed.add(largestOutput).subtract(BigInteger.ONE).divide(largestOutput);
-            if (!executions(best).equals(lowerExecutions)) return false;
-            for (var pattern : best.firings().keySet()) if (!pattern.output().equals(target)) return false;
-            BigInteger used = BigInteger.ZERO;
-            for (long value : best.usedStock().values()) used = used.add(BigInteger.valueOf(value));
-            return smallestDraw.multiply(lowerExecutions).compareTo(used) >= 0;
+            return FeasibleConsumptionOptimizer.targetOnlyBound(graph, target, amount, best);
         }
 
         private void propagateStock() {

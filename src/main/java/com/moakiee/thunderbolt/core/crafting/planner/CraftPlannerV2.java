@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
@@ -150,26 +149,28 @@ public final class CraftPlannerV2<K> {
         private CraftGraph<K> graph;
         private K target;
         private Thread owner;
-        private BoundedIntegerLinearSolver.WorkBudget lowWidthWorkBudget;
-        private SharedCounterBudget searchWorkBudget;
-        private SharedCounterBudget resolutionWorkBudget;
-        private SharedCounterBudget fallbackWorkBudget;
+        BoundedIntegerLinearSolver.WorkBudget lowWidthWorkBudget;
+        SharedCounterBudget searchWorkBudget;
+        SharedCounterBudget resolutionWorkBudget;
+        SharedCounterBudget fallbackWorkBudget;
         private final Map<Orientation<K>, PreparedGraph<K>> preparedByOrientation = new HashMap<>();
         /** Default orientation only; recipe policy is independent of the probed quantity. */
         private ConservativeReplenishment<K> replenishment;
         private boolean replenishmentCompiled;
         private List<ConservativeReplenishment<K>> cutPolicies = List.of();
-        private boolean refineMissing = true;
+        boolean refineMissing = true;
         boolean optimizeFeasible = true;
-        private int consumptionOptimizationProbes;
-        private long consumptionOptimizationNanos;
+        final FeasibleConsumptionOptimizer.IndexCache<K> consumptionIndex =
+                new FeasibleConsumptionOptimizer.IndexCache<>();
+        int consumptionOptimizationProbes;
+        long consumptionOptimizationNanos;
         private int missingRefinementProbes;
         private List<MaterialDagOrders.Candidate<K>> materialDagOrders;
         private final Map<Integer, PreparedGraph<K>> preparedMaterialDagOrders = new HashMap<>();
         private int preferredMaterialDagOrder;
         private int materialDagOrderAttempts;
         private long materialDagOrderNanos;
-        private long conservativeSearchNanos;
+        long conservativeSearchNanos;
         private long missingRefinementNanos;
         private int reachableWorkEstimate;
 
@@ -352,6 +353,8 @@ public final class CraftPlannerV2<K> {
     private final Map<ReusableStockUsageKey<K>, Long> usedReusableStock = new HashMap<>();
     private final Map<K, Long> missing = new HashMap<>();     // unmet at raw leaves
     private final Map<K, Long> grossDemand = new HashMap<>(); // pre-extraction request totals (bytes)
+    /** Linear-pass scratch only; returned plans never retain this mutable map. */
+    private final Map<K, Long> bootstrapReserveScratch = new HashMap<>();
     private final Map<CraftPattern<K>, Long> firings = new IdentityHashMap<>();
     /** Exact component quotas retained when only an unresolved sibling reaches recursive fallback. */
     private final Map<CraftPattern<K>, Long> fixedFiringQuota = new IdentityHashMap<>();
@@ -500,94 +503,13 @@ public final class CraftPlannerV2<K> {
     }
 
     private static <K> PlanningResult<K> planDetailed(
-            CraftGraph<K> graph,
-            K target,
-            long amount,
-            int visitCap,
-            int searchWorkBudget,
-            int reachableWork,
-            PlanningSession<K> session) {
-        long started = System.nanoTime();
-        PlanningResult<K> initial = planCore(graph, target, amount, visitCap, searchWorkBudget, reachableWork, session);
-        boolean terminalRecovery = TerminalBatchRecovery.hasBoundedFootprint(graph, target, initial.diagnostics());
-        if (session.refineMissing && !initial.plan().feasible()
-                && session.searchWorkBudget.remaining > 0
-                && (reachableWork <= SmallConservativeSearch.MAX_WORK || terminalRecovery)) {
-            long allowance = Math.min(SmallConservativeSearch.MAX_NANOS - session.conservativeSearchNanos,
-                    PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 8L);
-            if (allowance > 0) {
-                long recoveryStarted = System.nanoTime();
-                int workBefore = session.searchWorkBudget.remaining;
-                boolean[] recoveryWorkRejected = {false};
-                CraftPlan<K> recovered = null;
-                try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
-                    IntPredicate recoveryWork = work -> {
-                        if (session.searchWorkBudget.tryConsume(work)) return true;
-                        recoveryWorkRejected[0] = true;
-                        return false;
-                    };
-                    if (reachableWork <= SmallConservativeSearch.MAX_WORK)
-                        recovered = SmallConservativeSearch.tryPlan(graph, target, amount,
-                                SmallConservativeSearch.MAX_STATES, () -> recoveryWork.test(1));
-                    if (recovered == null && terminalRecovery && !recoveryWorkRejected[0]
-                            && session.searchWorkBudget.remaining > 0)
-                        recovered = TerminalBatchRecovery.tryPlan(graph, target, amount,
-                                SmallConservativeSearch.MAX_STATES, recoveryWork);
-                } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
-                    // Optional recovery never invalidates the already-verified missing plan.
-                } finally {
-                    session.conservativeSearchNanos += Math.max(0L, System.nanoTime() - recoveryStarted);
-                }
-                CraftPlan<K> selected = recovered == null ? initial.plan() : recovered;
-                if (recovered == null && recoveryWorkRejected[0]) selected = markBudgetExhausted(selected);
-                initial = new PlanningResult<>(selected,
-                        initial.diagnostics().withAdditionalSearchWork(
-                                workBefore - session.searchWorkBudget.remaining, System.nanoTime() - started,
-                                recoveryWorkRejected[0]));
-            }
-        }
-        if (!session.optimizeFeasible || !initial.plan().feasible() || amount <= 0
-                || amount >= Sat.SAT
-                || session.consumptionOptimizationProbes >= FeasibleConsumptionOptimizer.MAX_PROBES)
-            return initial;
-        // Fixed ordinary chains need no optional scan or second planning pass.
-        if (initial.diagnostics().contendedOutputs() == 0) return initial;
-        long remaining = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
-        long reserve = Math.max(FeasibleConsumptionOptimizer.EXPORT_RESERVE_NANOS, remaining / 10);
-        long allowance = Math.min(FeasibleConsumptionOptimizer.MAX_NANOS - session.consumptionOptimizationNanos,
-                remaining - reserve);
-        if (allowance <= 0 || session.searchWorkBudget.remaining <= 0) return initial;
-        long optimizationStarted = System.nanoTime();
-        FeasibleConsumptionOptimizer.Result<K> optimized;
-        try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
-            optimized = FeasibleConsumptionOptimizer.optimize(graph, target, amount, initial.plan(),
-                    FeasibleConsumptionOptimizer.MAX_PROBES - session.consumptionOptimizationProbes,
-                    candidateGraph -> {
-                        // A probe plans only its local region; charge that region, not the pack.
-                        int work = reachableWorkEstimate(candidateGraph, target);
-                        if (!session.searchWorkBudget.tryConsume(work)) return null;
-                        var probe = new PlanningSession<K>();
-                        probe.optimizeFeasible = false;
-                        probe.refineMissing = false;
-                        probe.lowWidthWorkBudget = session.lowWidthWorkBudget;
-                        probe.searchWorkBudget = session.searchWorkBudget;
-                        probe.resolutionWorkBudget = session.resolutionWorkBudget;
-                        probe.fallbackWorkBudget = session.fallbackWorkBudget;
-                        // Rebuild capacities for the candidate's routes; the inventory snapshot
-                        // and all work limits remain shared.
-                        return planCore(candidateGraph, target, amount, visitCap, searchWorkBudget,
-                                work, probe).plan();
-                    }, session.searchWorkBudget::tryConsume);
-        } finally {
-            session.consumptionOptimizationNanos += Math.max(0L, System.nanoTime() - optimizationStarted);
-        }
-        session.consumptionOptimizationProbes += optimized.probes();
-        return new PlanningResult<>(optimized.plan(), initial.diagnostics().withConsumptionOptimization(
-                optimized.probes(), optimized.improvements(), System.nanoTime() - optimizationStarted,
-                System.nanoTime() - started));
+            CraftGraph<K> graph, K target, long amount, int visitCap,
+            int searchWorkBudget, int reachableWork, PlanningSession<K> session) {
+        return OptionalPlanningStages.planDetailed(graph, target, amount, visitCap,
+                searchWorkBudget, reachableWork, session);
     }
 
-    private static <K> PlanningResult<K> planCore(
+    static <K> PlanningResult<K> planCore(
             CraftGraph<K> graph, K target, long amount, int visitCap, int searchWorkBudget,
             int reachableWork, PlanningSession<K> session) {
         long started = System.nanoTime();
@@ -951,6 +873,13 @@ public final class CraftPlannerV2<K> {
     }
 
     private boolean rechecksReplenishment(CraftPlan<K> candidate, K target, long amount) {
+        // Reuse the selected count vector as an all-orders material-DAG certificate.
+        // Replanning the same supplemented graph can expire before reproducing this witness.
+        if (candidate.usedReusableStock().isEmpty()) {
+            var ready = MaterialDagReplay.tryPlan(graph.withAdditionalStock(candidate.missing()),
+                    candidate.firings(), target, amount);
+            if (ready != null && ready.feasible()) return true;
+        }
         PlanningSession<K> session = planningSession;
         if (!session.refineMissing) return false;
         long remaining = Math.min(MAX_MISSING_REFINEMENT_NANOS - session.missingRefinementNanos,
@@ -1310,7 +1239,7 @@ public final class CraftPlannerV2<K> {
         return Map.copyOf(distances);
     }
 
-    private static <K> CraftPlan<K> markBudgetExhausted(CraftPlan<K> plan) {
+    static <K> CraftPlan<K> markBudgetExhausted(CraftPlan<K> plan) {
         return new CraftPlan<>(
                 plan.supported(),
                 plan.feasible(),
@@ -1735,7 +1664,12 @@ public final class CraftPlannerV2<K> {
         // Replenishment probes already run inside the shared 100 ms optional deadline. Dividing
         // that remaining slice again can reject the same cheap component proof during the recheck.
         boolean replenishmentProbe = planningSession != null && !planningSession.refineMissing;
-        long limit = Math.min(250_000_000L, replenishmentProbe ? available : available / 4);
+        // This portfolio visits independently certified components in a linear sweep. Scale
+        // its cold-start allowance with graph work; the caller deadline and shared solver
+        // budget still bound it, instead of discarding a wide vector after a fixed 250 ms.
+        long portfolioNanos = Math.min(2_000_000_000L,
+                Math.max(250_000_000L, diagnostics.reachableWorkEstimate * 25_000L));
+        long limit = Math.min(portfolioNanos, replenishmentProbe ? available : available / 4);
         if (limit <= 0) return null;
         try (var ignored = PlanningCancellation.limitOptionalWork(limit)) {
             var relaxed = analyzeLowWidthComponents(schedule, target, amount, baseline, true);
@@ -4790,11 +4724,15 @@ public final class CraftPlannerV2<K> {
                 need.merge(in.key(), amt, Sat::add);
             }
         }
-        Map<K, Long> bootstrapReserves = new HashMap<>(
-                linearContainerBootstrapReserves.getOrDefault(r, Map.of()));
-        bootstrapReserves.replaceAll((key, reserve) -> Math.max(
-                0L, reserve - Math.min(
-                        reserve, Sat.mul(byproductAmount(r, key), previousFirings))));
+        Map<K, Long> bootstrapReserves = linearContainerBootstrapReserves.getOrDefault(r, Map.of());
+        if (!bootstrapReserves.isEmpty()) {
+            bootstrapReserveScratch.clear();
+            bootstrapReserveScratch.putAll(bootstrapReserves);
+            bootstrapReserves = bootstrapReserveScratch;
+            bootstrapReserves.replaceAll((key, reserve) -> Math.max(
+                    0L, reserve - Math.min(
+                            reserve, Sat.mul(byproductAmount(r, key), previousFirings))));
+        }
         for (CraftOutput<K> out : r.byproducts()) {
             if (mayReuseByproduct(r, out.key())) {
                 long produced = Sat.mul(out.amount(), t);
@@ -6736,14 +6674,14 @@ public final class CraftPlannerV2<K> {
     }
 
     /** Monotonic counter shared by every quantity probe in one planning session. */
-    private static final class SharedCounterBudget {
-        private int remaining;
+    static final class SharedCounterBudget {
+        int remaining;
 
-        private SharedCounterBudget(int work) {
+        SharedCounterBudget(int work) {
             remaining = Math.max(1, work);
         }
 
-        private boolean tryConsume(int work) {
+        boolean tryConsume(int work) {
             PlanningCancellation.check();
             int requested = Math.max(1, work);
             if (remaining < requested) {
