@@ -23,15 +23,34 @@ public final class CraftGraph<K> {
     private final Map<K, BigInteger> exactStock;
     private final Map<ReusableStockKey<K>, Long> reusableStock;
     private final Map<ReusableStockRouteKey<K>, List<K>> reusableStockRoutes;
+    private final boolean hasByproducts;
+    private final boolean hasHostFeedbackSeeds;
 
     private CraftGraph(Map<K, List<CraftPattern<K>>> patternsByOutput, Map<K, Long> stock,
                        Map<ReusableStockKey<K>, Long> reusableStock,
-                       Map<ReusableStockRouteKey<K>, List<K>> reusableStockRoutes, Map<K, BigInteger> exactStock) {
+                       Map<ReusableStockRouteKey<K>, List<K>> reusableStockRoutes, Map<K, BigInteger> exactStock,
+                       boolean hasByproducts, boolean hasHostFeedbackSeeds) {
         this.patternsByOutput = patternsByOutput;
         this.stock = stock;
         this.exactStock = exactStock;
         this.reusableStock = reusableStock;
         this.reusableStockRoutes = reusableStockRoutes;
+        this.hasByproducts = hasByproducts;
+        this.hasHostFeedbackSeeds = hasHostFeedbackSeeds;
+    }
+
+    /** Immutable recipe metadata; stock projections cannot introduce a side-output edge. */
+    boolean hasByproducts() { return hasByproducts; }
+
+    /** A converter bootstrap must find a returned, unlimited host-backed seed in some recipe. */
+    boolean hasHostFeedbackSeeds() { return hasHostFeedbackSeeds; }
+
+    private static boolean hasHostFeedbackSeed(CraftPattern<?> pattern) {
+        for (var input : pattern.inputs()) {
+            if (input.returned() && input.uses() == CraftInput.INFINITE_USES
+                    && input.reusableStockSource() != null) return true;
+        }
+        return false;
     }
 
     /** Patterns whose primary output is {@code key}, in caller-defined preference order. */
@@ -86,17 +105,26 @@ public final class CraftGraph<K> {
             }
         });
         return new CraftGraph<>(patternsByOutput, Map.copyOf(merged), reusableStock,
-                reusableStockRoutes, Map.copyOf(exactMerged));
+                reusableStockRoutes, Map.copyOf(exactMerged), hasByproducts, hasHostFeedbackSeeds);
     }
 
     /** Read-only recipe projection over exactly the same inventory snapshot. */
     CraftGraph<K> withPatterns(Map<K, List<CraftPattern<K>>> selected) {
         var frozen = new HashMap<K, List<CraftPattern<K>>>();
-        selected.forEach((key, patterns) -> frozen.put(key, List.copyOf(patterns)));
-        return new CraftGraph<>(Map.copyOf(frozen), stock, reusableStock, reusableStockRoutes, exactStock);
+        boolean selectedByproducts = false;
+        boolean selectedHostFeedbackSeeds = false;
+        for (var entry : selected.entrySet()) {
+            frozen.put(entry.getKey(), List.copyOf(entry.getValue()));
+            if (!selectedByproducts) for (var pattern : entry.getValue())
+                if (!pattern.byproducts().isEmpty()) { selectedByproducts = true; break; }
+            if (!selectedHostFeedbackSeeds) for (var pattern : entry.getValue())
+                if (hasHostFeedbackSeed(pattern)) { selectedHostFeedbackSeeds = true; break; }
+        }
+        return new CraftGraph<>(Map.copyOf(frozen), stock, reusableStock, reusableStockRoutes, exactStock,
+                selectedByproducts, selectedHostFeedbackSeeds);
     }
 
-    /** An optimization probe can only withdraw stock already used by its incumbent. */
+    /** Recipe projection with explicit ordinary-stock caps, bounded by this snapshot. */
     CraftGraph<K> withStockLimits(Map<K, Long> limits) {
         var limited = new HashMap<K, Long>();
         var exact = new HashMap<K, BigInteger>();
@@ -108,7 +136,7 @@ public final class CraftGraph<K> {
             }
         });
         return new CraftGraph<>(patternsByOutput, Map.copyOf(limited), reusableStock,
-                reusableStockRoutes, Map.copyOf(exact));
+                reusableStockRoutes, Map.copyOf(exact), hasByproducts, hasHostFeedbackSeeds);
     }
 
     /** Residual ordinary stock for a prefix plan; committed draws cannot be spent a second time. */
@@ -121,7 +149,7 @@ public final class CraftGraph<K> {
             exactRemaining.put(key, exactStock(key).subtract(BigInteger.valueOf(amount)));
         });
         return new CraftGraph<>(patternsByOutput, Map.copyOf(remaining), reusableStock,
-                reusableStockRoutes, Map.copyOf(exactRemaining));
+                reusableStockRoutes, Map.copyOf(exactRemaining), hasByproducts, hasHostFeedbackSeeds);
     }
 
     Map<ReusableStockKey<K>, Long> reusableStock() {
@@ -139,10 +167,14 @@ public final class CraftGraph<K> {
         private final Map<ReusableStockKey<K>, Long> reusableStock = new HashMap<>();
         private final Map<ReusableStockRouteKey<K>, LinkedHashSet<K>> reusableStockRoutes =
                 new HashMap<>();
+        private boolean hasByproducts;
+        private boolean hasHostFeedbackSeeds;
 
         /** Adds a pattern; patterns for the same output keep insertion order (= preference order). */
         public Builder<K> pattern(CraftPattern<K> pattern) {
             patterns.computeIfAbsent(pattern.output(), k -> new ArrayList<>()).add(pattern);
+            hasByproducts |= !pattern.byproducts().isEmpty();
+            if (!hasHostFeedbackSeeds) hasHostFeedbackSeeds = hasHostFeedbackSeed(pattern);
             return this;
         }
 
@@ -207,7 +239,7 @@ public final class CraftGraph<K> {
                 frozenRoutes.put(entry.getKey(), List.copyOf(entry.getValue()));
             }
             return new CraftGraph<>(frozen, Map.copyOf(stock), Map.copyOf(reusableStock),
-                    Map.copyOf(frozenRoutes), Map.copyOf(exactStock));
+                    Map.copyOf(frozenRoutes), Map.copyOf(exactStock), hasByproducts, hasHostFeedbackSeeds);
         }
     }
 }

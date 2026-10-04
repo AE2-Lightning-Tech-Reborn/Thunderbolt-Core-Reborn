@@ -3,9 +3,11 @@ package com.moakiee.thunderbolt.core.crafting.planner;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -121,6 +123,9 @@ final class ConservativeFeedbackAnalysis<K> {
         List<CraftPattern<K>> patterns = stablePatterns(itemOrder, patternsByOutput);
         Map<K, Integer> itemRank = new HashMap<>();
         for (int i = 0; i < itemOrder.size(); i++) itemRank.putIfAbsent(itemOrder.get(i), i);
+        if (obeysReverseTopologicalOrder(patterns, itemRank)) {
+            return new Analysis<>(List.of(), List.of(), List.of());
+        }
         List<Component<K>> result = new ArrayList<>();
         List<FallbackComponent<K>> fallbacks = new ArrayList<>();
         List<Set<K>> cyclicComponents = cyclicComponents(patterns);
@@ -134,6 +139,33 @@ final class ConservativeFeedbackAnalysis<K> {
             }
         }
         return new Analysis<>(result, fallbacks, cyclicComponents);
+    }
+
+    /**
+     * Proves that every material edge strictly decreases the supplied rank before building an SCC
+     * graph. All primary and normalized side outputs must be ranked, including container remainders.
+     * Missing ranks, backward edges and self-loops simply leave the existing SCC path in charge.
+     */
+    private static <K> boolean obeysReverseTopologicalOrder(
+            List<CraftPattern<K>> patterns, Map<K, Integer> itemRank) {
+        for (CraftPattern<K> pattern : patterns) {
+            PlanningCancellation.check();
+            Integer primaryRank = itemRank.get(pattern.output());
+            if (primaryRank == null) return false;
+            int latestOutput = primaryRank;
+            for (CraftOutput<K> byproduct : pattern.byproducts()) {
+                Integer rank = itemRank.get(byproduct.key());
+                if (rank == null) return false;
+                latestOutput = Math.max(latestOutput, rank);
+            }
+            for (CraftInput<K> input : pattern.inputs()) {
+                // Match cyclicComponents exactly: returned/private reusable inputs are not flow.
+                if (!isConsumedArc(input)) continue;
+                Integer rank = itemRank.get(input.key());
+                if (rank == null || rank <= latestOutput) return false;
+            }
+        }
+        return true;
     }
 
     /** Structural membership alone never admits cyclic execution or a growing feedback route. */
@@ -177,10 +209,12 @@ final class ConservativeFeedbackAnalysis<K> {
     private static <K> List<CraftPattern<K>> stablePatterns(
             List<K> itemOrder,
             Map<K, List<CraftPattern<K>>> patternsByOutput) {
-        Set<CraftPattern<K>> seen = new LinkedHashSet<>();
+        Set<CraftPattern<K>> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         List<CraftPattern<K>> result = new ArrayList<>();
         for (K item : itemOrder) {
+            PlanningCancellation.check();
             for (CraftPattern<K> pattern : patternsByOutput.getOrDefault(item, List.of())) {
+                PlanningCancellation.check();
                 if (seen.add(pattern)) result.add(pattern);
             }
         }

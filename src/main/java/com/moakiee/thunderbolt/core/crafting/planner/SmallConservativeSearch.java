@@ -6,12 +6,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 
-/** Optional full-cycle recovery for small ordinary, unit-weight non-growing graphs. */
+/** Optional bounded recovery for small conservative cycles and direct inventory-backed batches. */
 final class SmallConservativeSearch {
     static final int MAX_WORK = 128;
     static final int MAX_STATES = 4_096;
@@ -34,14 +35,21 @@ final class SmallConservativeSearch {
         var indices = new LinkedHashMap<K, Integer>();
         var keys = new ArrayList<K>();
         var patterns = new ArrayList<CraftPattern<K>>();
+        var seenPatterns = new IdentityHashMap<CraftPattern<K>, Boolean>();
+        int inputIndex = 0;
         indices.put(target, 0); keys.add(target);
         // Primary-demand ancestry only: never discover a producer through its side output.
         for (int cursor = 0; cursor < keys.size(); cursor++) {
             PlanningCancellation.check();
             for (var pattern : graph.patternsFor(keys.get(cursor))) {
+                PlanningCancellation.check();
+                // Repeated registrations are one firing variable; distinct fuzzy expansions
+                // remain separate even when they share the same source recipe object.
+                if (seenPatterns.put(pattern, Boolean.TRUE) != null) continue;
                 if (patterns.size() == MAX_PATTERNS) return null;
                 patterns.add(pattern);
                 for (var input : pattern.inputs()) {
+                    if ((++inputIndex & 255) == 0) PlanningCancellation.check();
                     if (input.returned() || input.remainder() != null || input.reusableStockSource() != null)
                         return null;
                     if (!indices.containsKey(input.key())) {
@@ -56,12 +64,17 @@ final class SmallConservativeSearch {
         int n = keys.size(), m = patterns.size();
         if (m == 0) return null;
         var inputs = new int[m][n]; var outputs = new int[m][n];
+        boolean nonGrowing = true;
+        boolean terminalOnly = true;
         for (int r = 0; r < m; r++) {
+            PlanningCancellation.check();
             var pattern = patterns.get(r);
+            terminalOnly &= pattern.output().equals(target) && pattern.byproducts().isEmpty();
             BigInteger consumed = BigInteger.ZERO, produced = pattern.exactOutputAmount();
             if (produced.signum() <= 0 || produced.compareTo(BigInteger.valueOf(MAX_STOCK)) > 0) return null;
             outputs[r][indices.get(pattern.output())] = produced.intValueExact();
             for (var input : pattern.inputs()) {
+                terminalOnly &= !input.key().equals(target);
                 if (input.exactAmount().signum() <= 0
                         || input.exactAmount().compareTo(BigInteger.valueOf(MAX_STOCK)) > 0) return null;
                 consumed = consumed.add(input.exactAmount());
@@ -69,23 +82,27 @@ final class SmallConservativeSearch {
                 if (consumed.compareTo(BigInteger.valueOf(MAX_STOCK)) > 0) return null;
             }
             for (var output : pattern.byproducts()) {
+                if ((++inputIndex & 255) == 0) PlanningCancellation.check();
                 if (output.exactAmount().signum() < 0) return null;
                 produced = produced.add(output.exactAmount());
                 if (produced.compareTo(BigInteger.valueOf(MAX_STOCK)) > 0) return null;
                 Integer index = indices.get(output.key());
                 if (index != null) outputs[r][index] += output.exactAmount().intValueExact();
             }
-            // Exact positive potential w=(1,...,1), including every side output.
-            // Weighted conversion rings not satisfying this sufficient proof keep their old path.
-            if (produced.compareTo(consumed) > 0) return null;
+            nonGrowing &= produced.compareTo(consumed) <= 0;
         }
+        // Cycles still require the exact positive potential w=(1,...,1), including side outputs.
+        // A direct target batch cannot feed another firing: all its inputs come from inventory.
+        // It may grow the item count, but the same state/depth/stock bounds keep this search finite
+        // and its integer balances bounded by 256 + MAX_FIRINGS * 256. Final replay remains required.
+        if (!nonGrowing && !terminalOnly) return null;
         int[] stock = new int[n]; int total = 0;
         for (int i = 0; i < n; i++) {
             BigInteger available = graph.exactStock(keys.get(i));
             if (available.compareTo(BigInteger.valueOf(MAX_STOCK - total)) > 0) return null;
             stock[i] = available.intValueExact(); total += stock[i];
         }
-        if (total < amount) return null;
+        if (nonGrowing && total < amount) return null;
         var queue = new ArrayDeque<Node>();
         var seen = new HashSet<Counts>();
         var first = new Counts(new int[m]);
