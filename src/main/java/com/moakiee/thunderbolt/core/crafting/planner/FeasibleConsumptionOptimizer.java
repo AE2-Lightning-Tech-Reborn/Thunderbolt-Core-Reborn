@@ -242,6 +242,30 @@ final class FeasibleConsumptionOptimizer {
                 best = candidate;
                 improvements++;
             }
+            mixTerminalFixedDepthBatches();
+        }
+
+        /** Search the supplemental neighborhood only after accepting the established result. */
+        private void mixTerminalFixedDepthBatches() {
+            if (exhausted || probes >= limit) return;
+            var candidate = TerminalFixedDepthOptimizer.tryImprove(graph, target, amount, best,
+                    work -> {
+                        if (exhausted || !spendWork.test(work)) {
+                            exhausted = true;
+                            stop = "budget";
+                            return false;
+                        }
+                        return true;
+                    }, () -> {
+                        if (exhausted || probes >= limit) return false;
+                        probes++;
+                        mixedProbes++;
+                        return true;
+                    });
+            if (candidate != null && improves(best, candidate)) {
+                best = candidate;
+                improvements++;
+            }
         }
 
         void run() {

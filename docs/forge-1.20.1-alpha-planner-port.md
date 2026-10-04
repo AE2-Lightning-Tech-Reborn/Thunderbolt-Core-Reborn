@@ -120,3 +120,47 @@ Validation of this backport:
 
 Artifact and validation provenance:
 [`benchmarks/planner-forge-1201-port-20261004.json`](benchmarks/planner-forge-1201-port-20261004.json).
+
+## Fixed-prefix and terminal-portfolio backport (2026-10-04)
+
+Source: `0060538c8acf5edcbb0af10ae3da5ebbf640d7d0`;
+destination baseline: `5ce6adf` on `1.20.1`.
+
+- Port calculation-local fixed-prefix reuse and direct single-route batch counts.
+  Preserve the source's work charging, execution-limit rejection order and
+  cancellation checks; no cached state crosses an incumbent search.
+- Port bounded terminal shortage recovery and the supplemental one/two/three-route
+  optimizer. Retain the source's scope restrictions, original-graph certificates,
+  shared work/probe limits, optional deadlines and incumbent retention.
+- Adapt the two new production `List.getFirst()` calls and the two new test
+  `List.getFirst()`/`getLast()` calls to Java 17 indexing. The pre-existing Java 17
+  collection adaptation remains in place. These components use only Java and
+  planner-core APIs; no NeoForge or newer AE2 API is introduced.
+- Retain the destination's calculation-scoped `IndexCache`, direct replenishment
+  certification, Java 17 verification allowances and bootstrap-reserve scratch
+  reuse. A destination-specific integration regression verifies that shared-work
+  refusal does not poison repeated cached searches, that the three-route result
+  still has an original-graph certificate, and that each invocation charges fresh
+  work without exceeding the global probe allowance.
+
+Validation with Temurin 17.0.19+10, Forge 47.1.3 and AE2 15.4.10:
+
+- `gradlew.bat clean test build --console=plain`: 1,146 tests, 1,145 passed,
+  zero failures/errors, one optional ExtendedAE Plus runtime probe skipped.
+  All 57 tests in the four imported suites, including the new cache integration
+  regression, passed. Forge reobfuscation and `verifyReleaseJar` succeeded.
+- The distributable contains 483 production classes, all Java 17 (major 61),
+  and its production class names match the tested compiler output. Both new
+  terminal components and their nested classes are present. Forge metadata,
+  Mixin configuration/refmap, embedded MixinExtras and license were verified.
+- `SmallConservativeSearch`, `TerminalBatchRecovery` and
+  `TerminalFixedDepthOptimizer` match the source commit; `UpstreamBatchOptimizer`
+  matches after Java 17 collection adaptation. The other two changed production
+  files retain only the pre-existing destination adaptations relative to source.
+- Imported round-six/round-seven alpha benchmark records remain Java 21 source
+  evidence. Their performance and generated-graph audits were not rerun on Forge
+  1.20.1. No interactive client/server gameplay session was launched.
+
+Artifact: `build/libs/thunderbolt-forge-1.20.1-2.0.0.jar`.
+Validation provenance:
+[`benchmarks/planner-forge-1201-round6-round7-port-20261004.json`](benchmarks/planner-forge-1201-round6-round7-port-20261004.json).
