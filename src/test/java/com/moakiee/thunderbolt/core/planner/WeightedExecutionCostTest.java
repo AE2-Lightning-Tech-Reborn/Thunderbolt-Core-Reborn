@@ -8,6 +8,33 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class WeightedExecutionCostTest {
+    @Test void executionTotalsMatchExactArithmeticAtMultiplyAndSumBoundaries() {
+        var unit = new CraftPattern<>("T", 1, List.of(), "unit");
+        var weighted = CraftPattern.weighted("T", 1, List.of(), List.of(), "weighted", 17);
+        var tag = CraftPattern.tagConversion("raw", "tag", "tag");
+        for (long count : new long[] {0, 1, Long.MAX_VALUE / 17, Long.MAX_VALUE / 17 + 1,
+                Long.MAX_VALUE - 1, Long.MAX_VALUE, -1, Long.MIN_VALUE}) {
+            for (long other : new long[] {0, 1, 17, Long.MAX_VALUE}) {
+                var firings = new java.util.LinkedHashMap<CraftPattern<String>, Long>();
+                firings.put(unit, other);
+                firings.put(weighted, count);
+                firings.put(tag, Long.MAX_VALUE);
+                var plan = new CraftPlan<>(true, true, firings, Map.of(), Map.of(), Map.of(), Map.of(), 0, false);
+                var exact = BigInteger.valueOf(other).add(BigInteger.valueOf(count).multiply(BigInteger.valueOf(17)));
+                assertEquals(exact, plan.executionCount());
+                var reversed = new java.util.LinkedHashMap<CraftPattern<String>, Long>();
+                reversed.put(tag, Long.MAX_VALUE);
+                reversed.put(weighted, count);
+                reversed.put(unit, other);
+                assertEquals(exact, new CraftPlan<>(true, true, reversed, Map.of(), Map.of(), Map.of(), Map.of(), 0, false)
+                        .executionCount());
+            }
+        }
+        var overflowSum = new CraftPlan<>(true, true, Map.of(unit, Long.MAX_VALUE, weighted, 1L),
+                Map.of(), Map.of(), Map.of(), Map.of(), 0, false);
+        assertEquals(BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.valueOf(17)), overflowSum.executionCount());
+    }
+
     @Test void ordinaryWeightsArePositiveAndTagConversionIsTheOnlyFreeFactory() {
         var ordinary = new CraftPattern<>("T", 1, List.of(CraftInput.of("raw", 1)), null);
         var weighted = CraftPattern.weighted("T", 2, List.of(CraftInput.of("raw", 1)),
