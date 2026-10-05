@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1184,7 +1185,7 @@ final class FeasibleConsumptionOptimizer {
         final ArrayList<K> keys = new ArrayList<>();
         final HashMap<K, Integer> ids = new HashMap<>();
         final ArrayList<CraftPattern<K>> patterns = new ArrayList<>();
-        final HashMap<CraftPattern<K>, Integer> patternIds = new HashMap<>();
+        final IdentityHashMap<CraftPattern<K>, Integer> patternIds = new IdentityHashMap<>();
         boolean choices;
         int[] out;
         int[] executionCost;
@@ -1235,7 +1236,8 @@ final class FeasibleConsumptionOptimizer {
                 int keyId = pending.data[cursor];
                 var routes = graph.patternsFor(index.keys.get(keyId));
                 index.choices |= routes.size() > 1;
-                for (var pattern : routes) {
+                for (int route = 0; route < routes.size(); route++) {
+                    var pattern = routes.get(route);
                     // Repeated registration does not add another firing variable. Keep the
                     // first identity in graph order, including distinct fuzzy expansions.
                     if (index.patternIds.containsKey(pattern)) continue;
@@ -1244,7 +1246,9 @@ final class FeasibleConsumptionOptimizer {
                     int sideFrom = sideKey.size;
                     var wideSide = pattern.byproducts().size() > LINEAR_SLOT_LIMIT ? new HashSet<Integer>() : null;
                     int checkedSides = 0;
-                    for (var side : pattern.byproducts()) {
+                    var byproducts = pattern.byproducts();
+                    for (int slot = 0; slot < byproducts.size(); slot++) {
+                        var side = byproducts.get(slot);
                         if ((++checkedSides & 255) == 0) PlanningCancellation.check();
                         if (side.exactAmount().compareTo(sat) >= 0) return null;
                         long value = side.exactAmount().longValueExact();
@@ -1263,7 +1267,9 @@ final class FeasibleConsumptionOptimizer {
                     var wideUse = pattern.inputs().size() > LINEAR_SLOT_LIMIT ? new HashMap<Integer, Integer>() : null;
                     boolean stateful = false;
                     int checkedInputs = 0;
-                    for (var input : pattern.inputs()) {
+                    var inputs = pattern.inputs();
+                    for (int slot = 0; slot < inputs.size(); slot++) {
+                        var input = inputs.get(slot);
                         if ((++checkedInputs & 255) == 0) PlanningCancellation.check();
                         if (input.exactAmount().compareTo(sat) >= 0) return null;
                         int inputId = index.id(input.key());
