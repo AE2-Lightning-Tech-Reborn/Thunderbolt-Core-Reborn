@@ -50,6 +50,33 @@ class FrameConstructionReuseTest {
     }
 
     @Test
+    void childOrderSurvivesWideFramesDuplicateKeysAndInterleavedCuts() throws Exception {
+        for (int count : new int[] {7, 8, 9, 32, 256}) {
+            var keys = new ArrayList<String>();
+            for (int i = 0; i < count; i++) keys.add("child-" + i);
+            var first = ordinary(keys.toArray(String[]::new));
+            var reversed = new ArrayList<String>();
+            for (int i = count - 1; i >= 0; i--) reversed.add(new String(keys.get(i)));
+            reversed.add("last");
+            var second = ordinary(reversed.toArray(String[]::new));
+            var rejected = ordinary("blocked", "excluded");
+            var fixture = new Fixture(graph(List.of(first, rejected, second, first)));
+            var colors = new HashMap<>(Map.of(OUTPUT, 1, "blocked", 1));
+            var items = new LinkedHashSet<>(List.of("earlier", OUTPUT));
+            var observed = fixture.frame(colors, items);
+
+            var expected = new ArrayList<>(keys);
+            expected.add("last");
+            assertEquals(expected, observed.children(), "child count " + count);
+            assertIdentities(List.of(first, second, first), observed.retained());
+            var expectedItems = new ArrayList<>(List.of("earlier", OUTPUT));
+            expectedItems.addAll(expected);
+            assertEquals(expectedItems, List.copyOf(items));
+            assertEquals(Set.of(OUTPUT), fixture.<Set<String>>field("cutOutputs"));
+        }
+    }
+
+    @Test
     void everyCutKindPreservesDuplicateRecipesBeforeAndAfterTheFirstCut() throws Exception {
         var repeated = ordinary("first", "shared");
         var other = ordinary("shared", "last");

@@ -3,6 +3,8 @@ package com.moakiee.thunderbolt.core.crafting.planner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,6 +18,76 @@ import org.junit.jupiter.api.Test;
 
 /** Exercises the publication boundary and real amount probes over the shared prepared tables. */
 class PreparedGraphTableReuseTest {
+    @Test
+    void linearSuccessDefersEquivalenceUntilALaterQuantityNeedsSearch() throws Exception {
+        var graph = CraftGraph.<String>builder()
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1)))
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1)))
+                .stock("raw", 4).build();
+        var session = PreparedGraphTableReuseTest.<String>session();
+        assertTrue(CraftPlannerV2.planDetailed(graph, "T", 2, session).plan().feasible());
+        Object prepared = onlyPrepared(session);
+        assertNull(field(prepared, "materialFootprintByPattern"));
+
+        var searched = CraftPlannerV2.planDetailed(graph, "T", 5, session);
+        assertFalse(searched.plan().feasible());
+        assertEquals(CraftPlannerV2.planDetailed(graph, "T", 5, session()).plan(), searched.plan());
+        assertSame(prepared, onlyPrepared(session));
+        Map<?, ?> footprints = field(prepared, "materialFootprintByPattern");
+        assertNotNull(footprints);
+        assertEquals(2, footprints.size());
+        assertThrows(UnsupportedOperationException.class, footprints::clear);
+        assertTrue(CraftPlannerV2.planDetailed(graph, "T", 1, session).plan().feasible());
+        assertSame(footprints, field(prepared, "materialFootprintByPattern"));
+    }
+
+    @Test
+    void cancelledLazyEquivalenceBuildDoesNotPublishAPartialTable() throws Exception {
+        var graph = CraftGraph.<String>builder()
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1)))
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1)))
+                .stock("raw", 4).build();
+        var session = PreparedGraphTableReuseTest.<String>session();
+        assertTrue(CraftPlannerV2.planDetailed(graph, "T", 1, session).plan().feasible());
+        Object prepared = onlyPrepared(session);
+        var build = prepared.getClass().getDeclaredMethod("materialFootprints");
+        build.setAccessible(true);
+        try (var ignored = PlanningCancellation.limitOptionalWork(0)) {
+            var failure = assertThrows(java.lang.reflect.InvocationTargetException.class,
+                    () -> build.invoke(prepared));
+            assertTrue(failure.getCause() instanceof PlanningCancellation.OptionalWorkLimit);
+        }
+        assertNull(field(prepared, "materialFootprintByPattern"));
+        Object complete = build.invoke(prepared);
+        assertSame(complete, build.invoke(prepared));
+        assertEquals(2, ((Map<?, ?>) complete).size());
+    }
+
+    @Test
+    void lazyEquivalenceUsesItsOwnStockProjection() throws Exception {
+        var graph = CraftGraph.<String>builder()
+                .pattern("T", 1, List.of(CraftInput.of("A", 1)))
+                .pattern("T", 1, List.of(CraftInput.of("B", 1)))
+                .pattern("A", 1, List.of(CraftInput.of("raw", 1)))
+                .pattern("B", 1, List.of(CraftInput.of("raw", 1)))
+                .stock("raw", 10).build();
+        var stocked = graph.withAdditionalStock(Map.of("A", 1L));
+        var originalSession = PreparedGraphTableReuseTest.<String>session();
+        var stockedSession = PreparedGraphTableReuseTest.<String>session();
+        CraftPlannerV2.planDetailed(graph, "T", 1, originalSession);
+        CraftPlannerV2.planDetailed(stocked, "T", 1, stockedSession);
+        Object original = onlyPrepared(originalSession), projection = onlyPrepared(stockedSession);
+        var build = original.getClass().getDeclaredMethod("materialFootprints");
+        build.setAccessible(true);
+        var originalIndex = (Map<?, ?>) build.invoke(original);
+        var projectedIndex = (Map<?, ?>) build.invoke(projection);
+        var first = graph.patternsFor("T").get(0);
+        var second = graph.patternsFor("T").get(1);
+        assertEquals(originalIndex.get(first), originalIndex.get(second));
+        assertFalse(projectedIndex.get(first).equals(projectedIndex.get(second)));
+        assertSame(originalIndex, build.invoke(original));
+    }
+
     @Test
     void snapshotAndEveryReplayShareReadOnlyTablesButOwnTheirCapacityMemo() throws Exception {
         var graph = CraftGraph.<String>builder()

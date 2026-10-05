@@ -103,9 +103,9 @@ final class OptionalPlanningStages {
                         probeLimit - session.consumptionOptimizationProbes - mixedProbes,
                         candidateGraph -> {
                             // Charge the reachable local region, not the whole integration pack.
-                            int localWork = CraftPlannerV2.reachableWorkEstimate(candidateGraph, target);
-                            if (!session.searchWorkBudget.tryConsume(localWork)) return null;
                             var probe = new PlanningSession<K>();
+                            int localWork = probe.reachableWork(candidateGraph, target);
+                            if (!session.searchWorkBudget.tryConsume(localWork)) return null;
                             probe.optimizeFeasible = false;
                             probe.refineMissing = false;
                             probe.lowWidthWorkBudget = session.lowWidthWorkBudget;

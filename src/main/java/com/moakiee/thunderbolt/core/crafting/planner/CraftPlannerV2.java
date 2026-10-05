@@ -170,17 +170,33 @@ public final class CraftPlannerV2<K> {
         long conservativeSearchNanos;
         private long missingRefinementNanos;
         private int reachableWorkEstimate;
+        private Map<K, Integer> inputDistances;
 
         public PlanningSession() {
         }
 
-        private int reachableWork(CraftGraph<K> candidateGraph, K candidateTarget) {
+        int reachableWork(CraftGraph<K> candidateGraph, K candidateTarget) {
             validateOwner(candidateGraph, candidateTarget);
+            return compileReachableGraph(candidateGraph, candidateTarget);
+        }
+
+        private int compileReachableGraph(CraftGraph<K> candidateGraph, K candidateTarget) {
             if (reachableWorkEstimate == 0) {
-                reachableWorkEstimate = CraftPlannerV2.reachableWorkEstimate(
-                        candidateGraph, candidateTarget);
+                var distances = new HashMap<K, Integer>();
+                int work = CraftPlannerV2.reachableWorkEstimate(candidateGraph, candidateTarget, distances);
+                // Publish only a completed admitted traversal; tiny tables retain compact lookups.
+                if (work <= MAX_REACHABLE_PLANNING_WORK) {
+                    inputDistances = distances.size() <= 16 ? Map.copyOf(distances)
+                            : java.util.Collections.unmodifiableMap(distances);
+                }
+                reachableWorkEstimate = work;
             }
             return reachableWorkEstimate;
+        }
+
+        private Map<K, Integer> inputDistances() {
+            if (inputDistances == null) inputDistances = shortestInputDistances(graph, target);
+            return inputDistances;
         }
 
         private void bind(
@@ -327,10 +343,9 @@ public final class CraftPlannerV2<K> {
      */
     private final Map<ConsumableProofState<K>, Long> provenDirectConsumableShortfalls =
             new HashMap<>();
-    // Canonical material transformations for this compiled graph, selected producers and inventory.
-    // Equal ids let one obtain() call search a proven equivalent branch once instead of reopening
-    // the same dependency tree under a different intermediate key.
-    private Map<CraftPattern<K>, Integer> materialFootprintByPattern = Map.of();
+    // Supply upper bounds for this compiled graph, selected producers and inventory.
+    // Replays share the frozen capacity map while keeping their own mutable
+    // capacity-score memo and current demand reservations.
     private Map<K, Long> capacity;
 
     // Mutable planning state (all writes go through the trail so a branch can be rolled back).
@@ -405,19 +420,21 @@ public final class CraftPlannerV2<K> {
     }
 
     public static <K> CraftPlan<K> plan(CraftGraph<K> graph, K target, long amount) {
-        int reachableWork = reachableWorkEstimate(graph, target);
+        var session = new PlanningSession<K>();
+        int reachableWork = session.compileReachableGraph(graph, target);
         return planDetailed(
                 graph, target, amount, DEFAULT_VISIT_CAP,
                 scaledSearchWorkBudget(reachableWork), reachableWork,
-                new PlanningSession<>()).plan();
+                session).plan();
     }
 
     public static <K> CraftPlan<K> plan(CraftGraph<K> graph, K target, long amount, int visitCap) {
-        int reachableWork = reachableWorkEstimate(graph, target);
+        var session = new PlanningSession<K>();
+        int reachableWork = session.compileReachableGraph(graph, target);
         return planDetailed(
                 graph, target, amount, visitCap,
                 scaledSearchWorkBudget(reachableWork), reachableWork,
-                new PlanningSession<>()).plan();
+                session).plan();
     }
 
     static <K> CraftPlan<K> plan(
@@ -435,11 +452,11 @@ public final class CraftPlannerV2<K> {
      */
     public static <K> PlanningResult<K> planDetailed(
             CraftGraph<K> graph, K target, long amount) {
-        int reachableWork = reachableWorkEstimate(graph, target);
+        var session = new PlanningSession<K>();
+        int reachableWork = session.compileReachableGraph(graph, target);
         return planDetailed(
                 graph, target, amount, DEFAULT_VISIT_CAP,
-                scaledSearchWorkBudget(reachableWork), reachableWork,
-                new PlanningSession<>());
+                scaledSearchWorkBudget(reachableWork), reachableWork, session);
     }
 
     /** Reuses immutable compilation and all work budgets across quantity probes of one calculation. */
@@ -492,9 +509,10 @@ public final class CraftPlannerV2<K> {
             long amount,
             int visitCap,
             int searchWorkBudget) {
+        var session = new PlanningSession<K>();
         return planDetailed(
                 graph, target, amount, visitCap, searchWorkBudget,
-                reachableWorkEstimate(graph, target), new PlanningSession<>());
+                session.compileReachableGraph(graph, target), session);
     }
 
     private static <K> PlanningResult<K> planDetailed(
@@ -535,7 +553,7 @@ public final class CraftPlannerV2<K> {
                     true);
             return new PlanningResult<>(boundedMissing, diagnostics.finish(started, null));
         }
-        Map<K, Integer> objectiveDistances = shortestInputDistances(graph, target);
+        Map<K, Integer> objectiveDistances = session.inputDistances();
         SearchBudget budget = new SearchBudget(
                 searchWorkBudget, session.searchWorkBudget, diagnostics);
         BoundedIntegerLinearSolver.WorkBudget lowWidthWorkBudget = session.lowWidthWorkBudget;
@@ -1131,30 +1149,42 @@ public final class CraftPlannerV2<K> {
     }
 
     static <K> int reachableWorkEstimate(CraftGraph<K> graph, K target) {
+        return reachableWorkEstimate(graph, target, null);
+    }
+
+    /** The admission BFS can also supply the objective's shortest primary-input distances. */
+    private static <K> int reachableWorkEstimate(CraftGraph<K> graph, K target, Map<K, Integer> distances) {
         PlanningCancellation.check();
-        Set<K> seen = new HashSet<>();
+        Set<K> seen = distances == null ? new HashSet<>() : null;
         Deque<K> queue = new ArrayDeque<>();
-        seen.add(target);
+        if (distances == null) seen.add(target);
+        else distances.put(target, 0);
         queue.add(target);
         long work = 0L;
         while (!queue.isEmpty()) {
             PlanningCancellation.check();
             K key = queue.removeFirst();
+            Integer nextDistance = distances == null ? null : distances.get(key) + 1;
             work++;
             if (work > MAX_REACHABLE_PLANNING_WORK) {
                 return MAX_REACHABLE_PLANNING_WORK + 1;
             }
-            for (CraftPattern<K> pattern : graph.patternsFor(key)) {
+            List<CraftPattern<K>> patterns = graph.patternsFor(key);
+            for (int p = 0; p < patterns.size(); p++) {
+                CraftPattern<K> pattern = patterns.get(p);
                 work++;
                 if (work > MAX_REACHABLE_PLANNING_WORK) {
                     return MAX_REACHABLE_PLANNING_WORK + 1;
                 }
-                for (CraftInput<K> input : pattern.inputs()) {
+                List<CraftInput<K>> inputs = pattern.inputs();
+                for (int slot = 0; slot < inputs.size(); slot++) {
+                    CraftInput<K> input = inputs.get(slot);
                     work++;
                     if (work > MAX_REACHABLE_PLANNING_WORK) {
                         return MAX_REACHABLE_PLANNING_WORK + 1;
                     }
-                    if (seen.add(input.key())) {
+                    if (distances == null ? seen.add(input.key())
+                            : distances.putIfAbsent(input.key(), nextDistance) == null) {
                         queue.addLast(input.key());
                     }
                 }
@@ -1337,7 +1367,6 @@ public final class CraftPlannerV2<K> {
             this.capacity = capacityFromOrder(order, items.size());
             indexCapacityOrder();
             indexDirectRawConsumables();
-            materialFootprintByPattern = MaterialFootprintIndex.build(graph, order, patternsByOutput);
             ByproductSchedule<K> compiledByproductSchedule = lowWidthByproductSchedule(order);
             preparedGraph = snapshotPreparedGraph(order, items, compiledByproductSchedule);
             diagnostics.recordCompilation(preparedGraph, System.nanoTime() - compileStarted);
@@ -1801,7 +1830,6 @@ public final class CraftPlannerV2<K> {
                 capacityScoreByPattern,
                 capacityOrderByOutput,
                 directRawConsumablesByPattern,
-                materialFootprintByPattern,
                 byproductSchedule,
                 patternCount,
                 inputCount,
@@ -1829,7 +1857,6 @@ public final class CraftPlannerV2<K> {
         capacityScoreByPattern.putAll(prepared.capacityScoreByPattern);
         capacityOrderByOutput = prepared.capacityOrderByOutput;
         directRawConsumablesByPattern = prepared.directRawConsumablesByPattern;
-        materialFootprintByPattern = prepared.materialFootprintByPattern;
     }
 
     /**
@@ -2375,17 +2402,22 @@ public final class CraftPlannerV2<K> {
      */
     private void indexLinearContainerBootstrapReserves() {
         linearContainerBootstrapReserves.clear();
+        // Container remainders are normalized into byproducts by CraftPattern.
+        if (!graph.hasByproducts()) return;
         for (List<CraftPattern<K>> patterns : patternsByOutput.values()) {
             PlanningCancellation.check();
             for (CraftPattern<K> consumer : patterns) {
-                Map<K, Long> reserves = new HashMap<>();
+                if (consumer.byproducts().isEmpty()) continue;
+                Map<K, Long> reserves = null;
                 for (CraftInput<K> transition : consumer.inputs()) {
                     K remainder = transition.remainder();
                     if (remainder == null || transition.key().equals(remainder)) continue;
                     long returned = byproductAmount(consumer, remainder);
                     if (returned <= 0 || !dependsOn(transition.key(), remainder)) continue;
+                    if (reserves == null) reserves = new HashMap<>();
                     reserves.merge(remainder, transition.amount(), Sat::add);
                 }
+                if (reserves == null) continue;
                 reserves.replaceAll((key, required) ->
                         Math.min(required, byproductAmount(consumer, key)));
                 reserves.values().removeIf(amount -> amount <= 0);
@@ -2654,10 +2686,13 @@ public final class CraftPlannerV2<K> {
         // Recipe lists in CraftGraph are immutable. Copy only when a cut first changes this list;
         // use the registration position because the same pattern may appear more than once.
         List<CraftPattern<K>> usable = null;
-        Set<K> children = null;
+        List<K> children = null;
+        Set<K> childSet = null;
         for (int patternIndex = 0; patternIndex < all.size(); patternIndex++) {
             CraftPattern<K> p = all.get(patternIndex);
-            for (CraftOutput<K> byproduct : p.byproducts()) {
+            List<CraftOutput<K>> byproducts = p.byproducts();
+            for (int slot = 0; slot < byproducts.size(); slot++) {
+                CraftOutput<K> byproduct = byproducts.get(slot);
                 reachableByproductKeys.add(byproduct.key());
             }
             if (producibilityRanked && !retainsProducibleRoute(x, p)) {
@@ -2686,7 +2721,9 @@ public final class CraftPlannerV2<K> {
             List<CraftInput<K>> backEdges = null;
             // Scan every input before cutting: even a rejected route contributes returned-seed
             // metadata from slots after its first back edge.
-            for (CraftInput<K> in : p.inputs()) {
+            List<CraftInput<K>> inputs = p.inputs();
+            for (int slot = 0; slot < inputs.size(); slot++) {
+                CraftInput<K> in = inputs.get(slot);
                 if (in.returned() && in.uses() == CraftInput.INFINITE_USES) {
                     if (isSelfReturnedSeed(p, in) || in.reusableStockSource() != null) {
                         requiresSeedOrderedPlanning = true;
@@ -2737,20 +2774,25 @@ public final class CraftPlannerV2<K> {
                 }
             }
             if (usable != null) usable.add(p);
-            for (CraftInput<K> in : p.inputs()) {
+            for (int slot = 0; slot < inputs.size(); slot++) {
+                CraftInput<K> in = inputs.get(slot);
                 if (isSelfReturnedSeed(p, in)
                         || isHostBackedReusableSeed(in)
                         || isFeedbackSeed(p, in)
                         || isFeedbackConverterInput(p, in)) {
                     continue;
                 }
-                if (children == null) children = new LinkedHashSet<>();
-                children.add(in.key());
+                if (children == null) children = new ArrayList<>(4);
+                // Most frames have only a few distinct inputs. Keep their first-seen order in
+                // the final list; wider frames use a set without copying that list at the end.
+                if (childSet == null && children.size() == 8) childSet = new HashSet<>(children);
+                if (childSet == null ? !children.contains(in.key()) : childSet.add(in.key()))
+                    children.add(in.key());
                 itemsOut.add(in.key());
             }
         }
         patternsByOutput.put(x, usable == null ? all : usable);
-        return new Frame<>(x, children == null ? List.of() : new ArrayList<>(children));
+        return new Frame<>(x, children == null ? List.of() : children);
     }
 
     /**
@@ -5174,13 +5216,15 @@ public final class CraftPlannerV2<K> {
     }
 
     private List<CraftPattern<K>> distinctMaterialBranches(List<CraftPattern<K>> ordered) {
-        if (ordered.size() < 2 || materialFootprintByPattern.isEmpty()) {
+        if (ordered.size() < 2) {
             return ordered;
         }
+        var materialFootprints = preparedGraph.materialFootprints();
+        if (materialFootprints.isEmpty()) return ordered;
         Set<Integer> seen = new HashSet<>();
         List<CraftPattern<K>> distinct = new ArrayList<>(ordered.size());
         for (CraftPattern<K> pattern : ordered) {
-            Integer footprint = materialFootprintByPattern.get(pattern);
+            Integer footprint = materialFootprints.get(pattern);
             if (footprint == null || seen.add(footprint)) {
                 distinct.add(pattern);
             }
@@ -6243,7 +6287,7 @@ public final class CraftPlannerV2<K> {
             LowWidthComponent<K> component, LowWidthSolve<K> solve) {
     }
 
-    /** Immutable output of graph discovery/cycle cutting for one priority-root orientation. */
+    /** Frozen discovery for one orientation, with thread-confined, lazily published lookup tables. */
     private static final class PreparedGraph<K> {
         private final CraftGraph<K> graph;
         private final List<K> order;
@@ -6263,7 +6307,7 @@ public final class CraftPlannerV2<K> {
         private final Map<CraftPattern<K>, Long> capacityScoreByPattern;
         private final Map<K, List<CraftPattern<K>>> capacityOrderByOutput;
         private final Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern;
-        private final Map<CraftPattern<K>, Integer> materialFootprintByPattern;
+        private Map<CraftPattern<K>, Integer> materialFootprintByPattern;
         private final ByproductSchedule<K> byproductSchedule;
         private final int patternCount;
         private final int inputCount;
@@ -6288,7 +6332,6 @@ public final class CraftPlannerV2<K> {
                 Map<CraftPattern<K>, Long> capacityScoreByPattern,
                 Map<K, List<CraftPattern<K>>> capacityOrderByOutput,
                 Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern,
-                Map<CraftPattern<K>, Integer> materialFootprintByPattern,
                 ByproductSchedule<K> byproductSchedule,
                 int patternCount,
                 int inputCount,
@@ -6311,11 +6354,19 @@ public final class CraftPlannerV2<K> {
             this.capacityScoreByPattern = capacityScoreByPattern;
             this.capacityOrderByOutput = capacityOrderByOutput;
             this.directRawConsumablesByPattern = directRawConsumablesByPattern;
-            this.materialFootprintByPattern = materialFootprintByPattern;
             this.byproductSchedule = byproductSchedule;
             this.patternCount = patternCount;
             this.inputCount = inputCount;
             this.contendedOutputCount = contendedOutputCount;
+        }
+
+        private Map<CraftPattern<K>, Integer> materialFootprints() {
+            if (materialFootprintByPattern == null) {
+                // Linear plans need no equivalence proof. Publish only a completed immutable
+                // index; a cancelled build remains retryable on this exact stock/orientation.
+                materialFootprintByPattern = MaterialFootprintIndex.build(graph, order, patternsByOutput);
+            }
+            return materialFootprintByPattern;
         }
     }
 
