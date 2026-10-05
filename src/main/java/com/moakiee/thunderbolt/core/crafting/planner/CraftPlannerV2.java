@@ -1000,9 +1000,13 @@ public final class CraftPlannerV2<K> {
         for (int i = preparedGraph.order.size() - 1; i >= 0; i--) {
             K output = preparedGraph.order.get(i);
             long shortfall = causalMissing.getOrDefault(output, 0L);
-            for (var pattern : patternsByOutput.getOrDefault(output, List.of())) {
+            var routes = patternsByOutput.getOrDefault(output, List.of());
+            for (int p = 0; p < routes.size(); p++) {
+                var pattern = routes.get(p);
                 if (plan.firings().getOrDefault(pattern, 0L) <= 0L) continue;
-                for (var input : pattern.inputs()) {
+                var inputs = pattern.inputs();
+                for (int slot = 0; slot < inputs.size(); slot++) {
+                    var input = inputs.get(slot);
                     shortfall = Sat.add(shortfall, causalMissing.getOrDefault(input.key(), 0L));
                 }
             }
@@ -1907,6 +1911,10 @@ public final class CraftPlannerV2<K> {
      * inventory unless some fired acyclic producer supplies either state from outside the pair.
      */
     private CraftPlan<K> enforceCycleBootstrap(CraftPlan<K> plan, K target, long amount) {
+        // Container remainders are normalized as byproducts. Without either side outputs or
+        // compiled feedback components, none of the bootstrap checks below can change the plan.
+        if (!graph.hasByproducts() && conservativeFeedbackComponents.isEmpty()
+                && canonicalFeedbackFallbackComponents.isEmpty()) return plan;
         Map<K, List<CraftPattern<K>>> firedByOutput = new HashMap<>();
         for (Map.Entry<CraftPattern<K>, Long> entry : plan.firings().entrySet()) {
             if (entry.getValue() > 0) {
@@ -3462,12 +3470,18 @@ public final class CraftPlannerV2<K> {
             if (owner == null) {
                 continue;
             }
-            for (CraftPattern<K> pattern : patternsByOutput.getOrDefault(output, List.of())) {
-                for (CraftInput<K> input : pattern.inputs()) {
+            var routes = patternsByOutput.getOrDefault(output, List.of());
+            for (int p = 0; p < routes.size(); p++) {
+                CraftPattern<K> pattern = routes.get(p);
+                var inputs = pattern.inputs();
+                for (int slot = 0; slot < inputs.size(); slot++) {
+                    CraftInput<K> input = inputs.get(slot);
                     if (!relaxedRaw.contains(input.key()))
                         unionItemOwner(ownerByItem, unions, input.key(), owner);
                 }
-                for (CraftOutput<K> byproduct : pattern.byproducts()) {
+                var byproducts = pattern.byproducts();
+                for (int slot = 0; slot < byproducts.size(); slot++) {
+                    CraftOutput<K> byproduct = byproducts.get(slot);
                     if (byproductSchedule.models(pattern, byproduct.key())) {
                         unionItemOwner(ownerByItem, unions, byproduct.key(), owner);
                     }
@@ -4466,7 +4480,6 @@ public final class CraftPlannerV2<K> {
         var diagnosticUnitCosts = new LazyDiagnosticUnitCosts(order);
         Map<K, Long> need = new HashMap<>();
         Map<K, Long> bp = new HashMap<>();       // byproduct / surplus pool
-        Map<K, Long> stockL = new HashMap<>();   // remaining inventory
         Map<K, Long> used = new HashMap<>();
         Map<K, Long> miss = new HashMap<>();
         Map<K, Long> gross = new HashMap<>();
@@ -4495,10 +4508,9 @@ public final class CraftPlannerV2<K> {
                 bp.put(x, lget(bp, x) - fromBp);
                 d -= fromBp;
             }
-            long fromStock = Math.min(Math.max(0L, d - reservedProduction),
-                    stockL.computeIfAbsent(x, graph::stock));
+            // The material order contains each key once; this sweep never revisits its stock.
+            long fromStock = Math.min(Math.max(0L, d - reservedProduction), graph.stock(x));
             if (fromStock > 0) {
-                stockL.put(x, lget(stockL, x) - fromStock);
                 used.merge(x, fromStock, Sat::add);
                 d -= fromStock;
             }
@@ -4866,7 +4878,9 @@ public final class CraftPlannerV2<K> {
     /** capRemaining(input) = static capacity − already-reserved demand; combined over a recipe's inputs. */
     private long capRemainingVia(CraftPattern<K> r, Map<K, Long> need) {
         long bound = Sat.SAT;
-        for (CraftInput<K> in : r.inputs()) {
+        var inputs = r.inputs();
+        for (int slot = 0; slot < inputs.size(); slot++) {
+            CraftInput<K> in = inputs.get(slot);
             long cr = Math.max(0L, capacity.getOrDefault(in.key(), 0L) - need.getOrDefault(in.key(), 0L));
             bound = Math.min(bound, in.firingsFrom(cr));
             if (bound == 0) {
@@ -4879,7 +4893,9 @@ public final class CraftPlannerV2<K> {
     private long preexistingStockRemainingCapacity(
             CraftPattern<K> pattern, Map<K, Long> need) {
         long bound = Sat.SAT;
-        for (CraftInput<K> input : pattern.inputs()) {
+        var inputs = pattern.inputs();
+        for (int slot = 0; slot < inputs.size(); slot++) {
+            CraftInput<K> input = inputs.get(slot);
             long remaining = Math.max(
                     0L, graph.stock(input.key()) - need.getOrDefault(input.key(), 0L));
             bound = Math.min(bound, input.firingsFrom(remaining));
@@ -5385,7 +5401,8 @@ public final class CraftPlannerV2<K> {
         if (materialFootprints.isEmpty()) return ordered;
         Set<Integer> seen = new HashSet<>();
         List<CraftPattern<K>> distinct = new ArrayList<>(ordered.size());
-        for (CraftPattern<K> pattern : ordered) {
+        for (int i = 0; i < ordered.size(); i++) {
+            CraftPattern<K> pattern = ordered.get(i);
             Integer footprint = materialFootprints.get(pattern);
             if (footprint == null || seen.add(footprint)) {
                 distinct.add(pattern);

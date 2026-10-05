@@ -180,12 +180,16 @@ final class MaterialDagOrders {
             // Cover arc admission, projection construction, sorting, and its forward supply bound.
             charge(budget, 4L*(1L+pattern.inputs().size()+pattern.byproducts().size()));
             int earliestOutput = rank.get(pattern.output());
-            for (var output : pattern.byproducts()) {
+            var byproducts = pattern.byproducts();
+            for (int slot = 0; slot < byproducts.size(); slot++) {
+                var output = byproducts.get(slot);
                 if (reachable.contains(output.key()))
                     earliestOutput = Math.min(earliestOutput, rank.get(output.key()));
             }
             boolean admitted = true;
-            for (var input : pattern.inputs()) {
+            var inputs = pattern.inputs();
+            for (int slot = 0; slot < inputs.size(); slot++) {
+                var input = inputs.get(slot);
                 if (rank.getOrDefault(input.key(), 0) >= earliestOutput) {
                     admitted = false;
                     break;
@@ -224,7 +228,9 @@ final class MaterialDagOrders {
 
     private static <K> int lastInputRank(CraftPattern<K> pattern, Map<K, Integer> rank) {
         int last = -1;
-        for (var input : pattern.inputs()) last = Math.max(last, rank.getOrDefault(input.key(), 0));
+        var inputs = pattern.inputs();
+        for (int slot = 0; slot < inputs.size(); slot++)
+            last = Math.max(last, rank.getOrDefault(inputs.get(slot).key(), 0));
         return last;
     }
 
@@ -236,10 +242,13 @@ final class MaterialDagOrders {
     private static <K> long optimisticCapacity(CraftGraph<K> graph, K target,
             List<CraftPattern<K>> supplyOrder) {
         var supply = new HashMap<K, Long>();
-        for (var pattern : supplyOrder) {
+        for (int p = 0; p < supplyOrder.size(); p++) {
+            var pattern = supplyOrder.get(p);
             PlanningCancellation.check();
             long times = Sat.SAT;
-            for (var input : pattern.inputs()) {
+            var inputs = pattern.inputs();
+            for (int slot = 0; slot < inputs.size(); slot++) {
+                var input = inputs.get(slot);
                 long available = supply.getOrDefault(input.key(), graph.stock(input.key()));
                 // Saturation means unknown upper infinity, not a finite quantity to divide.
                 long viaInput = Sat.isSaturated(available) ? Sat.SAT
@@ -251,7 +260,9 @@ final class MaterialDagOrders {
             supply.put(pattern.output(), Sat.add(
                     supply.getOrDefault(pattern.output(), graph.stock(pattern.output())),
                     Sat.mul(times, pattern.outputAmount())));
-            for (var output : pattern.byproducts()) {
+            var byproducts = pattern.byproducts();
+            for (int slot = 0; slot < byproducts.size(); slot++) {
+                var output = byproducts.get(slot);
                 supply.put(output.key(), Sat.add(
                         supply.getOrDefault(output.key(), graph.stock(output.key())),
                         Sat.mul(times, output.amount())));

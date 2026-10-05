@@ -610,10 +610,13 @@ final class FeasibleConsumptionOptimizer {
                 List<K> order = dagOrder(selected);
                 if (!order.isEmpty()) return new Policy<>(selected, order);
             }
-            Integer[] byRank = new Integer[n];
+            // Reachability assigns dense, unique ranks in discovery order.
+            int[] byRank = new int[n];
             int count = 0;
-            for (int k = 0; k < n; k++) if (global.rank[k] >= 0) byRank[count++] = k;
-            Arrays.sort(byRank, 0, count, (a, b) -> Integer.compare(global.rank[a], global.rank[b]));
+            for (int k = 0; k < n; k++) if (global.rank[k] >= 0) {
+                byRank[global.rank[k]] = k;
+                count++;
+            }
             double[] cost = stockCost(price);
             Arrays.fill(choice, -1);
             for (int r = 0; r < count; r++) {
@@ -1053,7 +1056,8 @@ final class FeasibleConsumptionOptimizer {
                 return prop;
             }
             // Stock priced by production, then charged for its limit.
-            double[] priced = new double[n];
+            // Only the scalar bound and the separate choices survive the free-stock pass.
+            double[] priced = free;
             Arrays.fill(priced, Double.POSITIVE_INFINITY);
             for (int k = 0; k < n; k++) if (prop.side[k] || prop.avail[k] && !prop.produced[k]) priced[k] = 0;
             int[] argmin = keepChoices ? new int[n] : null;
