@@ -56,7 +56,10 @@ class MaterialFootprintCancellationTest {
         }
         if (sideOutputs) inputs.add(CraftInput.of(raw, 1));
         var pattern = new CraftPattern<>(target, 1, inputs, outputs, null);
-        var graph = builder.pattern(pattern).build();
+        builder.pattern(pattern);
+        // Equivalence is now requested only after the linear pass needs competing routes.
+        if (publicEntry) builder.pattern(new CraftPattern<>(target, 1, inputs, outputs, null));
+        var graph = builder.build();
         var selected = Map.of(target, List.of(pattern));
         var healthyIndex = MaterialFootprintIndex.build(graph, order, selected);
         var healthyPlan = CraftPlannerV2.plan(graph, target, 1);
@@ -68,7 +71,7 @@ class MaterialFootprintCancellationTest {
         probe.armed = true;
         try {
             assertThrows(CancellationException.class, () -> {
-                if (publicEntry) CraftPlannerV2.planDetailed(graph, target, 1);
+                if (publicEntry) CraftPlannerV2.planDetailed(graph, target, 2);
                 else MaterialFootprintIndex.build(graph, order, selected);
             });
             assertTrue(probe.triggered, "must cancel inside the intended footprint stage");
