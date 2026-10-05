@@ -44,7 +44,15 @@ V2 会在预算内继续优化可行方案，优先减少配方执行次数，�
 - `-Dthunderbolt.feasibleOptimizationStallMs=<毫秒>`：可选优化连续这么久没有把执行次数减少 1% 就停止（默认：`500`；`0` 仅关闭停滞退出，不关闭外层期限）
 - `-Dthunderbolt.maxConsumptionOptimizationNanos=<纳秒>`：单次计算的可选优化总时间上限（默认：`2800000000`，最小：`1000000`）；外层期限、共享工作量和探测预算仍可使其提前退出。
 
+## 致谢
+
+感谢 **AdUhTkJm（[AW 项目](https://github.com/AdUhTkJm/AW)）**提供的优化研究与对照案例，
+为减少配方执行次数的改进提供了参考。雷电核心的有界候选仍沿用自身的库存核算与执行验证。
+
 ## 开发构建
+
+[AWR 基准适配器](scripts/awr-benchmark/README.md) 在 Java 17 上支持 v1–v3 数据集、
+加权多产物配方与显式零成本 tag 转换。
 
 构建可分发 JAR：
 

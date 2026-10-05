@@ -70,7 +70,16 @@ properties:
   allowance per calculation (default: `2800000000`; minimum: `1000000`). The
   enclosing deadline and shared work/probe budgets can stop it earlier.
 
+## Acknowledgements
+
+Thanks to **AdUhTkJm**, author of [AW](https://github.com/AdUhTkJm/AW), for the
+optimization research and comparison cases that informed our work on reducing recipe
+executions. Thunderbolt's bounded proposals retain its own inventory and execution checks.
+
 ## Development
+
+The [AWR benchmark adapter](scripts/awr-benchmark/README.md) supports v1–v3 datasets,
+weighted multi-output recipes and explicit zero-cost tag transfers on Java 17.
 
 Build the distributable JAR:
 
