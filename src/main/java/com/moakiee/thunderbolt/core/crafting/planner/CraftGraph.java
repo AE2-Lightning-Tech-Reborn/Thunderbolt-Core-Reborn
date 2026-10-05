@@ -51,11 +51,7 @@ public final class CraftGraph<K> {
     boolean hasTagConversions() { return hasTagConversions; }
 
     private static boolean hasHostFeedbackSeed(CraftPattern<?> pattern) {
-        for (var input : pattern.inputs()) {
-            if (input.returned() && input.uses() == CraftInput.INFINITE_USES
-                    && input.reusableStockSource() != null) return true;
-        }
-        return false;
+        return pattern.hasHostFeedbackSeed();
     }
 
     /** Patterns whose primary output is {@code key}, in caller-defined preference order. */
@@ -126,12 +122,14 @@ public final class CraftGraph<K> {
         boolean selectedTagConversions = false;
         for (var entry : selected.entrySet()) {
             frozen.put(entry.getKey(), List.copyOf(entry.getValue()));
-            if (!selectedByproducts) for (var pattern : entry.getValue())
-                if (!pattern.byproducts().isEmpty()) { selectedByproducts = true; break; }
-            if (!selectedHostFeedbackSeeds) for (var pattern : entry.getValue())
-                if (hasHostFeedbackSeed(pattern)) { selectedHostFeedbackSeeds = true; break; }
-            if (!selectedTagConversions) for (var pattern : entry.getValue())
-                if (pattern.executionCost() == 0) { selectedTagConversions = true; break; }
+            var patterns = entry.getValue();
+            for (int p = 0; p < patterns.size(); p++) {
+                var pattern = patterns.get(p);
+                selectedByproducts |= !pattern.byproducts().isEmpty();
+                selectedHostFeedbackSeeds |= hasHostFeedbackSeed(pattern);
+                selectedTagConversions |= pattern.executionCost() == 0;
+                if (selectedByproducts && selectedHostFeedbackSeeds && selectedTagConversions) break;
+            }
         }
         return new CraftGraph<>(Map.copyOf(frozen), stock, reusableStock, reusableStockRoutes, exactStock,
                 selectedByproducts, selectedHostFeedbackSeeds, selectedTagConversions);

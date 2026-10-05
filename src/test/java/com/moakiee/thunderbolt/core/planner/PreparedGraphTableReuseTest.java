@@ -275,7 +275,15 @@ class PreparedGraphTableReuseTest {
     private static void assertReadOnlyTables(Object owner) throws Exception {
         for (String name : List.of("patternsByOutput", "capacity", "capacityOrderByOutput")) {
             Map<Object, Object> table = field(owner, name);
-            assertFalse(table.isEmpty(), name);
+            if (name.equals("capacityOrderByOutput")) {
+                Map<Object, List<?>> patterns = field(owner, "patternsByOutput");
+                assertEquals(patterns.entrySet().stream().filter(e -> e.getValue().size() > 1)
+                        .map(Map.Entry::getKey).collect(java.util.stream.Collectors.toSet()), table.keySet());
+                assertThrows(UnsupportedOperationException.class,
+                        () -> table.put(new Object(), List.of()), name);
+                assertThrows(UnsupportedOperationException.class, table::clear, name);
+                if (table.isEmpty()) continue;
+            } else assertFalse(table.isEmpty(), name);
             var entry = table.entrySet().iterator().next();
             assertThrows(UnsupportedOperationException.class,
                     () -> table.put(entry.getKey(), entry.getValue()), name);

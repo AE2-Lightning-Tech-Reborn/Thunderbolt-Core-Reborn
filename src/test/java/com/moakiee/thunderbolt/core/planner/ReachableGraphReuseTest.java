@@ -30,6 +30,11 @@ class ReachableGraphReuseTest {
         Map<?, ?> distances = field(session, "inputDistances");
         assertEquals(Map.of("T", 0, "A", 1, "B", 1, "C", 2, "tool", 2, "private", 2), distances);
         assertThrows(UnsupportedOperationException.class, distances::clear);
+        Object sizing = session.consumptionIndex;
+        assertEquals(6, (Integer) field(sizing, "expectedKeys"));
+        assertEquals(5, (Integer) field(sizing, "expectedPatterns"));
+        assertEquals(9, (Integer) field(sizing, "expectedInputs"));
+        assertEquals(2, (Integer) field(sizing, "expectedSides"));
     }
 
     @Test
@@ -70,6 +75,7 @@ class ReachableGraphReuseTest {
             Thread.interrupted();
         }
         assertNull(field(session, "inputDistances"));
+        assertNull(field(session.consumptionIndex, "sizedGraph"));
         assertEquals(0, (Integer) field(session, "reachableWorkEstimate"));
         assertEquals(4, session.reachableWork(graph, target));
         assertEquals(Map.of(target, 0, input, 1), field(session, "inputDistances"));
@@ -89,6 +95,7 @@ class ReachableGraphReuseTest {
             if (excess == 0) assertEquals(Map.of("T", 0), field(session, "inputDistances"));
             else {
                 assertNull(field(session, "inputDistances"));
+                assertNull(field(session.consumptionIndex, "sizedGraph"));
                 var plan = CraftPlannerV2.planDetailed(graph, "T", 1, session).plan();
                 assertTrue(plan.budgetExhausted());
                 assertFalse(plan.feasible());
