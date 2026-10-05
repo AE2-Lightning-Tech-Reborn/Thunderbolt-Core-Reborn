@@ -12,6 +12,25 @@ import org.junit.jupiter.api.Test;
 
 class RawResourcePotentialTest {
     @Test
+    void zeroAndEqualDenominatorBranchesKeepCanonicalWeights() {
+        var weights = RawResourcePotential.weights(List.of("F", "E", "D", "C", "B", "A", "R"), Map.of(
+                "A", List.of(new CraftPattern<>("A", 6, List.of(CraftInput.of("R", 3)), null)),
+                "B", List.of(new CraftPattern<>("B", 4, List.of(CraftInput.of("R", 2)), null)),
+                "C", List.of(new CraftPattern<>("C", 1,
+                        List.of(CraftInput.of("A", 2), CraftInput.of("B", 1)), null)),
+                "D", List.of(new CraftPattern<>("D", 7, List.of(), null)),
+                "E", List.of(new CraftPattern<>("E", 3,
+                        List.of(CraftInput.of("D", 37), CraftInput.of("C", 2)), null)),
+                "F", List.of(new CraftPattern<>("F", 1,
+                                List.of(CraftInput.of("A", 1), CraftInput.of("B", 1)), null),
+                        new CraftPattern<>("F", 3,
+                                List.of(CraftInput.of("C", 1), CraftInput.of("D", 9)), null))));
+        assertEquals(Map.of("R", BigInteger.TWO, "A", BigInteger.ONE, "B", BigInteger.ONE,
+                "C", BigInteger.valueOf(3), "D", BigInteger.ZERO, "E", BigInteger.TWO,
+                "F", BigInteger.ONE), weights);
+    }
+
+    @Test
     void batchFractionsRemainPositiveAndScaleToExactIntegers() {
         var weights = RawResourcePotential.weights(List.of("B", "A", "R"), Map.of(
                 "A", List.of(new CraftPattern<>("A", 3, List.of(CraftInput.of("R", 1)), null)),
