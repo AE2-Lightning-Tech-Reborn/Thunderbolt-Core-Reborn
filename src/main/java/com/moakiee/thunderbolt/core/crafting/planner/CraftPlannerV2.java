@@ -166,6 +166,8 @@ public final class CraftPlannerV2<K> {
         long consumptionOptimizationNanos;
         private int missingRefinementProbes;
         private List<MaterialDagOrders.Candidate<K>> materialDagOrders;
+        private List<MaterialDagOrders.Candidate<K>> materialDagOrderTemplates;
+        private Map<K, Long> materialDagAdditionalStock;
         private final Map<Integer, PreparedGraph<K>> preparedMaterialDagOrders = new HashMap<>();
         private int preferredMaterialDagOrder;
         private int materialDagOrderAttempts;
@@ -711,13 +713,23 @@ public final class CraftPlannerV2<K> {
         PlanningSession<K> session = planningSession;
         if (diagnostics.reachableWorkEstimate > MaterialDagOrders.MAX_GRAPH_WORK
                 || session.materialDagOrderAttempts >= 120) return null;
+        long available = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
+        // Replenishment probes already run inside the caller's bounded optional deadline.
+        // Quartering that slice again gives a 100 ms refinement only ~25 ms to certify a
+        // smaller supplement, turning a portfolio timeout into a heuristic false negative.
+        // Keep the portfolio's own cumulative cap and all shared work budgets unchanged.
+        boolean replenishmentProbe = !session.refineMissing;
         long remaining = Math.min(100_000_000L - session.materialDagOrderNanos,
-                PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 4L);
+                replenishmentProbe ? available : available / 4L);
         if (remaining <= 0) return null;
         long started = System.nanoTime();
         try (var ignored = PlanningCancellation.limitOptionalWork(remaining)) {
-            if (session.materialDagOrders == null)
-                session.materialDagOrders = MaterialDagOrders.compile(graph, target, lowWidthWorkBudget);
+            if (session.materialDagOrders == null) {
+                session.materialDagOrders = session.materialDagOrderTemplates == null
+                        ? MaterialDagOrders.compile(graph, target, lowWidthWorkBudget)
+                        : MaterialDagOrders.withAdditionalStock(session.materialDagOrderTemplates,
+                                session.materialDagAdditionalStock, target, lowWidthWorkBudget);
+            }
             int count = session.materialDagOrders.size();
             for (int offset = 0; offset < count && session.materialDagOrderAttempts < 120; offset++) {
                 int index = (session.preferredMaterialDagOrder + offset) % count;
@@ -750,6 +762,17 @@ public final class CraftPlannerV2<K> {
             // Only this optional portfolio stopped; retain the ordinary cut/search fallback.
         } finally {
             session.materialDagOrderNanos += Math.max(0L, System.nanoTime() - started);
+        }
+        if (session.materialDagOrderTemplates != null) {
+            // The original portfolio may have stopped before reaching a support enabled by
+            // replenishment. Reused supports are a fast path, never an infeasibility proof.
+            // Try stock-local compilation only if the same cumulative time/attempt/work
+            // bounds permit it; do not carry index-based preparations across portfolios.
+            session.materialDagOrderTemplates = null;
+            session.materialDagOrders = null;
+            session.preparedMaterialDagOrders.clear();
+            session.preferredMaterialDagOrder = 0;
+            return tryMaterialDagOrders(target, amount);
         }
         return null;
     }
@@ -914,8 +937,11 @@ public final class CraftPlannerV2<K> {
         probeSession.searchWorkBudget = session.searchWorkBudget;
         probeSession.resolutionWorkBudget = session.resolutionWorkBudget;
         probeSession.fallbackWorkBudget = session.fallbackWorkBudget;
+        probeSession.materialDagOrderTemplates = session.materialDagOrders;
+        probeSession.materialDagAdditionalStock = supplied;
         // The stock-sensitive capacities are recompiled. Reusing PreparedGraph here would
-        // silently reuse the old stock limits; only immutable patterns and budgets are shared.
+        // silently reuse the old stock limits. Reuse completed material-order topology only,
+        // refreshing its supply bounds and projecting stock separately for every probe.
         // Require the supplement to survive the smallest ordinary search/visit allowance,
         // including later quantity probes whose shared alternative budget is already spent.
         return planDetailed(graph.withAdditionalStock(supplied), target, amount, 1,
