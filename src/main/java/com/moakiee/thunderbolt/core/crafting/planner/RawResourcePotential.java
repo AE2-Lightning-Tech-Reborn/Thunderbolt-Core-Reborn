@@ -65,14 +65,17 @@ final class RawResourcePotential {
                 if (best == null || sum.lessThan(best)) best = sum;
             }
             costs.put(item, best);
-            scale = scale.divide(scale.gcd(best.denominator)).multiply(best.denominator);
+            if (!best.denominator.equals(BigInteger.ONE) && !scale.equals(best.denominator))
+                scale = scale.divide(scale.gcd(best.denominator)).multiply(best.denominator);
             if (scale.bitLength() > MAX_BITS) return Map.of();
         }
         var weights = new HashMap<K, BigInteger>();
         for (K item : order) {
             PlanningCancellation.check();
             Cost cost = costs.get(item);
-            BigInteger weight = cost.numerator.multiply(scale.divide(cost.denominator));
+            BigInteger factor = cost.denominator.equals(BigInteger.ONE) ? scale : scale.divide(cost.denominator);
+            BigInteger weight = factor.equals(BigInteger.ONE) ? cost.numerator
+                    : cost.numerator.equals(BigInteger.ONE) ? factor : cost.numerator.multiply(factor);
             if (weight.bitLength() > MAX_BITS) return Map.of();
             weights.put(item, weight);
         }

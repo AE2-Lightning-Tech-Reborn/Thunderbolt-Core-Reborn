@@ -104,6 +104,19 @@ final class FeasibleConsumptionOptimizer {
         private K target;
         private Index<K> index;
         private boolean compiled;
+        private CraftGraph<K> sizedGraph;
+        private K sizedTarget;
+        private int expectedKeys, expectedPatterns, expectedInputs, expectedSides;
+
+        /** Hints from a completed admission scan; duplicate slots may safely overestimate capacity. */
+        void expectSize(CraftGraph<K> candidate, K key, int keys, int patterns, int inputs, int sides) {
+            sizedGraph = candidate;
+            sizedTarget = key;
+            expectedKeys = keys;
+            expectedPatterns = patterns;
+            expectedInputs = inputs;
+            expectedSides = sides;
+        }
 
         boolean isCompiled() { return compiled; }
 
@@ -111,7 +124,9 @@ final class FeasibleConsumptionOptimizer {
             PlanningCancellation.check();
             if (!compiled || graph != candidate || !java.util.Objects.equals(target, key)) {
                 // Publish only a completed scan, so cancellation cannot leave a partial index.
-                var prepared = Index.build(candidate, key);
+                boolean sized = sizedGraph == candidate && java.util.Objects.equals(sizedTarget, key);
+                var prepared = sized ? Index.build(candidate, key,
+                        expectedKeys, expectedPatterns, expectedInputs, expectedSides) : Index.build(candidate, key);
                 graph = candidate;
                 target = key;
                 index = prepared;
@@ -180,6 +195,10 @@ final class FeasibleConsumptionOptimizer {
         /** Scratch for sequential cost passes; never retained by a propagation result. */
         private int[] relaxationRing;
         private boolean[] relaxationQueued;
+        /** Sequential reachability passes overwrite these buffers; Prop never retains them. */
+        private int[] missingScratch;
+        private int[] reachabilityQueue;
+        private IntBuf readyScratch;
         /** Withdrawal sets extended by the substitutes the planner chose last time. */
         private final ArrayDeque<int[]> chains = new ArrayDeque<>();
         /** The last confirmed candidate within the stock limits, improving or not. */
@@ -409,9 +428,7 @@ final class FeasibleConsumptionOptimizer {
                 }
             }
             limited = limitedKeys.toArray();
-            int[] all = new int[index.patterns.size()];
-            for (int p = 0; p < all.length; p++) all[p] = p;
-            global = propagate(all, true);
+            global = propagate(index.fullTopology().patterns(), true);
             globalCost = global.cost;
             globalArgmin = global.argmin;
             execBound = global.execBound;
@@ -933,18 +950,27 @@ final class FeasibleConsumptionOptimizer {
             int n = index.keys.size(), m = patterns.length;
             var prop = new Prop();
             prop.patterns = patterns;
-            int[] head = new int[n + 1];
-            for (int p : patterns)
-                for (int j = index.needStart[p]; j < index.needStart[p + 1]; j++) head[index.needKey[j] + 1]++;
-            for (int k = 0; k < n; k++) head[k + 1] += head[k];
-            int[] consumer = new int[head[n]];
-            int[] fill = Arrays.copyOf(head, n);
-            int[] missing = new int[m];
-            for (int li = 0; li < m; li++) {
-                int p = patterns[li];
-                missing[li] = index.needStart[p + 1] - index.needStart[p];
-                for (int j = index.needStart[p]; j < index.needStart[p + 1]; j++) consumer[fill[index.needKey[j]]++] = li;
+            Topology topology = index.fullTopology;
+            int[] head, consumer;
+            if (topology != null && patterns == topology.patterns()) {
+                head = topology.consumerStart();
+                consumer = topology.consumer();
+            } else {
+                head = new int[n + 1];
+                for (int p : patterns)
+                    for (int j = index.needStart[p]; j < index.needStart[p + 1]; j++) head[index.needKey[j] + 1]++;
+                for (int k = 0; k < n; k++) head[k + 1] += head[k];
+                consumer = new int[head[n]];
+                int[] fill = Arrays.copyOf(head, n);
+                for (int li = 0; li < m; li++) {
+                    int p = patterns[li];
+                    for (int j = index.needStart[p]; j < index.needStart[p + 1]; j++) consumer[fill[index.needKey[j]]++] = li;
+                }
             }
+            if (missingScratch == null || missingScratch.length < m) missingScratch = new int[m];
+            int[] missing = missingScratch;
+            for (int li = 0; li < m; li++)
+                missing[li] = index.needStart[patterns[li] + 1] - index.needStart[patterns[li]];
             prop.consumerStart = head;
             prop.consumer = consumer;
             prop.avail = new boolean[n];
@@ -956,7 +982,8 @@ final class FeasibleConsumptionOptimizer {
             Arrays.fill(prop.first, -1);
             prop.fired = new boolean[m];
             prop.order = new int[m];
-            int[] queue = new int[n];
+            if (reachabilityQueue == null || reachabilityQueue.length < n) reachabilityQueue = new int[n];
+            int[] queue = reachabilityQueue;
             int qh = 0, qt = 0, rank = 0;
             for (int key : limited) {
                 if (!prop.avail[key]) {
@@ -965,7 +992,9 @@ final class FeasibleConsumptionOptimizer {
                     queue[qt++] = key;
                 }
             }
-            var ready = new IntBuf();
+            if (readyScratch == null) readyScratch = new IntBuf();
+            var ready = readyScratch;
+            ready.size = 0;
             for (int li = 0; li < m; li++) if (missing[li] == 0) ready.add(li);
             int readyAt = 0;
             while (readyAt < ready.size || qh < qt) {
@@ -1081,7 +1110,7 @@ final class FeasibleConsumptionOptimizer {
             boolean[] queued = relaxationQueued;
             int[] patterns = prop.patterns, useStart = index.useStart, useKey = index.useKey;
             int[] outputs = index.out, executionCosts = index.executionCost;
-            long[] useAmount = index.useAmount, outAmount = index.outAmount;
+            double[] useAmount = index.useAmount, outAmount = index.outAmount;
             int[] consumerStart = prop.consumerStart, consumer = prop.consumer;
             int head = 0, tail = 0, size = 0;
             for (int i = 0; i < prop.firedCount; i++) {
@@ -1190,26 +1219,60 @@ final class FeasibleConsumptionOptimizer {
         boolean stockBoundComputed;
     }
 
+    /** Read-only consumer adjacency in original pattern order, independent of stock and amount. */
+    private record Topology(int[] patterns, int[] consumerStart, int[] consumer) {}
+
     /** Integer view of the reachable graph, built once per request. */
     private static final class Index<K> {
         private static final int LINEAR_SLOT_LIMIT = 32;
-        final ArrayList<K> keys = new ArrayList<>();
-        final HashMap<K, Integer> ids = new HashMap<>();
-        final ArrayList<CraftPattern<K>> patterns = new ArrayList<>();
-        final IdentityHashMap<CraftPattern<K>, Integer> patternIds = new IdentityHashMap<>();
+        final ArrayList<K> keys;
+        final HashMap<K, Integer> ids;
+        final ArrayList<CraftPattern<K>> patterns;
+        final IdentityHashMap<CraftPattern<K>, Integer> patternIds;
         boolean choices;
         int[] out;
         int[] executionCost;
-        long[] outAmount;
+        double[] outAmount;
         boolean[] stateful;
         /** Inputs that must be present to fire: all but host-owned reusable stock. */
         int[] needStart, needKey;
         /** Consumed (non-returned) inputs, merged per key. */
         int[] useStart, useKey;
-        long[] useAmount;
+        double[] useAmount;
         /** Byproducts other than the output key. */
         int[] sideStart, sideKey;
         int[] producerStart, producer;
+        private Topology fullTopology;
+
+        private Index(int keys, int patterns) {
+            this.keys = keys == 0 ? new ArrayList<>() : new ArrayList<>(keys);
+            this.ids = keys == 0 ? new HashMap<>() : HashMap.newHashMap(keys);
+            this.patterns = patterns == 0 ? new ArrayList<>() : new ArrayList<>(patterns);
+            this.patternIds = patterns == 0 ? new IdentityHashMap<>() : new IdentityHashMap<>(patterns);
+        }
+
+        Topology fullTopology() {
+            if (fullTopology != null) return fullTopology;
+            PlanningCancellation.check();
+            int n = keys.size(), m = patterns.size();
+            int[] all = new int[m];
+            int[] head = new int[n + 1];
+            for (int p = 0; p < m; p++) {
+                if ((p & 4095) == 0) PlanningCancellation.check();
+                all[p] = p;
+                for (int j = needStart[p]; j < needStart[p + 1]; j++) head[needKey[j] + 1]++;
+            }
+            for (int k = 0; k < n; k++) head[k + 1] += head[k];
+            int[] consumer = new int[head[n]];
+            int[] fill = Arrays.copyOf(head, n);
+            for (int p = 0; p < m; p++) {
+                if ((p & 4095) == 0) PlanningCancellation.check();
+                for (int j = needStart[p]; j < needStart[p + 1]; j++) consumer[fill[needKey[j]]++] = p;
+            }
+            PlanningCancellation.check();
+            fullTopology = new Topology(all, head, consumer);
+            return fullTopology;
+        }
 
         private int id(K key) {
             Integer id = ids.get(key);
@@ -1222,24 +1285,29 @@ final class FeasibleConsumptionOptimizer {
         }
 
         static <K> Index<K> build(CraftGraph<K> graph, K target) {
-            var index = new Index<K>();
+            return build(graph, target, 0, 0, 0, 0);
+        }
+
+        static <K> Index<K> build(CraftGraph<K> graph, K target,
+                int keysHint, int patternsHint, int inputsHint, int sidesHint) {
+            var index = new Index<K>(keysHint, patternsHint);
             var sat = BigInteger.valueOf(Sat.SAT);
-            var outs = new IntBuf();
-            var executionCosts = new IntBuf();
-            var outAmounts = new LongBuf();
-            var states = new IntBuf();
-            var needStart = new IntBuf();
-            var needKey = new IntBuf();
-            var useStart = new IntBuf();
-            var useKey = new IntBuf();
-            var useAmount = new LongBuf();
-            var sideStart = new IntBuf();
-            var sideKey = new IntBuf();
+            var outs = new IntBuf(patternsHint);
+            var executionCosts = new IntBuf(patternsHint);
+            var outAmounts = new LongBuf(patternsHint);
+            var states = new IntBuf(patternsHint);
+            var needStart = new IntBuf(patternsHint + 1);
+            var needKey = new IntBuf(inputsHint);
+            var useStart = new IntBuf(patternsHint + 1);
+            var useKey = new IntBuf(inputsHint);
+            var useAmount = new LongBuf(inputsHint);
+            var sideStart = new IntBuf(patternsHint + 1);
+            var sideKey = new IntBuf(sidesHint);
             needStart.add(0);
             useStart.add(0);
             sideStart.add(0);
-            var pending = new IntBuf();
-            var enqueued = new BitSet();
+            var pending = new IntBuf(keysHint);
+            var enqueued = new BitSet(keysHint);
             pending.add(index.id(target));
             enqueued.set(0);
             for (int cursor = 0; cursor < pending.size; cursor++) {
@@ -1276,7 +1344,7 @@ final class FeasibleConsumptionOptimizer {
                     // first-seen array order without repeatedly scanning all previous slots.
                     var wideNeed = pattern.inputs().size() > LINEAR_SLOT_LIMIT ? new HashSet<Integer>() : null;
                     var wideUse = pattern.inputs().size() > LINEAR_SLOT_LIMIT ? new HashMap<Integer, Integer>() : null;
-                    boolean stateful = false;
+                    boolean stateful = pattern.hasStatefulInputs();
                     int checkedInputs = 0;
                     var inputs = pattern.inputs();
                     for (int slot = 0; slot < inputs.size(); slot++) {
@@ -1289,7 +1357,6 @@ final class FeasibleConsumptionOptimizer {
                             enqueued.set(inputId);
                             pending.add(inputId);
                         }
-                        stateful |= input.returned() || input.remainder() != null || input.reusableStockSource() != null;
                         if (input.reusableStockSource() == null
                                 && (wideNeed == null ? needKey.indexOf(inputId, needFrom) < 0 : wideNeed.add(inputId)))
                             needKey.add(inputId);
@@ -1318,14 +1385,14 @@ final class FeasibleConsumptionOptimizer {
             }
             index.out = outs.toArray();
             index.executionCost = executionCosts.toArray();
-            index.outAmount = outAmounts.toArray();
+            index.outAmount = outAmounts.toDoubles();
             index.stateful = new boolean[index.out.length];
             for (int p = 0; p < index.out.length; p++) index.stateful[p] = states.data[p] != 0;
             index.needStart = needStart.toArray();
             index.needKey = needKey.toArray();
             index.useStart = useStart.toArray();
             index.useKey = useKey.toArray();
-            index.useAmount = useAmount.toArray();
+            index.useAmount = useAmount.toDoubles();
             index.sideStart = sideStart.toArray();
             index.sideKey = sideKey.toArray();
             int n = index.keys.size();
@@ -1340,8 +1407,11 @@ final class FeasibleConsumptionOptimizer {
     }
 
     private static final class IntBuf {
-        int[] data = new int[16];
+        int[] data;
         int size;
+
+        IntBuf() { this(16); }
+        IntBuf(int capacity) { data = new int[Math.max(16, capacity)]; }
 
         void add(int value) {
             if (size == data.length) data = Arrays.copyOf(data, size * 2);
@@ -1359,16 +1429,21 @@ final class FeasibleConsumptionOptimizer {
     }
 
     private static final class LongBuf {
-        long[] data = new long[16];
+        long[] data;
         int size;
+
+        LongBuf(int capacity) { data = new long[Math.max(16, capacity)]; }
 
         void add(long value) {
             if (size == data.length) data = Arrays.copyOf(data, size * 2);
             data[size++] = value;
         }
 
-        long[] toArray() {
-            return Arrays.copyOf(data, size);
+        /** Cost passes used this same widening conversion at every multiply and divide. */
+        double[] toDoubles() {
+            double[] result = new double[size];
+            for (int i = 0; i < size; i++) result[i] = data[i];
+            return result;
         }
     }
 
@@ -1403,17 +1478,19 @@ final class FeasibleConsumptionOptimizer {
     }
 
     private static <K> Map<CraftPattern<K>, Long> statefulFirings(CraftPlan<K> plan) {
-        var result = new HashMap<CraftPattern<K>, Long>();
-        plan.firings().forEach((pattern, count) -> {
-            if (stateful(pattern)) result.put(pattern, count);
-        });
-        return result;
+        Map<CraftPattern<K>, Long> result = null;
+        for (var entry : plan.firings().entrySet()) {
+            if (stateful(entry.getKey())) {
+                if (result == null) result = new HashMap<>();
+                result.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return result == null ? Map.of() : result;
     }
 
     /** Catalysts, seeds, returned containers and durability carriers. */
     private static boolean stateful(CraftPattern<?> pattern) {
-        return pattern.inputs().stream().anyMatch(i -> i.returned() || i.remainder() != null
-                || i.reusableStockSource() != null);
+        return pattern.hasStatefulInputs();
     }
 
     private static <K> Map<K, BigInteger> netLoss(CraftPlan<K> plan) {

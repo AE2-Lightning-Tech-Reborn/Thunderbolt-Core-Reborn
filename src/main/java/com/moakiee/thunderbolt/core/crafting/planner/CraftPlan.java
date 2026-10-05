@@ -45,6 +45,20 @@ public record CraftPlan<K>(
 
     /** Exact weighted recipe execution cost; virtual tag transfers remain in {@link #firings}. */
     public BigInteger executionCount() {
+        long total = 0;
+        for (var entry : firings.entrySet()) {
+            int cost = entry.getKey().executionCost();
+            if (cost == 0) continue;
+            long count = entry.getValue();
+            if (count < 0 || cost != 1 && count > Long.MAX_VALUE / cost) return bigExecutionCount();
+            long weighted = count * cost;
+            if (total > Long.MAX_VALUE - weighted) return bigExecutionCount();
+            total += weighted;
+        }
+        return BigInteger.valueOf(total);
+    }
+
+    private BigInteger bigExecutionCount() {
         BigInteger total = BigInteger.ZERO;
         for (var entry : firings.entrySet()) {
             if (entry.getKey().executionCost() != 0)

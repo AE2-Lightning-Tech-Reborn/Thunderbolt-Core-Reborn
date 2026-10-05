@@ -32,6 +32,8 @@ public final class CraftPattern<K> {
     private final Object source;
     private final List<List<CraftInput<K>>> executionSlots;
     private final int executionCost;
+    private final boolean hasStatefulInputs;
+    private final boolean hasHostFeedbackSeed;
 
     public CraftPattern(K output, long outputAmount, List<CraftInput<K>> inputs, Object source) {
         this(output, outputAmount, inputs, List.of(), source);
@@ -65,6 +67,16 @@ public final class CraftPattern<K> {
         this.exactOutputAmount = outputAmount;
         this.outputAmount = outputAmount.min(BigInteger.valueOf(Long.MAX_VALUE)).longValueExact();
         this.inputs = List.copyOf(inputs);
+        boolean stateful = false;
+        boolean hostFeedbackSeed = false;
+        for (int slot = 0; slot < this.inputs.size(); slot++) {
+            CraftInput<K> input = this.inputs.get(slot);
+            stateful |= input.returned() || input.remainder() != null || input.reusableStockSource() != null;
+            hostFeedbackSeed |= input.returned() && input.uses() == CraftInput.INFINITE_USES
+                    && input.reusableStockSource() != null;
+        }
+        this.hasStatefulInputs = stateful;
+        this.hasHostFeedbackSeed = hostFeedbackSeed;
         this.byproducts = normalizeByproducts(this.inputs, byproducts);
         this.source = source;
         this.executionSlots = executionSlots.isEmpty() ? List.of()
@@ -100,6 +112,14 @@ public final class CraftPattern<K> {
     /** Cost per firing: one by default, a positive explicit weight, or zero for tag conversion. */
     public int executionCost() {
         return executionCost;
+    }
+
+    boolean hasStatefulInputs() {
+        return hasStatefulInputs;
+    }
+
+    boolean hasHostFeedbackSeed() {
+        return hasHostFeedbackSeed;
     }
 
     /** Preserve objective/source metadata when an internal material projection drops side outputs. */

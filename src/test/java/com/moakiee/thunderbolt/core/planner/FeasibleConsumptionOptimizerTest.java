@@ -91,6 +91,7 @@ class FeasibleConsumptionOptimizerTest {
     void cachedIndexRecomputesQuantityAndStockPropagation() {
         var graph = batchGraph(1);
         var cache = new FeasibleConsumptionOptimizer.IndexCache<String>();
+        cache.expectSize(graph, "T", 2, 2, 2, 0);
         for (long amount : new long[] {1, 2, 1}) {
             var initial = baseline(graph, "T", amount);
             var uncached = FeasibleConsumptionOptimizer.optimize(graph, "T", amount, initial,
@@ -302,12 +303,12 @@ class FeasibleConsumptionOptimizerTest {
         assertEquals(Map.of(patterns.get(0), 0, patterns.get(1), 1), indexField(index, "patternIds"));
         assertEquals(true, indexField(index, "choices"));
         assertEquals(List.of("T", "T"), indexKeyVector(index, "out"));
-        assertArrayEquals(produced.stream().mapToLong(Long::longValue).toArray(), (long[]) indexField(index, "outAmount"));
+        assertArrayEquals(produced.stream().mapToDouble(Long::doubleValue).toArray(), (double[]) indexField(index, "outAmount"));
         assertArrayEquals(new boolean[] {true, false}, (boolean[]) indexField(index, "stateful"));
         assertEquals(needs, indexKeyVector(index, "needKey"));
         assertEquals(uses, indexKeyVector(index, "useKey"));
         assertEquals(sides, indexKeyVector(index, "sideKey"));
-        assertArrayEquals(amounts.stream().mapToLong(Long::longValue).toArray(), (long[]) indexField(index, "useAmount"));
+        assertArrayEquals(amounts.stream().mapToDouble(Long::doubleValue).toArray(), (double[]) indexField(index, "useAmount"));
         assertArrayEquals(needStart.stream().mapToInt(Integer::intValue).toArray(), (int[]) indexField(index, "needStart"));
         assertArrayEquals(useStart.stream().mapToInt(Integer::intValue).toArray(), (int[]) indexField(index, "useStart"));
         assertArrayEquals(sideStart.stream().mapToInt(Integer::intValue).toArray(), (int[]) indexField(index, "sideStart"));
@@ -415,7 +416,7 @@ class FeasibleConsumptionOptimizerTest {
                     .pattern("T", 2, List.of(CraftInput.of("raw", 1))).build();
             var index = build.invoke(null, graph, "T");
             assertNotNull(index);
-            assertArrayEquals(new long[] {expected[i], 2}, (long[]) outAmount.get(index));
+            assertArrayEquals(new double[] {expected[i], 2}, (double[]) outAmount.get(index));
         }
     }
 

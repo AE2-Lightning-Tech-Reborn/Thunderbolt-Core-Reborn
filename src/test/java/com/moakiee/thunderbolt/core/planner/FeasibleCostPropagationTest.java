@@ -13,6 +13,80 @@ import org.junit.jupiter.api.Test;
 /** Cost passes must remain independent after work-limited cycles and differently sized regions. */
 class FeasibleCostPropagationTest {
     @Test
+    void cachedFullAdjacencyAndScratchPreserveLocalRegionsAndStockChanges() throws Exception {
+        var repeated = new CraftPattern<>("T", 1, List.of(CraftInput.of("A", 1),
+                CraftInput.of("A", 2)), "repeated");
+        var graph = CraftGraph.<String>builder().stock("raw", 1000)
+                .pattern(repeated).pattern(repeated)
+                .pattern("T", 2, List.of(CraftInput.of("tag", 1)))
+                .pattern(CraftPattern.tagConversion("raw", "tag", "tag"))
+                .pattern("A", 1, List.of(CraftInput.of("raw", 1)))
+                .pattern("A", 1, List.of()).build();
+        var reused = new Harness(graph);
+        int[] full = reused.fullPatterns();
+        Object retained = reused.propagate(full, true);
+        int[] consumers = ((int[]) field(retained, "consumer")).clone();
+        double[] costs = ((double[]) field(retained, "cost")).clone();
+        for (boolean available : List.of(false, true, false)) {
+            set(reused.search, "availableStock", available);
+            for (int[] region : List.of(new int[0], new int[] {0}, full, new int[] {1, 0}, full)) {
+                var fresh = new Harness(graph);
+                set(fresh.search, "availableStock", available);
+                assertPropagationEquals(fresh.propagate(region.clone(), true), reused.propagate(region, true));
+            }
+        }
+        assertArrayEquals(consumers, (int[]) field(retained, "consumer"));
+        assertArrayEquals(costs, (double[]) field(retained, "cost"));
+        assertSame(field(retained, "consumer"), field(reused.propagate(full, true), "consumer"));
+        int raw = reused.keys.indexOf("raw");
+        ((long[]) field(reused.search, "limits"))[raw] = 0;
+        set(reused.search, "limited", new int[0]);
+        var fresh = new Harness(graph);
+        ((long[]) field(fresh.search, "limits"))[raw] = 0;
+        set(fresh.search, "limited", new int[0]);
+        assertPropagationEquals(fresh.propagate(full.clone(), true), reused.propagate(full, true));
+    }
+
+    @Test
+    void canceledFullAdjacencyIsNotPublishedAndCanBeRebuilt() throws Exception {
+        var graph = CraftGraph.<String>builder()
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1))).build();
+        var harness = new Harness(graph);
+        try {
+            Thread.currentThread().interrupt();
+            var error = assertThrows(java.lang.reflect.InvocationTargetException.class, harness::fullPatterns);
+            assertInstanceOf(java.util.concurrent.CancellationException.class, error.getCause());
+        } finally {
+            Thread.interrupted();
+        }
+        assertNull(field(harness.index, "fullTopology"));
+        assertArrayEquals(harness.patterns(), harness.fullPatterns());
+        assertSame(harness.fullPatterns(), harness.fullPatterns());
+    }
+
+    @Test
+    void cancellationDuringAdjacencyFillDiscardsPartialArrays() throws Exception {
+        var graph = CraftGraph.<String>builder()
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1))).build();
+        var harness = new Harness(graph);
+        var canceled = new java.util.concurrent.CancellationException("cancel adjacency fill");
+        int[] checks = {0};
+        var context = new com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext() {
+            @Override public long deadlineNanos() { return Long.MAX_VALUE; }
+            @Override public void report(com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot snapshot) {}
+            @Override public void checkpoint() { if (++checks[0] == 3) throw canceled; }
+        };
+        try (var ignored = PlanningCancellation.bind(context)) {
+            var error = assertThrows(java.lang.reflect.InvocationTargetException.class, harness::fullPatterns);
+            assertSame(canceled, error.getCause());
+        }
+        assertNull(field(harness.index, "fullTopology"));
+        int[] full = harness.fullPatterns();
+        var fresh = new Harness(graph);
+        assertPropagationEquals(fresh.propagate(full.clone(), true), harness.propagate(full, true));
+    }
+
+    @Test
     void repeatedCostPassesPreserveCostsChoicesAndBoundsAcrossRegionSizes() throws Exception {
         var builder = CraftGraph.<String>builder().stock("raw", 1000).stock("A", 1000)
                 .pattern("T", 1, List.of(CraftInput.of("A", 1)))
@@ -112,6 +186,11 @@ class FeasibleCostPropagationTest {
         }
 
         Object propagate(int[] patterns, boolean choices) throws Exception { return propagate.invoke(search, patterns, choices); }
+        int[] fullPatterns() throws Exception {
+            Method full = index.getClass().getDeclaredMethod("fullTopology");
+            full.setAccessible(true);
+            return (int[]) field(full.invoke(index), "patterns");
+        }
         int[] patterns() throws Exception { return java.util.stream.IntStream.range(0, ((List<?>) field(index, "patterns")).size()).toArray(); }
         Object output(int p) { try { return keys.get(((int[]) field(index, "out"))[p]); } catch (Exception e) { throw new AssertionError(e); } }
     }

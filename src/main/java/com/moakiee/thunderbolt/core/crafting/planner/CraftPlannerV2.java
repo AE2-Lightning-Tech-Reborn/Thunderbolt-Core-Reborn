@@ -188,11 +188,14 @@ public final class CraftPlannerV2<K> {
         private int compileReachableGraph(CraftGraph<K> candidateGraph, K candidateTarget) {
             if (reachableWorkEstimate == 0) {
                 var distances = new HashMap<K, Integer>();
-                int work = CraftPlannerV2.reachableWorkEstimate(candidateGraph, candidateTarget, distances);
+                int[] sizes = new int[3];
+                int work = CraftPlannerV2.reachableWorkEstimate(candidateGraph, candidateTarget, distances, sizes);
                 // Publish only a completed admitted traversal; tiny tables retain compact lookups.
                 if (work <= MAX_REACHABLE_PLANNING_WORK) {
                     inputDistances = distances.size() <= 16 ? Map.copyOf(distances)
                             : java.util.Collections.unmodifiableMap(distances);
+                    consumptionIndex.expectSize(candidateGraph, candidateTarget, distances.size(),
+                            sizes[0], sizes[1], sizes[2]);
                 }
                 reachableWorkEstimate = work;
             }
@@ -1158,6 +1161,11 @@ public final class CraftPlannerV2<K> {
 
     /** The admission BFS can also supply the objective's shortest primary-input distances. */
     private static <K> int reachableWorkEstimate(CraftGraph<K> graph, K target, Map<K, Integer> distances) {
+        return reachableWorkEstimate(graph, target, distances, null);
+    }
+
+    private static <K> int reachableWorkEstimate(CraftGraph<K> graph, K target,
+            Map<K, Integer> distances, int[] sizes) {
         PlanningCancellation.check();
         Set<K> seen = distances == null ? new HashSet<>() : null;
         Deque<K> queue = new ArrayDeque<>();
@@ -1176,11 +1184,16 @@ public final class CraftPlannerV2<K> {
             List<CraftPattern<K>> patterns = graph.patternsFor(key);
             for (int p = 0; p < patterns.size(); p++) {
                 CraftPattern<K> pattern = patterns.get(p);
+                if (sizes != null) sizes[0]++;
                 work++;
                 if (work > MAX_REACHABLE_PLANNING_WORK) {
                     return MAX_REACHABLE_PLANNING_WORK + 1;
                 }
                 List<CraftInput<K>> inputs = pattern.inputs();
+                if (sizes != null) {
+                    sizes[1] += inputs.size();
+                    sizes[2] += pattern.byproducts().size();
+                }
                 for (int slot = 0; slot < inputs.size(); slot++) {
                     CraftInput<K> input = inputs.get(slot);
                     work++;
@@ -1837,9 +1850,7 @@ public final class CraftPlannerV2<K> {
         for (List<CraftPattern<K>> patterns : patternsByOutput.values()) {
             patternCount += patterns.size();
             if (patterns.size() > 1) contended++;
-            for (CraftPattern<K> pattern : patterns) {
-                inputCount += pattern.inputs().size();
-            }
+            for (int p = 0; p < patterns.size(); p++) inputCount += patterns.get(p).inputs().size();
         }
 
         return new PreparedGraph<>(
@@ -2998,7 +3009,9 @@ public final class CraftPlannerV2<K> {
             PlanningCancellation.check();
             K x = order.get(i);
             long best = 0;
-            for (CraftPattern<K> p : patternsByOutput.getOrDefault(x, List.of())) {
+            List<CraftPattern<K>> patterns = patternsByOutput.getOrDefault(x, List.of());
+            for (int pIndex = 0; pIndex < patterns.size(); pIndex++) {
+                CraftPattern<K> p = patterns.get(pIndex);
                 best = Math.max(best, producibleVia(p, cap));
                 if (Sat.isSaturated(best)) {
                     break;
@@ -3025,7 +3038,9 @@ public final class CraftPlannerV2<K> {
         }
         long bound = Sat.SAT;
         boolean feedbackSeedsBootstrappable = canBootstrapAllFeedbackSeeds(p, cap);
-        for (CraftInput<K> in : p.inputs()) {
+        List<CraftInput<K>> inputs = p.inputs();
+        for (int slot = 0; slot < inputs.size(); slot++) {
+            CraftInput<K> in = inputs.get(slot);
             long c;
             if (in.reusableStockSource() != null) {
                 c = Sat.add(
@@ -3071,9 +3086,7 @@ public final class CraftPlannerV2<K> {
             // score remains available lazily from the same immutable capacity snapshot.
             if (entry.getValue().size() < 2) continue;
             List<CraftPattern<K>> ordered = entry.getValue();
-            for (CraftPattern<K> pattern : ordered) {
-                capacityScore(pattern);
-            }
+            for (int p = 0; p < ordered.size(); p++) capacityScore(ordered.get(p));
             ordered = groupedCapacityOrder(
                     ordered, this::capacityScore, this::preexistingStockCapacity);
             orders.put(entry.getKey(), List.copyOf(ordered));
@@ -3092,7 +3105,9 @@ public final class CraftPlannerV2<K> {
     /** Capacity supplied directly by the immutable inventory snapshot. */
     private long preexistingStockCapacity(CraftPattern<K> pattern) {
         long bound = Sat.SAT;
-        for (CraftInput<K> input : pattern.inputs()) {
+        List<CraftInput<K>> inputs = pattern.inputs();
+        for (int slot = 0; slot < inputs.size(); slot++) {
+            CraftInput<K> input = inputs.get(slot);
             bound = Math.min(bound, input.firingsFrom(graph.stock(input.key())));
             if (bound == 0) return 0L;
         }
@@ -3103,11 +3118,14 @@ public final class CraftPlannerV2<K> {
         Map<CraftPattern<K>, Map<K, Long>> rawInputs = new IdentityHashMap<>();
         for (List<CraftPattern<K>> patterns : patternsByOutput.values()) {
             PlanningCancellation.check();
-            for (CraftPattern<K> pattern : patterns) {
+            for (int p = 0; p < patterns.size(); p++) {
+                CraftPattern<K> pattern = patterns.get(p);
                 K firstKey = null;
                 long firstAmount = 0L;
                 Map<K, Long> perFiring = null;
-                for (CraftInput<K> input : pattern.inputs()) {
+                List<CraftInput<K>> inputs = pattern.inputs();
+                for (int slot = 0; slot < inputs.size(); slot++) {
+                    CraftInput<K> input = inputs.get(slot);
                     if (input.returned() || input.reusableStockSource() != null
                             || !patternsByOutput.getOrDefault(input.key(), List.of()).isEmpty()) {
                         continue;
@@ -5943,8 +5961,10 @@ public final class CraftPlannerV2<K> {
         FeedbackSeedBootstrap<K> best = null;
         long bestCapacity = -1L;
         long bestStateCost = Long.MAX_VALUE;
-        for (FeedbackSeedBootstrap<K> bootstrap
-                : feedbackSeedBootstraps.getOrDefault(pattern, List.of())) {
+        List<FeedbackSeedBootstrap<K>> bootstraps = feedbackSeedBootstraps.get(pattern);
+        if (bootstraps == null) return null;
+        for (int i = 0; i < bootstraps.size(); i++) {
+            FeedbackSeedBootstrap<K> bootstrap = bootstraps.get(i);
             if (bootstrap.seedInput() != input) continue;
             long candidateCapacity =
                     feedbackBootstrapSeedCapacity(bootstrap, materialCapacity);
@@ -5990,8 +6010,10 @@ public final class CraftPlannerV2<K> {
     }
 
     private boolean isFeedbackConverterInput(CraftPattern<K> pattern, CraftInput<K> input) {
-        for (FeedbackSeedBootstrap<K> bootstrap
-                : feedbackSeedConverters.getOrDefault(pattern, List.of())) {
+        List<FeedbackSeedBootstrap<K>> converters = feedbackSeedConverters.get(pattern);
+        if (converters == null) return false;
+        for (int i = 0; i < converters.size(); i++) {
+            FeedbackSeedBootstrap<K> bootstrap = converters.get(i);
             if (bootstrap.converterInput() == input) return true;
         }
         return false;
