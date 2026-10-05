@@ -1,5 +1,6 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import java.math.BigInteger;
 import java.util.Map;
 
 /**
@@ -41,4 +42,15 @@ public record CraftPlan<K>(
         Map<K, Long> grossDemand,
         int itemsProcessed,
         boolean budgetExhausted) {
+
+    /** Exact weighted recipe execution cost; virtual tag transfers remain in {@link #firings}. */
+    public BigInteger executionCount() {
+        BigInteger total = BigInteger.ZERO;
+        for (var entry : firings.entrySet()) {
+            if (entry.getKey().executionCost() != 0)
+                total = total.add(BigInteger.valueOf(entry.getValue())
+                        .multiply(BigInteger.valueOf(entry.getKey().executionCost())));
+        }
+        return total;
+    }
 }

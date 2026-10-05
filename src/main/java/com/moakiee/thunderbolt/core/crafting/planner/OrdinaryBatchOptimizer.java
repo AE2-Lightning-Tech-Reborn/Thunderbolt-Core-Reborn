@@ -74,6 +74,8 @@ final class OrdinaryBatchOptimizer {
                 PlanningCancellation.check();
                 var pattern = entry.getKey();
                 if (!spend(1L + pattern.inputs().size()) || !ordinary(pattern)) return null;
+                // Pair/triple caps below count firings, so leave other costs to general search.
+                if (pattern.executionCost() != 1) { stopped = true; return null; }
                 byOutput.computeIfAbsent(pattern.output(), ignored -> new ArrayList<>()).add(pattern);
                 var count = BigInteger.valueOf(entry.getValue());
                 produced.merge(pattern.output(), pattern.exactOutputAmount().multiply(count), BigInteger::add);
@@ -101,6 +103,7 @@ final class OrdinaryBatchOptimizer {
                 for (var pattern : graph.patternsFor(output)) {
                     if (!spend(1L + pattern.inputs().size())) return null;
                     if (seen.put(pattern, Boolean.TRUE) != null) continue;
+                    if (pattern.executionCost() != 1) { stopped = true; return null; }
                     var amounts = ordinaryInputs(pattern, output);
                     if (amounts != null) {
                         alternatives.add(pattern);

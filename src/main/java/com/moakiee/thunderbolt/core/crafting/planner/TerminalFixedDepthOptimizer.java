@@ -38,7 +38,8 @@ final class TerminalFixedDepthOptimizer {
             for (var entry : incumbent.firings().entrySet()) {
                 budget.pay(1);
                 long count = entry.getValue();
-                if (count <= 0 || count > MAX_EXECUTIONS - executions) return null;
+                if (entry.getKey().executionCost() != 1
+                        || count <= 0 || count > MAX_EXECUTIONS - executions) return null;
                 executions += (int) count;
             }
             if (executions < 2) return null;
@@ -54,6 +55,7 @@ final class TerminalFixedDepthOptimizer {
                 budget.pay(1);
                 if (identities.containsKey(pattern)) continue;
                 if (routeCount >= MAX_ROUTES || !target.equals(pattern.output())
+                        || pattern.executionCost() != 1
                         || !boundedPositive(pattern.exactOutputAmount())
                         || !pattern.exactOutputAmount().equals(BigInteger.valueOf(pattern.outputAmount()))) return null;
                 budget.pay(1); // New identity, route record, and its array entry.
@@ -109,8 +111,19 @@ final class TerminalFixedDepthOptimizer {
                     || !firstStock.equals(BigInteger.valueOf(graph.stock(firstKey)))
                     || !secondStock.equals(BigInteger.valueOf(graph.stock(secondKey)))) return null;
 
-            routes = stableSort(routes, routeCount, budget);
-            var frontier = pareto(routes, routeCount, budget);
+            // The validated coordinates fit disjoint, nonnegative bit fields. Preparing this
+            // rank once replaces up to three coordinate comparisons at each merge decision.
+            for (int i = 0; i < routeCount; i++) {
+                budget.pay(5); // One subtraction, two shifts, and two bitwise unions.
+                var route = routes[i];
+                route.sortKey = ((MAX_AMOUNT - route.output) << 18) | (route.first << 9) | route.second;
+            }
+            budget.pay(routeCount);
+            @SuppressWarnings("unchecked")
+            Route<K>[] scratch = (Route<K>[]) new Route<?>[routeCount];
+            var sorted = stableSort(routes, scratch, routeCount, budget);
+            var envelope = sorted == routes ? scratch : routes;
+            var frontier = pareto(sorted, envelope, routeCount, budget);
             return search(graph, target, (int) amount, incumbent, executions, incumbentSlots,
                     frontier, firstStock.intValueExact(), secondStock.intValueExact(), budget, reserveProbe);
         } catch (Stopped ignored) {
@@ -119,10 +132,8 @@ final class TerminalFixedDepthOptimizer {
     }
 
     /** Every stable-merge comparison and every reference copy/move is charged separately. */
-    private static <K> Route<K>[] stableSort(Route<K>[] source, int count, Budget budget) {
-        budget.pay(count);
-        @SuppressWarnings("unchecked")
-        Route<K>[] destination = (Route<K>[]) new Route<?>[count];
+    private static <K> Route<K>[] stableSort(Route<K>[] source, Route<K>[] destination,
+            int count, Budget budget) {
         for (int width = 1; width < count; width *= 2) {
             budget.pay(1);
             for (int start = 0; start < count; start += 2 * width) {
@@ -135,7 +146,7 @@ final class TerminalFixedDepthOptimizer {
                     if (left == middle) selected = right++;
                     else if (right == end) selected = left++;
                     else {
-                        budget.pay(3); // output, first resource, second resource; ties keep source order.
+                        budget.pay(1); // One prepared rank; equal ranks keep source order.
                         selected = compare(source[left], source[right]) <= 0 ? left++ : right++;
                     }
                     budget.pay(1);
@@ -150,22 +161,18 @@ final class TerminalFixedDepthOptimizer {
     }
 
     private static int compare(Route<?> left, Route<?> right) {
-        int result = Integer.compare(right.output, left.output);
-        if (result == 0) result = Integer.compare(left.first, right.first);
-        if (result == 0) result = Integer.compare(left.second, right.second);
-        return result;
+        return Integer.compare(left.sortKey, right.sortKey);
     }
 
     /**
      * Outputs are descending. The resource envelope stores prefix minima of the second resource
      * over increasing first resource; removing an envelope entry never removes a retained route.
      */
-    private static <K> Frontier<K> pareto(Route<K>[] sorted, int count, Budget budget) {
-        budget.pay(2 * count);
-        @SuppressWarnings("unchecked")
-        Route<K>[] retained = (Route<K>[]) new Route<?>[count];
-        @SuppressWarnings("unchecked")
-        Route<K>[] envelope = (Route<K>[]) new Route<?>[count];
+    private static <K> Frontier<K> pareto(Route<K>[] sorted, Route<K>[] envelope,
+            int count, Budget budget) {
+        // The retained prefix never overtakes the read cursor. The other merge buffer is no
+        // longer live; only its initialized envelope prefix is read, so it needs no clearing.
+        var retained = sorted;
         int retainedCount = 0, envelopeCount = 0;
         for (int i = 0; i < count; i++) {
             budget.pay(1);
@@ -327,6 +334,7 @@ final class TerminalFixedDepthOptimizer {
         final int output;
         int first;
         int second;
+        int sortKey;
 
         Route(CraftPattern<K> pattern, int output) {
             this.pattern = pattern;

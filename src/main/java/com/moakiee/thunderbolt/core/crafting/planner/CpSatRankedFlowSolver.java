@@ -60,6 +60,8 @@ public final class CpSatRankedFlowSolver<K> {
     private final K target;
     private final long targetAmount;
     private final PlanningSession session;
+    /** Weighted objective safety can narrow a numeric domain beyond the material-row caps. */
+    private boolean weightedDomainLimited;
 
     /** Shared optional reachability/refinement budget for one immutable calculation snapshot. */
     public static final class PlanningSession {
@@ -115,7 +117,15 @@ public final class CpSatRankedFlowSolver<K> {
         if (targetAmount <= 0L || Sat.isSaturated(targetAmount)) {
             return Result.status(Status.UNSUPPORTED);
         }
-        return new CpSatRankedFlowSolver<>(graph, target, targetAmount, session).solve();
+        var solver = new CpSatRankedFlowSolver<>(graph, target, targetAmount, session);
+        Result<K> result = solver.solve();
+        if (solver.weightedDomainLimited && result.plan != null) {
+            // An executable witness is retained, but the narrower domain proves no global
+            // missing/cost optimum. Refinement certificates cannot restore domain completeness.
+            session.incomplete = true;
+            return new Result<>(result.status, withBudget(result.plan), result.branches);
+        }
+        return result;
     }
 
     private record Candidate<K>(Status status, CraftPlan<K> plan, long branches,
@@ -198,6 +208,7 @@ public final class CpSatRankedFlowSolver<K> {
                     compilation.missingCutProducers,
                     blocks.stream().map(PetriBlockCatalog.Block::wire).toArray(long[][]::new),
                     PetriBlockCatalog.STAGES,
+                    compilation.patterns.stream().mapToInt(CraftPattern::executionCost).toArray(),
                     remainingNanos / 1_000_000_000.0D);
         } catch (RuntimeException | LinkageError failure) {
             return Candidate.status(Status.INVALID);
@@ -206,7 +217,9 @@ public final class CpSatRankedFlowSolver<K> {
         if (raw.length < 2) return Candidate.status(Status.INVALID);
         Status status = switch ((int) raw[0]) {
             case 0, 4 -> Status.SOLVED;
-            case 1 -> Status.INFEASIBLE;
+            // Weighted objective safety may narrow a long-domain variable. A native failure
+            // inside that numeric domain does not prove the original graph infeasible.
+            case 1 -> weightedDomainLimited ? Status.UNKNOWN : Status.INFEASIBLE;
             case 2 -> Status.INVALID;
             default -> Status.UNKNOWN;
         };
@@ -269,8 +282,9 @@ public final class CpSatRankedFlowSolver<K> {
             plan = proof == null ? null : certifiedPlan(compilation, firings, missing, proof);
         }
         if (plan != null && !legalMissing(compilation, plan)) plan = null;
-        if (plan != null && raw[0] == 4L) plan = withBudget(plan);
-        return new Candidate<>(Status.SOLVED, plan, branches, firings, missing, ranks, raw[0] == 4L);
+        boolean partial = raw[0] == 4L || weightedDomainLimited;
+        if (plan != null && partial) plan = withBudget(plan);
+        return new Candidate<>(Status.SOLVED, plan, branches, firings, missing, ranks, partial);
     }
 
     private Result<K> refine(Compilation<K> c, Candidate<K> first) {
@@ -489,10 +503,8 @@ public final class CpSatRankedFlowSolver<K> {
                     .subtract(BigInteger.valueOf(incumbent.missing().getOrDefault(key, 0L))), BigInteger::add);
         }
         for (BigInteger difference : tiers.values()) if (difference.signum() != 0) return difference.signum() < 0;
-        BigInteger candidateCount = candidate.firings().values().stream().map(BigInteger::valueOf)
-                .reduce(BigInteger.ZERO, BigInteger::add);
-        BigInteger incumbentCount = incumbent.firings().values().stream().map(BigInteger::valueOf)
-                .reduce(BigInteger.ZERO, BigInteger::add);
+        BigInteger candidateCount = candidate.executionCount();
+        BigInteger incumbentCount = incumbent.executionCount();
         return candidateCount.compareTo(incumbentCount) < 0;
     }
 
@@ -724,13 +736,15 @@ public final class CpSatRankedFlowSolver<K> {
                 maxCoefficient = Math.max(maxCoefficient, consumed.get(recipe, item));
                 maxCoefficient = Math.max(maxCoefficient, produced.get(recipe, item));
             }
-            // Any one item row can contain every recipe variable. Give each variable at most an
-            // equal share of the safe signed-long coefficient budget; bounding by coefficient or
-            // recipe count separately is insufficient when a newly added valid inequality combines
-            // both. This still leaves enormous long-scale domains while satisfying CP-SAT's exact
-            // overflow validator.
+            // Any item row or the weighted objective can contain every recipe variable. Give
+            // each variable an equal share of the safe signed-long coefficient budget. Track
+            // additional objective caps: they admit a witness, never a completeness certificate.
+            long materialUpper = Math.max(1L, Math.min(domainCap,
+                    Sat.SAT / maxCoefficient / Math.max(1, recipeCount)));
+            maxCoefficient = Math.max(maxCoefficient, patterns.get(recipe).executionCost());
             long coefficientShare = Sat.SAT / maxCoefficient / Math.max(1, recipeCount);
             upperBounds[recipe] = Math.max(1L, Math.min(domainCap, coefficientShare));
+            weightedDomainLimited |= upperBounds[recipe] < materialUpper;
         }
 
         long[] stocks = new long[itemCount];

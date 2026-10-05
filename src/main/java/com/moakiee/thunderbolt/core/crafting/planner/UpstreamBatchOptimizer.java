@@ -40,6 +40,7 @@ final class UpstreamBatchOptimizer {
         long executions = 0;
         for (var entry : incumbent.firings().entrySet()) {
             if (!budget.charge(1 + entry.getKey().inputs().size()) || entry.getValue() <= 0
+                    || entry.getKey().executionCost() != 1
                     || !OrdinaryBatchOptimizer.ordinary(entry.getKey())) return null;
             executions = Sat.add(executions, entry.getValue());
         }
@@ -106,6 +107,10 @@ final class UpstreamBatchOptimizer {
                             var expansion = variant < 0 ? null : model.patterns.get(variant);
                             if (expansion != null && (expansion.output().equals(output)
                                     || model.routes.get(expansion.output()).size() < 2)) continue;
+                            // The null expansion already tried this active first route.
+                            if (phase == EXTEND_ROUTES && expansion != null
+                                    && expansion == model.routes.get(expansion.output()).get(0)
+                                    && incumbent.firings().getOrDefault(expansion, 0L) > 0) continue;
                             for (int exchange = 0; exchange < 3; exchange++) {
                                 var result = attempt(output, routes.get(a), routes.get(b), expansion, phase, exchange);
                                 if (result != null) return result;
@@ -222,7 +227,7 @@ final class UpstreamBatchOptimizer {
                 int visits = 0;
                 for (var input : model.inputs.get(route).entrySet()) {
                     checkpoint(visits++);
-                    state.need.merge(input.getKey(), input.getValue().multiply(count), BigInteger::add);
+                    state.need.merge(input.getKey(), scaleInput(input.getValue(), count), BigInteger::add);
                 }
             }
             state.startIndex = model.fixedPrefixEnd;
@@ -287,24 +292,8 @@ final class UpstreamBatchOptimizer {
             if (routes.isEmpty()) return null;
             if (key.equals(mixedOutput)) {
                 if (!budget.charge(1 + first.inputs().size() + second.inputs().size())) return null;
-                var keys = new LinkedHashSet<K>();
-                int visits = 0;
-                for (K input : model.inputs.get(first).keySet()) {
-                    checkpoint(visits++);
-                    keys.add(input);
-                }
-                for (K input : model.inputs.get(second).keySet()) {
-                    checkpoint(visits++);
-                    keys.add(input);
-                }
-                long[] useA = new long[keys.size()], useB = new long[keys.size()], capacity = new long[keys.size()];
-                int i = 0;
-                for (K input : keys) {
-                    checkpoint(i);
-                    useA[i] = model.inputs.get(first).getOrDefault(input, BigInteger.ZERO).longValueExact();
-                    useB[i] = model.inputs.get(second).getOrDefault(input, BigInteger.ZERO).longValueExact();
-                    capacity[i++] = model.capacity.get(input).longValueExact();
-                }
+                var geometry = pairs.geometry(first, second, model);
+                long[] useA = geometry.useA, useB = geometry.useB, capacity = geometry.capacity;
                 PairBatchAllocation.Allocation allocation;
                 if (mode == EXCHANGE_INCUMBENT_PAIR) {
                     long seedA = incumbent.firings().getOrDefault(first, 0L);
@@ -380,7 +369,7 @@ final class UpstreamBatchOptimizer {
                 int visits = 0;
                 for (var input : model.inputs.get(route).entrySet()) {
                     checkpoint(visits++);
-                    need.merge(input.getKey(), input.getValue().multiply(times), BigInteger::add);
+                    need.merge(input.getKey(), scaleInput(input.getValue(), times), BigInteger::add);
                 }
             }
         }
@@ -391,6 +380,37 @@ final class UpstreamBatchOptimizer {
     private static final class PairCache<K> {
         private final IdentityHashMap<CraftPattern<K>, IdentityHashMap<CraftPattern<K>,
                 Map<PairDemand, PairBatchAllocation.Allocation>>> values = new IdentityHashMap<>();
+        private final IdentityHashMap<CraftPattern<K>, IdentityHashMap<CraftPattern<K>,
+                PairGeometry>> geometries = new IdentityHashMap<>();
+
+        PairGeometry geometry(CraftPattern<K> first, CraftPattern<K> second, Model<K> model) {
+            PlanningCancellation.check();
+            var firstGeometries = geometries.get(first);
+            var cached = firstGeometries == null ? null : firstGeometries.get(second);
+            if (cached != null) return cached;
+            var keys = new LinkedHashSet<K>();
+            int visits = 0;
+            for (K input : model.inputs.get(first).keySet()) {
+                checkpoint(visits++);
+                keys.add(input);
+            }
+            for (K input : model.inputs.get(second).keySet()) {
+                checkpoint(visits++);
+                keys.add(input);
+            }
+            long[] useA = new long[keys.size()], useB = new long[keys.size()], capacity = new long[keys.size()];
+            int i = 0;
+            for (K input : keys) {
+                checkpoint(i);
+                useA[i] = model.inputs.get(first).getOrDefault(input, BigInteger.ZERO).longValueExact();
+                useB[i] = model.inputs.get(second).getOrDefault(input, BigInteger.ZERO).longValueExact();
+                capacity[i++] = model.capacity.get(input).longValueExact();
+            }
+            PlanningCancellation.check();
+            var geometry = new PairGeometry(useA, useB, capacity);
+            geometries.computeIfAbsent(first, ignored -> new IdentityHashMap<>()).put(second, geometry);
+            return geometry;
+        }
 
         PairBatchAllocation.Allocation solve(CraftPattern<K> first, CraftPattern<K> second, long required,
                 long[] useA, long[] useB, long[] capacity, long executionLimit, Budget budget) {
@@ -410,7 +430,17 @@ final class UpstreamBatchOptimizer {
         }
     }
 
+    /** Read-only arrays owned by one search's fixed model; demand and remaining work stay dynamic. */
+    private record PairGeometry(long[] useA, long[] useB, long[] capacity) {}
+
     private record PairDemand(long required, long executionLimit) {}
+
+    /** Reuse immutable values when input propagation multiplies by one. */
+    private static BigInteger scaleInput(BigInteger amount, BigInteger executions) {
+        if (amount.equals(BigInteger.ONE)) return executions;
+        if (executions.equals(BigInteger.ONE)) return amount;
+        return amount.multiply(executions);
+    }
 
     private static BigInteger ceilDivide(BigInteger value, BigInteger divisor) {
         return value.subtract(BigInteger.ONE).divide(divisor).add(BigInteger.ONE);
@@ -484,6 +514,7 @@ final class UpstreamBatchOptimizer {
                     // patterns sharing one source retain their independent input/output choices.
                     if (model.inputs.containsKey(pattern)) continue;
                     if (model.patterns.size() >= MAX_PATTERNS || !budget.charge(1 + pattern.inputs().size())
+                            || pattern.executionCost() != 1
                             || !OrdinaryBatchOptimizer.ordinary(pattern)) return null;
                     routes.add(pattern);
                     model.patterns.add(pattern);

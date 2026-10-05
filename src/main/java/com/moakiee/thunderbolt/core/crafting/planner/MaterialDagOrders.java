@@ -74,12 +74,13 @@ final class MaterialDagOrders {
             for (var pattern : graph.patternsFor(key)) {
                 charge(budget, 1L+pattern.inputs().size()+pattern.byproducts().size());
                 if (++work > MAX_GRAPH_WORK) return List.of();
+                // Explicit tag conversions have no side outputs and retain their original
+                // identity and zero execution cost through every projection family.
                 CraftPattern<K> projected = pattern;
                 if (ignoreSideOutputs && !pattern.byproducts().isEmpty()) {
                     var inputs = sidePolicy == 2 ? conservativeInputs(pattern) : pattern.inputs();
                     retainedSelfReturn |= inputs.stream().anyMatch(CraftInput::returned);
-                    projected = new CraftPattern<>(pattern.output(), pattern.exactOutputAmount(),
-                            inputs, List.of(), pattern.source(), pattern.executionSlots());
+                    projected = pattern.projectMaterials(inputs, List.of());
                     originals.put(projected, pattern);
                 }
                 patterns.add(projected);

@@ -42,7 +42,9 @@ final class MultiRouteBatchOptimizer {
         BigInteger maxOutput = ZERO;
         for (var route : routes) {
             PlanningCancellation.check();
-            if (!route.byproducts().isEmpty() || route.exactOutputAmount().compareTo(SAT) >= 0)
+            // Enumerating total firings proves the objective only when every route costs one.
+            if (route.executionCost() != 1 || !route.byproducts().isEmpty()
+                    || route.exactOutputAmount().compareTo(SAT) >= 0)
                 return BatchOptimizationResult.unsupported(initial);
             maxOutput = maxOutput.max(route.exactOutputAmount());
             var cost = new HashMap<K, BigInteger>();
