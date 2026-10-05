@@ -177,6 +177,9 @@ final class FeasibleConsumptionOptimizer {
         private int[] limited;
         private boolean availableStock = true;
         private Prop global;
+        /** Scratch for sequential cost passes; never retained by a propagation result. */
+        private int[] relaxationRing;
+        private boolean[] relaxationQueued;
         /** Withdrawal sets extended by the substitutes the planner chose last time. */
         private final ArrayDeque<int[]> chains = new ArrayDeque<>();
         /** The last confirmed candidate within the stock limits, improving or not. */
@@ -1070,13 +1073,21 @@ final class FeasibleConsumptionOptimizer {
         /** Label-correcting shortest costs over reached patterns; false when the work cap stops it. */
         private boolean relax(Prop prop, double work, double[] cost, int[] argmin) {
             int m = prop.patterns.length;
-            int[] ring = new int[m + 1];
-            boolean[] queued = new boolean[m];
+            int ringLength = prop.firedCount + 1;
+            if (relaxationRing == null || relaxationRing.length < ringLength) relaxationRing = new int[ringLength];
+            if (relaxationQueued == null || relaxationQueued.length < m) relaxationQueued = new boolean[m];
+            else Arrays.fill(relaxationQueued, 0, m, false);
+            int[] ring = relaxationRing;
+            boolean[] queued = relaxationQueued;
+            int[] patterns = prop.patterns, useStart = index.useStart, useKey = index.useKey;
+            int[] outputs = index.out, executionCosts = index.executionCost;
+            long[] useAmount = index.useAmount, outAmount = index.outAmount;
+            int[] consumerStart = prop.consumerStart, consumer = prop.consumer;
             int head = 0, tail = 0, size = 0;
             for (int i = 0; i < prop.firedCount; i++) {
                 int li = prop.order[i];
                 ring[tail] = li;
-                tail = tail + 1 == ring.length ? 0 : tail + 1;
+                tail = tail + 1 == ringLength ? 0 : tail + 1;
                 size++;
                 queued[li] = true;
             }
@@ -1084,25 +1095,25 @@ final class FeasibleConsumptionOptimizer {
             while (size > 0 && budget-- > 0) {
                 if ((budget & 4095) == 0) PlanningCancellation.check();
                 int li = ring[head];
-                head = head + 1 == ring.length ? 0 : head + 1;
+                head = head + 1 == ringLength ? 0 : head + 1;
                 size--;
                 queued[li] = false;
-                int p = prop.patterns[li];
-                double value = work * index.executionCost[p];
-                for (int j = index.useStart[p]; j < index.useStart[p + 1] && value < Double.POSITIVE_INFINITY; j++)
-                    value += cost[index.useKey[j]] * index.useAmount[j];
+                int p = patterns[li];
+                double value = work * executionCosts[p];
+                for (int j = useStart[p], end = useStart[p + 1]; j < end && value < Double.POSITIVE_INFINITY; j++)
+                    value += cost[useKey[j]] * useAmount[j];
                 if (Double.isInfinite(value)) continue;
-                value /= index.outAmount[p];
-                int out = index.out[p];
+                value /= outAmount[p];
+                int out = outputs[p];
                 if (!(value < cost[out] * (1 - 1e-12))) continue;
                 cost[out] = value;
                 if (argmin != null) argmin[out] = p;
-                for (int j = prop.consumerStart[out]; j < prop.consumerStart[out + 1]; j++) {
-                    int next = prop.consumer[j];
+                for (int j = consumerStart[out], end = consumerStart[out + 1]; j < end; j++) {
+                    int next = consumer[j];
                     if (!prop.fired[next] || queued[next]) continue;
                     queued[next] = true;
                     ring[tail] = next;
-                    tail = tail + 1 == ring.length ? 0 : tail + 1;
+                    tail = tail + 1 == ringLength ? 0 : tail + 1;
                     size++;
                 }
             }

@@ -181,6 +181,21 @@ class FeedbackPreprocessingTest {
     }
 
     @Test
+    void rankConstructionChecksCancellationBeforeReadingTheOrder() {
+        List<String> order = new java.util.AbstractList<>() {
+            @Override public int size() { return 4096; }
+            @Override public String get(int index) { throw new AssertionError("cancelled rank construction read a key"); }
+        };
+        Thread.currentThread().interrupt();
+        try {
+            assertThrows(CancellationException.class,
+                    () -> ConservativeFeedbackAnalysis.analyzeAll(order, Map.of()));
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     void acyclicPreprocessingPropagatesThreadCancellation() {
         var pattern = new CraftPattern<>("T", 1, List.of(CraftInput.of("R", 1)), null);
         Thread.currentThread().interrupt();

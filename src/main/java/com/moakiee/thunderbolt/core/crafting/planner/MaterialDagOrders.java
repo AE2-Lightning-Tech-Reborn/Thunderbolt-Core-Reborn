@@ -124,8 +124,11 @@ final class MaterialDagOrders {
         }
         if (ordered.size() > MAX_ORDERED_ITEMS) return List.of();
         var result = new ArrayList<Candidate<K>>();
+        var rank = new HashMap<K, Integer>();
+        rank.put(target, ordered.size() + 1);
         try {
-            permute(graph, target, reachable, ordered, 0, patterns, new HashSet<>(), Map.copyOf(originals), result, budget);
+            permute(graph, target, reachable, ordered, 0, patterns, new HashSet<>(),
+                    Map.copyOf(originals), result, budget, rank);
         } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
             // A timeout must not discard already completed supports and force replenishment
             // to repeat the same permutations. Every retained projection is self-contained;
@@ -160,22 +163,18 @@ final class MaterialDagOrders {
     private static <K> void permute(CraftGraph<K> graph, K target, Set<K> reachable, List<K> ordered,
             int index, List<CraftPattern<K>> patterns, Set<BitSet> seen,
             Map<CraftPattern<K>, CraftPattern<K>> originals, List<Candidate<K>> result,
-            BoundedIntegerLinearSolver.WorkBudget budget) {
+            BoundedIntegerLinearSolver.WorkBudget budget, Map<K, Integer> rank) {
         charge(budget, 1);
         if (index < ordered.size()) {
             for (int next = index; next < ordered.size(); next++) {
                 java.util.Collections.swap(ordered, index, next);
-                permute(graph, target, reachable, ordered, index + 1, patterns, seen, originals, result, budget);
+                permute(graph, target, reachable, ordered, index + 1, patterns, seen, originals, result, budget, rank);
                 java.util.Collections.swap(ordered, index, next);
             }
             return;
         }
-        var rank = new HashMap<K, Integer>();
         for (int i = 0; i < ordered.size(); i++) rank.put(ordered.get(i), i + 1);
-        rank.put(target, ordered.size() + 1);
         var support = new BitSet(patterns.size());
-        var selected = new LinkedHashMap<K, List<CraftPattern<K>>>();
-        var supplyOrder = new ArrayList<CraftPattern<K>>();
         for (int i = 0; i < patterns.size(); i++) {
             var pattern = patterns.get(i);
             // Cover arc admission, projection construction, sorting, and its forward supply bound.
@@ -194,11 +193,18 @@ final class MaterialDagOrders {
             }
             if (admitted) {
                 support.set(i);
-                selected.computeIfAbsent(pattern.output(), ignored -> new ArrayList<>()).add(pattern);
-                supplyOrder.add(pattern);
             }
         }
         if (support.isEmpty() || !seen.add(support)) return;
+        // Most permutations rediscover an existing support. Materialize only the first one,
+        // preserving original registration order before the stable supply-order sort.
+        var selected = new LinkedHashMap<K, List<CraftPattern<K>>>();
+        var supplyOrder = new ArrayList<CraftPattern<K>>(support.cardinality());
+        for (int i = support.nextSetBit(0); i >= 0; i = support.nextSetBit(i + 1)) {
+            var pattern = patterns.get(i);
+            selected.computeIfAbsent(pattern.output(), ignored -> new ArrayList<>()).add(pattern);
+            supplyOrder.add(pattern);
+        }
         // All outputs lie after every input, so ordering producers by their last input is a
         // forward schedule even when a side output lies before that producer's primary output.
         supplyOrder.sort(Comparator.comparingInt(pattern -> lastInputRank(pattern, rank)));
