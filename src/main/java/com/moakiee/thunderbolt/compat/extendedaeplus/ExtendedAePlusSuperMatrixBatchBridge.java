@@ -30,6 +30,8 @@ public final class ExtendedAePlusSuperMatrixBatchBridge {
     private ExtendedAePlusSuperMatrixBatchBridge() {
     }
 
+    public static boolean isAvailable() { return AVAILABLE; }
+
     /** Older EAEP versions have no Super Assembler Matrix and remain completely untouched. */
     public static long capacity(IPatternDetails details) {
         if (!AVAILABLE || !(details instanceof IMolecularAssemblerSupportedPattern)) {
@@ -105,15 +107,9 @@ public final class ExtendedAePlusSuperMatrixBatchBridge {
             return maxCraft;
         }
 
-        boolean accepted;
-        try {
-            accepted = provider.pushPattern((IPatternDetails) scaledPattern, scaledInputs);
-        } catch (RuntimeException exception) {
-            MixinReflectionSupport.logReflectionFailure(
-                    "dispatch EAEP Super Assembler Matrix batch",
-                    exception);
-            return maxCraft;
-        }
+        // A throwing push may already own the inputs. Let BatchExecutor quarantine it;
+        // returning all copies here would refund materials that the matrix may be processing.
+        boolean accepted = provider.pushPattern((IPatternDetails) scaledPattern, scaledInputs);
         return accepted ? maxCraft - requested : maxCraft;
     }
 
@@ -145,12 +141,15 @@ public final class ExtendedAePlusSuperMatrixBatchBridge {
         IPatternDetails current = details;
         long multiplier = 1L;
         try {
+            var seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<IPatternDetails, Boolean>());
             while (SCALED_PATTERN_CLASS.isInstance(current)) {
+                if (!seen.add(current)) return null;
                 Object next = GET_ORIGINAL.invoke(current);
                 Object factor = GET_MULTIPLIER.invoke(current);
                 if (!(next instanceof IPatternDetails original) || !(factor instanceof Number number)) {
                     return null;
                 }
+                if (number.longValue() <= 0) return null;
                 multiplier = Math.multiplyExact(multiplier, number.longValue());
                 current = original;
             }

@@ -425,7 +425,7 @@ public abstract class CraftingCalculationMixin implements CraftingPlanningContro
         if (Thread.interrupted()) {
             throw new InterruptedException("crafting calculation cancelled");
         }
-        if (GtlCompat.isCraftingHandoverActive()) {
+        if (GtlCompat.usesGtlCalculationScheduler()) {
             // GTLCore's simulateFor is a no-op (return !done). The AE2 monitor protocol would
             // park this thread until a later simulateFor flipped running back on, which never
             // happens. Park a millisecond and poll the isolated candidate instead.

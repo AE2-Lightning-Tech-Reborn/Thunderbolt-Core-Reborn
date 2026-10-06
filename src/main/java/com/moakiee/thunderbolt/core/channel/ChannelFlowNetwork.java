@@ -16,7 +16,8 @@ final class ChannelFlowNetwork {
     final int[] head;
     int[] to, capacity, next;
     private int edgeCount;
-    private final int[] queue;
+    // Shared scratch space: the seed finishes before residual completion uses it.
+    final int[] queue;
 
     // Allocated only when the linear passes leave a difficult residual network.
     private int[] height, current, heightCount, bucket, nextActive;
@@ -26,10 +27,15 @@ final class ChannelFlowNetwork {
     private long work, relabelThreshold;
 
     ChannelFlowNetwork(int vertices) {
+        this(vertices, Math.max((long) (vertices + 1) * 6, 64));
+    }
+
+    /** Initial residual-edge storage hint; underestimated graphs still grow normally. */
+    ChannelFlowNetwork(int vertices, long expectedResidualEdges) {
         size = vertices + 1; // Reserved source for a bounded residual flow.
         head = new int[size];
         Arrays.fill(head, -1);
-        int initial = Math.max(size * 6, 64);
+        int initial = (int) Math.max(64, Math.min((long) size * 6, expectedResidualEdges));
         to = new int[initial];
         capacity = new int[initial];
         next = new int[initial];

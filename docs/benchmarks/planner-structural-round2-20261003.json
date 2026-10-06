@@ -1,0 +1,344 @@
+{
+  "date": "2026-10-03",
+  "scope": "Independent structural preprocessing increment after the first combined alpha optimization",
+  "baseline_commit": "ea0b4daac8f50c2ab3cff0d128adddcc8ba3afe6",
+  "source_provenance": "The small material-footprint and source-group ordering optimizations were selectively adapted from local commit 205d00456e9cb2517b39f4569974902f609ead73. No optimizer or search-policy changes from that commit were imported.",
+  "changes": [
+    "Publish immutable direct-raw and material-footprint tables once; retain thread-confined structural capacity memo references in prepared snapshots and copy the memo on replay.",
+    "Canonicalize recipes with at most eight input slots in sorted scratch storage, preserving exact overflow and stateful-input exclusions.",
+    "Cache immutable host-feedback-seed presence and recompute it for recipe projections.",
+    "Prove a strict reverse topological material order before allocating SCC structures; retain the existing SCC path for missing ranks, self-loops and backward edges.",
+    "Preserve identity source groups and stable capacity ties while avoiding singleton member lists, repeated group-maximum scans and small-group general sorting."
+  ],
+  "protocol": {
+    "sequence": [
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline",
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline"
+    ],
+    "repeats_per_dataset_per_process": 3,
+    "discarded_repeat": 0,
+    "warm_samples_per_variant_per_dataset": 8,
+    "jvm": "Temurin 21.0.11+10, -Xmx3g -Xss16m",
+    "system_properties": [
+      "-Dthunderbolt.maxReachablePlanningWork=2000000",
+      "-Dthunderbolt.maxCraftSearchWork=2000000",
+      "-Dthunderbolt.feasibleOptimizationTrace=true"
+    ],
+    "planner": "CraftPlannerV2.planDetailed",
+    "coordination": "The coordinating instance paused CPU-intensive work for the full formal ABBA run.",
+    "limitations": "Offline normalized recipe graphs, not in-game TPS or a global speed guarantee. TB counts existing target inventory toward demand; AW excludes it. NAST has 1206 target items in stock."
+  },
+  "class_snapshots": {
+    "baseline": {
+      "count": 452,
+      "sha256_of_sorted_json_manifest": "4945e9bccdd84fcf509921d3cdca99256f7a5f51a02d89fff58ac189438ebeec"
+    },
+    "candidate": {
+      "count": 453,
+      "sha256_of_sorted_json_manifest": "19d9a9158757afaa265890151b695df1f788a90719b740d1d70b215989243052"
+    }
+  },
+  "tests_and_artifact": {
+    "tests": {
+      "tests": 934,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "command": "./gradlew --offline --no-daemon test build",
+    "jar_compiled_classes_equal": 453,
+    "benchmark_compiled_classes_equal": 453,
+    "jar_sha256": "bce658a2e29e653bd206ddafa40b2e5d00fc35c533f243881d85adfc9af359b5"
+  },
+  "independent_checks": {
+    "material_footprint_vs_big_integer_oracle": 4096,
+    "source_group_order_vs_independent_oracle": 2048,
+    "acyclic_preflight_vs_floyd_oracle": 250
+  },
+  "results": [
+    {
+      "dataset": "recipes-atm",
+      "target_zero_based": 64457,
+      "amount": 100000,
+      "stock": "random20",
+      "total_records": 24,
+      "identical_plan_fingerprints": true,
+      "plan_fingerprint_sha256": "7eeea5d57310c78924fe3a996442e980451ecc1307c8c837dece5fb2e62a5233",
+      "real_executions": 100,
+      "tag_executions": 0,
+      "existing_target_stock": 0,
+      "aw_target_stock_exclusion_shortfalls": {},
+      "baseline": {
+        "warm_samples": 8,
+        "planning_ms_samples": [
+          973.81125,
+          884.651666,
+          970.85975,
+          933.920625,
+          981.893375,
+          856.702917,
+          959.804375,
+          887.163667
+        ],
+        "planning_ms_median": 946.8625,
+        "optimizer_ms_median": 292.04837499999996
+      },
+      "candidate": {
+        "warm_samples": 8,
+        "planning_ms_samples": [
+          667.114458,
+          664.505541,
+          712.878875,
+          642.652458,
+          688.799,
+          638.63675,
+          705.99425,
+          638.350166
+        ],
+        "planning_ms_median": 665.8099995,
+        "optimizer_ms_median": 267.700146
+      },
+      "planning_reduction_percent": 29.682504112265505,
+      "inputs": {
+        "graph_sha256": "aa5cde5d2dda745824ceb22535f8a588e9849be4d5f726dd7d1cc5fd6a7fed07",
+        "stock_sha256": "26ff15252ffc4a9707a84f8d5fe36e13fc5baa8f1274e09f9914c41acc343204"
+      }
+    },
+    {
+      "dataset": "recipes-nast",
+      "target_zero_based": 6870,
+      "amount": 100000,
+      "stock": "random20",
+      "total_records": 24,
+      "identical_plan_fingerprints": true,
+      "plan_fingerprint_sha256": "39f8d34bbdfdb917adb9ffb5c9ce1f9325a084a330252965e4b95202c2682c91",
+      "real_executions": 560511624,
+      "tag_executions": 9735296,
+      "existing_target_stock": 1206,
+      "aw_target_stock_exclusion_shortfalls": {
+        "6871": 1206
+      },
+      "baseline": {
+        "warm_samples": 8,
+        "planning_ms_samples": [
+          524.014167,
+          494.305375,
+          544.427125,
+          494.249625,
+          543.175,
+          512.011583,
+          555.138333,
+          500.304
+        ],
+        "planning_ms_median": 518.012875,
+        "optimizer_ms_median": 479.59945849999997
+      },
+      "candidate": {
+        "warm_samples": 8,
+        "planning_ms_samples": [
+          473.846458,
+          427.017084,
+          474.055708,
+          430.314084,
+          487.215417,
+          419.098708,
+          446.009458,
+          422.743583
+        ],
+        "planning_ms_median": 438.161771,
+        "optimizer_ms_median": 402.35412499999995
+      },
+      "planning_reduction_percent": 15.414887902158803,
+      "inputs": {
+        "graph_sha256": "38bee92efcef25027b5b0598c0b080a8d64097f5e7b2948724c5d6052f734cc9",
+        "stock_sha256": "ccffbe94803687144b24d747f9f6bd2ade5e3d22f251c8c093dbeb16c56e1b67"
+      }
+    }
+  ],
+  "all_48_records_balance_and_replay_passed": true,
+  "full_plan_differential_audit": [
+    {
+      "mode": null,
+      "samples": 3000,
+      "feasible0": 2867,
+      "feasible1": 2867,
+      "changed": [],
+      "regressions": [],
+      "candidateInvalid": [],
+      "baselineReplayFail": [],
+      "candidateReplayFail": [],
+      "replays0": 8601,
+      "replays1": 8601
+    },
+    {
+      "mode": 0,
+      "samples": 1000,
+      "feasible0": 1000,
+      "feasible1": 1000,
+      "changed": [],
+      "regressions": [],
+      "candidateInvalid": [],
+      "baselineReplayFail": [],
+      "candidateReplayFail": [],
+      "replays0": 3000,
+      "replays1": 3000
+    },
+    {
+      "mode": 1,
+      "samples": 1000,
+      "feasible0": 1000,
+      "feasible1": 1000,
+      "changed": [],
+      "regressions": [],
+      "candidateInvalid": [],
+      "baselineReplayFail": [],
+      "candidateReplayFail": [],
+      "replays0": 3000,
+      "replays1": 3000
+    },
+    {
+      "mode": 2,
+      "samples": 1000,
+      "feasible0": 867,
+      "feasible1": 867,
+      "changed": [],
+      "regressions": [],
+      "candidateInvalid": [],
+      "baselineReplayFail": [],
+      "candidateReplayFail": [],
+      "replays0": 2601,
+      "replays1": 2601
+    }
+  ],
+  "exploratory_profile": {
+    "protocol": "ATM random20, two warmups plus eight recorded plans, JFR 2 ms samples. Counts are exploratory sample evidence; formal speed results above come from ABBA.",
+    "samples": {
+      "baseline": {
+        "total_samples": 2139,
+        "phase": {
+          "outside_optimizer": 1355,
+          "optimizer": 784
+        },
+        "nearest": [
+          [
+            "FeasibleConsumptionOptimizer$Search.relax",
+            481
+          ],
+          [
+            "FeasibleConsumptionOptimizer$Index.build",
+            162
+          ],
+          [
+            "CraftPlannerV2.snapshotPreparedGraph",
+            150
+          ],
+          [
+            "CraftPlannerV2.capacityScore",
+            134
+          ],
+          [
+            "CraftPlannerV2.frameFor",
+            126
+          ],
+          [
+            "ConservativeFeedbackAnalysis.stronglyConnectedComponents",
+            97
+          ],
+          [
+            "CraftPlannerV2.materialFootprint",
+            88
+          ],
+          [
+            "CraftPlannerV2.indexEquivalentMaterialFootprints",
+            87
+          ],
+          [
+            "CraftPlannerV2.feedbackSeedBootstrapFromConverter",
+            75
+          ],
+          [
+            "CraftPlannerV2.lowWidthByproductSchedule",
+            73
+          ],
+          [
+            "CraftPlannerV2.producibleVia",
+            68
+          ],
+          [
+            "CraftPlannerV2.indexDirectRawConsumables",
+            67
+          ]
+        ]
+      },
+      "structural-v2": {
+        "total_samples": 1519,
+        "phase": {
+          "outside_optimizer": 755,
+          "optimizer": 764
+        },
+        "nearest": [
+          [
+            "FeasibleConsumptionOptimizer$Search.relax",
+            469
+          ],
+          [
+            "FeasibleConsumptionOptimizer$Index.build",
+            162
+          ],
+          [
+            "CraftPlannerV2.frameFor",
+            106
+          ],
+          [
+            "CraftPlannerV2.lowWidthByproductSchedule",
+            77
+          ],
+          [
+            "CraftPlannerV2.producibleVia",
+            65
+          ],
+          [
+            "CraftPlannerV2.indexDirectRawConsumables",
+            52
+          ],
+          [
+            "CraftPlannerV2.indexEquivalentMaterialFootprints",
+            51
+          ],
+          [
+            "FeasibleConsumptionOptimizer$Search.propagate",
+            45
+          ],
+          [
+            "CraftPlannerV2.reachableWorkEstimate",
+            41
+          ],
+          [
+            "ConservativeFeedbackAnalysis.stablePatterns",
+            39
+          ],
+          [
+            "CraftPlannerV2.shortestInputDistances",
+            36
+          ],
+          [
+            "CraftPlannerV2.materialFootprint",
+            35
+          ]
+        ]
+      }
+    }
+  },
+  "reproduction_artifacts": {
+    "abba_driver_sha256": "0fa1fdcf44e00fe124981695721e221bf3057fe984190fa2cfcbf0f0b9522d47",
+    "corpus_harness_sha256": "6fd08b353c1c68036b91a8241ede1b012b2d2964b0d84ed05b55087c549ca397",
+    "issue_queries_sha256": "9da5b2bbfb210a9ae835f66af70a832a61d3636d0cfc7e1c8eb881534fe454be",
+    "differential_generator_sha256": "e4635dddd9b7c8ceae784d00a7c1b423147067bd91db24741a3a5865f5a143c0"
+  }
+}

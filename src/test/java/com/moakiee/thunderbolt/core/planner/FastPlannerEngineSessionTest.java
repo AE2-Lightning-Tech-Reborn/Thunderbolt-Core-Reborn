@@ -175,6 +175,5 @@ class FastPlannerEngineSessionTest {
         @Override public void writeToPacket(FriendlyByteBuf data) { }
         @Override protected Component computeDisplayName() { return Component.literal("session seed"); }
         @Override public void addDrops(long amount, List<ItemStack> drops, Level level, BlockPos pos) { }
-         public boolean hasComponents() { return false; }
     }
 }

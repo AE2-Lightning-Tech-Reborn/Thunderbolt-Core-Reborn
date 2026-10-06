@@ -285,8 +285,11 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
     }
 
     private void publishInterrupt() {
-        calculationThread.interrupt();
+        // Publish before the actual interrupt: an observer that wakes up from the interrupt
+        // must also see interruptSent()==true (platform threads expose a wider race window
+        // than the virtual threads used upstream).
         interruptObserved = true;
+        calculationThread.interrupt();
     }
 
     private void isolateAfterGrace() {

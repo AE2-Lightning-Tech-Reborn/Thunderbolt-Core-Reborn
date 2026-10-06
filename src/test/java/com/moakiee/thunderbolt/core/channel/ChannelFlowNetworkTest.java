@@ -56,6 +56,27 @@ class ChannelFlowNetworkTest {
     }
 
     @Test
+    void underestimatedStorageHintStillGrowsAndReturnsUnusedSupply() {
+        for (boolean forcePush : new boolean[] {false, true}) {
+            var graph = new ChannelFlowNetwork(4, 0);
+            var arcs = new ArrayList<Arc>();
+            for (int i = 0; i < 200; i++) {
+                arcs.add(new Arc(graph.edgeCount(), 0, 1, 1));
+                graph.addEdge(0, 1, 1);
+            }
+            arcs.add(new Arc(graph.edgeCount(), 1, 3, 200));
+            graph.addEdge(1, 3, 200);
+            arcs.add(new Arc(graph.edgeCount(), 0, 2, 7));
+            graph.addEdge(0, 2, 7);
+            arcs.add(new Arc(graph.edgeCount(), 2, 3, 7));
+            graph.addEdge(2, 3, 7);
+            int flow = forcePush ? graph.pushRemaining(0, 3, 80) : graph.maxFlow(0, 3, 80);
+            assertEquals(80, flow);
+            certificate(graph, arcs, 0, 3, flow, false);
+        }
+    }
+
+    @Test
     void independentPathsAddButSharedNodeRemainsABottleneck() {
         for (int paths = 1; paths <= 2; paths++) {
             for (boolean shared : new boolean[]{false, true}) {
@@ -83,6 +104,65 @@ class ChannelFlowNetworkTest {
         n.supply(0, 8);
         n.demand(1, 24);
         assertEquals(16, n.check(INF, false));
+    }
+
+    @Test
+    void seedCombinesTransitWithMultipleLocalFacesAndLocalDemand() {
+        var n = new Network(32, 32, 32, 32);
+        n.connect(0, 1, 32);
+        n.connect(1, 2, 32);
+        n.connect(2, 3, 32);
+        n.supply(0, 3);
+        n.supply(1, 4);
+        n.supply(1, 5);
+        n.supply(1, 0); // A zero-capacity face must not hide the other local faces.
+        n.demand(1, 4);
+        n.demand(3, 12);
+
+        int initial = BidirectionalFlowSeed.assign(n.graph, n.source, n.sink, n.splits, INF);
+        assertEquals(12, initial);
+        certificate(n.graph, n.arcs, n.source, n.sink, initial, true);
+        assertEquals(12, n.graph.residual(n.splits[1] ^ 1),
+                "the shared relay carries both local supply and transit flow");
+        assertEquals(0, n.graph.maxFlow(n.source, n.sink, INF - initial));
+    }
+
+    @Test
+    void seedReplaysEveryLocalDemandBeforeForwardingTheRemainder() {
+        var n = new Network(32, 32, 32);
+        n.connect(0, 1, 32);
+        n.connect(1, 2, 32);
+        n.supply(0, 13);
+        n.demand(1, 2);
+        n.demand(1, 3);
+        n.demand(1, 0);
+        n.demand(2, 8);
+        int initial = BidirectionalFlowSeed.assign(n.graph, n.source, n.sink, n.splits, INF);
+        assertEquals(13, initial);
+        certificate(n.graph, n.arcs, n.source, n.sink, initial, true);
+        assertEquals(13, n.graph.residual(n.splits[1] ^ 1));
+        assertEquals(8, n.graph.residual(n.splits[2] ^ 1));
+        assertEquals(0, n.graph.maxFlow(n.source, n.sink, INF - initial));
+    }
+
+    @Test
+    void seededSiblingScratchDoesNotLeakIntoLaterResidualSearches() {
+        for (boolean forcePush : new boolean[] {false, true}) {
+            var n = new Network(32, 32, 32, 32);
+            n.connect(0, 1, 32);
+            n.connect(0, 2, 32);
+            n.connect(1, 3, 32);
+            n.connect(2, 3, 32);
+            n.supply(0, 16);
+            n.demand(3, 16);
+            int initial = BidirectionalFlowSeed.assign(n.graph, n.source, n.sink, n.splits, 3);
+            assertEquals(3, initial);
+            certificate(n.graph, n.arcs, n.source, n.sink, initial, false);
+            int more = forcePush ? n.graph.pushRemaining(n.source, n.sink, 13)
+                    : n.graph.maxFlow(n.source, n.sink, 13);
+            assertEquals(13, more);
+            certificate(n.graph, n.arcs, n.source, n.sink, 16, true);
+        }
     }
 
     @Test

@@ -12,6 +12,60 @@ import org.junit.jupiter.api.Test;
 class BoundedIntegerLinearSolverTest {
 
     @Test
+    void portfolioWitnessRechecksChangedRowsAndDoesNotReuseInfeasibility() {
+        var witness = new BoundedIntegerLinearSolver.FeasibleWitness();
+        var budget = BoundedIntegerLinearSolver.WorkBudget.unlimited();
+        var rows = List.of(row(2, 1), row(-2, -1));
+        assertArrayEquals(new long[] {2}, witness.solve(1, rows, 100, 16, budget).values());
+        var retained = witness.solve(1, rows, 100, 16, budget);
+        assertEquals(0, retained.visitedNodes());
+        retained.values()[0] = 99;
+        assertArrayEquals(new long[] {2}, witness.solve(1, rows, 100, 16, budget).values());
+        assertArrayEquals(new long[] {3}, witness.solve(
+                1, List.of(row(3, 1), row(-3, -1)), 100, 16, budget).values());
+        assertEquals(BoundedIntegerLinearSolver.Status.INFEASIBLE,
+                witness.solve(1, List.of(row(4, 1), row(-3, -1)), 100, 16, budget).status());
+        assertTrue(witness.solve(1, List.of(row(1, 1), row(-1, -1)), 100, 16, budget).solved());
+        assertEquals(BoundedIntegerLinearSolver.Status.INFEASIBLE,
+                witness.solve(1, List.of(row(1, 1)), 0, 16, budget).status());
+    }
+
+    @Test
+    void portfolioWitnessUsesExactOverflowChecksAndChargesTheSharedBudget() {
+        var witness = new BoundedIntegerLinearSolver.FeasibleWitness();
+        var budget = BoundedIntegerLinearSolver.WorkBudget.unlimited();
+        var rows = List.of(row(3, 1, 0), row(3, 0, 1), row(-3, -1, 0), row(-3, 0, -1));
+        assertTrue(witness.solve(2, rows, 100, 16, budget).solved());
+        var overflow = new java.util.ArrayList<>(rows);
+        overflow.add(row(0, Long.MAX_VALUE, -Long.MAX_VALUE));
+        var retained = witness.solve(2, overflow, 100, 16, budget);
+        assertTrue(retained.solved());
+        assertEquals(0, retained.visitedNodes());
+        overflow.add(row(1, Long.MAX_VALUE, -Long.MAX_VALUE));
+        assertEquals(BoundedIntegerLinearSolver.Status.INFEASIBLE,
+                witness.solve(2, overflow, 100, 16, budget).status());
+        assertEquals(BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED,
+                witness.solve(2, rows, 100, 16,
+                        BoundedIntegerLinearSolver.WorkBudget.bounded(100, 1, Long.MAX_VALUE)).status());
+    }
+
+    @Test
+    void portfolioWitnessAgreesWithIndependentFiniteDomainOracle() {
+        var random = new Random(2026100617L);
+        var witness = new BoundedIntegerLinearSolver.FeasibleWitness();
+        for (int sample = 0; sample < 256; sample++) {
+            var rows = new java.util.ArrayList<BoundedIntegerLinearSolver.Constraint>();
+            for (int r = 0; r < 4; r++)
+                rows.add(row(random.nextInt(17) - 8,
+                        random.nextInt(5) - 2, random.nextInt(5) - 2, random.nextInt(5) - 2));
+            var result = witness.solve(3, rows, 3, 64,
+                    BoundedIntegerLinearSolver.WorkBudget.unlimited());
+            assertEquals(bruteForce(3, 3, rows) != null, result.solved(), "sample=" + sample);
+            if (result.solved()) assertTrue(feasible(result.values(), rows));
+        }
+    }
+
+    @Test
     void aSharedResourceRowReplacesItsRedundantIndividualBounds() {
         long[] demand = new long[12], resource = new long[12];
         java.util.Arrays.fill(demand, 1);

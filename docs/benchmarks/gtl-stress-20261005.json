@@ -1,0 +1,749 @@
+{
+  "micro_three_jvm_medians": [
+    {
+      "scenario": "chain-500",
+      "before": {
+        "p50_ns": 1823290.0,
+        "p95_ns": 2799590.0,
+        "bytes_per_op": 1159712.0
+      },
+      "after": {
+        "p50_ns": 1262420.0,
+        "p95_ns": 3957800.0,
+        "bytes_per_op": 755556.8
+      },
+      "p50_change_pct": -30.761425774287144,
+      "allocation_change_pct": -34.849617836152426
+    },
+    {
+      "scenario": "alternatives-1",
+      "before": {
+        "p50_ns": 84696.0,
+        "p95_ns": 137896.0,
+        "bytes_per_op": 29902.4
+      },
+      "after": {
+        "p50_ns": 79916.0,
+        "p95_ns": 117238.0,
+        "bytes_per_op": 27411.0
+      },
+      "p50_change_pct": -5.64371398885426,
+      "allocation_change_pct": -8.331772700519025
+    },
+    {
+      "scenario": "quantity-session-1",
+      "before": {
+        "p50_ns": 184200.0,
+        "p95_ns": 379880.0,
+        "bytes_per_op": 99696.0
+      },
+      "after": {
+        "p50_ns": 153440.0,
+        "p95_ns": 282950.0,
+        "bytes_per_op": 93056.0
+      },
+      "p50_change_pct": -16.699239956568945,
+      "allocation_change_pct": -6.660247151340071
+    },
+    {
+      "scenario": "alternatives-1000000000000",
+      "before": {
+        "p50_ns": 62520.0,
+        "p95_ns": 105350.0,
+        "bytes_per_op": 31024.0
+      },
+      "after": {
+        "p50_ns": 64328.0,
+        "p95_ns": 116710.0,
+        "bytes_per_op": 28472.0
+      },
+      "p50_change_pct": 2.891874600127964,
+      "allocation_change_pct": -8.225889633831873
+    },
+    {
+      "scenario": "quantity-session-1000000000000",
+      "before": {
+        "p50_ns": 144840.0,
+        "p95_ns": 348210.0,
+        "bytes_per_op": 101088.0
+      },
+      "after": {
+        "p50_ns": 103960.0,
+        "p95_ns": 179880.0,
+        "bytes_per_op": 94200.0
+      },
+      "p50_change_pct": -28.224247445457053,
+      "allocation_change_pct": -6.8138651471984835
+    },
+    {
+      "scenario": "three-route-mixed",
+      "before": {
+        "p50_ns": 440098.0,
+        "p95_ns": 844052.0,
+        "bytes_per_op": 160872.0
+      },
+      "after": {
+        "p50_ns": 853954.0,
+        "p95_ns": 1604620.0,
+        "bytes_per_op": 157720.0
+      },
+      "p50_change_pct": 94.03723716081419,
+      "allocation_change_pct": -1.9593216967527027
+    },
+    {
+      "scenario": "ordinary-bulk-extract",
+      "before": {
+        "p50_ns": 1730.4,
+        "p95_ns": 2798.2,
+        "bytes_per_op": 3872.0
+      },
+      "after": {
+        "p50_ns": 1884.0,
+        "p95_ns": 2890.2,
+        "bytes_per_op": 3904.0
+      },
+      "p50_change_pct": 8.876560332871009,
+      "allocation_change_pct": 0.8264462809917328
+    }
+  ],
+  "planner_pressure": {
+    "before": [
+      {
+        "scenario": "chain-10000",
+        "samples": 12,
+        "probes_per_sample": 1,
+        "queries": 12,
+        "p50_ms": 44.787,
+        "p95_ms": 73.15,
+        "max_ms": 73.15,
+        "alloc_mib": 23.112,
+        "gc_ms": 11,
+        "budget_exits": 0,
+        "status": "PASS"
+      },
+      {
+        "scenario": "wide-16000",
+        "samples": 12,
+        "probes_per_sample": 1,
+        "queries": 12,
+        "p50_ms": 82.158,
+        "p95_ms": 124.652,
+        "max_ms": 124.652,
+        "alloc_mib": 42.227,
+        "gc_ms": 21,
+        "budget_exits": 0,
+        "status": "PASS"
+      },
+      {
+        "scenario": "session-wide-4096-8probes",
+        "samples": 12,
+        "probes_per_sample": 8,
+        "queries": 96,
+        "p50_ms": 49.651,
+        "p95_ms": 106.691,
+        "max_ms": 106.691,
+        "alloc_mib": 34.217,
+        "gc_ms": 12,
+        "budget_exits": 0,
+        "status": "PASS"
+      },
+      {
+        "scenario": "session-chain-2000-8probes",
+        "samples": 12,
+        "probes_per_sample": 8,
+        "queries": 96,
+        "p50_ms": 21.391,
+        "p95_ms": 24.852,
+        "max_ms": 24.852,
+        "alloc_mib": 16.358,
+        "gc_ms": 3,
+        "budget_exits": 0,
+        "status": "PASS"
+      },
+      {
+        "scenario": "wide-256-unrelated-100000",
+        "samples": 12,
+        "probes_per_sample": 1,
+        "queries": 12,
+        "p50_ms": 0.843,
+        "p95_ms": 0.904,
+        "max_ms": 0.904,
+        "alloc_mib": 0.682,
+        "gc_ms": 0,
+        "budget_exits": 0,
+        "status": "PASS"
+      },
+      {
+        "scenario": "admission-wide-18000",
+        "samples": 12,
+        "probes_per_sample": 1,
+        "queries": 12,
+        "p50_ms": 3.741,
+        "p95_ms": 3.914,
+        "max_ms": 3.914,
+        "alloc_mib": 2.497,
+        "gc_ms": 0,
+        "budget_exits": 12,
+        "status": "PASS"
+      }
+    ],
+    "after": [
+      {
+        "scenario": "chain-10000",
+        "samples": 12,
+        "probes_per_sample": 1,
+        "queries": 12,
+        "p50_ms": 37.936,
+        "p95_ms": 69.504,
+        "max_ms": 69.504,
+        "alloc_mib": 13.537,
+        "gc_ms": 11,
+        "budget_exits": 0,
+        "status": "PASS"
+      },
+      {
+        "scenario": "wide-16000",
+        "samples": 12,
+        "probes_per_sample": 1,
+        "queries": 12,
+        "p50_ms": 38.912,
+        "p95_ms": 86.032,
+        "max_ms": 86.032,
+        "alloc_mib": 27.946,
+        "gc_ms": 18,
+        "budget_exits": 0,
+        "status": "PASS"
+      },
+      {
+        "scenario": "session-wide-4096-8probes",
+        "samples": 12,
+        "probes_per_sample": 8,
+        "queries": 96,
+        "p50_ms": 21.961,
+        "p95_ms": 30.973,
+        "max_ms": 30.973,
+        "alloc_mib": 26.201,
+        "gc_ms": 10,
+        "budget_exits": 0,
+        "status": "PASS"
+      },
+      {
+        "scenario": "session-chain-2000-8probes",
+        "samples": 12,
+        "probes_per_sample": 8,
+        "queries": 96,
+        "p50_ms": 17.285,
+        "p95_ms": 20.605,
+        "max_ms": 20.605,
+        "alloc_mib": 12.318,
+        "gc_ms": 2,
+        "budget_exits": 0,
+        "status": "PASS"
+      },
+      {
+        "scenario": "wide-256-unrelated-100000",
+        "samples": 12,
+        "probes_per_sample": 1,
+        "queries": 12,
+        "p50_ms": 0.725,
+        "p95_ms": 0.967,
+        "max_ms": 0.967,
+        "alloc_mib": 0.455,
+        "gc_ms": 0,
+        "budget_exits": 0,
+        "status": "PASS"
+      },
+      {
+        "scenario": "admission-wide-18000",
+        "samples": 12,
+        "probes_per_sample": 1,
+        "queries": 12,
+        "p50_ms": 4.502,
+        "p95_ms": 6.882,
+        "max_ms": 6.882,
+        "alloc_mib": 1.529,
+        "gc_ms": 0,
+        "budget_exits": 12,
+        "status": "PASS"
+      }
+    ]
+  },
+  "channel": [
+    {
+      "scenario": "high-tree",
+      "nodes": 226898,
+      "edges": 226897,
+      "max_degree": 6,
+      "sources": 266,
+      "demand": 136192,
+      "flow": 136192,
+      "winners": 136192,
+      "cold_ms": 801.241,
+      "p50_ms": 526.902,
+      "p95_ms": 855.406,
+      "max_ms": 855.406,
+      "alloc_mib": 105.701,
+      "graph_heap_mib": 159.789,
+      "heap_peak_pools_mib": 631.609,
+      "gc_ms": 69,
+      "samples_ms": [
+        454.8087,
+        617.5508,
+        484.1313,
+        551.1331,
+        480.5045,
+        585.8059,
+        487.2879,
+        636.4061,
+        525.3091,
+        855.4063,
+        705.2633,
+        526.902
+      ],
+      "status": "PASS"
+    },
+    {
+      "scenario": "dense-tree",
+      "nodes": 226898,
+      "edges": 226897,
+      "max_degree": 6,
+      "sources": 266,
+      "demand": 136192,
+      "flow": 136192,
+      "winners": 136192,
+      "cold_ms": 820.678,
+      "p50_ms": 558.9,
+      "p95_ms": 747.274,
+      "max_ms": 747.274,
+      "alloc_mib": 105.701,
+      "graph_heap_mib": 159.634,
+      "heap_peak_pools_mib": 527.414,
+      "gc_ms": 61,
+      "samples_ms": [
+        747.2744,
+        503.3777,
+        529.2369,
+        542.7768,
+        635.7227,
+        554.3878,
+        706.7298,
+        558.9,
+        620.2913,
+        632.5425,
+        631.5077,
+        557.1397
+      ],
+      "status": "PASS"
+    },
+    {
+      "scenario": "mesh",
+      "nodes": 272650,
+      "edges": 408368,
+      "max_degree": 6,
+      "sources": 266,
+      "demand": 136192,
+      "flow": 136192,
+      "winners": 136192,
+      "cold_ms": 1649.646,
+      "p50_ms": 1077.348,
+      "p95_ms": 1699.521,
+      "max_ms": 1699.521,
+      "alloc_mib": 137.858,
+      "graph_heap_mib": 186.125,
+      "heap_peak_pools_mib": 615.326,
+      "gc_ms": 91,
+      "samples_ms": [
+        960.0303,
+        1148.6371,
+        938.5871,
+        1077.3476,
+        1470.7996,
+        1236.7582,
+        1393.1683,
+        984.5068,
+        1699.5211,
+        1184.5791,
+        881.2395,
+        852.3378
+      ],
+      "status": "PASS"
+    },
+    {
+      "scenario": "vanilla-faces",
+      "nodes": 226898,
+      "edges": 226897,
+      "max_degree": 6,
+      "sources": 0,
+      "demand": 136192,
+      "flow": 136192,
+      "winners": 136192,
+      "cold_ms": 820.507,
+      "p50_ms": 493.84,
+      "p95_ms": 570.061,
+      "max_ms": 570.061,
+      "alloc_mib": 105.945,
+      "graph_heap_mib": 159.426,
+      "heap_peak_pools_mib": 533.564,
+      "gc_ms": 59,
+      "samples_ms": [
+        472.0068,
+        502.4422,
+        570.0612,
+        464.3284,
+        512.2373,
+        467.9924,
+        493.8398,
+        543.3622,
+        488.2241,
+        505.8241,
+        471.67,
+        550.7549
+      ],
+      "status": "PASS"
+    },
+    {
+      "scenario": "weighted",
+      "nodes": 532,
+      "edges": 531,
+      "max_degree": 3,
+      "sources": 266,
+      "demand": 136192,
+      "flow": 136192,
+      "winners": 266,
+      "cold_ms": 72.016,
+      "p50_ms": 2.517,
+      "p95_ms": 4.337,
+      "max_ms": 4.337,
+      "alloc_mib": 0.266,
+      "graph_heap_mib": 91.087,
+      "heap_peak_pools_mib": 94.087,
+      "gc_ms": 0,
+      "samples_ms": [
+        3.0,
+        2.7006,
+        4.3368,
+        2.5166,
+        2.6319,
+        2.502,
+        3.0195,
+        2.2959,
+        2.4346,
+        2.5473,
+        1.8239,
+        1.9976
+      ],
+      "status": "PASS"
+    },
+    {
+      "scenario": "chain",
+      "nodes": 20267,
+      "edges": 20266,
+      "max_degree": 2,
+      "sources": 266,
+      "demand": 1,
+      "flow": 1,
+      "winners": 1,
+      "cold_ms": 227.201,
+      "p50_ms": 19.326,
+      "p95_ms": 27.719,
+      "max_ms": 27.719,
+      "alloc_mib": 9.134,
+      "graph_heap_mib": 96.837,
+      "heap_peak_pools_mib": 148.117,
+      "gc_ms": 1,
+      "samples_ms": [
+        25.4701,
+        27.7192,
+        19.3259,
+        16.8331,
+        14.7372,
+        18.6868,
+        20.1074,
+        17.0646,
+        20.177,
+        19.167,
+        21.7229,
+        21.3797
+      ],
+      "status": "PASS"
+    },
+    {
+      "scenario": "comb",
+      "nodes": 20266,
+      "edges": 20265,
+      "max_degree": 3,
+      "sources": 266,
+      "demand": 10000,
+      "flow": 10000,
+      "winners": 10000,
+      "cold_ms": 226.983,
+      "p50_ms": 37.003,
+      "p95_ms": 59.385,
+      "max_ms": 59.385,
+      "alloc_mib": 9.069,
+      "graph_heap_mib": 96.845,
+      "heap_peak_pools_mib": 148.0,
+      "gc_ms": 2,
+      "samples_ms": [
+        59.3854,
+        42.0947,
+        42.4972,
+        41.2737,
+        28.928,
+        27.552,
+        48.9269,
+        30.4656,
+        30.6046,
+        37.8255,
+        30.5172,
+        37.003
+      ],
+      "status": "PASS"
+    },
+    {
+      "scenario": "high-tree",
+      "nodes": 290706,
+      "edges": 290705,
+      "max_degree": 6,
+      "sources": 266,
+      "demand": 200000,
+      "flow": 136192,
+      "winners": 136192,
+      "cold_ms": 1152.579,
+      "p50_ms": 852.227,
+      "p95_ms": 1278.432,
+      "max_ms": 1278.432,
+      "alloc_mib": 130.782,
+      "graph_heap_mib": 180.507,
+      "heap_peak_pools_mib": 592.003,
+      "gc_ms": 83,
+      "samples_ms": [
+        836.3913,
+        895.5909,
+        640.4965,
+        852.2271,
+        1118.7751,
+        1061.2163,
+        1278.432,
+        977.2152,
+        692.3053,
+        1035.2251,
+        850.2248,
+        732.1651
+      ],
+      "status": "PASS"
+    }
+  ],
+  "head": "eccbb8d36fb6e911f957a8496d254d8de38f1de4",
+  "mixed_focused": {
+    "rows": [
+      {
+        "scenario": "three-route-focused",
+        "warmup_queries": 2000,
+        "samples": 40,
+        "iterations": 50,
+        "p50_ns": 323162.0,
+        "p95_ns": 628702.0,
+        "bytes_per_op": 153892.0,
+        "variant": "before",
+        "repeat": 0
+      },
+      {
+        "scenario": "three-route-focused",
+        "warmup_queries": 2000,
+        "samples": 40,
+        "iterations": 50,
+        "p50_ns": 561302.0,
+        "p95_ns": 1301702.0,
+        "bytes_per_op": 150371.4,
+        "variant": "after",
+        "repeat": 0
+      },
+      {
+        "scenario": "three-route-focused",
+        "warmup_queries": 2000,
+        "samples": 40,
+        "iterations": 50,
+        "p50_ns": 215244.0,
+        "p95_ns": 461722.0,
+        "bytes_per_op": 155232.0,
+        "variant": "after",
+        "repeat": 1
+      },
+      {
+        "scenario": "three-route-focused",
+        "warmup_queries": 2000,
+        "samples": 40,
+        "iterations": 50,
+        "p50_ns": 158694.0,
+        "p95_ns": 279314.0,
+        "bytes_per_op": 158472.0,
+        "variant": "before",
+        "repeat": 1
+      },
+      {
+        "scenario": "three-route-focused",
+        "warmup_queries": 2000,
+        "samples": 40,
+        "iterations": 50,
+        "p50_ns": 146296.0,
+        "p95_ns": 231344.0,
+        "bytes_per_op": 159296.0,
+        "variant": "before",
+        "repeat": 2
+      },
+      {
+        "scenario": "three-route-focused",
+        "warmup_queries": 2000,
+        "samples": 40,
+        "iterations": 50,
+        "p50_ns": 177266.0,
+        "p95_ns": 256960.0,
+        "bytes_per_op": 155944.0,
+        "variant": "after",
+        "repeat": 2
+      },
+      {
+        "scenario": "three-route-focused",
+        "warmup_queries": 2000,
+        "samples": 40,
+        "iterations": 50,
+        "p50_ns": 186132.0,
+        "p95_ns": 264112.0,
+        "bytes_per_op": 155920.0,
+        "variant": "after",
+        "repeat": 3
+      },
+      {
+        "scenario": "three-route-focused",
+        "warmup_queries": 2000,
+        "samples": 40,
+        "iterations": 50,
+        "p50_ns": 143194.0,
+        "p95_ns": 191242.0,
+        "bytes_per_op": 159016.0,
+        "variant": "before",
+        "repeat": 3
+      },
+      {
+        "scenario": "three-route-focused",
+        "warmup_queries": 2000,
+        "samples": 40,
+        "iterations": 50,
+        "p50_ns": 176034.0,
+        "p95_ns": 404906.0,
+        "bytes_per_op": 157536.0,
+        "variant": "before",
+        "repeat": 4
+      },
+      {
+        "scenario": "three-route-focused",
+        "warmup_queries": 2000,
+        "samples": 40,
+        "iterations": 50,
+        "p50_ns": 141652.0,
+        "p95_ns": 494378.0,
+        "bytes_per_op": 153848.0,
+        "variant": "after",
+        "repeat": 4
+      }
+    ],
+    "medians": {
+      "before": {
+        "p50_ns": 158694.0,
+        "p95_ns": 279314.0,
+        "bytes_per_op": 158472.0
+      },
+      "after": {
+        "p50_ns": 186132.0,
+        "p95_ns": 461722.0,
+        "bytes_per_op": 155232.0
+      }
+    },
+    "ranges_p50_ns": {
+      "before": [
+        143194.0,
+        323162.0
+      ],
+      "after": [
+        141652.0,
+        561302.0
+      ]
+    }
+  },
+  "storage": [
+    {
+      "scenario": "legacy-long",
+      "keys": 10000,
+      "measured_operations": 120000,
+      "operation_p50_ns": 385.9,
+      "operation_p95_ns": 1264.4,
+      "bytes_per_operation_with_oracle": 127.0,
+      "persist_p50_ms": 0.284,
+      "persist_p95_ms": 0.545,
+      "load_p50_ms": 23.397,
+      "load_p95_ms": 42.956,
+      "compaction_reinsertion": "PASS",
+      "status": "PASS"
+    },
+    {
+      "scenario": "exact-150digits",
+      "keys": 10000,
+      "measured_operations": 120000,
+      "operation_p50_ns": 1181.5,
+      "operation_p95_ns": 5344.4,
+      "bytes_per_operation_with_oracle": 1922.0,
+      "persist_p50_ms": 3.858,
+      "persist_p95_ms": 9.241,
+      "load_p50_ms": 20.923,
+      "load_p95_ms": 49.623,
+      "compaction_reinsertion": "PASS",
+      "status": "PASS"
+    }
+  ],
+  "channel_oracle": {
+    "random_graphs": 20000,
+    "status": "PASS",
+    "special": "wireless/physical/multiblock/cannot-carry/infinite/repeated-capacity",
+    "lifecycle": "disconnect/reconnect and 8/32/128"
+  },
+  "feedback_pressure": {
+    "states": 32,
+    "patterns": 64,
+    "p50_ms": 1.747,
+    "p95_reported_ms": 2.3,
+    "max_ms": 2.334,
+    "long_coefficients_ms": 200.182,
+    "long_coefficients_certified": false,
+    "status": "PASS"
+  },
+  "environment": {
+    "java": "17.0.20",
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10",
+    "flags": [
+      "-Xms256m",
+      "-Xmx2g",
+      "-Xss1m",
+      "-XX:+UseG1GC"
+    ],
+    "logical_processors": 16,
+    "planner_baseline": "40930b8",
+    "full_pack_loaded": false,
+    "notes": [
+      "Measurements include contention from pre-existing desktop/game processes; no processes were stopped.",
+      "Storage operation metrics include independent HashMap/BigInteger oracle updates; load uses explicit AEItemKey.fromTag without Forge key-type registry.",
+      "No server TPS, physical machine capacity or full GTLCore modpack measurement.",
+      "12-sample nearest-rank p95 equals sample maximum. Feedback existing harness reported p95 uses its second-highest sample.",
+      "Planner pressure compares one JVM per variant; micro uses 3 JVMs per variant; focused mixed uses 5 JVMs per variant."
+    ]
+  },
+  "sources_sha256": {
+    "build\\stress-20261005\\PlannerStress.java": "5c8a218df8d9cbfbdac931159787142c645f3a01d8e9367b20394e857c2a6f40",
+    "build\\stress-20261005\\StorageStress.java": "a789680e3d06333c1eaed829482fc9124caab2a5513f3efe7cf2854f51ffd792",
+    "build\\stress-20261005\\MixedFocus.java": "2ad03ec93b2cdcadc67fa2ac582a3cd8582c5fde550ce12c0ff7051f5f12f1fd",
+    "scripts\\channel-benchmark\\ChannelStress.java": "0ed167c68ecca7467fc9665d2764700555df0533f992a9cbf00f5fe689a7fb28",
+    "scripts\\channel-benchmark\\AlgorithmComparison.java": "23f5135057443aa52e0ad1bca5efbac526dc386683ca24791bbe3a1645b56b03"
+  }
+}

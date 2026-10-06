@@ -1,0 +1,1157 @@
+{
+  "baseline_revision": "6b4657d778d6e37361147efa7cf35788e1cbd963",
+  "repository": "AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn",
+  "branch": "perf/alpha-round7-combined-20261004",
+  "integrated_commits": [
+    "25e732b781f384352d681232e81333c87571e792",
+    "e137a89ffdaa5ec146296475b7e530fdc47c6381"
+  ],
+  "changes": {
+    "upstream": "For an ordinary single-route demand, compute ceil(netRequired/output) directly. Keep the original retain fee, original input-slot propagation fees, and distinct grow-vs-trim execution-limit rejection order. Recompute every candidate demand; no suffix or geometry cache.",
+    "terminal": "After accepting the established terminal result, try strictly fewer total executions using at most three original terminal route identities. Stable output/resource sort and a separate query envelope reduce the portfolio. Signed integer intervals certify fixed-depth pair/triple proposals before original-graph replay and the original objective."
+  },
+  "terminal_scope": {
+    "distinct_original_target_routes": [
+      17,
+      64
+    ],
+    "resources": "Exactly two direct-stock raw keys; each route consumes a positive amount of both.",
+    "target_stock": 0,
+    "maximum_request_output_per_route_and_total_inputs_per_route": 256,
+    "maximum_combined_original_raw_stock": 256,
+    "incumbent_executions": [
+      2,
+      32
+    ],
+    "excluded": [
+      "byproducts",
+      "execution slots",
+      "returned inputs",
+      "remainders",
+      "private/reusable stock",
+      "input producers",
+      "exact/legacy numeric disagreement"
+    ],
+    "limits": "Local work at most 4096 intersected with actual shared remaining work; original global probe allowance at most 32, at most one supplemental probe, and existing optional time scope. Local refusal is checked before shared callback. No global limit was increased.",
+    "candidate_scope": "The supplemental pair/triple neighborhood is intentionally additional. The separate upstream 64-candidate cap is unchanged. At-most-three support is not a theorem about all terminal portfolios.",
+    "failure": "Keep the already certified best on local/shared/probe refusal or optional deadline. External cancellation propagates. A declined search is not an infeasibility result."
+  },
+  "build": {
+    "tests": {
+      "tests": 1147,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "test_suites": 145,
+    "java_class_major": 65,
+    "production_classes": {
+      "count": 481,
+      "sha256": "5d42c722eaf8bca3b5ae24a13dc248f1c9e646f7976b72f18bff983277a3de6f"
+    },
+    "class_stems_changed_from_baseline": [
+      "FeasibleConsumptionOptimizer",
+      "TerminalFixedDepthOptimizer",
+      "UpstreamBatchOptimizer"
+    ],
+    "all_other_classes_byte_equal": true,
+    "jar": {
+      "sha256": "e128b7775a53305ab7e1ffd9c11dbb4cf69e77b019e9a2e44e155445e8355953",
+      "bytes": 5091602,
+      "all_classes_match": true
+    },
+    "source_bindings": [
+      {
+        "commit": "25e732b781f384352d681232e81333c87571e792",
+        "file": "docs/benchmarks/planner-upstream-single-route-20261004.json",
+        "sha256": "9909e4e79ab120840c204c7890e1db5ed43f648d096658a139e96ea305cc1db4"
+      },
+      {
+        "commit": "25e732b781f384352d681232e81333c87571e792",
+        "file": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.java",
+        "sha256": "c5c4eb676149e7163b14ccb52de7bc366b8c7a6a20a4e4fe8c23b4d32a19ff7e"
+      },
+      {
+        "commit": "25e732b781f384352d681232e81333c87571e792",
+        "file": "src/test/java/com/moakiee/thunderbolt/core/planner/UpstreamSingleRouteTest.java",
+        "sha256": "51bdca582ab62abd7e18f7c906710dec125fb2984d9ba9a469d463ea4f89eacf"
+      },
+      {
+        "commit": "e137a89ffdaa5ec146296475b7e530fdc47c6381",
+        "file": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/FeasibleConsumptionOptimizer.java",
+        "sha256": "22d564a6471d515a958b74a0a93f1468347d59c1fa7fb3eb8200d39b31ec1b23"
+      },
+      {
+        "commit": "e137a89ffdaa5ec146296475b7e530fdc47c6381",
+        "file": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/TerminalFixedDepthOptimizer.java",
+        "sha256": "047849be2f93c95b161a7908adfacae85d132f6dc949d93a527e3a576d3f0ebb"
+      },
+      {
+        "commit": "e137a89ffdaa5ec146296475b7e530fdc47c6381",
+        "file": "src/test/java/com/moakiee/thunderbolt/core/planner/TerminalFixedDepthOptimizerTest.java",
+        "sha256": "2fc8f73a60a359bc49f66e3c615a1131fca59759cb1e58ccd3939ab9e442e01e"
+      }
+    ]
+  },
+  "public_regression": {
+    "direct_baseline": "6b4657d778d6e37361147efa7cf35788e1cbd963",
+    "samples": 3000,
+    "all_plan_and_non_timing_diagnostics_equal": true,
+    "fields": [
+      "feasible",
+      "supported",
+      "firings",
+      "used",
+      "usedReusableStock",
+      "missing",
+      "grossDemand",
+      "itemsProcessed",
+      "budgetExhausted",
+      "diagnostics"
+    ],
+    "feasible": 2867,
+    "all_balance_and_replays_passed": true
+  },
+  "terminal_regression": {
+    "generated": 1500,
+    "oracle_certified": 1454,
+    "feasible": 1454,
+    "oracle_execution_optima": 1453,
+    "strict_execution_improvements": [
+      {
+        "case_id": "seed1-16",
+        "before": 5,
+        "after": 3,
+        "oracle": 3,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-22",
+        "before": 5,
+        "after": 4,
+        "oracle": 4,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-98",
+        "before": 6,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-118",
+        "before": 6,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-148",
+        "before": 8,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-271",
+        "before": 7,
+        "after": 6,
+        "oracle": 6,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-273",
+        "before": 7,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-408",
+        "before": 4,
+        "after": 3,
+        "oracle": 3,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-462",
+        "before": 7,
+        "after": 6,
+        "oracle": 6,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-665",
+        "before": 7,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-812",
+        "before": 4,
+        "after": 3,
+        "oracle": 3,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-875",
+        "before": 10,
+        "after": 8,
+        "oracle": 8,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-891",
+        "before": 6,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-892",
+        "before": 6,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-950",
+        "before": 5,
+        "after": 4,
+        "oracle": 4,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-962",
+        "before": 6,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed1-970",
+        "before": 10,
+        "after": 6,
+        "oracle": 6,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed2-19",
+        "before": 5,
+        "after": 4,
+        "oracle": 4,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed2-71",
+        "before": 6,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed2-245",
+        "before": 4,
+        "after": 3,
+        "oracle": 3,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed2-247",
+        "before": 6,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed2-315",
+        "before": 5,
+        "after": 4,
+        "oracle": 4,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed2-364",
+        "before": 5,
+        "after": 4,
+        "oracle": 4,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed2-441",
+        "before": 4,
+        "after": 3,
+        "oracle": 3,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed2-452",
+        "before": 4,
+        "after": 3,
+        "oracle": 3,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed2-490",
+        "before": 5,
+        "after": 4,
+        "oracle": 4,
+        "at_oracle": true
+      },
+      {
+        "case_id": "seed2-498",
+        "before": 4,
+        "after": 3,
+        "oracle": 3,
+        "at_oracle": true
+      }
+    ],
+    "remaining_execution_gaps": [
+      {
+        "case_id": "seed2-233",
+        "executions": 6,
+        "oracle": 5
+      }
+    ],
+    "no_feasibility_execution_or_equal_execution_raw_regressions": true,
+    "original_identity_inventory_and_replay_valid": true,
+    "diagnostics": {
+      "new_search_cutoffs": [],
+      "new_plan_budget_exhausted": [],
+      "lost_search_cutoffs": [],
+      "changed_diagnostic_samples": 27,
+      "nonoptimal_after": 1,
+      "all_original_field_counts_and_graphs_bound": true
+    },
+    "optional_work_accounting": {
+      "selected_cases": 28,
+      "real_remaining_equals_research": 28,
+      "charged_work_range": [
+        663,
+        2878
+      ],
+      "remaining_work_range": [
+        0,
+        2869
+      ],
+      "retained_after_shared_refusal": [
+        "seed2-233"
+      ],
+      "note": "The public diagnostic counters do not expose all optional FCO spending. For the selected 28 cases, the actual PlanningSession remaining counter was read independently. seed2-233 spent its remaining 2878 and safely kept the old six-execution plan; its public cutoff fields did not change."
+    },
+    "uncertified_generated_cases": "The other 46 generated graphs had no independent certificate within the oracle execution bound; they are not asserted infeasible."
+  },
+  "upstream_fee_regression": {
+    "fixtures": 320,
+    "runs": 3516,
+    "all_results_work_candidates_probes_and_charge_streams_equal_round6": true,
+    "input_order": "Identical fixture incumbent firings in original-pattern-id order"
+  },
+  "independent_suffix_review": {
+    "status": "PASS",
+    "vector_count": 1056,
+    "invocations_per_arm": 11386,
+    "unlimited_successes": 698,
+    "unlimited_nulls": 358,
+    "differences": [],
+    "scope": "Real compiled propose method from frozen baseline versus candidate overlay; seeded suffix states isolate single-route arithmetic and budget callback order. Seeded incumbent plans are component inputs, not asserted public planner witnesses.",
+    "compared": [
+      "proposal null or counts",
+      "identity-normalized returned firings",
+      "gross need after successful propagation",
+      "exact callback work sequence",
+      "accepted work",
+      "budget exhausted"
+    ]
+  },
+  "corpus": {
+    "baseline": "6b4657d",
+    "query_count": 192,
+    "datasets": [
+      {
+        "dataset": "recipes-vanilla",
+        "queries": 48,
+        "baseline_feasible": 20,
+        "candidate_feasible": 20,
+        "baseline_budget_exhausted": 10,
+        "candidate_budget_exhausted": 10,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-small",
+        "queries": 48,
+        "baseline_feasible": 2,
+        "candidate_feasible": 2,
+        "baseline_budget_exhausted": 42,
+        "candidate_budget_exhausted": 42,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-nast",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-atm",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      }
+    ],
+    "note": "Serial correctness regression, not a timing benchmark. Existing baseline budget cutoffs and infeasible cases are retained explicitly; target inventory follows TB semantics."
+  },
+  "final_build_performance": {
+    "protocol": "Final Gradle classes on both sides, one fixture per JVM, sequential alternating variants, CPU1, Xms128m/Xmx512m",
+    "forks": 4,
+    "warmups_per_jvm": 10000,
+    "samples_per_jvm": 4000,
+    "summary": [
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 1245381145.5,
+          "cpu_ns": 1234317500.0,
+          "allocated_bytes": 4779531656.0,
+          "p50_ns": 306146.0,
+          "p95_ns": 345938.0
+        },
+        "candidate": {
+          "wall_ns": 1186982542.0,
+          "cpu_ns": 1176731000.0,
+          "allocated_bytes": 4326155740.0,
+          "p50_ns": 291250.0,
+          "p95_ns": 330292.0
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.9531078467736446,
+          "cpu_ns": 0.9533454722954183,
+          "allocated_bytes": 0.9051421878478715,
+          "p50_ns": 0.9513434766418637,
+          "p95_ns": 0.9547722424249432
+        }
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 650808958.5,
+          "cpu_ns": 645515000.0,
+          "allocated_bytes": 2038341316.0,
+          "p50_ns": 160583.5,
+          "p95_ns": 177458.0
+        },
+        "candidate": {
+          "wall_ns": 624941771.0,
+          "cpu_ns": 620151500.0,
+          "allocated_bytes": 1931488828.0,
+          "p50_ns": 154312.0,
+          "p95_ns": 171958.0
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.96025379312599,
+          "cpu_ns": 0.9607081167749781,
+          "allocated_bytes": 0.9475787066860396,
+          "p50_ns": 0.9609455516911762,
+          "p95_ns": 0.9690067508931691
+        }
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 520640562.0,
+          "cpu_ns": 517565500.0,
+          "allocated_bytes": 1258045124.0,
+          "p50_ns": 129270.5,
+          "p95_ns": 139000.0
+        },
+        "candidate": {
+          "wall_ns": 466683625.0,
+          "cpu_ns": 464027500.0,
+          "allocated_bytes": 1071027512.0,
+          "p50_ns": 115604.5,
+          "p95_ns": 125875.0
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.8963643232238213,
+          "cpu_ns": 0.8965580201926133,
+          "allocated_bytes": 0.8513426836349314,
+          "p50_ns": 0.894283691948279,
+          "p95_ns": 0.9055755395683454
+        }
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 254104479.5,
+          "cpu_ns": 252431000.0,
+          "allocated_bytes": 694986940.0,
+          "p50_ns": 63083.0,
+          "p95_ns": 69854.5
+        },
+        "candidate": {
+          "wall_ns": 251727646.0,
+          "cpu_ns": 250062500.0,
+          "allocated_bytes": 682909388.0,
+          "p50_ns": 62458.0,
+          "p95_ns": 69167.0
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.9906462353411601,
+          "cpu_ns": 0.9906172379779029,
+          "allocated_bytes": 0.9826219007798909,
+          "p50_ns": 0.9900924179255901,
+          "p95_ns": 0.99015811436629
+        }
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "baseline": {
+          "wall_ns": 336176979.0,
+          "cpu_ns": 334094500.0,
+          "allocated_bytes": 931241632.0,
+          "p50_ns": 83770.5,
+          "p95_ns": 88521.0
+        },
+        "candidate": {
+          "wall_ns": 335771937.5,
+          "cpu_ns": 333674500.0,
+          "allocated_bytes": 930090692.0,
+          "p50_ns": 83479.5,
+          "p95_ns": 89583.5
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.998795153965614,
+          "cpu_ns": 0.9987428706548597,
+          "allocated_bytes": 0.9987640801694742,
+          "p50_ns": 0.9965262234318764,
+          "p95_ns": 1.0120028015951017
+        }
+      }
+    ],
+    "plan_or_diagnostic_changes": [],
+    "raw_measurements": [
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 1238922833,
+        "cpu_ns": 1228390000,
+        "allocated_bytes": 4780611168,
+        "p50_ns": 304792,
+        "p95_ns": 345209,
+        "variant": "baseline",
+        "fork": 0,
+        "fixture_index": 0
+      },
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 1194002375,
+        "cpu_ns": 1183641000,
+        "allocated_bytes": 4329790560,
+        "p50_ns": 293292,
+        "p95_ns": 329209,
+        "variant": "candidate",
+        "fork": 0,
+        "fixture_index": 0
+      },
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 1255159417,
+        "cpu_ns": 1244374000,
+        "allocated_bytes": 4777270248,
+        "p50_ns": 309459,
+        "p95_ns": 346667,
+        "variant": "baseline",
+        "fork": 1,
+        "fixture_index": 0
+      },
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 1170261583,
+        "cpu_ns": 1160353000,
+        "allocated_bytes": 4319803408,
+        "p50_ns": 288292,
+        "p95_ns": 323666,
+        "variant": "candidate",
+        "fork": 1,
+        "fixture_index": 0
+      },
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 1248587250,
+        "cpu_ns": 1237759000,
+        "allocated_bytes": 4778452144,
+        "p50_ns": 307208,
+        "p95_ns": 344375,
+        "variant": "baseline",
+        "fork": 2,
+        "fixture_index": 0
+      },
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 1179962709,
+        "cpu_ns": 1169821000,
+        "allocated_bytes": 4322520920,
+        "p50_ns": 289208,
+        "p95_ns": 337042,
+        "variant": "candidate",
+        "fork": 2,
+        "fixture_index": 0
+      },
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 1242175041,
+        "cpu_ns": 1230876000,
+        "allocated_bytes": 4794067600,
+        "p50_ns": 305084,
+        "p95_ns": 351584,
+        "variant": "baseline",
+        "fork": 3,
+        "fixture_index": 0
+      },
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 1199526916,
+        "cpu_ns": 1189163000,
+        "allocated_bytes": 4335595472,
+        "p50_ns": 295333,
+        "p95_ns": 331375,
+        "variant": "candidate",
+        "fork": 3,
+        "fixture_index": 0
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 641685917,
+        "cpu_ns": 636413000,
+        "allocated_bytes": 2037416136,
+        "p50_ns": 158541,
+        "p95_ns": 175875,
+        "variant": "baseline",
+        "fork": 0,
+        "fixture_index": 1
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 632437834,
+        "cpu_ns": 627198000,
+        "allocated_bytes": 1934354680,
+        "p50_ns": 156083,
+        "p95_ns": 174958,
+        "variant": "candidate",
+        "fork": 0,
+        "fixture_index": 1
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 644859708,
+        "cpu_ns": 639719000,
+        "allocated_bytes": 2038700200,
+        "p50_ns": 159417,
+        "p95_ns": 176125,
+        "variant": "baseline",
+        "fork": 1,
+        "fixture_index": 1
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 613639458,
+        "cpu_ns": 608766000,
+        "allocated_bytes": 1931464840,
+        "p50_ns": 151500,
+        "p95_ns": 168833,
+        "variant": "candidate",
+        "fork": 1,
+        "fixture_index": 1
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 658881959,
+        "cpu_ns": 652998000,
+        "allocated_bytes": 2037982432,
+        "p50_ns": 161750,
+        "p95_ns": 178791,
+        "variant": "baseline",
+        "fork": 2,
+        "fixture_index": 1
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 630132834,
+        "cpu_ns": 625468000,
+        "allocated_bytes": 1931337560,
+        "p50_ns": 156083,
+        "p95_ns": 170583,
+        "variant": "candidate",
+        "fork": 2,
+        "fixture_index": 1
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 656758209,
+        "cpu_ns": 651311000,
+        "allocated_bytes": 2039656192,
+        "p50_ns": 161958,
+        "p95_ns": 181292,
+        "variant": "baseline",
+        "fork": 3,
+        "fixture_index": 1
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 619750708,
+        "cpu_ns": 614835000,
+        "allocated_bytes": 1931512816,
+        "p50_ns": 152541,
+        "p95_ns": 173333,
+        "variant": "candidate",
+        "fork": 3,
+        "fixture_index": 1
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 505134834,
+        "cpu_ns": 502211000,
+        "allocated_bytes": 1264592936,
+        "p50_ns": 125417,
+        "p95_ns": 134209,
+        "variant": "baseline",
+        "fork": 0,
+        "fixture_index": 2
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 460045541,
+        "cpu_ns": 457437000,
+        "allocated_bytes": 1082531064,
+        "p50_ns": 113625,
+        "p95_ns": 125292,
+        "variant": "candidate",
+        "fork": 0,
+        "fixture_index": 2
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 519378041,
+        "cpu_ns": 516329000,
+        "allocated_bytes": 1254272920,
+        "p50_ns": 129041,
+        "p95_ns": 139042,
+        "variant": "baseline",
+        "fork": 1,
+        "fixture_index": 2
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 473321709,
+        "cpu_ns": 470680000,
+        "allocated_bytes": 1061529064,
+        "p50_ns": 117584,
+        "p95_ns": 128083,
+        "variant": "candidate",
+        "fork": 1,
+        "fixture_index": 2
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 521903083,
+        "cpu_ns": 518802000,
+        "allocated_bytes": 1256105864,
+        "p50_ns": 129500,
+        "p95_ns": 138958,
+        "variant": "baseline",
+        "fork": 2,
+        "fixture_index": 2
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 448870250,
+        "cpu_ns": 446299000,
+        "allocated_bytes": 1078850984,
+        "p50_ns": 110459,
+        "p95_ns": 124208,
+        "variant": "candidate",
+        "fork": 2,
+        "fixture_index": 2
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 527053875,
+        "cpu_ns": 523967000,
+        "allocated_bytes": 1259984384,
+        "p50_ns": 130583,
+        "p95_ns": 141667,
+        "variant": "baseline",
+        "fork": 3,
+        "fixture_index": 2
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 473387750,
+        "cpu_ns": 470618000,
+        "allocated_bytes": 1063204040,
+        "p50_ns": 117625,
+        "p95_ns": 126458,
+        "variant": "candidate",
+        "fork": 3,
+        "fixture_index": 2
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 253116625,
+        "cpu_ns": 251343000,
+        "allocated_bytes": 692610912,
+        "p50_ns": 62958,
+        "p95_ns": 69667,
+        "variant": "baseline",
+        "fork": 0,
+        "fixture_index": 3
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 261614416,
+        "cpu_ns": 259621000,
+        "allocated_bytes": 682151872,
+        "p50_ns": 63917,
+        "p95_ns": 75375,
+        "variant": "candidate",
+        "fork": 0,
+        "fixture_index": 3
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 260322459,
+        "cpu_ns": 258679000,
+        "allocated_bytes": 695563056,
+        "p50_ns": 64584,
+        "p95_ns": 70625,
+        "variant": "baseline",
+        "fork": 1,
+        "fixture_index": 3
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 252922834,
+        "cpu_ns": 251197000,
+        "allocated_bytes": 683043344,
+        "p50_ns": 62708,
+        "p95_ns": 69667,
+        "variant": "candidate",
+        "fork": 1,
+        "fixture_index": 3
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 254561917,
+        "cpu_ns": 252977000,
+        "allocated_bytes": 696141808,
+        "p50_ns": 63208,
+        "p95_ns": 68459,
+        "variant": "baseline",
+        "fork": 2,
+        "fixture_index": 3
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 250532458,
+        "cpu_ns": 248928000,
+        "allocated_bytes": 684505832,
+        "p50_ns": 62208,
+        "p95_ns": 68667,
+        "variant": "candidate",
+        "fork": 2,
+        "fixture_index": 3
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 253647042,
+        "cpu_ns": 251885000,
+        "allocated_bytes": 694410824,
+        "p50_ns": 62917,
+        "p95_ns": 70042,
+        "variant": "baseline",
+        "fork": 3,
+        "fixture_index": 3
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 249247333,
+        "cpu_ns": 247698000,
+        "allocated_bytes": 682775432,
+        "p50_ns": 62042,
+        "p95_ns": 68125,
+        "variant": "candidate",
+        "fork": 3,
+        "fixture_index": 3
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 340034666,
+        "cpu_ns": 337656000,
+        "allocated_bytes": 931669256,
+        "p50_ns": 84042,
+        "p95_ns": 93333,
+        "variant": "baseline",
+        "fork": 0,
+        "fixture_index": 4
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 334708333,
+        "cpu_ns": 332638000,
+        "allocated_bytes": 930067976,
+        "p50_ns": 83292,
+        "p95_ns": 88250,
+        "variant": "candidate",
+        "fork": 0,
+        "fixture_index": 4
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 336382750,
+        "cpu_ns": 334240000,
+        "allocated_bytes": 930645344,
+        "p50_ns": 83750,
+        "p95_ns": 88625,
+        "variant": "baseline",
+        "fork": 1,
+        "fixture_index": 4
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 334935500,
+        "cpu_ns": 332910000,
+        "allocated_bytes": 929962536,
+        "p50_ns": 83292,
+        "p95_ns": 89209,
+        "variant": "candidate",
+        "fork": 1,
+        "fixture_index": 4
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 335971208,
+        "cpu_ns": 333949000,
+        "allocated_bytes": 931249040,
+        "p50_ns": 83791,
+        "p95_ns": 88166,
+        "variant": "baseline",
+        "fork": 2,
+        "fixture_index": 4
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 338476666,
+        "cpu_ns": 336109000,
+        "allocated_bytes": 930113544,
+        "p50_ns": 83667,
+        "p95_ns": 93958,
+        "variant": "candidate",
+        "fork": 2,
+        "fixture_index": 4
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 335275667,
+        "cpu_ns": 333117000,
+        "allocated_bytes": 931234224,
+        "p50_ns": 83625,
+        "p95_ns": 88417,
+        "variant": "baseline",
+        "fork": 3,
+        "fixture_index": 4
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "warmups": 10000,
+        "samples": 4000,
+        "wall_ns": 336608375,
+        "cpu_ns": 334439000,
+        "allocated_bytes": 930113408,
+        "p50_ns": 83834,
+        "p95_ns": 89958,
+        "variant": "candidate",
+        "fork": 3,
+        "fixture_index": 4
+      }
+    ],
+    "interpretation": "Four existing public regression fixtures plus a synthetic no-single-route control. All recorded JVMs are retained. This is planner CPU/allocation measurement, not server TPS or a universal speedup claim. Control drift is not algorithmic benefit."
+  },
+  "reproduction": {
+    "build": "JAVA_HOME=<Java21> ./gradlew --offline --no-daemon --max-workers=2 test build",
+    "scripts_under_output_directory": [
+      "validate_combined.py",
+      "run_corpus_regression.py",
+      "compare_corpus.py",
+      "profile_combined.py"
+    ],
+    "output_directory": "outputs/tb-alpha-round7-combined-20261004",
+    "script_sha256": {
+      "validate_combined.py": "ae6e397b270fd6ccb548437a8fbc1f20a8294b5bb5c50587a9bdedf3a6cb05e5",
+      "run_corpus_regression.py": "8f7b98fe453048b0d7eafec10b07e42f7b1ef8d6495276174af9ff586ca09c82",
+      "compare_corpus.py": "cd6921942876218de557635344e4e12ae82a09f422925c6c756c7c51d8471415",
+      "profile_combined.py": "48d2a7d13566379b81a821a3d0c05769b0bc920ec3c8d6c7de1104aaa4c737f0"
+    },
+    "evidence_sha256": {
+      "build-verification.json": "c6ed879a2846017bd6ea81e2b9df4a02d60aeec75dc45e3c6f6630bac63d07c9",
+      "combined-validation.json": "2a0b1346108eff2e389ac622ba8380fe0ae405a1f1ce95281263b269a888279d",
+      "wide-terminal/summary.json": "72c70a6f6810d24e8d08bdfa31ef77ae964e309f52bf5e5e30508564c9224476",
+      "corpus-regression/summary.json": "d7d58d7a831a0af67473042aa8a45c1730589d1a801fcc1a77a55c351d86eb14",
+      "final-profile/summary.json": "3ed0f17a03fd239f30a541827daf5fa3df068fd0c6a15722ea3ae41b04f799f0"
+    }
+  },
+  "limitations": [
+    "No claim of globally optimal plans on arbitrary graphs.",
+    "The terminal helper is deliberately restricted to small numeric terminal portfolios.",
+    "No Minecraft runtime, server TPS, or larger-pack speedup was measured in this round."
+  ]
+}

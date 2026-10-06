@@ -72,6 +72,56 @@ final class BoundedIntegerLinearSolver {
     private BoundedIntegerLinearSolver() {
     }
 
+    /** A portfolio-local witness; every new model rechecks all rows and physical stock offsets. */
+    static final class FeasibleWitness {
+        private long[] values;
+
+        Result solve(int variableCount, List<Constraint> constraints, long maxValue,
+                int nodeBudget, WorkBudget workBudget) {
+            if (values != null && values.length == variableCount && constraints != null
+                    && maxValue >= 0 && nodeBudget > 0 && workBudget != null) {
+                boolean feasible = true;
+                for (long value : values) if (value < 0 || value > maxValue) {
+                    feasible = false;
+                    break;
+                }
+                if (feasible) for (Constraint constraint : constraints) {
+                    if (constraint == null || constraint.coefficients.length != variableCount) {
+                        feasible = false;
+                        break;
+                    }
+                    if (!workBudget.tryConsume(1L + variableCount))
+                        return result(Status.BUDGET_EXHAUSTED, 0);
+                    if (!satisfies(constraint, values)) {
+                        feasible = false;
+                        break;
+                    }
+                }
+                if (feasible) return new Result(Status.SOLVED, values, 0);
+            }
+            Result solved = BoundedIntegerLinearSolver.solve(
+                    variableCount, constraints, maxValue, nodeBudget, workBudget);
+            if (solved.solved()) values = solved.values();
+            return solved;
+        }
+
+        private static boolean satisfies(Constraint constraint, long[] values) {
+            try {
+                long activity = 0;
+                for (int i = 0; i < values.length; i++)
+                    activity = Math.addExact(activity,
+                            Math.multiplyExact(constraint.coefficients[i], values[i]));
+                return activity >= constraint.minimum;
+            } catch (ArithmeticException overflow) {
+                BigInteger activity = BigInteger.ZERO;
+                for (int i = 0; i < values.length; i++)
+                    activity = activity.add(BigInteger.valueOf(constraint.coefficients[i])
+                            .multiply(BigInteger.valueOf(values[i])));
+                return activity.compareTo(BigInteger.valueOf(constraint.minimum)) >= 0;
+            }
+        }
+    }
+
     static Result solve(
             int variableCount,
             List<Constraint> constraints,
@@ -100,7 +150,7 @@ final class BoundedIntegerLinearSolver {
 
         for (Constraint constraint : constraints) {
             PlanningCancellation.check();
-            if (constraint == null || constraint.coefficients().length != variableCount) {
+            if (constraint == null || constraint.coefficients.length != variableCount) {
                 return result(Status.INVALID_INPUT, 0);
             }
         }
@@ -772,10 +822,14 @@ final class BoundedIntegerLinearSolver {
                 numerator = numerator.negate();
                 denominator = denominator.negate();
             }
-            BigInteger gcd = denominator.equals(BigInteger.ONE)
-                    ? BigInteger.ONE : numerator.gcd(denominator);
-            this.numerator = numerator.divide(gcd);
-            this.denominator = denominator.divide(gcd);
+            if (denominator.equals(BigInteger.ONE)) {
+                this.numerator = numerator;
+                this.denominator = BigInteger.ONE;
+                return;
+            }
+            BigInteger gcd = numerator.gcd(denominator);
+            this.numerator = gcd.equals(BigInteger.ONE) ? numerator : numerator.divide(gcd);
+            this.denominator = gcd.equals(BigInteger.ONE) ? denominator : denominator.divide(gcd);
         }
 
         static Rational of(BigInteger value) {
@@ -785,7 +839,7 @@ final class BoundedIntegerLinearSolver {
             if (value.equals(BigInteger.ONE)) {
                 return ONE;
             }
-            if (value.equals(BigInteger.ONE.negate())) {
+            if (value.equals(NEGATIVE_ONE.numerator)) {
                 return NEGATIVE_ONE;
             }
             return new Rational(value, BigInteger.ONE);
@@ -846,6 +900,7 @@ final class BoundedIntegerLinearSolver {
         }
 
         BigInteger floor() {
+            if (isInteger()) return numerator;
             BigInteger[] divided = numerator.divideAndRemainder(denominator);
             if (numerator.signum() < 0 && divided[1].signum() != 0) {
                 return divided[0].subtract(BigInteger.ONE);
@@ -855,6 +910,7 @@ final class BoundedIntegerLinearSolver {
 
         @Override
         public int compareTo(Rational other) {
+            if (denominator.equals(other.denominator)) return numerator.compareTo(other.numerator);
             return numerator.multiply(other.denominator)
                     .compareTo(other.numerator.multiply(denominator));
         }

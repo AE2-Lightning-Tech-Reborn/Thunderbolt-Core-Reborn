@@ -55,6 +55,34 @@ class GtlCompatTest {
     }
 
     @Test
+    void disablingCpuHandoverDoesNotRestoreAe2CalculationScheduler() {
+        GtlCompat.rememberPresence(true);
+        System.setProperty(GtlCompat.MODE_PROPERTY, "never");
+        assertFalse(GtlCompat.isCraftingHandoverActive());
+        assertTrue(GtlCompat.usesGtlCalculationScheduler());
+    }
+
+    @Test
+    void gtlCalculationSchedulerRemainsActiveInEveryModeWhenInstalled() {
+        GtlCompat.rememberPresence(true);
+        for (String mode : new String[] { "auto", "always", "never" }) {
+            System.setProperty(GtlCompat.MODE_PROPERTY, mode);
+            assertTrue(GtlCompat.usesGtlCalculationScheduler(), mode);
+        }
+    }
+
+    @Test
+    void standaloneCalculationSchedulerUsesAe2ExceptInForcedGtlMode() {
+        GtlCompat.rememberPresence(false);
+        for (String mode : new String[] { "auto", "never" }) {
+            System.setProperty(GtlCompat.MODE_PROPERTY, mode);
+            assertFalse(GtlCompat.usesGtlCalculationScheduler(), mode);
+        }
+        System.setProperty(GtlCompat.MODE_PROPERTY, "always");
+        assertTrue(GtlCompat.usesGtlCalculationScheduler());
+    }
+
+    @Test
     void predicateOverloadReadsTheConfiguredModeAndTheGtlModId() {
         System.setProperty(GtlCompat.MODE_PROPERTY, "auto");
         assertTrue(GtlCompat.standDown(GtlCompat.GTL_MOD_ID::equals));

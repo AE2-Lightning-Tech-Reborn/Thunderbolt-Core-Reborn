@@ -15,7 +15,8 @@ import com.moakiee.thunderbolt.core.storage.InfiniteCpuStorageFormat;
 // without replacing GTLCore's compact formatting of finite sizes.
 @Mixin(value = CPUSelectionList.class, priority = 1100, remap = false)
 public abstract class CPUSelectionListStorageMixin {
-    @Inject(method = "formatStorage", at = @At("HEAD"), cancellable = true)
+    // AE2 versions without this formatter use TooltipsByteAmountMixin instead.
+    @Inject(method = "formatStorage", at = @At("HEAD"), cancellable = true, require = 0)
     private void thunderbolt$formatInfiniteStorage(
             CraftingStatusMenu.CraftingCpuListEntry cpu,
             CallbackInfoReturnable<String> cir) {

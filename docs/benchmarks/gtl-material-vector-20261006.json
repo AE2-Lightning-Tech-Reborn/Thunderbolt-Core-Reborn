@@ -1,0 +1,2866 @@
+{
+  "platform": "Minecraft 1.20.1 / Forge / Java 17",
+  "baseline_commit": "e603fc3",
+  "candidate": "completed independent-vector certification and compact bipartite topology",
+  "comparison_method": "median of per-JVM summaries; three independent JVMs per version; alternating version order",
+  "independent_replay": "exact input consumption, physical stock, declared missing supply and final target output, outside timing",
+  "caller_deadline_side_seconds": 15,
+  "certification_budget_change": false,
+  "deterministic_deadline_regression": {
+    "baseline_reproduced": true,
+    "candidate_passed": true
+  },
+  "validation": {
+    "test": {
+      "tests": 35,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 35
+    },
+    "jar_sha256": "14a2ea783289f4eb49d3462960dfe5374367ce0aa75d6719f2f08c0574ca659a",
+    "test_scope": "MaterialDagSupplyTest, MaterialDagBudgetTest, MaterialDagReplayCancellationTest",
+    "full_suite_complete": false,
+    "full_attempts": [
+      {
+        "completed": 342,
+        "passed": 339,
+        "failed": 1,
+        "skipped": 2,
+        "outcome": "executor exit -1 / connection reset"
+      },
+      {
+        "observed": 952,
+        "passed": 946,
+        "failed": 5,
+        "skipped": 1,
+        "outcome": "process ended without build footer or a new complete XML report"
+      }
+    ],
+    "native_regression": "baseline and candidate reproduce UnsatisfiedLinkError: com.google.ortools.util.mainJNI.new_Domain__SWIG_2(long,long)",
+    "expanded_validation": {
+      "totals": {
+        "tests": 1249,
+        "failures": 40,
+        "errors": 0,
+        "skipped": 1,
+        "passed": 1208
+      },
+      "filter": "excluded CpSat* test classes only; other CP-SAT call sites still ran",
+      "failures": [
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatBalanceCutsTest",
+          "test": "acyclicGroupsAndConditionalConstraintsCannotCreateUnconditionalCuts()",
+          "message": "java.lang.UnsatisfiedLinkError: 'long com.google.ortools.util.mainJNI.new_Domain__SWIG_2(long, long)'"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatBalanceCutsTest",
+          "test": "positiveWeightedEliminationRoundsIntegerBoundsWithoutExcludingAnyAssignment()",
+          "message": "java.lang.UnsatisfiedLinkError: 'long com.google.ortools.util.mainJNI.new_Domain__SWIG_2(long, long)'"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatBalanceCutsTest",
+          "test": "largeCyclicGroupsHaveABoundedNumberOfAdditionalRows()",
+          "message": "java.lang.UnsatisfiedLinkError: 'long com.google.ortools.util.mainJNI.new_Domain__SWIG_2(long, long)'"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatBalanceCutsTest",
+          "test": "unsafeAggregateIsOmittedAndOriginalDomainsStayIntact()",
+          "message": "java.lang.UnsatisfiedLinkError: 'long com.google.ortools.util.mainJNI.new_Domain__SWIG_2(long, long)'"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlannerIdOnlyCraftableVariantTest",
+          "test": "[3] true, true",
+          "message": "org.opentest4j.AssertionFailedError: expected: <true> but was: <false>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlannerIdOnlyCraftableVariantTest",
+          "test": "[4] false, true",
+          "message": "org.opentest4j.AssertionFailedError: expected: <true> but was: <false>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "test": "replenishmentPortfolioStillPropagatesOuterCancellation()",
+          "message": "org.opentest4j.AssertionFailedError: Expected com.moakiee.thunderbolt.api.crafting.PlanningExitException to be thrown, but nothing was thrown."
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "multiDagScenarioIsSolvedByTheIndependentCpSatModel()",
+          "message": "org.opentest4j.AssertionFailedError: expected: <SOLVED> but was: <INVALID>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "single-dag/dispersed/missing",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: single-dag/dispersed/missing failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "single-dag/dispersed/minimum",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: single-dag/dispersed/minimum failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "single-dag/dispersed/unbounded",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: single-dag/dispersed/unbounded failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "single-dag/fibonacci/missing",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: single-dag/fibonacci/missing failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "single-dag/fibonacci/minimum",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: single-dag/fibonacci/minimum failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "single-dag/fibonacci/unbounded",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: single-dag/fibonacci/unbounded failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "multi-dag/greedy-trap/missing",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: multi-dag/greedy-trap/missing failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "multi-dag/greedy-trap/minimum",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: multi-dag/greedy-trap/minimum failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "multi-dag/greedy-trap/unbounded",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: multi-dag/greedy-trap/unbounded failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "multi-dag/fibonacci/missing",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: multi-dag/fibonacci/missing failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "multi-dag/fibonacci/minimum",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: multi-dag/fibonacci/minimum failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "multi-dag/fibonacci/unbounded",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: multi-dag/fibonacci/unbounded failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "cycle/conversion-ring/missing",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: cycle/conversion-ring/missing failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "cycle/conversion-ring/minimum",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: cycle/conversion-ring/minimum failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "cycle/conversion-ring/unbounded",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: cycle/conversion-ring/unbounded failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "catalyst/returned-seed/missing",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: catalyst/returned-seed/missing failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "catalyst/returned-seed/minimum",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: catalyst/returned-seed/minimum failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "catalyst/returned-seed/unbounded",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: catalyst/returned-seed/unbounded failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "catalyst/raw-feedback-loop/missing",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: catalyst/raw-feedback-loop/missing failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "catalyst/raw-feedback-loop/minimum",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: catalyst/raw-feedback-loop/minimum failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "catalyst/raw-feedback-loop/unbounded",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: catalyst/raw-feedback-loop/unbounded failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "catalyst/lossy-feedback-loop/missing",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: catalyst/lossy-feedback-loop/missing failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "catalyst/lossy-feedback-loop/minimum",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: catalyst/lossy-feedback-loop/minimum failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "catalyst/lossy-feedback-loop/unbounded",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: catalyst/lossy-feedback-loop/unbounded failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "durability/finite-use-chain/missing",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: durability/finite-use-chain/missing failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "durability/finite-use-chain/minimum",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: durability/finite-use-chain/minimum failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "durability/finite-use-chain/unbounded",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: durability/finite-use-chain/unbounded failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "fuzzy/variant-route/missing",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: fuzzy/variant-route/missing failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "fuzzy/variant-route/minimum",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: fuzzy/variant-route/minimum failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest",
+          "test": "fuzzy/variant-route/unbounded",
+          "message": "org.opentest4j.AssertionFailedError: CP-SAT capability failed: fuzzy/variant-route/unbounded failure=null ==> expected: <SUPPORTED> but was: <ATTEMPT_DECLINED>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.TagConversionCostTest",
+          "test": "cpSatUsesTheSameRealExecutionObjectiveAndRetainsTagBalance()",
+          "message": "org.opentest4j.AssertionFailedError: expected: <SOLVED> but was: <INVALID>"
+        },
+        {
+          "classname": "com.moakiee.thunderbolt.core.crafting.planner.TerminalBatchRecoveryTest",
+          "test": "publicMultiUnitRecoveryRefusalMarksCutoffAndPreservesTheCoreMissingWitness()",
+          "message": "org.opentest4j.AssertionFailedError: one unit remains: the two-unit input admission was refused atomically ==> expected: <1> but was: <0>"
+        }
+      ]
+    },
+    "release_check": "verifyReleaseJar passed on final jar",
+    "forge_gametest_required_passed": 10,
+    "gtl_mode": "always"
+  },
+  "comparisons": [
+    {
+      "scenario": "certificate-4096-quantity-1",
+      "before": {
+        "p50_ms": 79.607,
+        "p95_ms": 135.313,
+        "alloc_mib": 20.738
+      },
+      "after": {
+        "p50_ms": 48.361,
+        "p95_ms": 60.3,
+        "alloc_mib": 12.895
+      },
+      "comparable": true,
+      "change_percent": {
+        "p50_ms": -39.25031718316229,
+        "p95_ms": -55.4366542756424,
+        "alloc_mib": -37.819461857459736
+      }
+    },
+    {
+      "scenario": "certificate-4096-quantity-1000000000000",
+      "before": {
+        "p50_ms": 172.537,
+        "p95_ms": 309.654,
+        "alloc_mib": 24.552
+      },
+      "after": {
+        "p50_ms": 59.689,
+        "p95_ms": 115.419,
+        "alloc_mib": 16.834
+      },
+      "comparable": true,
+      "change_percent": {
+        "p50_ms": -65.40510151445777,
+        "p95_ms": -62.72646243872193,
+        "alloc_mib": -31.435320951449985
+      }
+    },
+    {
+      "scenario": "side-4096-quantity-1",
+      "before": {
+        "p50_ms": 1100.029,
+        "p95_ms": 1887.098,
+        "alloc_mib": 176.4,
+        "incomplete": 0,
+        "incomplete_warmups": 0,
+        "budget_exits": 0,
+        "samples": 15
+      },
+      "after": {
+        "p50_ms": 986.101,
+        "p95_ms": 1839.608,
+        "alloc_mib": 168.35,
+        "incomplete": 0,
+        "incomplete_warmups": 0,
+        "budget_exits": 0,
+        "samples": 15
+      },
+      "comparable": true,
+      "change_percent": {
+        "p50_ms": -10.35681786571081,
+        "p95_ms": -2.5165624678739507,
+        "alloc_mib": -4.5634920634920695
+      }
+    },
+    {
+      "scenario": "side-4096-quantity-1000000000000",
+      "before": {
+        "p50_ms": 1050.539,
+        "p95_ms": 1442.841,
+        "alloc_mib": 183.391,
+        "incomplete": 1,
+        "incomplete_warmups": 1,
+        "budget_exits": 0,
+        "samples": 15
+      },
+      "after": {
+        "p50_ms": 926.516,
+        "p95_ms": 1237.814,
+        "alloc_mib": 175.666,
+        "incomplete": 0,
+        "incomplete_warmups": 0,
+        "budget_exits": 0,
+        "samples": 15
+      },
+      "comparable": false,
+      "change_percent": null
+    },
+    {
+      "scenario": "chain-10000",
+      "before": {
+        "p50_ms": 29.033,
+        "p95_ms": 68.477,
+        "alloc_mib": 6.775
+      },
+      "after": {
+        "p50_ms": 35.337,
+        "p95_ms": 92.376,
+        "alloc_mib": 6.775
+      },
+      "comparable": true,
+      "change_percent": {
+        "p50_ms": 21.713222884304084,
+        "p95_ms": 34.900769601472035,
+        "alloc_mib": 0.0
+      }
+    },
+    {
+      "scenario": "wide-16000",
+      "before": {
+        "p50_ms": 38.817,
+        "p95_ms": 80.245,
+        "alloc_mib": 14.826
+      },
+      "after": {
+        "p50_ms": 39.855,
+        "p95_ms": 75.069,
+        "alloc_mib": 14.826
+      },
+      "comparable": true,
+      "change_percent": {
+        "p50_ms": 2.6740860962980006,
+        "p95_ms": -6.450246121253667,
+        "alloc_mib": 0.0
+      }
+    },
+    {
+      "scenario": "session-wide-4096-8probes",
+      "before": {
+        "p50_ms": 21.74,
+        "p95_ms": 52.976,
+        "alloc_mib": 12.777
+      },
+      "after": {
+        "p50_ms": 33.27,
+        "p95_ms": 137.346,
+        "alloc_mib": 12.777
+      },
+      "comparable": true,
+      "change_percent": {
+        "p50_ms": 53.03587856485743,
+        "p95_ms": 159.26079734219272,
+        "alloc_mib": 0.0
+      }
+    },
+    {
+      "scenario": "session-chain-2000-8probes",
+      "before": {
+        "p50_ms": 17.603,
+        "p95_ms": 43.164,
+        "alloc_mib": 5.721
+      },
+      "after": {
+        "p50_ms": 27.308,
+        "p95_ms": 103.854,
+        "alloc_mib": 5.721
+      },
+      "comparable": true,
+      "change_percent": {
+        "p50_ms": 55.132647844117464,
+        "p95_ms": 140.60328051153738,
+        "alloc_mib": 0.0
+      }
+    },
+    {
+      "scenario": "wide-256-unrelated-100000",
+      "before": {
+        "p50_ms": 0.605,
+        "p95_ms": 4.981,
+        "alloc_mib": 0.242
+      },
+      "after": {
+        "p50_ms": 0.611,
+        "p95_ms": 5.794,
+        "alloc_mib": 0.242
+      },
+      "comparable": true,
+      "change_percent": {
+        "p50_ms": 0.9917355371900749,
+        "p95_ms": 16.32202369002207,
+        "alloc_mib": 0.0
+      }
+    },
+    {
+      "scenario": "admission-wide-18000",
+      "before": {
+        "p50_ms": 8.044,
+        "p95_ms": 25.128,
+        "alloc_mib": 1.046
+      },
+      "after": {
+        "p50_ms": 10.523,
+        "p95_ms": 16.249,
+        "alloc_mib": 1.113
+      },
+      "comparable": true,
+      "change_percent": {
+        "p50_ms": 30.81800099453007,
+        "p95_ms": -35.335084368035666,
+        "alloc_mib": 6.405353728489471
+      }
+    }
+  ],
+  "runs": [
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "certificate-4096-quantity-1",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 79.607,
+          "p95_ms": 111.228,
+          "alloc_mib": 20.738,
+          "status": "PASS",
+          "raw_ms": [
+            83.0355,
+            72.6878,
+            76.1779,
+            88.8173,
+            111.2275,
+            89.2639,
+            92.6702,
+            70.5458,
+            84.1885,
+            62.0282,
+            68.7595,
+            70.866
+          ],
+          "raw_alloc_mib": [
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625
+          ]
+        },
+        {
+          "scenario": "certificate-4096-quantity-1000000000000",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 151.826,
+          "p95_ms": 309.654,
+          "alloc_mib": 24.552,
+          "status": "PASS",
+          "raw_ms": [
+            90.9705,
+            81.284,
+            79.9084,
+            64.6832,
+            157.5173,
+            236.4841,
+            161.4024,
+            177.7869,
+            186.692,
+            309.6537,
+            146.1346,
+            140.7989
+          ],
+          "raw_alloc_mib": [
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.55181884765625,
+            24.55181884765625,
+            24.55181884765625,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 0,
+      "harness": "certificate"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "certificate-4096-quantity-1",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 48.361,
+          "p95_ms": 76.783,
+          "alloc_mib": 12.895,
+          "status": "PASS",
+          "raw_ms": [
+            70.1597,
+            45.9854,
+            52.362,
+            57.4022,
+            47.896,
+            76.7833,
+            56.939,
+            48.8258,
+            43.2773,
+            32.6412,
+            32.8219,
+            26.7828
+          ],
+          "raw_alloc_mib": [
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312
+          ]
+        },
+        {
+          "scenario": "certificate-4096-quantity-1000000000000",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 34.261,
+          "p95_ms": 60.357,
+          "alloc_mib": 16.834,
+          "status": "PASS",
+          "raw_ms": [
+            54.1433,
+            60.3572,
+            55.2951,
+            33.3845,
+            34.4757,
+            33.205,
+            34.0461,
+            32.0968,
+            35.9391,
+            28.4965,
+            28.9224,
+            40.8559
+          ],
+          "raw_alloc_mib": [
+            16.8338623046875,
+            16.8338623046875,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 0,
+      "harness": "certificate"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "certificate-4096-quantity-1",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 37.951,
+          "p95_ms": 43.795,
+          "alloc_mib": 12.895,
+          "status": "PASS",
+          "raw_ms": [
+            38.1948,
+            43.7952,
+            38.6297,
+            39.7132,
+            36.8439,
+            40.1521,
+            40.9942,
+            37.7077,
+            37.2809,
+            35.7798,
+            34.6868,
+            32.8382
+          ],
+          "raw_alloc_mib": [
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312
+          ]
+        },
+        {
+          "scenario": "certificate-4096-quantity-1000000000000",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 65.429,
+          "p95_ms": 150.655,
+          "alloc_mib": 16.834,
+          "status": "PASS",
+          "raw_ms": [
+            99.3593,
+            63.4451,
+            63.7758,
+            52.815,
+            51.0012,
+            95.4682,
+            65.8051,
+            55.8642,
+            83.5431,
+            92.4044,
+            150.6545,
+            65.053
+          ],
+          "raw_alloc_mib": [
+            16.8338623046875,
+            16.8338623046875,
+            16.8338623046875,
+            16.8338623046875,
+            16.8338623046875,
+            16.8338623046875,
+            16.8338623046875,
+            16.8338623046875,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 1,
+      "harness": "certificate"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "certificate-4096-quantity-1",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 69.829,
+          "p95_ms": 135.313,
+          "alloc_mib": 20.738,
+          "status": "PASS",
+          "raw_ms": [
+            126.1707,
+            135.3127,
+            110.3919,
+            93.6106,
+            83.8852,
+            78.4065,
+            56.0514,
+            44.704,
+            52.1761,
+            61.2512,
+            61.0445,
+            49.2618
+          ],
+          "raw_alloc_mib": [
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625
+          ]
+        },
+        {
+          "scenario": "certificate-4096-quantity-1000000000000",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 205.033,
+          "p95_ms": 500.108,
+          "alloc_mib": 24.552,
+          "status": "PASS",
+          "raw_ms": [
+            81.955,
+            85.5188,
+            367.9784,
+            245.0203,
+            224.3327,
+            500.1084,
+            145.8002,
+            184.4757,
+            185.7333,
+            292.8166,
+            292.6077,
+            176.1884
+          ],
+          "raw_alloc_mib": [
+            24.55181884765625,
+            24.55181884765625,
+            24.55181884765625,
+            24.55181884765625,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 1,
+      "harness": "certificate"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "certificate-4096-quantity-1",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 151.673,
+          "p95_ms": 190.809,
+          "alloc_mib": 20.738,
+          "status": "PASS",
+          "raw_ms": [
+            104.5155,
+            117.4336,
+            148.2552,
+            155.0905,
+            116.476,
+            171.2983,
+            158.3322,
+            169.2314,
+            161.902,
+            190.8087,
+            97.8373,
+            74.656
+          ],
+          "raw_alloc_mib": [
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.738433837890625,
+            20.73839569091797,
+            20.73839569091797,
+            20.73839569091797,
+            20.73839569091797,
+            20.73839569091797,
+            20.738433837890625
+          ]
+        },
+        {
+          "scenario": "certificate-4096-quantity-1000000000000",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 172.537,
+          "p95_ms": 240.137,
+          "alloc_mib": 24.552,
+          "status": "PASS",
+          "raw_ms": [
+            128.4988,
+            203.4469,
+            174.914,
+            170.1591,
+            142.8986,
+            93.5098,
+            141.3855,
+            206.0178,
+            240.1369,
+            175.2911,
+            158.0061,
+            214.4596
+          ],
+          "raw_alloc_mib": [
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906,
+            24.551856994628906
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 2,
+      "harness": "certificate"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "certificate-4096-quantity-1",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 53.478,
+          "p95_ms": 60.3,
+          "alloc_mib": 12.895,
+          "status": "PASS",
+          "raw_ms": [
+            47.181,
+            56.0823,
+            52.9296,
+            57.0708,
+            60.3003,
+            58.3316,
+            54.0261,
+            55.504,
+            44.9415,
+            51.5981,
+            34.8469,
+            36.4994
+          ],
+          "raw_alloc_mib": [
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312,
+            12.895339965820312
+          ]
+        },
+        {
+          "scenario": "certificate-4096-quantity-1000000000000",
+          "samples": 12,
+          "warmup": 3,
+          "p50_ms": 59.689,
+          "p95_ms": 115.419,
+          "alloc_mib": 16.834,
+          "status": "PASS",
+          "raw_ms": [
+            59.9637,
+            70.727,
+            65.9303,
+            57.209,
+            54.0533,
+            64.7367,
+            56.7967,
+            54.0268,
+            46.5983,
+            59.4141,
+            93.6974,
+            115.4186
+          ],
+          "raw_alloc_mib": [
+            16.8338623046875,
+            16.8338623046875,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844,
+            16.833824157714844
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 2,
+      "harness": "certificate"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1423.174,
+          "p95_ms": 2379.844,
+          "alloc_mib": 176.691,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            1555.7127,
+            2379.844,
+            1169.7219,
+            1423.1736,
+            1088.0947
+          ],
+          "raw_alloc_mib": [
+            181.07908630371094,
+            176.32415008544922,
+            176.69129943847656,
+            177.06626892089844,
+            175.69119262695312
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 2956.153,
+          "p95_ms": 5525.519,
+          "alloc_mib": 183.635,
+          "budget_exits": 0,
+          "incomplete": 1,
+          "status": "INCOMPLETE",
+          "incomplete_records": [
+            {
+              "iteration": -1,
+              "elapsed_ms": 7506.102,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 2,
+              "elapsed_ms": 5525.519,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            }
+          ],
+          "raw_ms": [
+            3138.6636,
+            2956.1533,
+            5525.5185,
+            1709.2972,
+            1516.7817
+          ],
+          "raw_alloc_mib": [
+            183.0409393310547,
+            183.01631927490234,
+            265.6144485473633,
+            183.63457489013672,
+            183.63460540771484
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 0,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 986.101,
+          "p95_ms": 1839.608,
+          "alloc_mib": 168.099,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            842.9444,
+            1839.608,
+            914.5476,
+            1039.6195,
+            986.1008
+          ],
+          "raw_alloc_mib": [
+            172.55972290039062,
+            168.7248992919922,
+            167.22466278076172,
+            168.04791259765625,
+            168.09942626953125
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 926.516,
+          "p95_ms": 1010.469,
+          "alloc_mib": 175.666,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            1010.4689,
+            841.9641,
+            689.5237,
+            963.2504,
+            926.5159
+          ],
+          "raw_alloc_mib": [
+            175.06006622314453,
+            175.048095703125,
+            175.67306518554688,
+            175.66635131835938,
+            175.66635131835938
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 0,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 754.385,
+          "p95_ms": 1189.557,
+          "alloc_mib": 168.85,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            718.0025,
+            728.8175,
+            1189.5565,
+            761.4934,
+            754.3845
+          ],
+          "raw_alloc_mib": [
+            173.31195068359375,
+            172.22625732421875,
+            168.3268585205078,
+            168.84954833984375,
+            167.47457122802734
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 811.3,
+          "p95_ms": 1237.814,
+          "alloc_mib": 175.666,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            1237.8143,
+            887.3889,
+            811.2997,
+            604.3775,
+            684.8532
+          ],
+          "raw_alloc_mib": [
+            175.29793548583984,
+            175.92285919189453,
+            175.6664581298828,
+            175.66632080078125,
+            175.66632080078125
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 1,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 720.456,
+          "p95_ms": 890.522,
+          "alloc_mib": 176.4,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            719.4855,
+            654.3963,
+            890.522,
+            720.456,
+            872.4957
+          ],
+          "raw_alloc_mib": [
+            181.65796661376953,
+            176.8274917602539,
+            176.39957427978516,
+            176.3762969970703,
+            175.19715118408203
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 790.924,
+          "p95_ms": 811.341,
+          "alloc_mib": 183.384,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            804.1265,
+            811.3413,
+            790.9235,
+            744.9733,
+            776.1952
+          ],
+          "raw_alloc_mib": [
+            183.40333557128906,
+            183.37244415283203,
+            183.36573028564453,
+            183.3844985961914,
+            183.3844985961914
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 1,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1100.029,
+          "p95_ms": 1887.098,
+          "alloc_mib": 175.316,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            845.8822,
+            920.8922,
+            1887.0977,
+            1120.5119,
+            1100.0293
+          ],
+          "raw_alloc_mib": [
+            181.66262817382812,
+            176.57758331298828,
+            175.3164825439453,
+            175.19112396240234,
+            175.31600189208984
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1050.539,
+          "p95_ms": 1442.841,
+          "alloc_mib": 183.391,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            1442.8414,
+            1045.2279,
+            618.8231,
+            1050.5389,
+            1137.6434
+          ],
+          "raw_alloc_mib": [
+            183.52835083007812,
+            183.39118194580078,
+            183.39122009277344,
+            183.38455963134766,
+            183.38455963134766
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 2,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1454.719,
+          "p95_ms": 2112.835,
+          "alloc_mib": 168.35,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            874.846,
+            2112.8352,
+            1667.56,
+            1351.5761,
+            1454.7189
+          ],
+          "raw_alloc_mib": [
+            172.54183197021484,
+            168.3497772216797,
+            167.322265625,
+            168.34952545166016,
+            168.224365234375
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1075.926,
+          "p95_ms": 1696.745,
+          "alloc_mib": 176.048,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            1696.7446,
+            1075.9258,
+            1224.7741,
+            989.9087,
+            1011.9918
+          ],
+          "raw_alloc_mib": [
+            176.054443359375,
+            176.05438995361328,
+            176.04804229736328,
+            176.04135131835938,
+            176.04135131835938
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 2,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 26.436,
+          "p95_ms": 56.189,
+          "max_ms": 56.189,
+          "alloc_mib": 6.775,
+          "gc_ms": 48,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            50.3651,
+            51.6207,
+            56.1894,
+            53.6214,
+            30.9087,
+            26.4355,
+            21.1467,
+            25.4226,
+            28.8614,
+            25.915,
+            19.9872,
+            19.028
+          ],
+          "raw_alloc_mib": [
+            7.690559387207031,
+            7.624183654785156,
+            6.858406066894531,
+            6.775032043457031,
+            6.775032043457031,
+            6.775032043457031,
+            6.775032043457031,
+            6.774993896484375,
+            6.774993896484375,
+            6.774993896484375,
+            6.774955749511719,
+            6.774955749511719
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 42.618,
+          "p95_ms": 69.179,
+          "max_ms": 69.179,
+          "alloc_mib": 14.826,
+          "gc_ms": 13,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            69.1788,
+            45.6998,
+            45.4654,
+            46.9056,
+            42.5041,
+            43.3692,
+            41.1647,
+            38.8515,
+            54.7507,
+            42.2797,
+            42.6175,
+            32.6785
+          ],
+          "raw_alloc_mib": [
+            15.6474609375,
+            14.826263427734375,
+            14.826263427734375,
+            14.826263427734375,
+            14.826225280761719,
+            14.826225280761719,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 26.257,
+          "p95_ms": 68.369,
+          "max_ms": 68.369,
+          "alloc_mib": 12.777,
+          "gc_ms": 6,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            23.0324,
+            22.0683,
+            25.6187,
+            26.3847,
+            24.3845,
+            26.2569,
+            25.8114,
+            47.4755,
+            61.4569,
+            68.3692,
+            60.2389,
+            46.2846
+          ],
+          "raw_alloc_mib": [
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 26.867,
+          "p95_ms": 59.304,
+          "max_ms": 59.304,
+          "alloc_mib": 5.721,
+          "gc_ms": 1,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            34.665,
+            27.1573,
+            26.8666,
+            30.5596,
+            36.5547,
+            59.3043,
+            34.0583,
+            24.9502,
+            18.0747,
+            21.1664,
+            20.2002,
+            22.6193
+          ],
+          "raw_alloc_mib": [
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720771789550781,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.605,
+          "p95_ms": 2.136,
+          "max_ms": 2.136,
+          "alloc_mib": 0.242,
+          "gc_ms": 20,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            0.5147,
+            1.6076,
+            0.5421,
+            2.136,
+            0.8788,
+            0.6205,
+            0.5218,
+            0.6049,
+            0.5775,
+            0.525,
+            1.6051,
+            1.3872
+          ],
+          "raw_alloc_mib": [
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 8.044,
+          "p95_ms": 25.128,
+          "max_ms": 25.128,
+          "alloc_mib": 1.046,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            9.3264,
+            8.7103,
+            7.9933,
+            10.8414,
+            25.1279,
+            8.0437,
+            6.4269,
+            5.9433,
+            8.2367,
+            8.5689,
+            7.8143,
+            4.1006
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 0,
+      "harness": "planner"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 30.294,
+          "p95_ms": 92.376,
+          "max_ms": 92.376,
+          "alloc_mib": 6.775,
+          "gc_ms": 17,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            48.227,
+            53.9396,
+            92.3755,
+            49.0128,
+            39.5157,
+            35.6027,
+            21.3996,
+            30.294,
+            28.263,
+            29.709,
+            20.1418,
+            24.1574
+          ],
+          "raw_alloc_mib": [
+            7.690559387207031,
+            7.623603820800781,
+            6.941749572753906,
+            6.775032043457031,
+            6.775032043457031,
+            6.774993896484375,
+            6.774993896484375,
+            6.774993896484375,
+            6.774971008300781,
+            6.774932861328125,
+            6.774932861328125,
+            6.774932861328125
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 40.018,
+          "p95_ms": 78.091,
+          "max_ms": 78.091,
+          "alloc_mib": 14.826,
+          "gc_ms": 11,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            78.0913,
+            38.4901,
+            39.8359,
+            51.9493,
+            44.5368,
+            54.0512,
+            39.1935,
+            35.437,
+            47.4263,
+            40.0183,
+            40.5956,
+            37.0086
+          ],
+          "raw_alloc_mib": [
+            15.408470153808594,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 33.27,
+          "p95_ms": 137.346,
+          "max_ms": 137.346,
+          "alloc_mib": 12.777,
+          "gc_ms": 6,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            21.1513,
+            24.086,
+            22.5983,
+            22.6202,
+            20.0994,
+            137.3457,
+            82.8639,
+            95.7421,
+            38.9911,
+            54.9032,
+            33.2696,
+            51.5584
+          ],
+          "raw_alloc_mib": [
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 17.78,
+          "p95_ms": 24.629,
+          "max_ms": 24.629,
+          "alloc_mib": 5.721,
+          "gc_ms": 1,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            24.1644,
+            12.799,
+            17.7795,
+            14.2498,
+            13.5337,
+            12.4416,
+            17.0878,
+            21.6357,
+            24.1228,
+            21.3191,
+            21.3943,
+            24.629
+          ],
+          "raw_alloc_mib": [
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720771789550781,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.582,
+          "p95_ms": 3.705,
+          "max_ms": 3.705,
+          "alloc_mib": 0.242,
+          "gc_ms": 0,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            3.7054,
+            0.6207,
+            0.5819,
+            1.3727,
+            0.6156,
+            0.5669,
+            0.5111,
+            0.5532,
+            2.6481,
+            0.5362,
+            0.4599,
+            2.3617
+          ],
+          "raw_alloc_mib": [
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 5.379,
+          "p95_ms": 11.0,
+          "max_ms": 11.0,
+          "alloc_mib": 1.529,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            5.2031,
+            5.3792,
+            5.2238,
+            7.1792,
+            7.6779,
+            6.1274,
+            4.7469,
+            11.0002,
+            6.7339,
+            8.4025,
+            4.8307,
+            3.993
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.3851242065429688,
+            1.0458602905273438,
+            1.0458602905273438
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 0,
+      "harness": "planner"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 35.337,
+          "p95_ms": 80.097,
+          "max_ms": 80.097,
+          "alloc_mib": 6.858,
+          "gc_ms": 33,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            57.8713,
+            45.7465,
+            74.8296,
+            80.0973,
+            36.5518,
+            22.1934,
+            39.938,
+            31.8006,
+            32.0894,
+            35.3368,
+            20.2584,
+            25.4166
+          ],
+          "raw_alloc_mib": [
+            7.690559387207031,
+            7.014076232910156,
+            6.941749572753906,
+            6.941688537597656,
+            6.941650390625,
+            6.858306884765625,
+            6.858306884765625,
+            6.774993896484375,
+            6.774993896484375,
+            6.774955749511719,
+            6.774955749511719,
+            6.774955749511719
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 36.046,
+          "p95_ms": 75.069,
+          "max_ms": 75.069,
+          "alloc_mib": 14.826,
+          "gc_ms": 9,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            75.0689,
+            48.1826,
+            42.7183,
+            50.5281,
+            42.2659,
+            34.3867,
+            36.1516,
+            33.9156,
+            36.0455,
+            35.5567,
+            35.7247,
+            32.8387
+          ],
+          "raw_alloc_mib": [
+            15.636505126953125,
+            14.826263427734375,
+            14.826263427734375,
+            14.826263427734375,
+            14.826225280761719,
+            14.826225280761719,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 18.79,
+          "p95_ms": 74.205,
+          "max_ms": 74.205,
+          "alloc_mib": 12.777,
+          "gc_ms": 7,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            23.844,
+            18.4302,
+            20.7438,
+            23.091,
+            18.1324,
+            16.66,
+            16.5178,
+            17.359,
+            18.7898,
+            19.8228,
+            23.8038,
+            74.2047
+          ],
+          "raw_alloc_mib": [
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 27.308,
+          "p95_ms": 103.854,
+          "max_ms": 103.854,
+          "alloc_mib": 5.721,
+          "gc_ms": 2,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            19.2469,
+            17.2172,
+            18.4263,
+            15.6878,
+            37.5745,
+            27.3075,
+            22.7902,
+            42.0273,
+            61.7848,
+            47.9716,
+            103.854,
+            42.1195
+          ],
+          "raw_alloc_mib": [
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720771789550781,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.714,
+          "p95_ms": 5.794,
+          "max_ms": 5.794,
+          "alloc_mib": 0.242,
+          "gc_ms": 0,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            2.4533,
+            0.7136,
+            1.1715,
+            0.6845,
+            0.6665,
+            0.5325,
+            0.4984,
+            0.8711,
+            0.633,
+            5.7939,
+            1.0125,
+            4.1596
+          ],
+          "raw_alloc_mib": [
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 10.523,
+          "p95_ms": 16.249,
+          "max_ms": 16.249,
+          "alloc_mib": 1.113,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            10.5228,
+            12.5748,
+            16.0023,
+            10.1687,
+            16.249,
+            12.5751,
+            9.9275,
+            6.5152,
+            8.5919,
+            11.9194,
+            13.0391,
+            9.2586
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.1350326538085938,
+            1.1127548217773438,
+            1.1127548217773438,
+            1.1127548217773438,
+            1.1127548217773438,
+            1.1127548217773438,
+            1.1127548217773438,
+            1.2125167846679688
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 1,
+      "harness": "planner"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 29.348,
+          "p95_ms": 68.477,
+          "max_ms": 68.477,
+          "alloc_mib": 6.775,
+          "gc_ms": 17,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            52.6646,
+            49.8573,
+            68.4772,
+            67.8953,
+            43.1551,
+            37.9885,
+            28.5591,
+            29.3475,
+            28.1329,
+            22.9165,
+            19.3228,
+            20.5827
+          ],
+          "raw_alloc_mib": [
+            7.690559387207031,
+            7.690559387207031,
+            6.874977111816406,
+            6.941688537597656,
+            6.858345031738281,
+            6.858345031738281,
+            6.775032043457031,
+            6.774993896484375,
+            6.774993896484375,
+            6.774955749511719,
+            6.774955749511719,
+            6.774955749511719
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 37.225,
+          "p95_ms": 93.136,
+          "max_ms": 93.136,
+          "alloc_mib": 14.826,
+          "gc_ms": 9,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            93.1364,
+            40.7286,
+            47.5949,
+            43.5215,
+            37.2251,
+            33.951,
+            37.4575,
+            35.5327,
+            39.5362,
+            36.9847,
+            35.0257,
+            32.3072
+          ],
+          "raw_alloc_mib": [
+            15.609397888183594,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 21.74,
+          "p95_ms": 52.976,
+          "max_ms": 52.976,
+          "alloc_mib": 12.777,
+          "gc_ms": 6,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            26.6113,
+            29.7478,
+            26.2209,
+            20.4467,
+            21.2688,
+            26.7245,
+            21.0946,
+            16.1349,
+            21.7398,
+            18.2915,
+            22.623,
+            52.9764
+          ],
+          "raw_alloc_mib": [
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 17.603,
+          "p95_ms": 43.164,
+          "max_ms": 43.164,
+          "alloc_mib": 5.721,
+          "gc_ms": 1,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            13.9367,
+            16.496,
+            17.2063,
+            14.7493,
+            14.1768,
+            17.6031,
+            25.2458,
+            31.6166,
+            31.1007,
+            28.0856,
+            43.1636,
+            28.3205
+          ],
+          "raw_alloc_mib": [
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720771789550781,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.551,
+          "p95_ms": 4.981,
+          "max_ms": 4.981,
+          "alloc_mib": 0.242,
+          "gc_ms": 0,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            0.525,
+            0.5172,
+            0.5283,
+            0.5511,
+            0.4507,
+            0.4342,
+            4.9811,
+            1.3012,
+            1.7502,
+            0.5741,
+            0.5544,
+            1.3689
+          ],
+          "raw_alloc_mib": [
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 7.438,
+          "p95_ms": 12.094,
+          "max_ms": 12.094,
+          "alloc_mib": 1.529,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            11.7928,
+            7.4384,
+            7.1564,
+            12.0943,
+            7.4641,
+            9.3751,
+            4.7359,
+            8.7449,
+            9.9016,
+            7.0231,
+            5.0557,
+            5.3402
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 1,
+      "harness": "planner"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 29.033,
+          "p95_ms": 70.287,
+          "max_ms": 70.287,
+          "alloc_mib": 6.775,
+          "gc_ms": 43,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            44.7902,
+            43.9545,
+            68.8025,
+            70.2871,
+            38.8926,
+            28.2601,
+            21.7883,
+            29.0328,
+            29.3511,
+            27.8704,
+            26.6123,
+            22.5237
+          ],
+          "raw_alloc_mib": [
+            7.690559387207031,
+            7.690559387207031,
+            6.875617980957031,
+            6.858345031738281,
+            6.858345031738281,
+            6.774993896484375,
+            6.7750396728515625,
+            6.774993896484375,
+            6.774993896484375,
+            6.774955749511719,
+            6.774955749511719,
+            6.774955749511719
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 38.817,
+          "p95_ms": 80.245,
+          "max_ms": 80.245,
+          "alloc_mib": 14.826,
+          "gc_ms": 9,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            80.245,
+            39.7372,
+            38.8165,
+            43.8118,
+            39.2594,
+            39.2488,
+            32.6092,
+            34.6115,
+            43.3768,
+            36.0233,
+            30.4427,
+            25.8724
+          ],
+          "raw_alloc_mib": [
+            15.632560729980469,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 17.723,
+          "p95_ms": 23.79,
+          "max_ms": 23.79,
+          "alloc_mib": 12.777,
+          "gc_ms": 6,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            22.0897,
+            21.4858,
+            16.7698,
+            16.1197,
+            15.8457,
+            17.7228,
+            16.4773,
+            23.7895,
+            17.7918,
+            16.9823,
+            21.5487,
+            20.2772
+          ],
+          "raw_alloc_mib": [
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 9.102,
+          "p95_ms": 39.657,
+          "max_ms": 39.657,
+          "alloc_mib": 5.721,
+          "gc_ms": 2,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            6.6857,
+            10.1434,
+            9.3982,
+            8.223,
+            7.975,
+            7.662,
+            9.1018,
+            10.024,
+            8.7942,
+            18.8347,
+            39.6573,
+            21.8789
+          ],
+          "raw_alloc_mib": [
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720771789550781,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.932,
+          "p95_ms": 22.173,
+          "max_ms": 22.173,
+          "alloc_mib": 0.242,
+          "gc_ms": 19,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            0.5692,
+            2.5141,
+            0.5669,
+            2.1406,
+            0.6521,
+            0.5403,
+            22.1726,
+            0.9324,
+            5.2136,
+            1.8344,
+            0.6458,
+            1.1226
+          ],
+          "raw_alloc_mib": [
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 18.149,
+          "p95_ms": 25.5,
+          "max_ms": 25.5,
+          "alloc_mib": 1.046,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            19.7469,
+            16.7187,
+            19.3856,
+            13.955,
+            25.4999,
+            14.0262,
+            24.3148,
+            18.1486,
+            18.2975,
+            19.2521,
+            14.7031,
+            11.8876
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.2183456420898438,
+            1.1127548217773438,
+            1.1127548217773438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 2,
+      "harness": "planner"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 45.413,
+          "p95_ms": 99.74,
+          "max_ms": 99.74,
+          "alloc_mib": 6.775,
+          "gc_ms": 17,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            88.2343,
+            73.3988,
+            99.7401,
+            52.8587,
+            45.4132,
+            24.1174,
+            28.195,
+            47.6973,
+            73.3966,
+            34.172,
+            28.3681,
+            25.1795
+          ],
+          "raw_alloc_mib": [
+            7.690559387207031,
+            7.014228820800781,
+            6.941749572753906,
+            6.858345031738281,
+            6.858345031738281,
+            6.774993896484375,
+            6.774993896484375,
+            6.774993896484375,
+            6.774971008300781,
+            6.774932861328125,
+            6.774932861328125,
+            6.77490234375
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 39.855,
+          "p95_ms": 70.003,
+          "max_ms": 70.003,
+          "alloc_mib": 14.826,
+          "gc_ms": 9,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            70.003,
+            44.7014,
+            40.0421,
+            51.068,
+            39.8552,
+            45.6608,
+            44.1337,
+            37.6883,
+            39.5816,
+            35.737,
+            32.2903,
+            31.4586
+          ],
+          "raw_alloc_mib": [
+            15.644645690917969,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 63.458,
+          "p95_ms": 148.243,
+          "max_ms": 148.243,
+          "alloc_mib": 12.777,
+          "gc_ms": 9,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            21.2969,
+            17.4058,
+            14.5869,
+            18.5303,
+            24.1556,
+            140.4621,
+            148.2428,
+            117.7072,
+            110.0326,
+            98.0467,
+            84.5496,
+            63.4576
+          ],
+          "raw_alloc_mib": [
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 53.102,
+          "p95_ms": 112.061,
+          "max_ms": 112.061,
+          "alloc_mib": 5.721,
+          "gc_ms": 1,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            29.2845,
+            37.2696,
+            62.1282,
+            36.2665,
+            88.897,
+            53.1022,
+            82.0628,
+            112.0609,
+            60.4417,
+            38.6776,
+            61.2456,
+            32.4414
+          ],
+          "raw_alloc_mib": [
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720771789550781,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.611,
+          "p95_ms": 21.455,
+          "max_ms": 21.455,
+          "alloc_mib": 0.242,
+          "gc_ms": 0,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            0.7918,
+            21.4552,
+            15.3876,
+            0.6423,
+            0.4856,
+            0.4802,
+            13.8565,
+            0.5185,
+            0.462,
+            0.4538,
+            9.4024,
+            0.6112
+          ],
+          "raw_alloc_mib": [
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 14.71,
+          "p95_ms": 30.794,
+          "max_ms": 30.794,
+          "alloc_mib": 1.046,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            11.8182,
+            21.6477,
+            10.1598,
+            8.533,
+            14.0625,
+            20.6209,
+            15.2032,
+            30.7937,
+            13.8712,
+            14.7102,
+            19.7415,
+            17.502
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0458602905273438,
+            1.0562667846679688,
+            1.0562667846679688,
+            1.0562667846679688,
+            1.0562667846679688
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 2,
+      "harness": "planner"
+    }
+  ],
+  "observations": [
+    "Initial targeted run: 72 tests, 7 failures. Two newly added probes collected a full stack at each checkpoint and consumed the local time slice. The final probe observes only target hashing during certification; ordinary solver checkpoints carry no stack-inspection cost. Original small-deadline failures were retained.",
+    "Initial full run stopped after 342 tests with a test-executor exit -1 and connection reset, after one existing CP-SAT shared-seed refill assertion failure. That run did not produce a completed new XML report.",
+    "Separate baseline/candidate probes passed four existing budget cases in both versions; the one-second material-8089 test passed baseline and timed out candidate in that probe, while passing the first full run. Timing cause was not proven.",
+    "The 4096-branch trillion-quantity baseline returned one incomplete measured plan and one incomplete warmup without the budget-exhausted flag. Candidate measured plans and warmups were all complete. No performance percentage is claimed for this unequal-completion comparison.",
+    "Ordinary chain/session timing increased in this batch, with essentially unchanged allocation; these raw observations are retained and are not presented as an improvement.",
+    "A helper regression compilation initially missed its fixture classpath and was corrected; no production code was changed by that correction.",
+    "The second full attempt observed 952 tests (946 passed, 5 failed, 1 skipped) before ending without a build footer/new complete XML report. Failures included two legacy topology cancellation probes tied to HashMap.merge; the compact implementation requires observing its actual traversal checkpoints instead.",
+    "A separate 53-test verification completed with 25 failures, including CP-SAT INVALID results and an intermittent newly added cancellation probe. Both baseline and candidate subsequently reproduced missing OR-Tools JNI bindings even with an isolated native search directory. That failure is outside the changed V2 certification path and remains unresolved.",
+    "The system volume later had about 7 MiB free; Gradle cache packing and daemon startup failed. Only regenerable build-cache entries were removed. Final material verification and release-jar checks then passed; JNI bindings still failed in both versions after space recovery, so disk pressure is not a proven root cause of that error.",
+    "Expanded verification completed 1249 tests: 1208 passed, 40 failed, 1 optional EAEP skip. Its temporary filter excluded CpSat* classes only in the main planner test package, so other CP-SAT call sites still ran. Full-suite validation is not claimed; all failing cases and messages are included in validation.expanded_validation."
+  ]
+}

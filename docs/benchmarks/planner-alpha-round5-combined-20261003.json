@@ -1,0 +1,665 @@
+{
+  "date": "2026-10-03",
+  "baseline_commit": "38e6d17b9f8119d613d301083a4126bffb8dde94",
+  "target_branch": "alpha",
+  "contributions": {
+    "architecture": "3c1038971fabdb0839d8500940d75d07fd3f2634",
+    "terminal_optimizer": "827d4b69e9423637e0f572bb512e545e253e8ffa",
+    "root_integration": "Independently reviewed cancellation fixes, recovery cutoff reporting, complete build and integrated verification."
+  },
+  "scope": {
+    "architecture": "Extract stock- and selected-producer-dependent material equivalence into a request-local, immutable identity index; keep original producer tables available to exact continuation.",
+    "terminal_optimizer": {
+      "distinct_routes": [
+        17,
+        64
+      ],
+      "terminal_resources_max": 4,
+      "top_routes_per_criterion": 4,
+      "shortlist_max": 8,
+      "pair_limit": 28,
+      "criteria": [
+        "output per firing",
+        "inventory-normalized consumption"
+      ],
+      "acceptance": "Strictly fewer executions, exact material replay and the existing objective. Runs after the established portfolio and shares its remaining work and 32-probe allowance.",
+      "exclusions": [
+        "Upstream producers",
+        "Byproducts",
+        "Returned inputs, remainders and host-private inventory",
+        "Execution slots",
+        "Inputless routes",
+        "Saturated amounts"
+      ]
+    },
+    "correctness": [
+      "Bound cancellation in explicit footprint metadata/input scans and reject cancellation before index publication.",
+      "Bound cancellation in material-replay side-output construction and Kahn fanout/ready scans.",
+      "Mark the original missing witness and search diagnostics only when small recovery actually receives a shared-work refusal."
+    ]
+  },
+  "build": {
+    "tests": {
+      "tests": 1091,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "test_suites": 141,
+    "required_regression_suites": [
+      "SmallConservativeSearchTest",
+      "BatchCertificationCancellationTest",
+      "UpstreamBatchOptimizerAdditionalTest",
+      "MaterialFootprintIndexTest",
+      "MaterialFootprintCancellationTest",
+      "MaterialDagReplayCancellationTest",
+      "SmallRecoveryBudgetStatusTest",
+      "TerminalBatchOptimizerTest"
+    ],
+    "jar": {
+      "filename": "thunderbolt-2.0.0.jar",
+      "bytes": 5067738,
+      "sha256": "e31cb4ed65f9eca08e1ec011c9dce89fb3c3a7b6d603ccc1f90c1c7d54324e8b"
+    },
+    "production_classes": {
+      "count": 470,
+      "sha256": "d172cf19314890c056f1fc2073d8e4c9b45df54039a2f7d6bf05595361c79456",
+      "jar_byte_identical": true,
+      "java_major": 65
+    },
+    "zip_integrity_passed": true
+  },
+  "combined_3000": {
+    "baseline": "38e6d17",
+    "samples": 3000,
+    "baseline_feasible": 2867,
+    "candidate_feasible": 2867,
+    "status_delta": [],
+    "regression": [],
+    "invalid": [],
+    "replay_fail": [],
+    "fewer_executions": [],
+    "equal_execution_less_stock": [],
+    "changed": [],
+    "full_plan_changes": [
+      {
+        "sample": 98,
+        "fields": [
+          "budgetExhausted"
+        ],
+        "before_budget": false,
+        "after_budget": true
+      },
+      {
+        "sample": 2270,
+        "fields": [
+          "budgetExhausted"
+        ],
+        "before_budget": false,
+        "after_budget": true
+      }
+    ],
+    "diagnostic_changes": [
+      {
+        "sample": 98,
+        "fields": [
+          "searchCutoff"
+        ],
+        "before": {
+          "searchCutoff": false
+        },
+        "after": {
+          "searchCutoff": true
+        }
+      },
+      {
+        "sample": 878,
+        "fields": [
+          "consumedSearchBudget",
+          "dynamicCapacityEvaluations"
+        ],
+        "before": {
+          "consumedSearchBudget": 78,
+          "dynamicCapacityEvaluations": 50
+        },
+        "after": {
+          "consumedSearchBudget": 82,
+          "dynamicCapacityEvaluations": 54
+        }
+      },
+      {
+        "sample": 2270,
+        "fields": [
+          "searchCutoff"
+        ],
+        "before": {
+          "searchCutoff": false
+        },
+        "after": {
+          "searchCutoff": true
+        }
+      }
+    ]
+  },
+  "architecture_isolation": {
+    "graphs_per_pass": 3000,
+    "passes": 2,
+    "complete_plan_fields_compared": 9,
+    "plan_changes": 0,
+    "non_timing_diagnostic_fields": 34,
+    "strictly_equal_diagnostics": 2999,
+    "existing_identity_order_variation": {
+      "sample": 878,
+      "fields": [
+        "consumedSearchBudget",
+        "dynamicCapacityEvaluations"
+      ],
+      "possible_pairs": [
+        [
+          78,
+          50
+        ],
+        [
+          82,
+          54
+        ]
+      ],
+      "baseline_30_rebuild_counts": [
+        12,
+        18
+      ],
+      "refactor_30_rebuild_counts": [
+        13,
+        17
+      ],
+      "note": "Both pre-existing outcomes occur in both versions. Equal-share allocation repair follows identity-map iteration; no new heuristic or tie order was introduced."
+    }
+  },
+  "existing_exact_families": {
+    "graphs": 8700,
+    "feasible": 7651,
+    "all_feasible_minimum_execution": true,
+    "terminal_2000": {
+      "samples": 2000,
+      "oracle_feasible": 1818,
+      "planner_feasible": 1818,
+      "false_negative": [],
+      "false_positive": [],
+      "execution_miss": [],
+      "stock_dominated": [],
+      "invalid": []
+    },
+    "three_recipe_5000": {
+      "invalid": 0,
+      "falseNegative": 0,
+      "allThreeOptMisses": 0,
+      "exactFeasible": 4210,
+      "samples": 5000,
+      "misses": 0,
+      "plannerFeasible": 4210
+    },
+    "two_layer_1000": {
+      "samples": 1000,
+      "feasible": 996,
+      "exact_execution_hits": 996,
+      "stock_dominated": 0,
+      "balance_failures": 0,
+      "replay_failures": 0,
+      "replay_passes": 2988,
+      "fewer_executions": 0,
+      "same_execution_less_stock": 0,
+      "full_final_snapshot_independent_oracle_checked": true
+    },
+    "three_layer_700_against_previous_alpha": {
+      "single-500": {
+        "graphs": 500,
+        "plan_changes": [],
+        "findings": []
+      },
+      "dual-100": {
+        "graphs": 100,
+        "plan_changes": [],
+        "findings": []
+      },
+      "shared-100": {
+        "graphs": 100,
+        "plan_changes": [],
+        "findings": []
+      }
+    }
+  },
+  "new_terminal_families": {
+    "seed1": {
+      "generated": 1000,
+      "oracle_certified": 972,
+      "baseline_feasible": 964,
+      "candidate_feasible": 964,
+      "baseline_gaps": 221,
+      "candidate_gaps": 17,
+      "improved": 217,
+      "regressions": 0,
+      "status_changes": 0,
+      "invalid": 0,
+      "different_plans": 217
+    },
+    "seed2": {
+      "generated": 500,
+      "oracle_certified": 482,
+      "baseline_feasible": 478,
+      "candidate_feasible": 478,
+      "baseline_gaps": 105,
+      "candidate_gaps": 11,
+      "improved": 101,
+      "regressions": 0,
+      "status_changes": 0,
+      "invalid": 0,
+      "different_plans": 101
+    }
+  },
+  "terminal_oracle_scope": "Finite two-terminal-resource families with 17/24/32/48/64 recipes. Rows are emitted only when the independent DP finds a certificate within 12 firings. Unemitted graphs are not claimed infeasible. Optimizer refines feasible plans only.",
+  "original_corpus": {
+    "baseline": "38e6d17",
+    "query_count": 192,
+    "datasets": [
+      {
+        "dataset": "recipes-vanilla",
+        "queries": 48,
+        "baseline_feasible": 20,
+        "candidate_feasible": 20,
+        "baseline_budget_exhausted": 10,
+        "candidate_budget_exhausted": 10,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-small",
+        "queries": 48,
+        "baseline_feasible": 2,
+        "candidate_feasible": 2,
+        "baseline_budget_exhausted": 42,
+        "candidate_budget_exhausted": 42,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-nast",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-atm",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      }
+    ],
+    "note": "Serial correctness regression, not a timing benchmark. Existing baseline budget cutoffs and infeasible cases are retained explicitly; target inventory follows TB semantics."
+  },
+  "original_input_verification": {
+    "files": 20,
+    "size_and_sha256_match": true,
+    "source": "input-provenance.json"
+  },
+  "timing": {
+    "date": "2026-10-03",
+    "baseline": "38e6d17 (delivered fourth alpha optimization round)",
+    "protocol": {
+      "repeats_per_dataset_per_process": 3,
+      "discarded_repeat": 0,
+      "warm_samples_per_variant_per_dataset": 16,
+      "jvm": "Temurin 21.0.11+10, -Xmx3g -Xss16m",
+      "system_properties": [
+        "-Dthunderbolt.maxReachablePlanningWork=2000000",
+        "-Dthunderbolt.maxCraftSearchWork=2000000",
+        "-Dthunderbolt.feasibleOptimizationTrace=true"
+      ],
+      "limitations": "Offline single-output normalized recipe graphs, not in-game TPS or a global optimality proof. TB counts existing target inventory toward demand; AW excludes it. The NAST case has 1206 target items already in stock.",
+      "sequences": [
+        [
+          "baseline",
+          "candidate",
+          "candidate",
+          "baseline",
+          "baseline",
+          "candidate",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "baseline",
+          "candidate",
+          "candidate",
+          "baseline",
+          "baseline",
+          "candidate"
+        ]
+      ],
+      "processes": 16,
+      "reason_for_second_pass": "The first pass showed 2.9% and 1.0% higher medians; a reverse-order replication checks reproducibility. Both passes are retained."
+    },
+    "class_snapshots": {
+      "baseline": {
+        "count": 466,
+        "sha256": "24f3da7fc4b739f8a0fbe6a335aee18756ff0e82f209106b58f0cb749701ccb9"
+      },
+      "candidate": {
+        "count": 470,
+        "sha256": "d172cf19314890c056f1fc2073d8e4c9b45df54039a2f7d6bf05595361c79456"
+      }
+    },
+    "results": [
+      {
+        "dataset": "recipes-atm",
+        "amount": 100000,
+        "stock": "random20",
+        "real_executions": 100,
+        "tag_executions": 0,
+        "existing_target_stock": 0,
+        "aw_target_stock_exclusion_shortfalls": {},
+        "identical_plan_fingerprints": true,
+        "baseline": {
+          "planning_ms_samples": [
+            458.939625,
+            494.195292,
+            464.390292,
+            443.14725,
+            523.065125,
+            500.355667,
+            465.929667,
+            467.560875,
+            457.70825,
+            467.057625,
+            464.828792,
+            468.514,
+            552.197709,
+            473.516458,
+            471.567667,
+            466.510875
+          ],
+          "planning_ms_median": 467.30925
+        },
+        "candidate": {
+          "planning_ms_samples": [
+            532.216792,
+            484.667875,
+            454.163041,
+            475.512,
+            441.634334,
+            493.112417,
+            457.699333,
+            523.730583,
+            454.156916,
+            493.012709,
+            514.624375,
+            472.199416,
+            463.537083,
+            476.461125,
+            565.700084,
+            568.808542
+          ],
+          "planning_ms_median": 480.56449999999995
+        },
+        "planning_reduction_percent": -2.8365049482756755,
+        "individual_pass_reduction_percent": [
+          -2.85908981389551,
+          -3.623689314006273
+        ]
+      },
+      {
+        "dataset": "recipes-nast",
+        "amount": 100000,
+        "stock": "random20",
+        "real_executions": 560511624,
+        "tag_executions": 9735296,
+        "existing_target_stock": 1206,
+        "aw_target_stock_exclusion_shortfalls": {
+          "6871": 1206
+        },
+        "identical_plan_fingerprints": true,
+        "baseline": {
+          "planning_ms_samples": [
+            492.30425,
+            409.774084,
+            443.975041,
+            404.024625,
+            455.947917,
+            405.470916,
+            426.686958,
+            413.407333,
+            464.543416,
+            396.938125,
+            459.149958,
+            408.49025,
+            445.987584,
+            405.21775,
+            448.663625,
+            410.584459
+          ],
+          "planning_ms_median": 420.0471455
+        },
+        "candidate": {
+          "planning_ms_samples": [
+            464.11625,
+            406.69125,
+            446.801334,
+            406.626083,
+            453.290833,
+            411.056334,
+            437.70375,
+            397.59225,
+            437.656625,
+            400.479375,
+            447.315417,
+            391.234584,
+            479.715,
+            413.604417,
+            451.505958,
+            403.965292
+          ],
+          "planning_ms_median": 425.63052100000004
+        },
+        "planning_reduction_percent": -1.3292259118566019,
+        "individual_pass_reduction_percent": [
+          -1.0315262337617703,
+          0.6200296920033765
+        ]
+      }
+    ],
+    "all_96_records_balance_and_replay_passed": true,
+    "individual_passes": [
+      "final-abba/summary.json",
+      "repeat-abba/summary.json"
+    ]
+  },
+  "focused_review": {
+    "numeric": {
+      "base_commit": "38e6d17b9f8119d613d301083a4126bffb8dde94",
+      "baseline_classes": "outputs/tb-alpha-round4-20261003/final-classes",
+      "numeric": {
+        "pairCases": 387,
+        "tripleCases": 258,
+        "publicCases": 22,
+        "optimumComparisons": 645,
+        "certifiedAllocations": 206,
+        "pairWorkMaximum": 1024,
+        "tripleWorkMaximum": 286,
+        "failures": 0,
+        "evidence": "numeric/results.log",
+        "manifest": "numeric/manifest.json",
+        "scope": "387 pair and 258 triple independent BigInteger-oracle checks, including extreme magnitudes; 22 public full-planner balance and objective checks"
+      },
+      "lifecycle": {
+        "passed_assertions": 24,
+        "evidence": "lifecycle/result.json",
+        "scope": "Incomplete nonnull pair solutions not cached; completed null cache; identity and demand/limit keys; cancellation; shared work/probe denial and 64-candidate cap; equal-execution stock and net-loss checks"
+      },
+      "exact_continuation": {
+        "evidence": "numeric/exact-footprint.log",
+        "prepared_routes_preserved": true,
+        "input_projection_collision_public_exact_passed": true,
+        "output_projection_collision_public_exact_passed": true,
+        "boundary": "Footprint collapse affects only ordinary long-planner branch selection. PreparedGraph retains all original routes, and planExactDiagnostic reads those routes and exact input/output amounts. FastCraftingPlanner redirects selected wide plans through ExactPlanPreview.needsExact. Do not replace the prepared route table with distinct footprint results during extraction."
+      },
+      "proven_correctness_defects": 0,
+      "limits": [
+        "Bounded pair and triple search is not a general global optimality proof.",
+        "Public intermediate-gross-crosses-sentinel label names the generated family; the accepted result itself did not establish a gross-demand crossing.",
+        "Exact diagnostic continuation is bounded and marked incomplete by design; preserving alternatives does not prove general exact feasibility.",
+        "No uncoordinated benchmark or Gradle suite run in this audit."
+      ],
+      "next_review": "Read-only TerminalBatchOptimizer and FCO terminal neighborhood review in tb-alpha-third-batch-20261003; no source edits."
+    },
+    "footprint_cancellation": {
+      "baseline_extraction_commit": "3c1038971fabdb0839d8500940d75d07fd3f2634",
+      "baseline_behavior": {
+        "wide_input_direct_build": "returned an index despite pending interruption",
+        "all_four_wide_input_or_byproduct_paths_slots_after_interrupt": 4096
+      },
+      "candidate_slots_after_interrupt": {
+        "direct_input": 255,
+        "public_input": 255,
+        "direct_metadata_byproducts": 254,
+        "public_metadata_byproducts": 254
+      },
+      "targeted_tests": {
+        "index_and_canonicalization_and_cancellation": 16,
+        "passed": 16,
+        "failed": 0
+      },
+      "negative_controls": {
+        "unmodified_extraction": {
+          "new_cancellation_tests": 9,
+          "failed": 6,
+          "passed": 3
+        },
+        "periodic_checks_without_final_publication_check": {
+          "new_cancellation_tests": 9,
+          "failed": 1,
+          "passed": 8,
+          "failed_test": "doesNotPublishWhenCancellationArrivesInItsFinalShortRecipe"
+        }
+      },
+      "scope": "Periodic checks cover explicit metadata, wide-input aggregation, canonical-term assembly, repeated pattern rows, and a final publication checkpoint. This does not bound every collection sort/copy/hash or downstream execution-safety phase to 255 operations.",
+      "source_sha256": {
+        "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/MaterialFootprintIndex.java": "ba96e7f93dd4a33357f36c0c8f64dba4a4c9946b9b99d37424cc3cabf21d28e9",
+        "src/test/java/com/moakiee/thunderbolt/core/planner/MaterialFootprintCancellationTest.java": "ecd60a0dfdc72a73e5fbddfe1b65ef8ea395a66d1f7893a6455ae2165fc6f383"
+      }
+    },
+    "replay_and_cutoff": {
+      "baseline": "38e6d17b9f8119d613d301083a4126bffb8dde94",
+      "scope": [
+        "SmallConservativeSearch",
+        "MaterialDagReplay",
+        "small all-orders certificate",
+        "partial batch execution"
+      ],
+      "confirmed_fixed": {
+        "issue": "MaterialDagReplay byproduct construction delayed external cancellation through the entire wide row",
+        "public_reproduction": "Existing material-DAG fixture 4192, reduced to three recipes, with 4096 unused target side outputs",
+        "baseline_side_keys_after_interrupt": 4096,
+        "candidate_public_side_keys_after_interrupt": 253,
+        "candidate_direct_side_keys_after_interrupt": 254,
+        "production_change": "The existing slot checkpoint counter now includes byproducts at the same 256-slot interval",
+        "tests": "Two new tests fail on baseline; 66 related tests pass on the isolated candidate, including real partial input extraction"
+      },
+      "semantic_boundary": "Self-supporting primary-demand cycles are physically executable and satisfy the current local activation inequalities. A stronger root-anchored support requirement is a future contract choice, not a proven current bug.",
+      "certificate_review": [
+        "Count-vector memoization is valid for fixed ordinary recipes because remaining counts uniquely determine inventory.",
+        "Small search input/output and inventory integers are bounded by 256 plus 32 firings of at most 256 outputs.",
+        "All-orders recursion returns false on its work cutoff or checked arithmetic overflow; neither condition can certify a plan.",
+        "Each stock-backed partial batch can be linearized into enabled unit firings. Delayed provider outputs remove opportunities but cannot create an invalid unit ordering; completion restores those outputs.",
+        "Actual PartialBatchExecutionTest passed through the real AE2 inventory and TB bulkExtract path with delayed provider returns.",
+        "No independently verified false-feasible or all-orders execution error was found in this bounded review."
+      ],
+      "evidence": [
+        "byproduct-tests-baseline.txt",
+        "byproduct-targeted-tests.txt",
+        "wide-byproduct-cancellation.txt",
+        "wide-byproduct-cancellation-candidate.txt",
+        "recovery-budget-baseline.txt",
+        "recovery-budget-small-disabled.txt",
+        "primary-cycle-conclusion.json",
+        "budget-tests-baseline.txt",
+        "budget-targeted-gradle-summary.json",
+        "recovery-budget-candidate.txt",
+        "topology-tests-legacy.txt",
+        "topology-tests-construction-only.txt",
+        "topology-tests-candidate.txt"
+      ],
+      "confirmed_fixed_budget_diagnostic": {
+        "issue": "Recovery exhausts the shared work allowance without marking plan.budgetExhausted or diagnostics.searchCutoff",
+        "public_reproduction": "16 terminal recipes formed from two distinct instances of each of the eight sample513 routes; stock A=30,B=30; target T=100",
+        "initial_search_work_with_recovery_disabled": 205,
+        "total_search_work_with_recovery_enabled": 4096,
+        "configured_search_budget": 4096,
+        "plan_budget_exhausted": false,
+        "diagnostic_search_cutoff": false,
+        "impact": "Diagnostic loss only; no false feasible plan was observed. Missing remains the selected route's list rather than a proof of global infeasibility.",
+        "production_change": "CraftPlannerV2 latches only actual tryConsume(false); the existing missing witness is marked through markBudgetExhausted, and PlanningDiagnostics preserves its two-argument API with a cutoff-aware overload.",
+        "candidate_plan_budget_exhausted": true,
+        "candidate_diagnostic_search_cutoff": true,
+        "negative_controls": "Successful exact spending, naturally empty queue with exact spending, local state cap, optional deadline, and external cancellation retain their distinct handling."
+      },
+      "budget_fix_validation": {
+        "baseline_new_suite": {
+          "passed": 5,
+          "failed": 1
+        },
+        "targeted_gradle_tests": 63,
+        "failures": 0,
+        "public_shared_denial": "cutoff=true and budgetExhausted=true with the same Missing B=20",
+        "public_exact_state_cap": "cutoff=false and budgetExhausted=false despite 4096/4096 spending because no work request was refused"
+      },
+      "confirmed_fixed_topology_cancellation": {
+        "change": "Both initial indegree scan and Kahn successor fanout now checkpoint each 256 visits without reordering entries or successors",
+        "tests": "Direct certificate and public reduced-4192 paths trigger interruption only from HashMap.merge in topology, excluding add/edge construction; no id-zero assumption",
+        "negative_controls": "Old baseline: four cancellation tests fail after 4096 visits; construction-only fix: two byproduct tests pass but both topology tests still fail after 4096 visits",
+        "candidate": "65/65 related tests pass; both topology probes observe fewer than 256 side keys after interruption; normal firing vector and stock maps match",
+        "gradle_run": false
+      }
+    }
+  },
+  "production_source_sha256": {
+    "CraftPlannerV2.java": "4cbd0423031b62c8b849ad0bed9a43f2e532498e4e7260b9bab60d45e1b9dd16",
+    "MaterialFootprintIndex.java": "ba96e7f93dd4a33357f36c0c8f64dba4a4c9946b9b99d37424cc3cabf21d28e9",
+    "MaterialDagReplay.java": "1caf7a2407efe8209524a743ee0527b177ca0fe2f94b1d50b5bf8e032bcc597f",
+    "PlanningDiagnostics.java": "07eb86c13deb05126b22bee0c436ea554edb898b8c9296cad8fb0dad2e50be30",
+    "FeasibleConsumptionOptimizer.java": "33f2e22b4043f309f1ffd384e886927d3c08bf71ba94a3ac214d4b27a7d76de9",
+    "TerminalBatchOptimizer.java": "7e73248f379a66c84cb017d6aa3d259e9c7f36172765892bae8255a39774d80e"
+  },
+  "limitations": [
+    "The new terminal strategy refines feasible plans; 12 independently certified wide cases remain missing in both versions. It does not change their separate recovery path.",
+    "Among 1442 feasible wide plans, execution gaps decline from 326 to 28. The bounded pair shortlist is not a complete multi-route integer solver.",
+    "Shared-chain Pareto aggregation and fixed-prefix reuse remain research only. Larger experiments exhausted existing budgets; no limits were increased.",
+    "The primary-demand self-supporting cycle example is physically safe and follows the current local contract. No unrequested root-anchoring policy was added.",
+    "Cancellation results cover the explicitly tested loops, not every collection sort, hash, copy, or downstream safety phase.",
+    "Offline normalized recipe graphs and planning time do not establish in-game TPS or physical multi-output recipe semantics."
+  ]
+}

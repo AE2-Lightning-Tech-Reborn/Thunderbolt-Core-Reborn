@@ -14,8 +14,6 @@ import appeng.api.networking.pathing.ChannelMode;
 import appeng.blockentity.networking.ControllerBlockEntity;
 import appeng.me.GridConnection;
 import appeng.me.GridNode;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.slf4j.Logger;
@@ -93,7 +91,7 @@ public final class BorrowedCapacityCalculator {
         var channelMode = grid.getPathingService().getChannelMode();
         if (channelMode == ChannelMode.INFINITE) return null;
 
-        Set<IGridNode> network = discoverNetwork(grid, capacitySources);
+        var network = discoverNetwork(grid, capacitySources);
 
         return solve(grid, capacitySources, network, channelMode);
     }
@@ -107,15 +105,14 @@ public final class BorrowedCapacityCalculator {
      *       but not expanded through.</li>
      * </ul>
      */
-    private static Set<IGridNode> discoverNetwork(
+    private static DiscoveredNetwork discoverNetwork(
             IGrid grid, List<IGridNode> capacitySources) {
 
-        Set<IGridNode> nodes = new ReferenceOpenHashSet<>();
+        var network = new DiscoveredNetwork();
         Queue<IGridNode> q = new ArrayDeque<>();
 
         for (var oc : capacitySources) {
-            nodes.add(oc);
-            q.add(oc);
+            if (network.add(oc)) q.add(oc);
         }
 
         for (var vc : HighCapacityChannelSupport.getAllControllerNodes(grid)) {
@@ -124,19 +121,40 @@ public final class BorrowedCapacityCalculator {
                 if (!(c instanceof GridConnection gc)) continue;
                 var other = gc.getOtherSide(vc);
                 if (other.getOwner() instanceof ControllerBlockEntity) continue;
-                tryEnqueue(other, nodes, q);
+                tryEnqueue(other, network, q);
             }
         }
 
         while (!q.isEmpty()) {
             var cur = q.poll();
-            for (var c : cur.getConnections()) {
+            var connections = cur.getConnections();
+            network.incidences += connections.size();
+            for (var c : connections) {
                 if (!(c instanceof GridConnection gc)) continue;
                 var other = gc.getOtherSide(cur);
-                tryEnqueue(other, nodes, q);
+                tryEnqueue(other, network, q);
             }
         }
-        return nodes;
+        return network;
+    }
+
+    /** BFS-ordered nodes, their identity index, and per-calculation storage hints. */
+    private static final class DiscoveredNetwork {
+        final Reference2IntOpenHashMap<IGridNode> index = new Reference2IntOpenHashMap<>();
+        final List<IGridNode> nodes = new ArrayList<>();
+        long incidences;
+        int sinks;
+
+        DiscoveredNetwork() {
+            index.defaultReturnValue(-1);
+        }
+
+        boolean add(IGridNode node) {
+            if (index.putIfAbsent(node, nodes.size()) != -1) return false;
+            nodes.add(node);
+            if (node instanceof GridNode gn && gn.hasFlag(GridFlags.REQUIRE_CHANNEL)) sinks++;
+            return true;
+        }
     }
 
     /**
@@ -144,23 +162,24 @@ public final class BorrowedCapacityCalculator {
      * High-capacity controllers are traversed; vanilla controllers are skipped;
      * CANNOT_CARRY devices are added as sinks only if they REQUIRE_CHANNEL.
      */
-    private static void tryEnqueue(IGridNode other, Set<IGridNode> nodes, Queue<IGridNode> q) {
-        if (nodes.contains(other)) return;
+    private static void tryEnqueue(IGridNode other, DiscoveredNetwork network, Queue<IGridNode> q) {
+        if (network.index.containsKey(other)) return;
 
         if (other.getOwner() instanceof ControllerBlockEntity) {
             if (ChannelSourceRegistry.isChannelSource(other.getOwner())) {
-                nodes.add(other);
+                network.add(other);
                 q.add(other);
             }
             return;
         }
 
         if (other instanceof GridNode gn && gn.hasFlag(GridFlags.CANNOT_CARRY)) {
-            if (gn.hasFlag(GridFlags.REQUIRE_CHANNEL)) nodes.add(other);
+            if (gn.hasFlag(GridFlags.REQUIRE_CHANNEL) && network.add(other))
+                network.incidences += other.getConnections().size();
             return;
         }
 
-        nodes.add(other);
+        network.add(other);
         q.add(other);
     }
 
@@ -168,34 +187,49 @@ public final class BorrowedCapacityCalculator {
 
     private static Result solve(IGrid grid,
                                 List<IGridNode> capacitySources,
-                                Set<IGridNode> network,
+                                DiscoveredNetwork discovered,
                                 ChannelMode mode) {
 
-        IGridNode[] nodes = network.toArray(IGridNode[]::new);
-        int total = nodes.length;
-        Reference2IntOpenHashMap<IGridNode> idx = new Reference2IntOpenHashMap<>(total);
-        idx.defaultReturnValue(-1);
-        for (int i = 0; i < total; i++) idx.put(nodes[i], i);
+        // Keep BFS discovery order for graph assembly and the seed's forest scan.
+        // Reuse its identity index instead of rebuilding one in hash-table order.
+        var nodes = discovered.nodes;
+        int total = nodes.size();
+        var idx = discovered.index;
+        // Discovery is finished. Its membership view owns the index for this
+        // result; subsequent calculations create an independent map.
+        Set<IGridNode> network = idx.keySet();
+        // With no channel requests, every node and connection carries zero.
+        // Keep discovery for membership/finalization, but omit the residual graph.
+        if (discovered.sinks == 0) {
+            return new Result(new ReferenceOpenHashSet<>(), network,
+                    new Reference2IntOpenHashMap<>(), new Reference2IntOpenHashMap<>());
+        }
         int S = 2 * total, T = 2 * total + 1;
-        ChannelFlowNetwork flowNetwork = new ChannelFlowNetwork(2 * total + 2);
+        // An internal link needs two forward arcs,
+        // and an external controller face needs one. Excluded links only overestimate.
+        ChannelFlowNetwork flowNetwork = new ChannelFlowNetwork(2 * total + 2,
+                2L * (total + discovered.incidences + capacitySources.size() + discovered.sinks));
 
         // 1) node-split: in → out, capacity = relay capacity
         //    Record the edge index of each node-split edge for flow readback.
         int[] splitEdge = new int[total];
-        int[] nodeCapacity = new int[total];
         for (int ci = 0; ci < total; ci++) {
-            int cap = nodeCapacity[ci] = nodeCap(nodes[ci], mode);
+            int cap = nodeCap(nodes.get(ci), mode);
             splitEdge[ci] = flowNetwork.edgeCount();
             flowNetwork.addEdge(2 * ci, 2 * ci + 1, cap);
         }
 
         // 2) connections between discovered nodes (bidirectional)
-        //    Track residual edge indices per GridConnection for flow readback.
-        record ConnEdge(GridConnection gc, int edgeAB, int edgeBA, int cap, int a, int b) {}
-        List<ConnEdge> connEdges = new ArrayList<>();
+        // Each physical link adds four consecutive residual edges after the splits.
+        // Edge endpoints and reverse capacities already encode the readback data;
+        // retain only the connection reference instead of allocating a record per link.
+        int connectionEdgeStart = flowNetwork.edgeCount();
+        List<GridConnection> connEdges = new ArrayList<>(total);
         for (int ci = 0; ci < total; ci++) {
-            var n = nodes[ci];
-            for (var c : n.getConnections()) {
+            var n = nodes.get(ci);
+            var adjacent = n.getConnections();
+            for (int j = 0; j < adjacent.size(); j++) {
+                var c = adjacent.get(j);
                 if (!(c instanceof GridConnection gc)) continue;
                 var other = gc.getOtherSide(n);
                 int oi = idx.getInt(other);
@@ -203,11 +237,9 @@ public final class BorrowedCapacityCalculator {
                 // connection, visiting it only from the lower numbered endpoint.
                 if (oi <= ci) continue;
                 int edgeCap = getConnectionCap(gc, n, other, mode);
-                int eAB = flowNetwork.edgeCount();
                 flowNetwork.addEdge(2 * ci + 1, 2 * oi, edgeCap);
-                int eBA = flowNetwork.edgeCount();
                 flowNetwork.addEdge(2 * oi + 1, 2 * ci, edgeCap);
-                connEdges.add(new ConnEdge(gc, eAB, eBA, edgeCap, ci, oi));
+                connEdges.add(gc);
             }
         }
 
@@ -261,16 +293,17 @@ public final class BorrowedCapacityCalculator {
             }
         }
 
-        List<IGridNode> sinkNodes = new ArrayList<>();
-        IntList sinkEdgeIndices = new IntArrayList();
-        for (var n : nodes) {
+        // Sink arcs are consecutive and their reverse residual is the assigned
+        // flow. Keep only the node references for readback and owner callbacks.
+        List<IGridNode> sinkNodes = new ArrayList<>(discovered.sinks);
+        int sinkEdgeStart = flowNetwork.edgeCount();
+        for (int ci = 0; ci < total; ci++) {
+            var n = nodes.get(ci);
             if (!(n instanceof GridNode gn)) continue;
             if (!gn.hasFlag(GridFlags.REQUIRE_CHANNEL)) continue;
             if (multiblockSkip.contains(n)) continue;
-            int ci = idx.getInt(n);
             int requested = gn.getOwner() instanceof ChannelRequestProvider p
                     ? Math.max(1, p.thunderbolt$getRequestedChannels()) : 1;
-            sinkEdgeIndices.add(flowNetwork.edgeCount());
             flowNetwork.addEdge(2 * ci + 1, T, requested);
             sinkNodes.add(n);
         }
@@ -280,14 +313,14 @@ public final class BorrowedCapacityCalculator {
 
         // Remove the four-edge circulation on each bidirectional physical link.
         // Its net connection flow is zero, but both endpoint split edges carried it.
-        for (var ce : connEdges) {
-            int both = Math.min(ce.cap - flowNetwork.residual(ce.edgeAB),
-                    ce.cap - flowNetwork.residual(ce.edgeBA));
+        for (int j = 0; j < connEdges.size(); j++) {
+            int edgeAB = connectionEdgeStart + 4 * j, edgeBA = edgeAB + 2;
+            int both = Math.min(flowNetwork.residual(edgeAB ^ 1), flowNetwork.residual(edgeBA ^ 1));
             if (both > 0) {
-                flowNetwork.cancelFlow(ce.edgeAB, both);
-                flowNetwork.cancelFlow(ce.edgeBA, both);
-                flowNetwork.cancelFlow(splitEdge[ce.a], both);
-                flowNetwork.cancelFlow(splitEdge[ce.b], both);
+                flowNetwork.cancelFlow(edgeAB, both);
+                flowNetwork.cancelFlow(edgeBA, both);
+                flowNetwork.cancelFlow(splitEdge[flowNetwork.to[edgeAB ^ 1] / 2], both);
+                flowNetwork.cancelFlow(splitEdge[flowNetwork.to[edgeAB] / 2], both);
             }
         }
 
@@ -297,11 +330,9 @@ public final class BorrowedCapacityCalculator {
         // Collect winning devices
         Set<GridNode> winners = new ReferenceOpenHashSet<>(sinkNodes.size());
         for (int j = 0; j < sinkNodes.size(); j++) {
-            int edgeIdx = sinkEdgeIndices.getInt(j);
-            int requested = sinkNodes.get(j).getOwner() instanceof ChannelRequestProvider p
-                    ? Math.max(1, p.thunderbolt$getRequestedChannels()) : 1;
-            int assigned = requested - flowNetwork.residual(edgeIdx);
-            if (assigned >= requested) {
+            int edgeIdx = sinkEdgeStart + 2 * j;
+            int assigned = flowNetwork.residual(edgeIdx ^ 1);
+            if (flowNetwork.residual(edgeIdx) == 0) {
                 winners.add((GridNode) sinkNodes.get(j));
             }
             if (sinkNodes.get(j).getOwner() instanceof ChannelRequestProvider p) {
@@ -313,9 +344,9 @@ public final class BorrowedCapacityCalculator {
         Reference2IntOpenHashMap<IGridNode> nodeFlow = new Reference2IntOpenHashMap<>(total);
         nodeFlow.defaultReturnValue(0);
         for (int ci = 0; ci < total; ci++) {
-            int flowThrough = nodeCapacity[ci] - flowNetwork.residual(splitEdge[ci]);
+            int flowThrough = flowNetwork.residual(splitEdge[ci] ^ 1);
             if (flowThrough > 0) {
-                nodeFlow.put(nodes[ci], flowThrough);
+                nodeFlow.put(nodes.get(ci), flowThrough);
             }
         }
 
@@ -323,12 +354,13 @@ public final class BorrowedCapacityCalculator {
         Reference2IntOpenHashMap<GridConnection> connectionFlow =
                 new Reference2IntOpenHashMap<>(connEdges.size() + faceEdges.size());
         connectionFlow.defaultReturnValue(0);
-        for (var ce : connEdges) {
-            int flowAB = ce.cap - flowNetwork.residual(ce.edgeAB);
-            int flowBA = ce.cap - flowNetwork.residual(ce.edgeBA);
+        for (int j = 0; j < connEdges.size(); j++) {
+            int edgeAB = connectionEdgeStart + 4 * j;
+            int flowAB = flowNetwork.residual(edgeAB ^ 1);
+            int flowBA = flowNetwork.residual((edgeAB + 2) ^ 1);
             int netFlow = Math.abs(flowAB - flowBA);
             if (netFlow > 0) {
-                connectionFlow.put(ce.gc, netFlow);
+                connectionFlow.put(connEdges.get(j), netFlow);
             }
         }
 

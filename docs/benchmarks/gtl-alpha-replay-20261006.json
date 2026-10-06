@@ -1,0 +1,2660 @@
+{
+  "baseline_commit": "ca182d34b16dad61cf8a3a10da38a7f618ab74ee",
+  "upstream_commit": "49b59912a084a447040492263fda832efc7dca0c",
+  "upstream_branch": "alpha",
+  "target_branch": "1.20.1_GTL",
+  "accepted": true,
+  "changes": [
+    "skip bootstrap replay scans without byproducts or compiled feedback components",
+    "read stock directly in unique-key material sweep",
+    "reconstruct dense discovery ranks in an int array without boxing or sorting",
+    "reuse free-stock cost array for the priced-stock propagation pass",
+    "use indexed iteration over immutable pattern material lists",
+    "locally reuse a previous integer witness only after exact budgeted validation of every current component constraint; complete replay remains mandatory",
+    "reuse the completed material execution certificate only for the identical immutable result, graph snapshot, target, and amount"
+  ],
+  "environment": {
+    "java": "17.0.20",
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10",
+    "test_vm": [
+      "-Xms256m",
+      "-Xmx2g",
+      "-XX:ActiveProcessorCount=4"
+    ],
+    "benchmark_vm": [
+      "-Xms256m",
+      "-Xmx2g",
+      "-Xss1m",
+      "-XX:+UseG1GC"
+    ]
+  },
+  "protocols": {
+    "source_snapshots": "both variants independently compiled; baseline from ca182d3 and current from working tree",
+    "jvms_per_variant_per_harness": 3,
+    "order": "alternate before/after per repeat; execute serially after Gradle and GameTest finish",
+    "planner": {
+      "warmup": 3,
+      "samples": 12,
+      "timing": "planner requests only; fixtures and BigInteger replay validation outside timing and allocation interval",
+      "allocation": "current-thread allocated bytes, median MiB per sample",
+      "percentile": "nearest rank; with 12 samples p95 equals the maximum",
+      "deadline_seconds": 15,
+      "planner_budgets": "default"
+    },
+    "mixed": {
+      "warmup_queries": 2000,
+      "samples": 40,
+      "queries_per_sample": 50,
+      "timing": "plan and known-optimum witness assertions, amortized per query",
+      "allocation": "current-thread allocated bytes per query",
+      "percentile": "nearest rank"
+    },
+    "side": {
+      "branches": 4096,
+      "quantities": [
+        1,
+        1000000000000
+      ],
+      "warmup": 1,
+      "samples": 5,
+      "timing": "planner requests only; fixture creation and independent BigInteger supply-order replay outside timed/allocation interval",
+      "percentile": "nearest rank; p95 equals maximum for five samples",
+      "deadline_seconds": 15
+    },
+    "comparison": "medians of the three JVM statistics; change percent = (after / before - 1) * 100"
+  },
+  "validation": {
+    "targeted": {
+      "tests": 151,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "full_tests": {
+      "tests": 1313,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "passed": 1312
+    },
+    "cold_cp_sat": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 1
+    },
+    "release_jar_refmap": "PASS",
+    "isolated_gametests": 10,
+    "gtl_compat_mode": "always",
+    "optional_skip": "EAEP runtime artifact not supplied",
+    "initial_run": {
+      "build_failure": "disk full; test binary result truncated and slim jar remap copy failed",
+      "test_failure": "CpSatExecutionBlocksTest.independentCyclesShareTheSamePhysicalSeedMaterial",
+      "recovery": "regenerable JFR JSON exports removed; original JFR recordings and logs retained; full test rerun without changing assertions or budgets",
+      "rerun": "PASS; the initial assertion failure is not proven to be caused by disk exhaustion"
+    },
+    "material_timeout_investigation": {
+      "test": "MaterialDagSupplyTest.linearSideOutputSchedulingCoversGraphsBeyondTheFormerSixteenThousandWorkCap",
+      "observed": "three-second timeout in full and focused alpha-only runs; isolated baseline MaterialDagOrders also timed out; one alpha-only full run also failed the replenishment portfolio deadline test",
+      "assertions_and_budgets": "unchanged",
+      "fix": "exact portfolio-local feasible witness validation avoids repeated integer solves; plan-owned material certificates avoid duplicate graph validation",
+      "final_full_rerun": "PASS after the witness optimization",
+      "limitation": "final pass does not establish a stable three-second latency margin on a busy machine"
+    },
+    "other_intermediate_failures": {
+      "cp_sat": "the fixed shared-seed replenishment assertion failed intermittently; passed in final targeted and full runs",
+      "material_mixed_route": "one intermediate full run returned a missing plan for a fixed mixed-route graph; passed in final targeted and full runs",
+      "test_correction": "new certificate-copy fixture adjusted to 65 patterns to exercise the large-graph safeguard without relying on the existing small-feedback sharper certificate",
+      "limitation": "intermittent failures were retained; passing reruns do not establish their root cause"
+    },
+    "client_assets": "downloadAssets excluded for server GameTest because cached client index is malformed"
+  },
+  "benchmark_runs": [
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 42.095,
+          "p95_ms": 86.532,
+          "max_ms": 86.532,
+          "alloc_mib": 8.781,
+          "gc_ms": 10,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            46.5553,
+            60.6805,
+            64.5161,
+            86.5315,
+            63.9723,
+            60.9533,
+            37.3161,
+            42.0952,
+            38.1905,
+            28.3226,
+            27.2284,
+            29.5285
+          ],
+          "raw_alloc_mib": [
+            10.002235412597656,
+            9.934638977050781,
+            9.253425598144531,
+            8.948097229003906,
+            8.864753723144531,
+            8.864753723144531,
+            8.781440734863281,
+            8.781440734863281,
+            8.781440734863281,
+            8.781402587890625,
+            8.781402587890625,
+            8.781402587890625
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 42.667,
+          "p95_ms": 96.756,
+          "max_ms": 96.756,
+          "alloc_mib": 19.112,
+          "gc_ms": 13,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            96.7556,
+            72.6907,
+            41.003,
+            32.5833,
+            36.5217,
+            42.6665,
+            38.4005,
+            49.5749,
+            52.8858,
+            50.8668,
+            41.695,
+            43.1969
+          ],
+          "raw_alloc_mib": [
+            18.858352661132812,
+            18.784988403320312,
+            19.11168670654297,
+            19.11168670654297,
+            19.11168670654297,
+            19.11168670654297,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 32.369,
+          "p95_ms": 45.432,
+          "max_ms": 45.432,
+          "alloc_mib": 21.536,
+          "gc_ms": 8,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            28.4998,
+            24.3559,
+            27.1144,
+            25.6316,
+            32.8674,
+            45.4324,
+            41.7672,
+            35.7228,
+            39.5273,
+            31.8263,
+            32.3688,
+            38.6351
+          ],
+          "raw_alloc_mib": [
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 15.988,
+          "p95_ms": 24.522,
+          "max_ms": 24.522,
+          "alloc_mib": 10.012,
+          "gc_ms": 1,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            19.1719,
+            23.2698,
+            15.5675,
+            19.7825,
+            13.9149,
+            15.9875,
+            16.3706,
+            14.1211,
+            24.5218,
+            15.3736,
+            17.5101,
+            15.8954
+          ],
+          "raw_alloc_mib": [
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012580871582031,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.577,
+          "p95_ms": 0.815,
+          "max_ms": 0.815,
+          "alloc_mib": 0.312,
+          "gc_ms": 0,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            0.6398,
+            0.6991,
+            0.8145,
+            0.6216,
+            0.5774,
+            0.5686,
+            0.511,
+            0.5642,
+            0.6442,
+            0.6755,
+            0.529,
+            0.57
+          ],
+          "raw_alloc_mib": [
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 5.996,
+          "p95_ms": 11.541,
+          "max_ms": 11.541,
+          "alloc_mib": 1.529,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            5.4,
+            6.2059,
+            5.3965,
+            9.395,
+            5.3002,
+            5.9955,
+            5.0165,
+            11.0933,
+            11.541,
+            6.6316,
+            8.4015,
+            5.9704
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 0,
+      "harness": "planner"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 31.489,
+          "p95_ms": 63.054,
+          "max_ms": 63.054,
+          "alloc_mib": 6.775,
+          "gc_ms": 8,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            47.7344,
+            52.126,
+            52.8196,
+            58.9692,
+            63.0544,
+            31.3998,
+            31.4891,
+            26.6236,
+            36.4434,
+            29.4204,
+            18.6624,
+            27.8875
+          ],
+          "raw_alloc_mib": [
+            7.690559387207031,
+            6.848487854003906,
+            7.025093078613281,
+            6.774993896484375,
+            6.774993896484375,
+            6.774993896484375,
+            6.774993896484375,
+            6.774993896484375,
+            6.774993896484375,
+            6.774932861328125,
+            6.774932861328125,
+            6.774932861328125
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 38.919,
+          "p95_ms": 94.798,
+          "max_ms": 94.798,
+          "alloc_mib": 14.826,
+          "gc_ms": 11,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            94.7981,
+            38.9194,
+            37.6103,
+            44.1696,
+            38.9628,
+            40.8269,
+            31.6985,
+            34.7725,
+            35.424,
+            45.1037,
+            44.3117,
+            37.5202
+          ],
+          "raw_alloc_mib": [
+            15.689079284667969,
+            14.826225280761719,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 18.552,
+          "p95_ms": 24.506,
+          "max_ms": 24.506,
+          "alloc_mib": 12.777,
+          "gc_ms": 9,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            24.5059,
+            22.6239,
+            18.5515,
+            21.0726,
+            19.2236,
+            19.1599,
+            18.5113,
+            18.8458,
+            17.0389,
+            18.1322,
+            14.4844,
+            16.0766
+          ],
+          "raw_alloc_mib": [
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 9.024,
+          "p95_ms": 17.8,
+          "max_ms": 17.8,
+          "alloc_mib": 5.721,
+          "gc_ms": 2,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            7.7815,
+            5.0448,
+            6.689,
+            4.7885,
+            5.5802,
+            10.0282,
+            9.0243,
+            10.6813,
+            16.2176,
+            10.0308,
+            9.7397,
+            17.7997
+          ],
+          "raw_alloc_mib": [
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720771789550781,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.491,
+          "p95_ms": 1.057,
+          "max_ms": 1.057,
+          "alloc_mib": 0.242,
+          "gc_ms": 0,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            0.4454,
+            0.5333,
+            0.508,
+            0.4706,
+            0.4257,
+            0.4914,
+            0.5079,
+            0.5219,
+            1.0573,
+            0.4525,
+            0.46,
+            0.5803
+          ],
+          "raw_alloc_mib": [
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 5.487,
+          "p95_ms": 8.954,
+          "max_ms": 8.954,
+          "alloc_mib": 1.529,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            5.369,
+            4.4423,
+            5.9589,
+            5.5596,
+            5.068,
+            5.4866,
+            7.1521,
+            5.4741,
+            8.9537,
+            4.9005,
+            6.9883,
+            7.5746
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 0,
+      "harness": "planner"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 37.374,
+          "p95_ms": 67.316,
+          "max_ms": 67.316,
+          "alloc_mib": 6.858,
+          "gc_ms": 9,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            42.8163,
+            41.9827,
+            38.4879,
+            46.1634,
+            67.3161,
+            37.9375,
+            31.3626,
+            30.1031,
+            36.3333,
+            31.3344,
+            32.4691,
+            37.3742
+          ],
+          "raw_alloc_mib": [
+            7.690559387207031,
+            7.625587463378906,
+            7.552101135253906,
+            6.941688537597656,
+            6.941688537597656,
+            6.858345031738281,
+            6.858345031738281,
+            6.858345031738281,
+            6.774993896484375,
+            6.774955749511719,
+            6.774955749511719,
+            6.774955749511719
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 32.726,
+          "p95_ms": 67.126,
+          "max_ms": 67.126,
+          "alloc_mib": 14.826,
+          "gc_ms": 11,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            67.1257,
+            39.5642,
+            35.5649,
+            37.2971,
+            32.7256,
+            34.1121,
+            29.8636,
+            25.5042,
+            24.7739,
+            36.0642,
+            26.2875,
+            20.924
+          ],
+          "raw_alloc_mib": [
+            15.647422790527344,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826225280761719,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125,
+            14.826202392578125
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 14.295,
+          "p95_ms": 20.914,
+          "max_ms": 20.914,
+          "alloc_mib": 12.777,
+          "gc_ms": 8,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            20.3562,
+            18.2038,
+            20.9135,
+            18.0301,
+            16.3649,
+            12.5181,
+            14.2947,
+            14.8665,
+            13.4269,
+            12.3278,
+            12.2846,
+            14.0205
+          ],
+          "raw_alloc_mib": [
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375,
+            12.7767333984375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 5.187,
+          "p95_ms": 7.937,
+          "max_ms": 7.937,
+          "alloc_mib": 5.721,
+          "gc_ms": 1,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            5.6519,
+            5.1699,
+            4.7819,
+            6.0523,
+            5.1058,
+            6.5652,
+            4.6882,
+            5.7774,
+            5.104,
+            5.1873,
+            7.9371,
+            6.4411
+          ],
+          "raw_alloc_mib": [
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031,
+            5.720771789550781,
+            5.720588684082031,
+            5.720588684082031,
+            5.720588684082031
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.287,
+          "p95_ms": 0.41,
+          "max_ms": 0.41,
+          "alloc_mib": 0.242,
+          "gc_ms": 0,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            0.4102,
+            0.4099,
+            0.287,
+            0.3032,
+            0.2948,
+            0.2909,
+            0.2752,
+            0.2968,
+            0.256,
+            0.2428,
+            0.248,
+            0.2398
+          ],
+          "raw_alloc_mib": [
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625,
+            0.24204254150390625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 3.373,
+          "p95_ms": 7.852,
+          "max_ms": 7.852,
+          "alloc_mib": 1.529,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            2.5529,
+            3.4259,
+            5.3311,
+            3.2511,
+            2.4511,
+            2.4127,
+            4.0061,
+            3.3725,
+            2.8103,
+            4.0407,
+            7.8523,
+            7.3219
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 1,
+      "harness": "planner"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 27.195,
+          "p95_ms": 55.089,
+          "max_ms": 55.089,
+          "alloc_mib": 8.865,
+          "gc_ms": 7,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            46.1983,
+            55.0892,
+            53.832,
+            43.5182,
+            35.1087,
+            38.5074,
+            26.4892,
+            23.4044,
+            27.1948,
+            26.4578,
+            26.8545,
+            20.9843
+          ],
+          "raw_alloc_mib": [
+            10.002235412597656,
+            9.935859680175781,
+            9.253425598144531,
+            9.253364562988281,
+            9.253364562988281,
+            8.948135375976562,
+            8.864791870117188,
+            8.864791870117188,
+            8.864753723144531,
+            8.864753723144531,
+            8.864753723144531,
+            8.781440734863281
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 28.564,
+          "p95_ms": 78.113,
+          "max_ms": 78.113,
+          "alloc_mib": 19.112,
+          "gc_ms": 10,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            78.1133,
+            48.7622,
+            41.9256,
+            35.355,
+            32.1612,
+            25.0341,
+            25.8352,
+            23.1393,
+            21.8209,
+            28.8518,
+            26.5078,
+            28.5642
+          ],
+          "raw_alloc_mib": [
+            19.119064331054688,
+            18.785018920898438,
+            19.111770629882812,
+            18.822097778320312,
+            19.11168670654297,
+            19.11168670654297,
+            19.11168670654297,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 19.771,
+          "p95_ms": 23.23,
+          "max_ms": 23.23,
+          "alloc_mib": 21.536,
+          "gc_ms": 8,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            23.0568,
+            21.5388,
+            23.2301,
+            21.9291,
+            20.7873,
+            19.7714,
+            19.637,
+            18.7928,
+            20.0813,
+            17.525,
+            18.1892,
+            18.4995
+          ],
+          "raw_alloc_mib": [
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 7.722,
+          "p95_ms": 8.975,
+          "max_ms": 8.975,
+          "alloc_mib": 10.012,
+          "gc_ms": 2,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            7.614,
+            7.8727,
+            6.9102,
+            8.6489,
+            7.7222,
+            7.5259,
+            7.4436,
+            6.7178,
+            7.8134,
+            8.9748,
+            8.215,
+            8.851
+          ],
+          "raw_alloc_mib": [
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012580871582031,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.409,
+          "p95_ms": 0.464,
+          "max_ms": 0.464,
+          "alloc_mib": 0.312,
+          "gc_ms": 0,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            0.4642,
+            0.4342,
+            0.4098,
+            0.436,
+            0.4237,
+            0.4086,
+            0.4005,
+            0.413,
+            0.3822,
+            0.3773,
+            0.3793,
+            0.371
+          ],
+          "raw_alloc_mib": [
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 2.634,
+          "p95_ms": 3.88,
+          "max_ms": 3.88,
+          "alloc_mib": 1.529,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            2.4101,
+            2.6337,
+            2.6626,
+            2.7751,
+            2.8744,
+            2.2238,
+            2.2252,
+            2.6831,
+            3.8803,
+            3.0868,
+            2.1841,
+            2.1018
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 1,
+      "harness": "planner"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 51.981,
+          "p95_ms": 88.439,
+          "max_ms": 88.439,
+          "alloc_mib": 8.792,
+          "gc_ms": 9,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            56.8221,
+            51.9814,
+            54.984,
+            76.0249,
+            88.4392,
+            52.8143,
+            44.7295,
+            58.6714,
+            47.1544,
+            44.6609,
+            37.4205,
+            37.874
+          ],
+          "raw_alloc_mib": [
+            10.002235412597656,
+            9.851539611816406,
+            9.097175598144531,
+            9.097114562988281,
+            8.791885375976562,
+            8.791885375976562,
+            8.791885375976562,
+            8.781440734863281,
+            8.781440734863281,
+            8.781402587890625,
+            8.781402587890625,
+            8.781402587890625
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 41.646,
+          "p95_ms": 101.717,
+          "max_ms": 101.717,
+          "alloc_mib": 19.112,
+          "gc_ms": 12,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            101.7166,
+            55.3716,
+            49.5738,
+            41.6457,
+            43.8505,
+            45.4185,
+            40.7885,
+            37.4621,
+            48.7482,
+            40.2724,
+            34.0204,
+            39.6499
+          ],
+          "raw_alloc_mib": [
+            18.988082885742188,
+            18.784988403320312,
+            19.11168670654297,
+            19.11168670654297,
+            19.11168670654297,
+            19.11168670654297,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375,
+            19.111663818359375
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 20.575,
+          "p95_ms": 35.458,
+          "max_ms": 35.458,
+          "alloc_mib": 21.536,
+          "gc_ms": 8,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            19.8876,
+            23.6124,
+            21.7792,
+            20.5751,
+            21.0109,
+            17.1094,
+            19.2019,
+            22.469,
+            18.8368,
+            20.2103,
+            34.5339,
+            35.4578
+          ],
+          "raw_alloc_mib": [
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375,
+            21.5364990234375
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 18.079,
+          "p95_ms": 46.691,
+          "max_ms": 46.691,
+          "alloc_mib": 10.012,
+          "gc_ms": 3,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            31.5505,
+            18.1002,
+            16.8964,
+            15.9816,
+            15.5279,
+            18.0785,
+            15.0705,
+            42.2596,
+            46.691,
+            28.9748,
+            20.731,
+            16.3808
+          ],
+          "raw_alloc_mib": [
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281,
+            10.012580871582031,
+            10.012397766113281,
+            10.012397766113281,
+            10.012397766113281
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.556,
+          "p95_ms": 0.729,
+          "max_ms": 0.729,
+          "alloc_mib": 0.312,
+          "gc_ms": 0,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            0.6698,
+            0.523,
+            0.6419,
+            0.5558,
+            0.5347,
+            0.5164,
+            0.4959,
+            0.6484,
+            0.5572,
+            0.7289,
+            0.6208,
+            0.497
+          ],
+          "raw_alloc_mib": [
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625,
+            0.31150054931640625
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 5.16,
+          "p95_ms": 8.456,
+          "max_ms": 8.456,
+          "alloc_mib": 1.529,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            5.3511,
+            5.1595,
+            7.464,
+            8.4563,
+            5.036,
+            5.1139,
+            5.663,
+            4.2726,
+            4.6186,
+            6.2432,
+            4.5088,
+            6.9953
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 2,
+      "harness": "planner"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "chain-10000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 37.338,
+          "p95_ms": 55.816,
+          "max_ms": 55.816,
+          "alloc_mib": 6.942,
+          "gc_ms": 7,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            41.1806,
+            36.2821,
+            38.741,
+            55.8163,
+            41.2089,
+            40.7241,
+            37.3375,
+            41.968,
+            31.5472,
+            25.111,
+            22.2909,
+            15.5605
+          ],
+          "raw_alloc_mib": [
+            7.690559387207031,
+            7.014289855957031,
+            6.941749572753906,
+            6.941688537597656,
+            6.941688537597656,
+            6.941688537597656,
+            6.941688537597656,
+            6.858306884765625,
+            6.858306884765625,
+            6.774993896484375,
+            6.774955749511719,
+            6.774955749511719
+          ]
+        },
+        {
+          "scenario": "wide-16000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 30.957,
+          "p95_ms": 62.563,
+          "max_ms": 62.563,
+          "alloc_mib": 14.826,
+          "gc_ms": 10,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            62.5631,
+            41.3031,
+            38.9616,
+            53.0278,
+            32.1928,
+            30.9566,
+            31.5631,
+            27.882,
+            29.5186,
+            25.2611,
+            21.7559,
+            21.9258
+          ],
+          "raw_alloc_mib": [
+            15.802391052246094,
+            14.826316833496094,
+            14.826255798339844,
+            14.82623291015625,
+            14.826179504394531,
+            14.826179504394531,
+            14.826179504394531,
+            14.826179504394531,
+            14.826179504394531,
+            14.826179504394531,
+            14.826179504394531,
+            14.826179504394531
+          ]
+        },
+        {
+          "scenario": "session-wide-4096-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 15.195,
+          "p95_ms": 18.752,
+          "max_ms": 18.752,
+          "alloc_mib": 12.777,
+          "gc_ms": 6,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            18.3513,
+            17.1969,
+            15.4214,
+            14.5942,
+            18.7519,
+            15.3566,
+            13.06,
+            13.9865,
+            15.1945,
+            15.1,
+            13.8141,
+            17.5714
+          ],
+          "raw_alloc_mib": [
+            12.77655029296875,
+            12.77655029296875,
+            12.77655029296875,
+            12.77655029296875,
+            12.77655029296875,
+            12.77655029296875,
+            12.77655029296875,
+            12.77655029296875,
+            12.77655029296875,
+            12.77655029296875,
+            12.77655029296875,
+            12.77655029296875
+          ]
+        },
+        {
+          "scenario": "session-chain-2000-8probes",
+          "samples": 12,
+          "probes_per_sample": 8,
+          "queries": 96,
+          "p50_ms": 5.873,
+          "p95_ms": 8.229,
+          "max_ms": 8.229,
+          "alloc_mib": 5.72,
+          "gc_ms": 2,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            7.5105,
+            8.0281,
+            5.8725,
+            5.8811,
+            5.6996,
+            5.2741,
+            5.7085,
+            4.7621,
+            6.3802,
+            4.8519,
+            8.2288,
+            7.6599
+          ],
+          "raw_alloc_mib": [
+            5.720405578613281,
+            5.720405578613281,
+            5.720405578613281,
+            5.720405578613281,
+            5.720405578613281,
+            5.720405578613281,
+            5.720405578613281,
+            5.720405578613281,
+            5.720588684082031,
+            5.720405578613281,
+            5.720405578613281,
+            5.720405578613281
+          ]
+        },
+        {
+          "scenario": "wide-256-unrelated-100000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 0.253,
+          "p95_ms": 0.296,
+          "max_ms": 0.296,
+          "alloc_mib": 0.242,
+          "gc_ms": 0,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            0.2576,
+            0.2694,
+            0.2557,
+            0.2958,
+            0.2452,
+            0.2558,
+            0.2559,
+            0.253,
+            0.2519,
+            0.2335,
+            0.2295,
+            0.241
+          ],
+          "raw_alloc_mib": [
+            0.2420196533203125,
+            0.2420196533203125,
+            0.2420196533203125,
+            0.2420196533203125,
+            0.2420196533203125,
+            0.2420196533203125,
+            0.2420196533203125,
+            0.2420196533203125,
+            0.2420196533203125,
+            0.2420196533203125,
+            0.2420196533203125,
+            0.2420196533203125
+          ]
+        },
+        {
+          "scenario": "admission-wide-18000",
+          "samples": 12,
+          "probes_per_sample": 1,
+          "queries": 12,
+          "p50_ms": 2.442,
+          "p95_ms": 3.53,
+          "max_ms": 3.53,
+          "alloc_mib": 1.529,
+          "gc_ms": 0,
+          "budget_exits": 12,
+          "status": "PASS",
+          "raw_ms": [
+            2.4421,
+            2.4936,
+            2.2464,
+            2.3381,
+            2.6486,
+            2.4957,
+            3.4341,
+            3.5299,
+            2.9349,
+            2.2925,
+            2.1643,
+            2.2991
+          ],
+          "raw_alloc_mib": [
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688,
+            1.5294113159179688
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 2,
+      "harness": "planner"
+    },
+    {
+      "rows": [
+        {
+          "scenario": "three-route-focused",
+          "warmup_queries": 2000,
+          "samples": 40,
+          "iterations": 50,
+          "p50_ns": 51510.0,
+          "p95_ns": 238036.0,
+          "bytes_per_op": 24304.0
+        }
+      ],
+      "variant": "before",
+      "repeat": 0,
+      "harness": "mixed"
+    },
+    {
+      "rows": [
+        {
+          "scenario": "three-route-focused",
+          "warmup_queries": 2000,
+          "samples": 40,
+          "iterations": 50,
+          "p50_ns": 42016.0,
+          "p95_ns": 81054.0,
+          "bytes_per_op": 23048.0
+        }
+      ],
+      "variant": "after",
+      "repeat": 0,
+      "harness": "mixed"
+    },
+    {
+      "rows": [
+        {
+          "scenario": "three-route-focused",
+          "warmup_queries": 2000,
+          "samples": 40,
+          "iterations": 50,
+          "p50_ns": 95422.0,
+          "p95_ns": 441186.0,
+          "bytes_per_op": 22896.0
+        }
+      ],
+      "variant": "after",
+      "repeat": 1,
+      "harness": "mixed"
+    },
+    {
+      "rows": [
+        {
+          "scenario": "three-route-focused",
+          "warmup_queries": 2000,
+          "samples": 40,
+          "iterations": 50,
+          "p50_ns": 82774.0,
+          "p95_ns": 175146.0,
+          "bytes_per_op": 24272.0
+        }
+      ],
+      "variant": "before",
+      "repeat": 1,
+      "harness": "mixed"
+    },
+    {
+      "rows": [
+        {
+          "scenario": "three-route-focused",
+          "warmup_queries": 2000,
+          "samples": 40,
+          "iterations": 50,
+          "p50_ns": 99240.0,
+          "p95_ns": 258854.0,
+          "bytes_per_op": 24272.0
+        }
+      ],
+      "variant": "before",
+      "repeat": 2,
+      "harness": "mixed"
+    },
+    {
+      "rows": [
+        {
+          "scenario": "three-route-focused",
+          "warmup_queries": 2000,
+          "samples": 40,
+          "iterations": 50,
+          "p50_ns": 76738.0,
+          "p95_ns": 124830.0,
+          "bytes_per_op": 23048.0
+        }
+      ],
+      "variant": "after",
+      "repeat": 2,
+      "harness": "mixed"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1285.999,
+          "p95_ms": 1758.122,
+          "alloc_mib": 340.253,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            1285.9993,
+            1758.1216,
+            1391.7133,
+            1072.559,
+            852.9872
+          ],
+          "raw_alloc_mib": [
+            345.39332580566406,
+            340.25328826904297,
+            340.09934997558594,
+            340.30298614501953,
+            338.92789459228516
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1537.354,
+          "p95_ms": 2138.355,
+          "alloc_mib": 365.964,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            1537.3543,
+            2138.3548,
+            1288.5787,
+            1132.4092,
+            1624.6328
+          ],
+          "raw_alloc_mib": [
+            366.51319122314453,
+            365.97193908691406,
+            365.9636001586914,
+            365.9628143310547,
+            365.9628143310547
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 0,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1128.617,
+          "p95_ms": 2003.107,
+          "alloc_mib": 176.691,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            906.2559,
+            1559.7135,
+            2003.107,
+            996.6757,
+            1128.6174
+          ],
+          "raw_alloc_mib": [
+            180.78653717041016,
+            176.15039825439453,
+            176.6914825439453,
+            176.6912078857422,
+            176.56620025634766
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1406.027,
+          "p95_ms": 1441.886,
+          "alloc_mib": 183.51,
+          "budget_exits": 0,
+          "status": "PASS",
+          "raw_ms": [
+            1406.027,
+            1441.886,
+            1127.4623,
+            766.6061,
+            1429.0521
+          ],
+          "raw_alloc_mib": [
+            183.0599136352539,
+            183.51011657714844,
+            183.5100326538086,
+            183.5100326538086,
+            183.51000213623047
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 0,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 4982.624,
+          "p95_ms": 8304.902,
+          "alloc_mib": 249.303,
+          "budget_exits": 0,
+          "incomplete": 3,
+          "status": "INCOMPLETE",
+          "incomplete_records": [
+            {
+              "iteration": 0,
+              "elapsed_ms": 4982.624,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 1,
+              "elapsed_ms": 8123.902,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 2,
+              "elapsed_ms": 8304.902,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            }
+          ],
+          "raw_ms": [
+            4982.6236,
+            8123.9022,
+            8304.902,
+            4122.6037,
+            3446.3902
+          ],
+          "raw_alloc_mib": [
+            276.45597076416016,
+            249.30328369140625,
+            271.99925231933594,
+            175.94123077392578,
+            176.06610870361328
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 6369.906,
+          "p95_ms": 7804.978,
+          "alloc_mib": 278.037,
+          "budget_exits": 0,
+          "incomplete": 4,
+          "status": "INCOMPLETE",
+          "incomplete_records": [
+            {
+              "iteration": 0,
+              "elapsed_ms": 6074.727,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 1,
+              "elapsed_ms": 6369.906,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 2,
+              "elapsed_ms": 7804.978,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 3,
+              "elapsed_ms": 7048.883,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            }
+          ],
+          "raw_ms": [
+            6074.7273,
+            6369.9064,
+            7804.9776,
+            7048.8829,
+            4408.7489
+          ],
+          "raw_alloc_mib": [
+            282.0521545410156,
+            278.03709411621094,
+            271.6017837524414,
+            284.37831115722656,
+            183.8855438232422
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 1,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 8207.681,
+          "p95_ms": 10646.163,
+          "alloc_mib": 317.997,
+          "budget_exits": 0,
+          "incomplete": 5,
+          "status": "INCOMPLETE",
+          "incomplete_records": [
+            {
+              "iteration": 0,
+              "elapsed_ms": 10646.163,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 1,
+              "elapsed_ms": 8207.681,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 2,
+              "elapsed_ms": 6800.731,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 3,
+              "elapsed_ms": 7569.805,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 4,
+              "elapsed_ms": 8662.358,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            }
+          ],
+          "raw_ms": [
+            10646.1628,
+            8207.6809,
+            6800.731,
+            7569.8046,
+            8662.3581
+          ],
+          "raw_alloc_mib": [
+            294.64473724365234,
+            280.8000030517578,
+            317.9967727661133,
+            326.04197692871094,
+            344.03558349609375
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 4884.072,
+          "p95_ms": 5743.285,
+          "alloc_mib": 367.089,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "INCOMPLETE",
+          "incomplete_records": [
+            {
+              "iteration": -1,
+              "elapsed_ms": 6477.215,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            }
+          ],
+          "raw_ms": [
+            5743.2845,
+            4884.0718,
+            5241.6475,
+            2472.0578,
+            3735.4414
+          ],
+          "raw_alloc_mib": [
+            367.2493133544922,
+            367.0892868041992,
+            366.9650421142578,
+            367.07476806640625,
+            367.0892868041992
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 1,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 5535.809,
+          "p95_ms": 8931.531,
+          "alloc_mib": 309.702,
+          "budget_exits": 0,
+          "incomplete": 4,
+          "status": "INCOMPLETE",
+          "incomplete_records": [
+            {
+              "iteration": 0,
+              "elapsed_ms": 5535.809,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 1,
+              "elapsed_ms": 8931.531,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 2,
+              "elapsed_ms": 6928.493,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            },
+            {
+              "iteration": 3,
+              "elapsed_ms": 4799.943,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            }
+          ],
+          "raw_ms": [
+            5535.8085,
+            8931.531,
+            6928.493,
+            4799.9427,
+            2953.024
+          ],
+          "raw_alloc_mib": [
+            286.9658737182617,
+            261.0312728881836,
+            309.70186614990234,
+            361.42564392089844,
+            339.85218811035156
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1900.943,
+          "p95_ms": 3336.55,
+          "alloc_mib": 367.209,
+          "budget_exits": 0,
+          "incomplete": 1,
+          "status": "INCOMPLETE",
+          "incomplete_records": [
+            {
+              "iteration": 3,
+              "elapsed_ms": 3336.55,
+              "feasible": false,
+              "budget_exhausted": false,
+              "missing_keys": 4096
+            }
+          ],
+          "raw_ms": [
+            2103.8033,
+            1302.6193,
+            1645.0707,
+            3336.55,
+            1900.9426
+          ],
+          "raw_alloc_mib": [
+            367.00463104248047,
+            367.2085266113281,
+            367.20850372314453,
+            333.41441345214844,
+            367.20850372314453
+          ]
+        }
+      ],
+      "variant": "before",
+      "repeat": 2,
+      "harness": "side"
+    },
+    {
+      "java": "17.0.20",
+      "rows": [
+        {
+          "scenario": "side-4096-quantity-1",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 2210.248,
+          "p95_ms": 3580.267,
+          "alloc_mib": 176.816,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            1020.2496,
+            3580.2668,
+            2324.7358,
+            2210.2484,
+            1472.2315
+          ],
+          "raw_alloc_mib": [
+            180.65515899658203,
+            176.32747650146484,
+            176.4962158203125,
+            176.8161392211914,
+            176.94104766845703
+          ]
+        },
+        {
+          "scenario": "side-4096-quantity-1000000000000",
+          "samples": 5,
+          "warmup": 1,
+          "p50_ms": 1644.879,
+          "p95_ms": 1810.048,
+          "alloc_mib": 183.641,
+          "budget_exits": 0,
+          "incomplete": 0,
+          "status": "PASS",
+          "incomplete_records": [],
+          "raw_ms": [
+            1810.048,
+            1593.4634,
+            1644.8786,
+            1571.5053,
+            1777.964
+          ],
+          "raw_alloc_mib": [
+            183.1477508544922,
+            183.81792449951172,
+            183.64131927490234,
+            183.64120483398438,
+            183.6345443725586
+          ]
+        }
+      ],
+      "variant": "after",
+      "repeat": 2,
+      "harness": "side"
+    }
+  ],
+  "pressure_limit": {
+    "initial_aborted_run": "side after repeat 1: initial harness asserted feasibility and stopped when a known-feasible wide DAG returned a missing plan",
+    "continued_protocol": "same requests, default budgets, timing, and allocations; record incomplete plans and independently replay after adding their declared missing stock",
+    "completed_comparisons": "ordinary planner and mixed-route workloads; side workload has no stable latency claim",
+    "side_records": [
+      {
+        "variant": "before",
+        "repeat": 0,
+        "rows": [
+          {
+            "scenario": "side-4096-quantity-1",
+            "status": "PASS",
+            "incomplete": 0,
+            "budget_exits": 0,
+            "incomplete_records": []
+          },
+          {
+            "scenario": "side-4096-quantity-1000000000000",
+            "status": "PASS",
+            "incomplete": 0,
+            "budget_exits": 0,
+            "incomplete_records": []
+          }
+        ]
+      },
+      {
+        "variant": "after",
+        "repeat": 0,
+        "rows": [
+          {
+            "scenario": "side-4096-quantity-1",
+            "status": "PASS",
+            "incomplete": 0,
+            "budget_exits": 0,
+            "incomplete_records": []
+          },
+          {
+            "scenario": "side-4096-quantity-1000000000000",
+            "status": "PASS",
+            "incomplete": 0,
+            "budget_exits": 0,
+            "incomplete_records": []
+          }
+        ]
+      },
+      {
+        "variant": "after",
+        "repeat": 1,
+        "rows": [
+          {
+            "scenario": "side-4096-quantity-1",
+            "status": "INCOMPLETE",
+            "incomplete": 3,
+            "budget_exits": 0,
+            "incomplete_records": [
+              {
+                "iteration": 0,
+                "elapsed_ms": 4982.624,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 1,
+                "elapsed_ms": 8123.902,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 2,
+                "elapsed_ms": 8304.902,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              }
+            ]
+          },
+          {
+            "scenario": "side-4096-quantity-1000000000000",
+            "status": "INCOMPLETE",
+            "incomplete": 4,
+            "budget_exits": 0,
+            "incomplete_records": [
+              {
+                "iteration": 0,
+                "elapsed_ms": 6074.727,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 1,
+                "elapsed_ms": 6369.906,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 2,
+                "elapsed_ms": 7804.978,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 3,
+                "elapsed_ms": 7048.883,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "variant": "before",
+        "repeat": 1,
+        "rows": [
+          {
+            "scenario": "side-4096-quantity-1",
+            "status": "INCOMPLETE",
+            "incomplete": 5,
+            "budget_exits": 0,
+            "incomplete_records": [
+              {
+                "iteration": 0,
+                "elapsed_ms": 10646.163,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 1,
+                "elapsed_ms": 8207.681,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 2,
+                "elapsed_ms": 6800.731,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 3,
+                "elapsed_ms": 7569.805,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 4,
+                "elapsed_ms": 8662.358,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              }
+            ]
+          },
+          {
+            "scenario": "side-4096-quantity-1000000000000",
+            "status": "INCOMPLETE",
+            "incomplete": 0,
+            "budget_exits": 0,
+            "incomplete_records": [
+              {
+                "iteration": -1,
+                "elapsed_ms": 6477.215,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "variant": "before",
+        "repeat": 2,
+        "rows": [
+          {
+            "scenario": "side-4096-quantity-1",
+            "status": "INCOMPLETE",
+            "incomplete": 4,
+            "budget_exits": 0,
+            "incomplete_records": [
+              {
+                "iteration": 0,
+                "elapsed_ms": 5535.809,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 1,
+                "elapsed_ms": 8931.531,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 2,
+                "elapsed_ms": 6928.493,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              },
+              {
+                "iteration": 3,
+                "elapsed_ms": 4799.943,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              }
+            ]
+          },
+          {
+            "scenario": "side-4096-quantity-1000000000000",
+            "status": "INCOMPLETE",
+            "incomplete": 1,
+            "budget_exits": 0,
+            "incomplete_records": [
+              {
+                "iteration": 3,
+                "elapsed_ms": 3336.55,
+                "feasible": false,
+                "budget_exhausted": false,
+                "missing_keys": 4096
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "variant": "after",
+        "repeat": 2,
+        "rows": [
+          {
+            "scenario": "side-4096-quantity-1",
+            "status": "PASS",
+            "incomplete": 0,
+            "budget_exits": 0,
+            "incomplete_records": []
+          },
+          {
+            "scenario": "side-4096-quantity-1000000000000",
+            "status": "PASS",
+            "incomplete": 0,
+            "budget_exits": 0,
+            "incomplete_records": []
+          }
+        ]
+      }
+    ]
+  },
+  "comparison": [
+    {
+      "scenario": "chain-10000",
+      "before": {
+        "p50_ms": 42.095,
+        "p95_ms": 86.532,
+        "alloc_mib": 8.792
+      },
+      "after": {
+        "p50_ms": 37.338,
+        "p95_ms": 63.054,
+        "alloc_mib": 6.858
+      },
+      "change_percent": {
+        "p50_ms": -11.300629528447558,
+        "p95_ms": -27.13215920122035,
+        "alloc_mib": -21.997270245677893
+      },
+      "comparable": true
+    },
+    {
+      "scenario": "wide-16000",
+      "before": {
+        "p50_ms": 41.646,
+        "p95_ms": 96.756,
+        "alloc_mib": 19.112
+      },
+      "after": {
+        "p50_ms": 32.726,
+        "p95_ms": 67.126,
+        "alloc_mib": 14.826
+      },
+      "change_percent": {
+        "p50_ms": -21.418623637324117,
+        "p95_ms": -30.623423870354294,
+        "alloc_mib": -22.425701130179988
+      },
+      "comparable": true
+    },
+    {
+      "scenario": "session-wide-4096-8probes",
+      "before": {
+        "p50_ms": 20.575,
+        "p95_ms": 35.458,
+        "alloc_mib": 21.536
+      },
+      "after": {
+        "p50_ms": 15.195,
+        "p95_ms": 20.914,
+        "alloc_mib": 12.777
+      },
+      "change_percent": {
+        "p50_ms": -26.14823815309841,
+        "p95_ms": -41.017541880534715,
+        "alloc_mib": -40.671433878157515
+      },
+      "comparable": true
+    },
+    {
+      "scenario": "session-chain-2000-8probes",
+      "before": {
+        "p50_ms": 15.988,
+        "p95_ms": 24.522,
+        "alloc_mib": 10.012
+      },
+      "after": {
+        "p50_ms": 5.873,
+        "p95_ms": 8.229,
+        "alloc_mib": 5.721
+      },
+      "change_percent": {
+        "p50_ms": -63.266199649737295,
+        "p95_ms": -66.44237827257157,
+        "alloc_mib": -42.85856971634039
+      },
+      "comparable": true
+    },
+    {
+      "scenario": "wide-256-unrelated-100000",
+      "before": {
+        "p50_ms": 0.556,
+        "p95_ms": 0.729,
+        "alloc_mib": 0.312
+      },
+      "after": {
+        "p50_ms": 0.287,
+        "p95_ms": 0.41,
+        "alloc_mib": 0.242
+      },
+      "change_percent": {
+        "p50_ms": -48.38129496402879,
+        "p95_ms": -43.75857338820302,
+        "alloc_mib": -22.435897435897434
+      },
+      "comparable": true
+    },
+    {
+      "scenario": "admission-wide-18000",
+      "before": {
+        "p50_ms": 5.16,
+        "p95_ms": 8.456,
+        "alloc_mib": 1.529
+      },
+      "after": {
+        "p50_ms": 3.373,
+        "p95_ms": 7.852,
+        "alloc_mib": 1.529
+      },
+      "change_percent": {
+        "p50_ms": -34.63178294573643,
+        "p95_ms": -7.142857142857128,
+        "alloc_mib": 0.0
+      },
+      "comparable": true
+    },
+    {
+      "scenario": "three-route-focused",
+      "before": {
+        "p50_ns": 82774.0,
+        "p95_ns": 238036.0,
+        "bytes_per_op": 24272.0
+      },
+      "after": {
+        "p50_ns": 76738.0,
+        "p95_ns": 124830.0,
+        "bytes_per_op": 23048.0
+      },
+      "change_percent": {
+        "p50_ns": -7.292144876410466,
+        "p95_ns": -47.5583525181065,
+        "bytes_per_op": -5.042847725774557
+      },
+      "comparable": true
+    },
+    {
+      "scenario": "side-4096-quantity-1",
+      "before": {
+        "p50_ms": 5535.809,
+        "p95_ms": 8931.531,
+        "alloc_mib": 317.997
+      },
+      "after": {
+        "p50_ms": 2210.248,
+        "p95_ms": 3580.267,
+        "alloc_mib": 176.816
+      },
+      "change_percent": null,
+      "comparable": false,
+      "reason": "known-feasible requests can return incomplete plans; time/allocation summaries are pressure observations, not equal completed-work comparisons"
+    },
+    {
+      "scenario": "side-4096-quantity-1000000000000",
+      "before": {
+        "p50_ms": 1900.943,
+        "p95_ms": 3336.55,
+        "alloc_mib": 367.089
+      },
+      "after": {
+        "p50_ms": 1644.879,
+        "p95_ms": 1810.048,
+        "alloc_mib": 183.641
+      },
+      "change_percent": null,
+      "comparable": false,
+      "reason": "known-feasible requests can return incomplete plans; time/allocation summaries are pressure observations, not equal completed-work comparisons"
+    }
+  ],
+  "fixture_sha256": {
+    "PlannerStress.java": "5e69ea802d72a5fce221d62092ea363e55bc3772dff23a041b28ca9e2047bbca",
+    "MixedFocus.java": "2ad03ec93b2cdcadc67fa2ac582a3cd8582c5fde550ce12c0ff7051f5f12f1fd",
+    "SideStress.java": "40e236157d4d823645d8bb1e16098dbae973be1ff4eec4aefe0ea3e86f140897"
+  },
+  "jar": {
+    "file": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "sha256": "bf47affbf11cb1daf812a1889edb6bf3038ff74a5a63462e00a5c1e2612ee1a8"
+  },
+  "limits": [
+    "synthetic planner workloads; no complete GTLCore/GTCEu/AE2LT modpack TPS measurements",
+    "three JVMs and short p95 sample counts do not establish statistical significance"
+  ]
+}

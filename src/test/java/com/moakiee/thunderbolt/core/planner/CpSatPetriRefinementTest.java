@@ -65,6 +65,43 @@ class CpSatPetriRefinementTest {
         assertEquals(2L, solved.plan().firings().get(ba));
     }
 
+    @Test void repeatedFreshDeadlockAlternativesUseBoundedPreflightAndRemainExecutable() {
+        var ra = new CraftPattern<>("A", 1, List.of(CraftInput.of("R", 1)), "ra");
+        var ab = new CraftPattern<>("B", 1, List.of(CraftInput.of("A", 2)), List.of(CraftOutput.of("C", 1)), "ab");
+        var bc = new CraftPattern<>("C", 1, List.of(CraftInput.of("B", 2)), List.of(CraftOutput.of("A", 1)), "bc");
+        var ca = new CraftPattern<>("A", 1, List.of(CraftInput.of("C", 2)), List.of(CraftOutput.of("B", 1)), "ca");
+        var ru = new CraftPattern<>("U", 1, List.of(CraftInput.of("R", 1)), "ru");
+        var uv = new CraftPattern<>("V", 1, List.of(CraftInput.of("U", 1)), "uv");
+        var vw = new CraftPattern<>("W", 1, List.of(CraftInput.of("V", 1)), "vw");
+        var wc = new CraftPattern<>("C", 1, List.of(CraftInput.of("W", 1)), "wc");
+        var patterns = List.of(ra, ab, bc, ca, ru, uv, vw, wc);
+        for (int trial = 0; trial < 8; trial++) {
+            var builder = CraftGraph.<String>builder().stock("R", 1).stock("B", 1);
+            patterns.forEach(builder::pattern);
+            var graph = builder.build();
+            var session = new CpSatRankedFlowSolver.PlanningSession();
+            var result = CpSatRankedFlowSolver.solve(graph, "C", 1, session);
+            assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
+            assertTrue(result.plan().feasible(), "trial=" + trial);
+            assertFalse(result.plan().budgetExhausted(), "trial=" + trial);
+            assertFalse(session.incomplete(), "trial=" + trial);
+            assertEquals(1, session.smallRecoveryAttempts());
+            assertEquals(0, session.blockSolves());
+            assertEquals(1L, result.plan().firings().get(wc));
+            assertEquals(1L, result.plan().usedStock().get("R"));
+            assertTrue(result.plan().missing().isEmpty());
+        }
+    }
+
+    @Test void noSharedTimeBudgetCannotBeBypassedByTheSmallPreflight() {
+        var session = new CpSatRankedFlowSolver.PlanningSession(16, 4096, 0);
+        var result = CpSatRankedFlowSolver.solve(markedDeadlock(), "C", 1, session);
+        assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
+        assertTrue(result.plan().budgetExhausted());
+        assertEquals(0, session.smallRecoveryAttempts());
+        assertEquals(0, session.learnedCuts());
+    }
+
     @Test void amountProbesShareNativeRefinementAndVerificationBudgets() {
         var graph = CpSatExecutionBlocksTest.seedFromStock(12);
         var session = new CpSatRankedFlowSolver.PlanningSession(1, 4096, 1_000_000_000L);

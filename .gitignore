@@ -33,6 +33,7 @@ Thumbs.db
 libs/*.jar
 
 # Local documentation drafts and one-off maintenance notes
+/AGENTS.md
 /BLOCKERS.md
 /PROJECT_FRAMEWORK_COMPARISON_zh_CN.md
 /*BLOCKER*.md

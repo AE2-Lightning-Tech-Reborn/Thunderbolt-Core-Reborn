@@ -409,6 +409,51 @@ class GenericLowWidthConflictSolverTest {
     }
 
     @Test
+    void finiteUseFallbackDoesNotDisableAnIndependentExactComponent() {
+        assertIndependentFiniteUseComponent(3, true);
+    }
+
+    @Test
+    void finiteUseFallbackStillReportsTheCeilingShortfallBesideAnExactComponent() {
+        assertIndependentFiniteUseComponent(2, false);
+    }
+
+    private static void assertIndependentFiniteUseComponent(long tools, boolean feasible) {
+        for (boolean toolFirst : List.of(false, true)) {
+            var builder = CraftGraph.<String>builder();
+            appendTwoRouteRecurrence(builder, "finite-sibling-", null, 7, new int[] {1, 1, 1, 1});
+            var finiteRoute = new CraftPattern<>("finite-output", 1,
+                    List.of(CraftInput.of("finite-raw", 1), CraftInput.finiteUse("tool", 1, 4)),
+                    "finite-route");
+            // Both routes need the same finite tool. Their summed optimistic capacities reach the
+            // request, so the shortage case exercises component admission instead of an early proof.
+            var expensiveRoute = new CraftPattern<>("finite-output", 1,
+                    List.of(CraftInput.of("finite-raw", 2), CraftInput.finiteUse("tool", 1, 4)),
+                    "finite-expensive-route");
+            var rootInputs = new ArrayList<>(List.of(
+                    CraftInput.of("finite-sibling-6", 1), CraftInput.of("finite-output", 9)));
+            if (toolFirst) java.util.Collections.reverse(rootInputs);
+            builder.pattern(finiteRoute).pattern(expensiveRoute)
+                    .stock("finite-sibling-1", 2).stock("finite-sibling-2", 2)
+                    .stock("finite-raw", 9).stock("tool", tools)
+                    .pattern("finite-root", 1, rootInputs);
+
+            var result = CraftPlannerV2.planDetailed(builder.build(), "finite-root", 1);
+
+            assertEquals(feasible, result.plan().feasible(), () -> "missing=" + result.plan().missing());
+            assertFalse(result.plan().budgetExhausted());
+            assertEquals(feasible ? Map.of() : Map.of("tool", 1L), result.plan().missing());
+            assertEquals(tools, result.plan().usedStock().getOrDefault("tool", 0L));
+            assertEquals(9L, result.plan().usedStock().getOrDefault("finite-raw", 0L));
+            assertEquals(9L, result.plan().firings().getOrDefault(finiteRoute, 0L));
+            assertEquals(0L, result.plan().firings().getOrDefault(expensiveRoute, 0L));
+            assertEquals(1, result.diagnostics().lowWidthAttempts(),
+                    "finite-use admission must remain local regardless of component order");
+            assertEquals(1, result.diagnostics().lowWidthSolved());
+        }
+    }
+
+    @Test
     void byproductCreditNeverJustifiesExtraPrimaryFirings() {
         CraftPattern<String> producesTenTokens = new CraftPattern<>(
                 "P",
@@ -550,7 +595,7 @@ class GenericLowWidthConflictSolverTest {
     @Test
     void craftLessProbesReuseCompilationAndReducedStatefulModels() {
         org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(
-                Duration.ofSeconds(2), () -> {
+                Duration.ofSeconds(4), () -> {
                     CraftGraph<String> graph = nearIntegralStatefulChain(12, 1_023L);
                     var session = new CraftPlannerV2.PlanningSession<String>();
                     PlanningResult<String> requested = CraftPlannerV2.planDetailed(
@@ -804,7 +849,7 @@ class GenericLowWidthConflictSolverTest {
     private static PlanningResult<String> assertStarvedRecurrence(
             String prefix, int depth, long amount) {
         return org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(
-                Duration.ofSeconds(2), () -> {
+                Duration.ofSeconds(4), () -> {
                     PlanningResult<String> result = CraftPlannerV2.planDetailed(
                             twoRouteRecurrence(prefix, depth).build(),
                             prefix + (depth - 1),

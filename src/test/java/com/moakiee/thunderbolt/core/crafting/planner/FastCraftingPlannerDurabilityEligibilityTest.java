@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.concurrent.Future;
 
 import com.google.common.collect.ImmutableSet;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -47,7 +46,6 @@ import appeng.api.storage.AEKeyFilter;
 import appeng.crafting.inv.ChildCraftingSimulationState;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.crafting.pattern.AECraftingPattern;
-import net.minecraftforge.fml.loading.LoadingModList;
 
 import org.junit.jupiter.api.Test;
 
@@ -55,7 +53,8 @@ import sun.misc.Unsafe;
 
 class FastCraftingPlannerDurabilityEligibilityTest {
     static {
-        LoadingModList.of(List.of(), List.of(), new net.minecraftforge.fml.loading.EarlyLoadingException("test", null, List.of()));
+        net.minecraftforge.fml.loading.LoadingModList.of(List.of(), List.of(),
+                new net.minecraftforge.fml.loading.EarlyLoadingException("test bootstrap", null, List.of()));
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
     }
@@ -380,7 +379,7 @@ class FastCraftingPlannerDurabilityEligibilityTest {
      */
     private static final class TestCraftingPattern extends AECraftingPattern {
         private IInput[] testInputs;
-        private List<GenericStack> testOutputs;
+        private GenericStack[] testOutputs;
 
         private TestCraftingPattern() {
             super(null, null);
@@ -391,7 +390,7 @@ class FastCraftingPlannerDurabilityEligibilityTest {
                 var pattern = (TestCraftingPattern) unsafe().allocateInstance(
                         TestCraftingPattern.class);
                 pattern.testInputs = inputs;
-                pattern.testOutputs = List.of(new GenericStack(output, 1));
+                pattern.testOutputs = new GenericStack[]{new GenericStack(output, 1)};
                 return pattern;
             } catch (InstantiationException e) {
                 throw new AssertionError(e);
@@ -400,7 +399,7 @@ class FastCraftingPlannerDurabilityEligibilityTest {
 
         @Override public AEItemKey getDefinition() { return null; }
         @Override public IInput[] getInputs() { return testInputs; }
-        @Override public GenericStack[] getOutputs() { return testOutputs.toArray(GenericStack[]::new); }
+        @Override public GenericStack[] getOutputs() { return testOutputs; }
         @Override public boolean equals(Object obj) { return this == obj; }
         @Override public int hashCode() { return System.identityHashCode(this); }
     }
@@ -433,9 +432,6 @@ class FastCraftingPlannerDurabilityEligibilityTest {
             return patterns.getOrDefault(whatToCraft, List.of());
         }
         @Override public void refreshNodeCraftingProvider(IGridNode node) { }
-         public void addGlobalCraftingProvider(ICraftingProvider provider) { }
-         public void removeGlobalCraftingProvider(ICraftingProvider provider) { }
-         public void refreshGlobalCraftingProvider(ICraftingProvider provider) { }
         @Override public AEKey getFuzzyCraftable(AEKey whatToCraft, AEKeyFilter filter) {
             for (AEKey key : craftables) {
                 if (key.getId().equals(whatToCraft.getId()) && filter.matches(key)) {
@@ -531,7 +527,6 @@ class FastCraftingPlannerDurabilityEligibilityTest {
             return Component.literal(id + "#" + variant);
         }
         @Override public void addDrops(long amount, List<ItemStack> drops, Level level, BlockPos pos) { }
-         public boolean hasComponents() { return !variant.isEmpty(); }
         @Override public boolean equals(Object obj) {
             return obj instanceof TestKey other
                     && id.equals(other.id)
@@ -546,8 +541,7 @@ class FastCraftingPlannerDurabilityEligibilityTest {
                             "thunderbolt_test", "durability_eligibility_key"),
                     TestKey.class, Component.literal("durability eligibility key"));
         }
-         @Override public AEKey loadKeyFromTag(CompoundTag tag) { return null; }
-        public MapCodec<? extends AEKey> codec() { return null; }
+        @Override public AEKey loadKeyFromTag(CompoundTag tag) { return null; }
         @Override public AEKey readFromPacket(FriendlyByteBuf input) { return null; }
     }
 }

@@ -131,6 +131,38 @@ class OptionalIntegrationBinaryShapeTest {
     }
 
     @Test
+    void appliedE0143MatchesTheForgeModuleAndPatternName() throws Exception {
+        var support = com.moakiee.thunderbolt.compat.appliede.AppliedEModuleBatchSupport.class;
+        var name = support.getDeclaredField("TRANSMUTATION_PATTERN");
+        name.setAccessible(true);
+        String pattern = (String) name.get(null);
+        try (var jar = preparedJar("appliede-0.14.3.jar")) {
+            var module = shape(jar, "gripe/_90/appliede/part/EMCModulePart.class");
+            assertTrue(module.fields.contains("outputs:Lit/unimi/dsi/fastutil/objects/Object2LongMap;"));
+            assertTrue(module.methods.contains("pushPattern" + PUSH_PATTERN_DESCRIPTOR));
+            var details = shape(jar, pattern.replace('.', '/') + ".class");
+            assertTrue(details.methods.contains("getOutputs()[Lappeng/api/stacks/GenericStack;"));
+            assertCallCount(module, "pushPattern" + PUSH_PATTERN_DESCRIPTOR, Opcodes.INVOKEVIRTUAL,
+                    pattern.replace('.', '/'), "getPrimaryOutput", "()Lappeng/api/stacks/GenericStack;", false, 1);
+        }
+        var resource = "/com/moakiee/thunderbolt/mixin/compat/appliede/AppliedETransmutationModuleBatchMixin.class";
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        try (var input = getClass().getResourceAsStream(resource)) {
+            new ClassReader(input).accept(new ClassVisitor(Opcodes.ASM9) {
+                @Override public MethodVisitor visitMethod(int a, String n, String d, String s, String[] e) {
+                    return new MethodVisitor(Opcodes.ASM9) {
+                        @Override public void visitMethodInsn(int opcode, String owner, String method, String desc, boolean itf) {
+                            if (owner.equals("com/moakiee/thunderbolt/compat/appliede/AppliedEModuleBatchSupport")
+                                    && method.equals("primaryOutput")) calls.incrementAndGet();
+                        }
+                    };
+                }
+            }, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+        }
+        assertEquals(1, calls.get(), "the production Mixin must use the verified Forge matcher");
+    }
+
+    @Test
     void extendedAePlus155ExposesTheVirtualCompletionBridgeUsedBySuppression() throws IOException {
         try (var jar = preparedJar("extendedae-plus-pN9pMjiW.jar")) {
             var compat = shape(jar,
