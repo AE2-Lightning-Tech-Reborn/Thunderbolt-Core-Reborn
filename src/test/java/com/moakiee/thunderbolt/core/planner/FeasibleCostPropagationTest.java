@@ -118,6 +118,29 @@ class FeasibleCostPropagationTest {
     }
 
     @Test
+    void cyclicCheapestPolicyFallsBackToTheOriginalDiscoveryOrder() throws Exception {
+        var direct = CraftPattern.weighted("A", 1, List.of(CraftInput.of("raw", 1)),
+                List.of(), "direct", 2);
+        var target = new CraftPattern<>("T", 1, List.of(CraftInput.of("A", 1)), "target");
+        var graph = CraftGraph.<String>builder().stock("raw", 1000)
+                .pattern(target)
+                .pattern("A", 1001, List.of(CraftInput.of("B", 1000)))
+                .pattern("B", 1001, List.of(CraftInput.of("A", 1000)))
+                .pattern(direct).build();
+        var harness = new Harness(graph);
+        Object prop = harness.propagate(harness.fullPatterns(), true);
+        set(harness.search, "global", prop);
+        Method policy = harness.search.getClass().getDeclaredMethod("policy", double[].class);
+        policy.setAccessible(true);
+        Object result = policy.invoke(harness.search, (Object) new double[harness.keys.size()]);
+        assertNotNull(result);
+        // The cheaper labels choose A <-> B. The fallback must instead reach A from raw first.
+        assertNull(field(result, "order"));
+        assertEquals(java.util.Map.of("T", List.of(target), "A", List.of(direct), "raw", List.of()),
+                field(result, "selected"));
+    }
+
+    @Test
     void aWorkLimitedRelaxationDoesNotLeaveQueuedFlagsInTheNextPass() throws Exception {
         var graph = CraftGraph.<String>builder().stock("A", 1000)
                 .pattern("T", 1, List.of(CraftInput.of("A", 1)))
