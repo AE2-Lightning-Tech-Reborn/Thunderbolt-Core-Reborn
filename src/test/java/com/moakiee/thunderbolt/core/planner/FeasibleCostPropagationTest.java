@@ -13,6 +13,44 @@ import org.junit.jupiter.api.Test;
 /** Cost passes must remain independent after work-limited cycles and differently sized regions. */
 class FeasibleCostPropagationTest {
     @Test
+    void partialCostCutoffPreservesFullArithmeticAtFloatingPointBoundaries() throws Exception {
+        long[] amounts = {1, 7, (1L << 53) + 1, Sat.SAT - 1};
+        double[] prices = {0, Double.MIN_VALUE, 1e-300, 1e-20, 1, 1e20, 1e300,
+                Double.MAX_VALUE, Double.POSITIVE_INFINITY};
+        for (long input : amounts) for (long output : amounts) for (boolean wide : List.of(false, true)) {
+            var inputs = wide ? List.of(CraftInput.of("raw", input), CraftInput.of("zero", 1))
+                    : List.of(CraftInput.of("raw", input));
+            var graph = CraftGraph.<String>builder().stock("raw", 1).stock("zero", 1)
+                    .pattern("T", output, inputs).build();
+            var harness = new Harness(graph);
+            Object prop = harness.propagate(harness.patterns(), true);
+            Method relax = harness.search.getClass().getDeclaredMethod("relax", prop.getClass(),
+                    double.class, double[].class, int[].class);
+            relax.setAccessible(true);
+            int target = harness.keys.indexOf("T"), raw = harness.keys.indexOf("raw");
+            for (double work : new double[] {0, 1}) for (double price : prices) {
+                double sum = work + price * (double) input;
+                double candidate = sum / (double) output;
+                for (double initial : new double[] {0, Math.nextDown(candidate), candidate,
+                        Math.nextUp(candidate / (1 - 1e-12)), Double.MAX_VALUE, Double.POSITIVE_INFINITY}) {
+                    if (initial < 0) continue;
+                    boolean improves = !Double.isInfinite(sum) && candidate < initial * (1 - 1e-12);
+                    double expected = improves ? candidate : initial;
+                    double[] costs = new double[harness.keys.size()];
+                    costs[raw] = price;
+                    costs[target] = initial;
+                    int[] choices = new int[costs.length];
+                    Arrays.fill(choices, -1);
+                    assertEquals(true, relax.invoke(harness.search, prop, work, costs, choices));
+                    assertEquals(Double.doubleToLongBits(expected), Double.doubleToLongBits(costs[target]),
+                            "input=" + input + ", output=" + output + ", price=" + price + ", initial=" + initial);
+                    assertEquals(improves ? 0 : -1, choices[target]);
+                }
+            }
+        }
+    }
+
+    @Test
     void cachedFullAdjacencyAndScratchPreserveLocalRegionsAndStockChanges() throws Exception {
         var repeated = new CraftPattern<>("T", 1, List.of(CraftInput.of("A", 1),
                 CraftInput.of("A", 2)), "repeated");

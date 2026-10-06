@@ -1132,13 +1132,24 @@ final class FeasibleConsumptionOptimizer {
                 size--;
                 queued[li] = false;
                 int p = patterns[li];
+                int out = outputs[p];
+                double threshold = cost[out] * (1 - 1e-12);
                 double value = work * executionCosts[p];
-                for (int j = useStart[p], end = useStart[p + 1]; j < end && value < Double.POSITIVE_INFINITY; j++)
-                    value += cost[useKey[j]] * useAmount[j];
+                int from = useStart[p], inputEnd = useStart[p + 1];
+                if (inputEnd - from == 1) {
+                    value += cost[useKey[from]] * useAmount[from];
+                } else if (inputEnd != from) {
+                    double cutoff = Math.min(Double.MAX_VALUE, threshold * outAmount[p]);
+                    // Remaining terms are non-negative. Strictly exceeding the rounded product
+                    // also exceeds its exact value, so the final quotient cannot beat threshold.
+                    // Equality still takes the original division; infinity remains rejected.
+                    for (int j = from; j < inputEnd && value <= cutoff; j++)
+                        value += cost[useKey[j]] * useAmount[j];
+                    if (value > cutoff) continue;
+                }
                 if (Double.isInfinite(value)) continue;
                 value /= outAmount[p];
-                int out = outputs[p];
-                if (!(value < cost[out] * (1 - 1e-12))) continue;
+                if (!(value < threshold)) continue;
                 cost[out] = value;
                 if (argmin != null) argmin[out] = p;
                 for (int j = consumerStart[out], end = consumerStart[out + 1]; j < end; j++) {
