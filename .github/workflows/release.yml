@@ -17,8 +17,10 @@ jobs:
       packages: write
     env:
       TAG: ${{ github.event.release.tag_name }}
+      PRERELEASE: ${{ github.event.release.prerelease }}
     outputs:
       version: ${{ steps.version.outputs.version }}
+      release_type: ${{ steps.version.outputs.release_type }}
       artifact_id: ${{ steps.target.outputs.artifact_id }}
       game_version: ${{ steps.target.outputs.game_version }}
       loader: ${{ steps.target.outputs.loader }}
@@ -34,39 +36,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          game_version="$(sed -n 's/^minecraft_version=//p' gradle.properties)"
-          case "$game_version" in
-            1.21.1)
-              if [[ ! "$TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?)$ ]]; then
-                echo "Minecraft 1.21.1 releases require tag v<version>; received: $TAG" >&2
-                exit 1
-              fi
-              release_version="${BASH_REMATCH[1]}"
-              java_version=21
-              artifact_id=thunderbolt
-              jar_file="thunderbolt-$release_version.jar"
-              loader=neoforge
-              platform_version="$release_version"
-              metadata_file=META-INF/neoforge.mods.toml
-              ;;
-            1.20.1)
-              if [[ ! "$TAG" =~ ^forge-1\.20\.1-v([0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?)$ ]]; then
-                echo "Minecraft 1.20.1 releases require tag forge-1.20.1-v<version>; received: $TAG" >&2
-                exit 1
-              fi
-              release_version="${BASH_REMATCH[1]}"
-              java_version=17
-              artifact_id=thunderbolt-forge-1.20.1
-              jar_file="thunderbolt-forge-1.20.1-$release_version.jar"
-              loader=forge
-              platform_version="$release_version-forge.1.20.1"
-              metadata_file=META-INF/mods.toml
-              ;;
-            *)
-              echo "Unsupported Minecraft release target: $game_version" >&2
-              exit 1
-              ;;
-          esac
+          game_version="$(sed -n 's/^minecraft_version=//p' gradle.properties | tr -d '\r')"
+          release_version="$TAG"
+          java_version=25
+          artifact_id=thunderbolt
+          jar_file="thunderbolt-$release_version.jar"
+          loader=neoforge
+          platform_version="$release_version"
+          metadata_file=META-INF/neoforge.mods.toml
           {
             echo "game_version=$game_version"
             echo "release_version=$release_version"
@@ -92,18 +69,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(./gradlew --no-daemon -q printProjectVersion)"
-          EXPECTED="${{ steps.target.outputs.release_version }}"
-          if [ "$VERSION" != "$EXPECTED" ]; then
-            echo "Tag version $EXPECTED does not match Gradle version $VERSION" >&2
-            exit 1
+          VERSION="$TAG"
+          release_type=release
+          if [[ "${VERSION,,}" =~ (^|[.-])alpha[0-9]*([.-]|$) ]]; then
+            release_type=alpha
+          elif [[ "${VERSION,,}" =~ (^|[.-])beta[0-9]*([.-]|$) || "$PRERELEASE" = true ]]; then
+            release_type=beta
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_type=$release_type" >> "$GITHUB_OUTPUT"
 
       # Timing-sensitive checks are intentionally excluded from release packaging.
       # Deterministic JAR and metadata validation is performed below.
       - name: Build release
-        run: ./gradlew --no-daemon clean build -x check --max-workers 1
+        run: ./gradlew --no-daemon clean build -x check --max-workers 1 -Pmod_version="$TAG"
 
       - name: Publish Maven package or restore the existing package
         shell: bash
@@ -156,7 +135,7 @@ jobs:
             mv "$downloaded_jar" "$jar_path"
             echo "Using the complete immutable Maven publication already available for $ARTIFACT_ID:$VERSION."
           elif [ "$jar_status" = 404 ] && [ "$pom_status" = 404 ]; then
-            ./gradlew --no-daemon publishMavenJavaPublicationToGitHubPackagesRepository
+            ./gradlew --no-daemon publishMavenJavaPublicationToGitHubPackagesRepository -Pmod_version="$VERSION"
           else
             echo "GitHub Packages returned inconsistent or non-retryable responses (JAR=$jar_status, POM=$pom_status)." >&2
             exit 1
@@ -252,6 +231,7 @@ jobs:
           files: release-artifacts/*.jar
           name: Thunderbolt Core ${{ needs.build.outputs.version }} (${{ needs.build.outputs.loader }} ${{ needs.build.outputs.game_version }})
           version: ${{ needs.build.outputs.platform_version }}
+          version-type: ${{ needs.build.outputs.release_type }}
           loaders: ${{ needs.build.outputs.loader }}
           game-versions: ${{ needs.build.outputs.game_version }}
           dependencies: |
