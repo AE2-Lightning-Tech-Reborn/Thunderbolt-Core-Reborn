@@ -7,15 +7,7 @@ plugins {
 }
 
 def releaseTag = System.getenv('TAG')?.trim()
-if (releaseTag) {
-    def releaseTagMatcher = releaseTag =~ /^forge-1\.20\.1-v([0-9]+\.[0-9]+\.[0-9]+(?:[.-][0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?)$/
-    if (!releaseTagMatcher.matches()) {
-        throw new GradleException("Minecraft 1.20.1 release tags must match forge-1.20.1-v<version>: ${releaseTag}")
-    }
-    version = releaseTagMatcher.group(1)
-} else {
-    version = mod_version
-}
+version = releaseTag ?: mod_version
 def resolvedProjectVersion = project.version.toString()
 group = mod_group_id
 
