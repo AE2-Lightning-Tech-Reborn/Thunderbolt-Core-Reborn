@@ -48,6 +48,15 @@ final class BoundedIntegerLinearSolver {
         public long[] coefficients() {
             return coefficients.clone();
         }
+
+        /** Read-only scalar access avoids cloning a row for internal scans. */
+        int coefficientCount() {
+            return coefficients.length;
+        }
+
+        long coefficientAt(int variable) {
+            return coefficients[variable];
+        }
     }
 
     record Result(Status status, long[] values, int visitedNodes) {
@@ -112,6 +121,27 @@ final class BoundedIntegerLinearSolver {
         if (reduced.status() == SparseIntegerBounds.Status.BUDGET_EXHAUSTED) {
             return result(Status.BUDGET_EXHAUSTED, 0);
         }
+        // Check the proven lower corner before allocating a relaxation. Most independent
+        // crafting components are already solved by propagation. Debit every sparse row just
+        // as on the relaxation path, even when an earlier row fails this feasibility check.
+        BigInteger[] offsets = new BigInteger[reduced.rows().size()];
+        boolean lowerFeasible = true;
+        int rowIndex = 0;
+        for (SparseIntegerBounds.Row row : reduced.rows()) {
+            if (!workBudget.tryConsume(row.variables().length)) {
+                return result(Status.BUDGET_EXHAUSTED, 0);
+            }
+            BigInteger offset = BigInteger.ZERO;
+            for (int term = 0; term < row.variables().length; term++) {
+                offset = offset.add(SparseIntegerBounds.product(
+                        row.coefficients()[term], reduced.lower()[row.variables()[term]]));
+            }
+            offsets[rowIndex++] = offset;
+            lowerFeasible &= offset.compareTo(row.minimum()) >= 0;
+        }
+        if (lowerFeasible) {
+            return new Result(Status.SOLVED, reduced.lower(), 1);
+        }
         int originalVariableCount = variableCount;
         int[] reducedIndex = new int[variableCount];
         Arrays.fill(reducedIndex, -1);
@@ -129,12 +159,10 @@ final class BoundedIntegerLinearSolver {
             int variable = reducedIndex[original];
             if (variable >= 0) upperWidths[variable] = reduced.upper()[original] - reduced.lower()[original];
         }
-        boolean lowerFeasible = true;
+        rowIndex = 0;
         for (SparseIntegerBounds.Row row : reduced.rows()) {
-            if (!workBudget.tryConsume(row.variables().length)) {
-                return result(Status.BUDGET_EXHAUSTED, 0);
-            }
-            BigInteger offset = BigInteger.ZERO;
+            PlanningCancellation.check();
+            BigInteger offset = offsets[rowIndex++];
             BigInteger minimumActivity = BigInteger.ZERO;
             boolean nonpositive = true, hasActiveNegative = false;
             for (int term = 0; term < row.variables().length; term++) {
@@ -144,11 +172,9 @@ final class BoundedIntegerLinearSolver {
                     nonpositive &= coefficient.signum() <= 0;
                     hasActiveNegative |= coefficient.signum() < 0;
                 }
-                offset = offset.add(coefficient.multiply(BigInteger.valueOf(reduced.lower()[variable])));
-                minimumActivity = minimumActivity.add(coefficient.multiply(BigInteger.valueOf(
-                        coefficient.signum() > 0 ? reduced.lower()[variable] : reduced.upper()[variable])));
+                minimumActivity = minimumActivity.add(SparseIntegerBounds.product(coefficient,
+                        coefficient.signum() > 0 ? reduced.lower()[variable] : reduced.upper()[variable]));
             }
-            lowerFeasible &= offset.compareTo(row.minimum()) >= 0;
             BigInteger right = row.minimum().subtract(offset);
             boolean resourceBound = nonpositive && hasActiveNegative && right.signum() <= 0;
             // Retain a physical consumption row even if the propagated box made it redundant.
@@ -170,9 +196,6 @@ final class BoundedIntegerLinearSolver {
             var retained = new ExactConstraint(exact, right);
             compactBase.add(retained);
             if (minimumActivity.compareTo(row.minimum()) < 0) base.add(retained);
-        }
-        if (lowerFeasible) {
-            return new Result(Status.SOLVED, reduced.lower(), 1);
         }
         if (activeCount == 0) return result(Status.INFEASIBLE, 1);
         variableCount = activeCount;

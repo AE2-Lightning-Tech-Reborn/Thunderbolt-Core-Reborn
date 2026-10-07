@@ -655,7 +655,7 @@ public final class CpSatBridge {
             return new long[] {MODEL_INVALID, 0L};
         }
         IntVar[] blockRepetitions = CpSatExecutionBlocks.add(model, firings, used, missing,
-                produced, outputItems, rankGroups, firingUpperBounds, executionBlocks, blockStages);
+                produced, outputItems, rankGroups, firingUpperBounds, executionBlocks, blockStages, stocks);
         model.addDecisionStrategy(
                 firings,
                 DecisionStrategyProto.VariableSelectionStrategy.CHOOSE_FIRST,
