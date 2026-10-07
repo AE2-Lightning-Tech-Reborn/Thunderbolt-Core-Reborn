@@ -11,7 +11,7 @@ final class IntegerResourceCuts {
     static BoundedIntegerLinearSolver.Constraint weightedSum(
             List<BoundedIntegerLinearSolver.Constraint> rows, BigInteger[] weights) {
         if (rows.isEmpty() || rows.size() != weights.length) return null;
-        int variables = rows.get(0).coefficients().length;
+        int variables = rows.get(0).coefficientCount();
         BigInteger[] sum = new BigInteger[variables];
         Arrays.fill(sum, BigInteger.ZERO);
         BigInteger minimum = BigInteger.ZERO;
@@ -19,11 +19,12 @@ final class IntegerResourceCuts {
             PlanningCancellation.check();
             if (weights[row] == null || weights[row].signum() < 0) return null;
             if (weights[row].signum() == 0) continue;
-            long[] coefficients = rows.get(row).coefficients();
-            if (coefficients.length != variables) return null;
+            var constraint = rows.get(row);
+            if (constraint.coefficientCount() != variables) return null;
             for (int variable = 0; variable < variables; variable++) {
-                if (coefficients[variable] != 0) sum[variable] = sum[variable].add(
-                        weights[row].multiply(BigInteger.valueOf(coefficients[variable])));
+                long coefficient = constraint.coefficientAt(variable);
+                if (coefficient != 0) sum[variable] = sum[variable].add(
+                        weights[row].multiply(BigInteger.valueOf(coefficient)));
             }
             minimum = minimum.add(weights[row].multiply(BigInteger.valueOf(rows.get(row).minimum())));
         }
