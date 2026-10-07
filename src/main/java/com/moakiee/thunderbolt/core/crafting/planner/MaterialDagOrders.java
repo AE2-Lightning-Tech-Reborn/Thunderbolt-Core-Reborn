@@ -13,7 +13,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
 
 /** Bounded, quantity-independent ordinary material DAGs, including side-output dependencies. */
 final class MaterialDagOrders {
@@ -46,18 +45,11 @@ final class MaterialDagOrders {
 
     static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target,
             BoundedIntegerLinearSolver.WorkBudget budget) {
-        return compile(graph, target, budget, candidate -> false);
-    }
-
-    /** Replay completed supports immediately, before spending the shared deadline on permutations. */
-    static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target,
-            BoundedIntegerLinearSolver.WorkBudget budget, Predicate<Candidate<K>> accept) {
         var result = new ArrayList<Candidate<K>>();
         try {
-            for (int policy : new int[] {0, 2, 1})
-                compile(graph, target, policy, budget, result, accept);
-        } catch (Accepted accepted) {
-            // The successful support is already retained, together with all earlier templates.
+            result.addAll(compile(graph, target, 0, budget));
+            result.addAll(compile(graph, target, 2, budget));
+            result.addAll(compile(graph, target, 1, budget));
         } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
             // Already completed supports remain valid even if the next family expires.
         }
@@ -67,12 +59,6 @@ final class MaterialDagOrders {
     /** Reuse only immutable arc admission/order; capacities and graph stock are probe-local. */
     static <K> List<Candidate<K>> withAdditionalStock(List<Candidate<K>> templates,
             Map<K, Long> supplied, K target, BoundedIntegerLinearSolver.WorkBudget budget) {
-        return withAdditionalStock(templates, supplied, target, budget, candidate -> false);
-    }
-
-    static <K> List<Candidate<K>> withAdditionalStock(List<Candidate<K>> templates,
-            Map<K, Long> supplied, K target, BoundedIntegerLinearSolver.WorkBudget budget,
-            Predicate<Candidate<K>> accept) {
         var result = new ArrayList<Candidate<K>>(templates.size());
         try {
             for (var template : templates) {
@@ -82,7 +68,6 @@ final class MaterialDagOrders {
                 var graph = template.graph().withAdditionalStock(supplied);
                 result.add(new Candidate<>(graph, optimisticCapacity(graph, target, template.supplyOrder()),
                         template.originals(), template.supplyOrder()));
-                if (accept.test(result.get(result.size() - 1))) break;
             }
         } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
             // Only fully refreshed supports can be used after shared work exhaustion.
@@ -90,9 +75,8 @@ final class MaterialDagOrders {
         return List.copyOf(result);
     }
 
-    private static <K> void compile(CraftGraph<K> graph, K target, int sidePolicy,
-            BoundedIntegerLinearSolver.WorkBudget budget, List<Candidate<K>> result,
-            Predicate<Candidate<K>> accept) {
+    private static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target, int sidePolicy,
+            BoundedIntegerLinearSolver.WorkBudget budget) {
         boolean ignoreSideOutputs = sidePolicy != 0;
         boolean retainedSelfReturn = false;
         var originals = new IdentityHashMap<CraftPattern<K>, CraftPattern<K>>();
@@ -106,10 +90,10 @@ final class MaterialDagOrders {
         while (!queue.isEmpty()) {
             charge(budget, 1);
             K key = queue.removeFirst();
-            if (++work > MAX_GRAPH_WORK) return;
+            if (++work > MAX_GRAPH_WORK) return List.of();
             for (var pattern : graph.patternsFor(key)) {
                 charge(budget, 1L+pattern.inputs().size()+pattern.byproducts().size());
-                if (++work > MAX_GRAPH_WORK) return;
+                if (++work > MAX_GRAPH_WORK) return List.of();
                 // Explicit tag conversions have no side outputs and retain their original
                 // identity and zero execution cost through every projection family.
                 CraftPattern<K> projected = pattern;
@@ -123,24 +107,23 @@ final class MaterialDagOrders {
                 produced.add(pattern.output());
                 for (var input : pattern.inputs()) {
                     if (++work > MAX_GRAPH_WORK || input.returned() || input.remainder() != null
-                            || input.reusableStockSource() != null || input.key().equals(target)) return;
+                            || input.reusableStockSource() != null || input.key().equals(target)) return List.of();
                     if (reachable.add(input.key())) queue.addLast(input.key());
                 }
                 for (var output : pattern.byproducts()) {
-                    if (++work > MAX_GRAPH_WORK) return;
+                    if (++work > MAX_GRAPH_WORK) return List.of();
                     if (!ignoreSideOutputs) produced.add(output.key());
                 }
             }
         }
         if (ignoreSideOutputs && originals.isEmpty() || sidePolicy == 2 && !retainedSelfReturn)
-            return;
+            return List.of();
         var ordered = new ArrayList<K>();
         for (K key : reachable) {
             if (!key.equals(target) && produced.contains(key)) ordered.add(key);
         }
-        if (ordered.size() > MAX_ORDERED_ITEMS) return;
-        // Prefer stocked boundaries while retaining precompiled slot masks for each order.
-        ordered.sort(Comparator.comparingLong((K key) -> graph.stock(key)).reversed());
+        if (ordered.size() > MAX_ORDERED_ITEMS) return List.of();
+        var result = new ArrayList<Candidate<K>>();
         var ids = new HashMap<K, Integer>();
         int[] permutation = new int[ordered.size()];
         for (int i = 0; i < ordered.size(); i++) {
@@ -168,12 +151,13 @@ final class MaterialDagOrders {
         ranks[ordered.size()] = ordered.size() + 1;
         try {
             permute(graph, target, ordered, permutation, 0, patterns, new HashSet<>(),
-                    Map.copyOf(originals), result, budget, ranks, inputMasks, outputMasks, accept);
+                    Map.copyOf(originals), result, budget, ranks, inputMasks, outputMasks);
         } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
             // A timeout must not discard already completed supports and force replenishment
             // to repeat the same permutations. Every retained projection is self-contained;
             // user cancellation and router exits are deliberately not caught here.
         }
+        return List.copyOf(result);
     }
 
     /** A consumed return needs its retained seed plus net consumption, independently of amount.
@@ -202,8 +186,7 @@ final class MaterialDagOrders {
     private static <K> void permute(CraftGraph<K> graph, K target, List<K> ordered, int[] permutation,
             int index, List<CraftPattern<K>> patterns, Set<BitSet> seen,
             Map<CraftPattern<K>, CraftPattern<K>> originals, List<Candidate<K>> result,
-            BoundedIntegerLinearSolver.WorkBudget budget, int[] ranks, int[] inputMasks, int[] outputMasks,
-            Predicate<Candidate<K>> accept) {
+            BoundedIntegerLinearSolver.WorkBudget budget, int[] ranks, int[] inputMasks, int[] outputMasks) {
         charge(budget, 1);
         if (index < permutation.length) {
             for (int next = index; next < permutation.length; next++) {
@@ -211,7 +194,7 @@ final class MaterialDagOrders {
                 permutation[index] = permutation[next];
                 permutation[next] = saved;
                 permute(graph, target, ordered, permutation, index + 1, patterns, seen, originals,
-                        result, budget, ranks, inputMasks, outputMasks, accept);
+                        result, budget, ranks, inputMasks, outputMasks);
                 permutation[next] = permutation[index];
                 permutation[index] = saved;
             }
@@ -260,7 +243,6 @@ final class MaterialDagOrders {
         // topology template, but maySupply still rejects its current zero capacity. Filtering
         // here would make reuse silently miss routes enabled by the hypothetical inventory.
         result.add(new Candidate<>(graph.withPatterns(selected), capacity, originals, List.copyOf(supplyOrder)));
-        if (accept.test(result.get(result.size() - 1))) throw new Accepted();
     }
 
     private static void charge(BoundedIntegerLinearSolver.WorkBudget budget, long work) {
@@ -269,9 +251,6 @@ final class MaterialDagOrders {
     }
 
     private static final class WorkLimit extends RuntimeException {}
-    private static final class Accepted extends RuntimeException {
-        private Accepted() { super(null, null, false, false); }
-    }
 
     private static <K> int lastInputRank(CraftPattern<K> pattern, Map<K, Integer> rank) {
         int last = -1;
