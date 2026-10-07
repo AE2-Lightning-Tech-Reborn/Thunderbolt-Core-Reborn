@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+import java.util.function.UnaryOperator;
 
 /**
  * v2 autocrafting planner: an iterative linear backbone plus bounded integer flow over shared
@@ -281,10 +282,10 @@ public final class CraftPlannerV2<K> {
     private Map<K, Integer> activeReplayRanks;
     private final Set<K> cutOutputs = new LinkedHashSet<>();
     private final Map<CraftPattern<K>, Set<K>> suppressedPositiveFeedbackOutputs =
-            new IdentityHashMap<>();
+            new IdentityHashMap<>(0);
     /** One physical remainder batch withheld from linear byproduct credit to start a feedback path. */
     private final Map<CraftPattern<K>, Map<K, Long>> linearContainerBootstrapReserves =
-            new IdentityHashMap<>();
+            new IdentityHashMap<>(0);
     private Map<K, Long> reservedSelfSeeds;
     /**
      * A narrowly proven two-node startup path for a contracted loop:
@@ -293,9 +294,9 @@ public final class CraftPlannerV2<K> {
      * first B seed instead of being consumed as ordinary final-output input.
      */
     private final Map<CraftPattern<K>, List<FeedbackSeedBootstrap<K>>> feedbackSeedBootstraps =
-            new IdentityHashMap<>();
+            new IdentityHashMap<>(0);
     private final Map<CraftPattern<K>, List<FeedbackSeedBootstrap<K>>> feedbackSeedConverters =
-            new IdentityHashMap<>();
+            new IdentityHashMap<>(0);
     private Map<FeedbackSeedBootstrap<K>, Long> reservedFeedbackSeedOutputs;
     /** Portion of each held feedback-output state borrowed from its private reusable-seed host. */
     private Map<FeedbackSeedBootstrap<K>, Long> reservedFeedbackSeedHostOutputs;
@@ -306,7 +307,7 @@ public final class CraftPlannerV2<K> {
             canonicalFeedbackFallbackComponents = List.of();
     /** Component members that can obtain their first state from an acyclic producer. */
     private final Set<CraftPattern<K>> craftableConservativeFeedbackPatterns =
-            java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+            java.util.Collections.newSetFromMap(new IdentityHashMap<>(0));
     private boolean requiresSeedOrderedPlanning;
     /** Ordinary unchanged catalysts may share one seed in the linear pass when no byproduct can feed it. */
     private final Set<K> ordinaryReturnedSeedKeys = new HashSet<>();
@@ -333,7 +334,7 @@ public final class CraftPlannerV2<K> {
      * retries do not repeatedly sort the same patterns and re-walk every input from inside TimSort's
      * comparator.
      */
-    private final Map<CraftPattern<K>, Long> capacityScoreByPattern = new IdentityHashMap<>();
+    private IdentityHashMap<CraftPattern<K>, Long> capacityScoreByPattern = new IdentityHashMap<>();
     private Map<K, List<CraftPattern<K>>> capacityOrderByOutput = Map.of();
     /** Per-firing unavoidable ordinary raw inputs, aggregated by consumable rather than pattern slot. */
     private Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern = Map.of();
@@ -1822,21 +1823,10 @@ public final class CraftPlannerV2<K> {
         patternsByOutput = java.util.Collections.unmodifiableMap(patternsByOutput);
         capacity = java.util.Collections.unmodifiableMap(capacity);
 
-        IdentityHashMap<CraftPattern<K>, Set<K>> frozenSuppressed = new IdentityHashMap<>();
-        suppressedPositiveFeedbackOutputs.forEach(
-                (pattern, outputs) -> frozenSuppressed.put(pattern, Set.copyOf(outputs)));
-        IdentityHashMap<CraftPattern<K>, Map<K, Long>> frozenContainerReserves =
-                new IdentityHashMap<>();
-        linearContainerBootstrapReserves.forEach(
-                (pattern, reserves) -> frozenContainerReserves.put(pattern, Map.copyOf(reserves)));
-        IdentityHashMap<CraftPattern<K>, List<FeedbackSeedBootstrap<K>>> frozenBootstraps =
-                new IdentityHashMap<>();
-        feedbackSeedBootstraps.forEach(
-                (pattern, values) -> frozenBootstraps.put(pattern, List.copyOf(values)));
-        IdentityHashMap<CraftPattern<K>, List<FeedbackSeedBootstrap<K>>> frozenConverters =
-                new IdentityHashMap<>();
-        feedbackSeedConverters.forEach(
-                (pattern, values) -> frozenConverters.put(pattern, List.copyOf(values)));
+        var frozenSuppressed = snapshotPatternValues(suppressedPositiveFeedbackOutputs, Set::copyOf);
+        var frozenContainerReserves = snapshotPatternValues(linearContainerBootstrapReserves, Map::copyOf);
+        var frozenBootstraps = snapshotPatternValues(feedbackSeedBootstraps, List::copyOf);
+        var frozenConverters = snapshotPatternValues(feedbackSeedConverters, List::copyOf);
 
         // These structural tables are published read-only when compilation finishes. Capacity
         // scores may gain a memo entry later, but depend only on this fixed graph/capacity snapshot;
@@ -1875,6 +1865,16 @@ public final class CraftPlannerV2<K> {
                 contended);
     }
 
+    /** Empty feedback metadata needs no identity table; nonempty snapshots retain original keys. */
+    private static <K, V> Map<CraftPattern<K>, V> snapshotPatternValues(
+            Map<CraftPattern<K>, V> source, UnaryOperator<V> freeze) {
+        if (source.isEmpty()) return Map.of();
+        var snapshot = new IdentityHashMap<CraftPattern<K>, V>(source.size());
+        source.forEach((pattern, value) -> snapshot.put(pattern, freeze.apply(value)));
+        return snapshot;
+    }
+
+    @SuppressWarnings("unchecked")
     private void loadPreparedGraph(PreparedGraph<K> prepared) {
         cutOutputs.addAll(prepared.cutOutputs);
         patternsByOutput = prepared.patternsByOutput;
@@ -1893,7 +1893,9 @@ public final class CraftPlannerV2<K> {
         requiresSeedOrderedPlanning = prepared.seedOrdered;
         seedOrderedDependencyCone.addAll(prepared.seedOrderedDependencyCone);
         capacity = prepared.capacity;
-        capacityScoreByPattern.putAll(prepared.capacityScoreByPattern);
+        // IdentityHashMap.clone copies its backing table without allocating an entry per score.
+        // Each replay still owns a mutable memo; only immutable keys and Long values are shared.
+        capacityScoreByPattern = (IdentityHashMap<CraftPattern<K>, Long>) prepared.capacityScoreByPattern.clone();
         capacityOrderByOutput = prepared.capacityOrderByOutput;
         directRawConsumablesByPattern = prepared.directRawConsumablesByPattern;
     }
@@ -2685,7 +2687,9 @@ public final class CraftPlannerV2<K> {
         Set<K> members = producibilityCycleMembers.getOrDefault(output, Set.of());
         if (members.isEmpty()) return true;
         Integer own = producibilityOrdinal.get(output);
-        for (CraftInput<K> input : pattern.inputs()) {
+        var inputs = pattern.inputs();
+        for (int slot = 0; slot < inputs.size(); slot++) {
+            CraftInput<K> input = inputs.get(slot);
             if (!ranksAsDependency(pattern, input) || !members.contains(input.key())) continue;
             Integer dependency = producibilityOrdinal.get(input.key());
             if (own == null || dependency == null || dependency >= own) return false;
@@ -3938,9 +3942,13 @@ public final class CraftPlannerV2<K> {
         for (int i = order.size() - 1; i >= 0; i--) {
             K output = order.get(i);
             long total = graph.stock(output);
-            for (CraftPattern<K> pattern : patternsByOutput.getOrDefault(output, List.of())) {
+            var patterns = patternsByOutput.getOrDefault(output, List.of());
+            for (int p = 0; p < patterns.size(); p++) {
+                CraftPattern<K> pattern = patterns.get(p);
                 long firings = Sat.SAT;
-                for (CraftInput<K> input : pattern.inputs()) {
+                var inputs = pattern.inputs();
+                for (int slot = 0; slot < inputs.size(); slot++) {
+                    CraftInput<K> input = inputs.get(slot);
                     long available = optimistic.getOrDefault(
                             input.key(), graph.stock(input.key()));
                     firings = Math.min(
@@ -4860,6 +4868,17 @@ public final class CraftPlannerV2<K> {
                     CraftPattern<K> first = patterns.get(0), second = patterns.get(1);
                     return totalCapacity.applyAsLong(first) >= totalCapacity.applyAsLong(second)
                             ? patterns : List.of(second, first);
+                }
+                if (patterns.size() == 3) {
+                    CraftPattern<K> first = patterns.get(0), second = patterns.get(1), third = patterns.get(2);
+                    long a = totalCapacity.applyAsLong(first), b = totalCapacity.applyAsLong(second);
+                    long c = totalCapacity.applyAsLong(third);
+                    if (a >= b) {
+                        if (b >= c) return patterns;
+                        return a >= c ? List.of(first, third, second) : List.of(third, first, second);
+                    }
+                    if (a >= c) return List.of(second, first, third);
+                    return b >= c ? List.of(second, third, first) : List.of(third, second, first);
                 }
                 @SuppressWarnings("unchecked")
                 CraftPattern<K>[] ordered = (CraftPattern<K>[]) new CraftPattern<?>[patterns.size()];
@@ -6416,7 +6435,7 @@ public final class CraftPlannerV2<K> {
         private final boolean seedOrdered;
         private final Set<K> seedOrderedDependencyCone;
         private final Map<K, Long> capacity;
-        private final Map<CraftPattern<K>, Long> capacityScoreByPattern;
+        private final IdentityHashMap<CraftPattern<K>, Long> capacityScoreByPattern;
         private final Map<K, List<CraftPattern<K>>> capacityOrderByOutput;
         private final Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern;
         private Map<CraftPattern<K>, Integer> materialFootprintByPattern;
@@ -6441,7 +6460,7 @@ public final class CraftPlannerV2<K> {
                 boolean seedOrdered,
                 Set<K> seedOrderedDependencyCone,
                 Map<K, Long> capacity,
-                Map<CraftPattern<K>, Long> capacityScoreByPattern,
+                IdentityHashMap<CraftPattern<K>, Long> capacityScoreByPattern,
                 Map<K, List<CraftPattern<K>>> capacityOrderByOutput,
                 Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern,
                 ByproductSchedule<K> byproductSchedule,

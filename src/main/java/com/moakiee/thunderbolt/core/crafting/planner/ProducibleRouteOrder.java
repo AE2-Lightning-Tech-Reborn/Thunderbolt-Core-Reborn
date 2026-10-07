@@ -38,7 +38,9 @@ final class ProducibleRouteOrder {
             var pattern = patterns.get(p);
             starts[p] = inputs.size;
             int slot = index.inputStarts[p];
-            for (var input : pattern.inputs()) {
+            var patternInputs = pattern.inputs();
+            for (int inputIndex = 0; inputIndex < patternInputs.size(); inputIndex++) {
+                var input = patternInputs.get(inputIndex);
                 int key = index.inputKeys[slot++];
                 if (!dependency.test(pattern, input)) continue;
                 // Multiple slots for the same material wait for one readiness event.
