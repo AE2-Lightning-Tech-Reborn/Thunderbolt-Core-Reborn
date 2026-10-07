@@ -32,7 +32,7 @@ jobs:
           TAG: 2.0.2-beta
         run: |
           set -euo pipefail
-          actual="$(bash ./gradlew --no-daemon --max-workers 1 -q printProjectVersion -Pmod_version=0.0.0)"
+          actual="$(bash ./gradlew --no-daemon --max-workers 1 -q printProjectVersion -Pmod_version=0.0.0 | tail -n 1)"
           test "$actual" = "$TAG" || { echo "Unexpected Gradle release version: $actual" >&2; exit 1; }
 
       - name: Lint GitHub Actions workflows
