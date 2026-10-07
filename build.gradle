@@ -194,7 +194,7 @@ publishing {
         if (githubPackagesUser && githubPackagesToken) {
             maven {
                 name = 'GitHubPackages'
-                url = uri("https://maven.pkg.github.com/${System.getenv('GITHUB_REPOSITORY') ?: 'AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn'}")
+                url = uri("https://maven.pkg.github.com/${(System.getenv('GITHUB_REPOSITORY') ?: 'AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn').toLowerCase(Locale.ROOT)}")
                 credentials {
                     username = githubPackagesUser
                     password = githubPackagesToken
