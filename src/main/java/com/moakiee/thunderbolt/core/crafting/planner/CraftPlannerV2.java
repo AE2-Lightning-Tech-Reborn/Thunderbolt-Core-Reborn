@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
+import java.util.function.UnaryOperator;
 
 /**
  * v2 autocrafting planner: an iterative linear backbone plus bounded integer flow over shared
@@ -281,10 +282,10 @@ public final class CraftPlannerV2<K> {
     private Map<K, Integer> activeReplayRanks;
     private final Set<K> cutOutputs = new LinkedHashSet<>();
     private final Map<CraftPattern<K>, Set<K>> suppressedPositiveFeedbackOutputs =
-            new IdentityHashMap<>();
+            new IdentityHashMap<>(0);
     /** One physical remainder batch withheld from linear byproduct credit to start a feedback path. */
     private final Map<CraftPattern<K>, Map<K, Long>> linearContainerBootstrapReserves =
-            new IdentityHashMap<>();
+            new IdentityHashMap<>(0);
     private Map<K, Long> reservedSelfSeeds;
     /**
      * A narrowly proven two-node startup path for a contracted loop:
@@ -293,9 +294,9 @@ public final class CraftPlannerV2<K> {
      * first B seed instead of being consumed as ordinary final-output input.
      */
     private final Map<CraftPattern<K>, List<FeedbackSeedBootstrap<K>>> feedbackSeedBootstraps =
-            new IdentityHashMap<>();
+            new IdentityHashMap<>(0);
     private final Map<CraftPattern<K>, List<FeedbackSeedBootstrap<K>>> feedbackSeedConverters =
-            new IdentityHashMap<>();
+            new IdentityHashMap<>(0);
     private Map<FeedbackSeedBootstrap<K>, Long> reservedFeedbackSeedOutputs;
     /** Portion of each held feedback-output state borrowed from its private reusable-seed host. */
     private Map<FeedbackSeedBootstrap<K>, Long> reservedFeedbackSeedHostOutputs;
@@ -306,7 +307,7 @@ public final class CraftPlannerV2<K> {
             canonicalFeedbackFallbackComponents = List.of();
     /** Component members that can obtain their first state from an acyclic producer. */
     private final Set<CraftPattern<K>> craftableConservativeFeedbackPatterns =
-            java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+            java.util.Collections.newSetFromMap(new IdentityHashMap<>(0));
     private boolean requiresSeedOrderedPlanning;
     /** Ordinary unchanged catalysts may share one seed in the linear pass when no byproduct can feed it. */
     private final Set<K> ordinaryReturnedSeedKeys = new HashSet<>();
@@ -333,7 +334,7 @@ public final class CraftPlannerV2<K> {
      * retries do not repeatedly sort the same patterns and re-walk every input from inside TimSort's
      * comparator.
      */
-    private final Map<CraftPattern<K>, Long> capacityScoreByPattern = new IdentityHashMap<>();
+    private IdentityHashMap<CraftPattern<K>, Long> capacityScoreByPattern = new IdentityHashMap<>();
     private Map<K, List<CraftPattern<K>>> capacityOrderByOutput = Map.of();
     /** Per-firing unavoidable ordinary raw inputs, aggregated by consumable rather than pattern slot. */
     private Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern = Map.of();
@@ -1129,6 +1130,11 @@ public final class CraftPlannerV2<K> {
             SearchBudget budget,
             long started, CraftGraph<K> graph, K target, long amount) {
         plan = UnorderedByproductSafety.protect(graph, plan, target, amount);
+        // Exhausting a positive-witness portfolio does not prove physical shortage. Keep trying
+        // the existing fallbacks/orientations first; only an unresolved final result carries it.
+        if (!plan.feasible() && diagnostics.independentPortfolioCutoff) {
+            plan = markBudgetExhausted(plan);
+        }
         return new PlanningResult<>(plan, diagnostics.finish(started, budget));
     }
 
@@ -1734,7 +1740,10 @@ public final class CraftPlannerV2<K> {
         long portfolioNanos = Math.min(2_000_000_000L,
                 Math.max(250_000_000L, diagnostics.reachableWorkEstimate * 25_000L));
         long limit = Math.min(portfolioNanos, replenishmentProbe ? available : available / 4);
-        if (limit <= 0) return null;
+        if (limit <= 0) {
+            diagnostics.recordIndependentPortfolioCutoff();
+            return null;
+        }
         Map<CraftPattern<K>, Long> counts;
         try (var ignored = PlanningCancellation.limitOptionalWork(limit)) {
             var relaxed = analyzeLowWidthComponents(schedule, target, amount, baseline, true);
@@ -1747,11 +1756,14 @@ public final class CraftPlannerV2<K> {
                 diagnostics.recordLowWidthAttempt();
                 var result = solveLowWidthComponent(component, List.of(), witness);
                 diagnostics.recordLowWidthResult(result.status(), result.integerNodes());
+                if (result.status() == BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED)
+                    diagnostics.independentPortfolioCutoff = true;
                 if (result.firings() == null) return null;
                 for (var pattern : component.patterns()) counts.remove(pattern);
                 counts.putAll(result.firings());
             }
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            diagnostics.recordIndependentPortfolioCutoff();
             return null;
         }
         // The completed proposal still needs mandatory whole-vector certification. Ending the
@@ -1827,21 +1839,10 @@ public final class CraftPlannerV2<K> {
         patternsByOutput = java.util.Collections.unmodifiableMap(patternsByOutput);
         capacity = java.util.Collections.unmodifiableMap(capacity);
 
-        IdentityHashMap<CraftPattern<K>, Set<K>> frozenSuppressed = new IdentityHashMap<>();
-        suppressedPositiveFeedbackOutputs.forEach(
-                (pattern, outputs) -> frozenSuppressed.put(pattern, Set.copyOf(outputs)));
-        IdentityHashMap<CraftPattern<K>, Map<K, Long>> frozenContainerReserves =
-                new IdentityHashMap<>();
-        linearContainerBootstrapReserves.forEach(
-                (pattern, reserves) -> frozenContainerReserves.put(pattern, Map.copyOf(reserves)));
-        IdentityHashMap<CraftPattern<K>, List<FeedbackSeedBootstrap<K>>> frozenBootstraps =
-                new IdentityHashMap<>();
-        feedbackSeedBootstraps.forEach(
-                (pattern, values) -> frozenBootstraps.put(pattern, List.copyOf(values)));
-        IdentityHashMap<CraftPattern<K>, List<FeedbackSeedBootstrap<K>>> frozenConverters =
-                new IdentityHashMap<>();
-        feedbackSeedConverters.forEach(
-                (pattern, values) -> frozenConverters.put(pattern, List.copyOf(values)));
+        var frozenSuppressed = snapshotPatternValues(suppressedPositiveFeedbackOutputs, Set::copyOf);
+        var frozenContainerReserves = snapshotPatternValues(linearContainerBootstrapReserves, Map::copyOf);
+        var frozenBootstraps = snapshotPatternValues(feedbackSeedBootstraps, List::copyOf);
+        var frozenConverters = snapshotPatternValues(feedbackSeedConverters, List::copyOf);
 
         // These structural tables are published read-only when compilation finishes. Capacity
         // scores may gain a memo entry later, but depend only on this fixed graph/capacity snapshot;
@@ -1880,6 +1881,16 @@ public final class CraftPlannerV2<K> {
                 contended);
     }
 
+    /** Empty feedback metadata needs no identity table; nonempty snapshots retain original keys. */
+    private static <K, V> Map<CraftPattern<K>, V> snapshotPatternValues(
+            Map<CraftPattern<K>, V> source, UnaryOperator<V> freeze) {
+        if (source.isEmpty()) return Map.of();
+        var snapshot = new IdentityHashMap<CraftPattern<K>, V>(source.size());
+        source.forEach((pattern, value) -> snapshot.put(pattern, freeze.apply(value)));
+        return snapshot;
+    }
+
+    @SuppressWarnings("unchecked")
     private void loadPreparedGraph(PreparedGraph<K> prepared) {
         cutOutputs.addAll(prepared.cutOutputs);
         patternsByOutput = prepared.patternsByOutput;
@@ -1898,7 +1909,9 @@ public final class CraftPlannerV2<K> {
         requiresSeedOrderedPlanning = prepared.seedOrdered;
         seedOrderedDependencyCone.addAll(prepared.seedOrderedDependencyCone);
         capacity = prepared.capacity;
-        capacityScoreByPattern.putAll(prepared.capacityScoreByPattern);
+        // IdentityHashMap.clone copies its backing table without allocating an entry per score.
+        // Each replay still owns a mutable memo; only immutable keys and Long values are shared.
+        capacityScoreByPattern = (IdentityHashMap<CraftPattern<K>, Long>) prepared.capacityScoreByPattern.clone();
         capacityOrderByOutput = prepared.capacityOrderByOutput;
         directRawConsumablesByPattern = prepared.directRawConsumablesByPattern;
     }
@@ -2690,7 +2703,9 @@ public final class CraftPlannerV2<K> {
         Set<K> members = producibilityCycleMembers.getOrDefault(output, Set.of());
         if (members.isEmpty()) return true;
         Integer own = producibilityOrdinal.get(output);
-        for (CraftInput<K> input : pattern.inputs()) {
+        var inputs = pattern.inputs();
+        for (int slot = 0; slot < inputs.size(); slot++) {
+            CraftInput<K> input = inputs.get(slot);
             if (!ranksAsDependency(pattern, input) || !members.contains(input.key())) continue;
             Integer dependency = producibilityOrdinal.get(input.key());
             if (own == null || dependency == null || dependency >= own) return false;
@@ -2824,6 +2839,26 @@ public final class CraftPlannerV2<K> {
             if (usable != null) usable.add(p);
             for (int slot = 0; slot < inputs.size(); slot++) {
                 CraftInput<K> in = inputs.get(slot);
+                if (isHostBackedReusableSeed(in) && !isSelfReturnedSeed(p, in)) {
+                    // The snapshot can fund this route, but another dedicated/fuzzy consumer may
+                    // borrow that stock first. Retain a proven converter as a bootstrap-only route
+                    // even though the host-backed edge is absent from the ordinary DAG. Its loop
+                    // state is explicitly withheld by reserveFeedbackSeedOutput; auxiliary inputs
+                    // remain ordinary dependencies and must be acquired before exposing its seed.
+                    for (FeedbackSeedBootstrap<K> bootstrap : feedbackSeedBootstraps(
+                            p, in, graph.patternsFor(in.key()))) {
+                        addFeedbackSeedBootstrap(bootstrap);
+                        itemsOut.add(in.key());
+                        for (CraftInput<K> auxiliary : bootstrap.converter().inputs()) {
+                            if (auxiliary == bootstrap.converterInput()) continue;
+                            if (children == null) children = new ArrayList<>(4);
+                            if (childSet == null && children.size() == 8) childSet = new HashSet<>(children);
+                            if (childSet == null ? !children.contains(auxiliary.key())
+                                    : childSet.add(auxiliary.key())) children.add(auxiliary.key());
+                            itemsOut.add(auxiliary.key());
+                        }
+                    }
+                }
                 if (isSelfReturnedSeed(p, in)
                         || isHostBackedReusableSeed(in)
                         || isFeedbackSeed(p, in)
@@ -2930,6 +2965,12 @@ public final class CraftPlannerV2<K> {
      */
     private List<FeedbackSeedBootstrap<K>> directFeedbackSeedBootstraps(
             CraftPattern<K> loopPattern, CraftInput<K> seedInput) {
+        return feedbackSeedBootstraps(loopPattern, seedInput,
+                patternsByOutput.getOrDefault(seedInput.key(), List.of()));
+    }
+
+    private List<FeedbackSeedBootstrap<K>> feedbackSeedBootstraps(
+            CraftPattern<K> loopPattern, CraftInput<K> seedInput, List<CraftPattern<K>> converters) {
         if (!seedInput.returned()
                 || seedInput.uses() != CraftInput.INFINITE_USES
                 || seedInput.reusableStockSource() == null) {
@@ -2937,8 +2978,7 @@ public final class CraftPlannerV2<K> {
         }
 
         List<FeedbackSeedBootstrap<K>> result = new ArrayList<>();
-        for (CraftPattern<K> candidate
-                : patternsByOutput.getOrDefault(seedInput.key(), List.of())) {
+        for (CraftPattern<K> candidate : converters) {
             CraftInput<K> input = feedbackConverterInput(
                     candidate, loopPattern.output(), seedInput.key());
             if (input == null) continue;
@@ -3384,7 +3424,8 @@ public final class CraftPlannerV2<K> {
     private LowWidthAnalysis<K> analyzeLowWidthComponents(
             ByproductSchedule<K> byproductSchedule, K target, long amount,
             Map<CraftPattern<K>, Long> baselineFirings, boolean relaxRawStock) {
-        if (preparedGraph.contendedOutputCount < 1 && !byproductSchedule.hasRelevantByproducts()) {
+        if (preparedGraph.contendedOutputCount < 1 && !byproductSchedule.hasRelevantByproducts()
+                && !requiresSeedOrderedPlanning) {
             return null;
         }
 
@@ -3444,7 +3485,13 @@ public final class CraftPlannerV2<K> {
         if (materialDagProjection) decisionByOutput.put(target, 0);
         for (K output : analysisOrder) {
             PlanningCancellation.check();
-            if ((isContendedOutput(output) || sideOutputChoices.contains(output))
+            // Stock used as finished output can also be needed to start a self-returning route.
+            // Keep that choice with its upstream materials: the stock-first baseline alone cannot
+            // freeze their demand before ordered seed acquisition has decided whether to copy it.
+            boolean seedStockChoice = graph.stock(output) > 0L
+                    && patternsByOutput.getOrDefault(output, List.of()).stream()
+                            .anyMatch(CraftPlannerV2::hasSelfReturnedSeed);
+            if ((isContendedOutput(output) || sideOutputChoices.contains(output) || seedStockChoice)
                     && !decisionByOutput.containsKey(output)) {
                 decisionByOutput.put(output, decisionByOutput.size());
             }
@@ -3918,9 +3965,13 @@ public final class CraftPlannerV2<K> {
         for (int i = order.size() - 1; i >= 0; i--) {
             K output = order.get(i);
             long total = graph.stock(output);
-            for (CraftPattern<K> pattern : patternsByOutput.getOrDefault(output, List.of())) {
+            var patterns = patternsByOutput.getOrDefault(output, List.of());
+            for (int p = 0; p < patterns.size(); p++) {
+                CraftPattern<K> pattern = patterns.get(p);
                 long firings = Sat.SAT;
-                for (CraftInput<K> input : pattern.inputs()) {
+                var inputs = pattern.inputs();
+                for (int slot = 0; slot < inputs.size(); slot++) {
+                    CraftInput<K> input = inputs.get(slot);
                     long available = optimistic.getOrDefault(
                             input.key(), graph.stock(input.key()));
                     firings = Math.min(
@@ -4849,6 +4900,17 @@ public final class CraftPlannerV2<K> {
                     return totalCapacity.applyAsLong(first) >= totalCapacity.applyAsLong(second)
                             ? patterns : List.of(second, first);
                 }
+                if (patterns.size() == 3) {
+                    CraftPattern<K> first = patterns.get(0), second = patterns.get(1), third = patterns.get(2);
+                    long a = totalCapacity.applyAsLong(first), b = totalCapacity.applyAsLong(second);
+                    long c = totalCapacity.applyAsLong(third);
+                    if (a >= b) {
+                        if (b >= c) return patterns;
+                        return a >= c ? List.of(first, third, second) : List.of(third, first, second);
+                    }
+                    if (a >= c) return List.of(second, first, third);
+                    return b >= c ? List.of(second, third, first) : List.of(third, second, first);
+                }
                 @SuppressWarnings("unchecked")
                 CraftPattern<K>[] ordered = (CraftPattern<K>[]) new CraftPattern<?>[patterns.size()];
                 long[] scores = new long[ordered.length];
@@ -5740,22 +5802,7 @@ public final class CraftPlannerV2<K> {
         if (requested <= 0) return new BorrowedReusableSeed(0L, 0L);
         var route = new ReusableStockRouteKey<K>(source, plannedKey);
         long existing = get(reusableBorrowedDemand, route);
-
-        long low = 0L;
-        long high = requested;
-        if (!isReusableDemandFeasible(route, addNonNegative(existing, high))) {
-            while (low < high) {
-                long distance = high - low;
-                long middle = low + (distance >>> 1) + (distance & 1L);
-                if (isReusableDemandFeasible(route, addNonNegative(existing, middle))) {
-                    low = middle;
-                } else {
-                    high = middle - 1L;
-                }
-            }
-        } else {
-            low = high;
-        }
+        long low = borrowableReusableStock(source, plannedKey, requested);
         if (low <= 0) return new BorrowedReusableSeed(0L, 0L);
 
         var demands = new HashMap<>(reusableBorrowedDemand);
@@ -5794,6 +5841,35 @@ public final class CraftPlannerV2<K> {
         }
         replaceTracked(usedReusableStock, desiredUsage);
         return new BorrowedReusableSeed(low, pinnedExact);
+    }
+
+    /** Read-only capacity probe with the same shared-host/fuzzy constraints as acquisition. */
+    private long borrowableReusableStock(ReusableStockSource source, K key, long requested) {
+        if (requested <= 0L) return 0L;
+        var route = new ReusableStockRouteKey<K>(source, key);
+        long existing = get(reusableBorrowedDemand, route);
+        if (isReusableDemandFeasible(route, addNonNegative(existing, requested))) return requested;
+        long low = 0L;
+        long high = requested;
+        while (low < high) {
+            long distance = high - low;
+            long middle = low + (distance >>> 1) + (distance & 1L);
+            if (isReusableDemandFeasible(route, addNonNegative(existing, middle))) low = middle;
+            else high = middle - 1L;
+        }
+        return low;
+    }
+
+    /** Ordinary inventory is a fallback only after the route's currently usable private supply. */
+    private long reusableSeedShortfall(CraftInput<K> input) {
+        var source = input.reusableStockSource();
+        if (source == null) return input.amount();
+        long remaining = input.amount();
+        remaining -= Math.min(remaining,
+                get(reusablePrivatePool, new ReusableStockRouteKey<>(source, input.key())));
+        remaining -= Math.min(remaining,
+                get(reusablePool, new ReusableStockKey<>(source.poolScope(), input.key())));
+        return remaining - borrowableReusableStock(source, input.key(), remaining);
     }
 
     private Map<ReusableStockUsageKey<K>, Long> reusableUsage(
@@ -6009,9 +6085,10 @@ public final class CraftPlannerV2<K> {
     private void reserveSelfSeed(K key) {
         long required = 0L;
         for (CraftPattern<K> pattern : patternsByOutput.getOrDefault(key, List.of())) {
+            if (fixedFallbackItems.contains(key) && get(fixedFiringQuota, pattern) <= 0L) continue;
             for (CraftInput<K> input : pattern.inputs()) {
                 if (isSelfReturnedSeed(pattern, input)) {
-                    required = Math.max(required, input.amount());
+                    required = Math.max(required, reusableSeedShortfall(input));
                 }
             }
         }
@@ -6057,8 +6134,7 @@ public final class CraftPlannerV2<K> {
             FeedbackSeedBootstrap<K> bootstrap =
                     feedbackSeedBootstrap(preferred, seed);
             if (bootstrap == null) continue;
-            long hostAvailable = graph.reusableStock(seed.reusableStockSource(), seed.key());
-            long seedShortfall = Math.max(0L, seed.amount() - hostAvailable);
+            long seedShortfall = reusableSeedShortfall(seed);
             long required = bootstrap.outputUnitsFor(seedShortfall);
             long alreadyReserved = get(reservedFeedbackSeedOutputs, bootstrap);
             long additional = Math.max(0L, required - alreadyReserved);
@@ -6390,7 +6466,7 @@ public final class CraftPlannerV2<K> {
         private final boolean seedOrdered;
         private final Set<K> seedOrderedDependencyCone;
         private final Map<K, Long> capacity;
-        private final Map<CraftPattern<K>, Long> capacityScoreByPattern;
+        private final IdentityHashMap<CraftPattern<K>, Long> capacityScoreByPattern;
         private final Map<K, List<CraftPattern<K>>> capacityOrderByOutput;
         private final Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern;
         private Map<CraftPattern<K>, Integer> materialFootprintByPattern;
@@ -6415,7 +6491,7 @@ public final class CraftPlannerV2<K> {
                 boolean seedOrdered,
                 Set<K> seedOrderedDependencyCone,
                 Map<K, Long> capacity,
-                Map<CraftPattern<K>, Long> capacityScoreByPattern,
+                IdentityHashMap<CraftPattern<K>, Long> capacityScoreByPattern,
                 Map<K, List<CraftPattern<K>>> capacityOrderByOutput,
                 Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern,
                 ByproductSchedule<K> byproductSchedule,
@@ -6482,6 +6558,7 @@ public final class CraftPlannerV2<K> {
         private int lowWidthInfeasible;
         private int lowWidthCutoffs;
         private int lowWidthIntegerNodes;
+        private boolean independentPortfolioCutoff;
         private int missingRefinementProbes;
         private int missingRefinementImprovements;
         private long missingRefinementNanos;
@@ -6574,6 +6651,11 @@ public final class CraftPlannerV2<K> {
 
         private void recordLowWidthCapacityProof() {
             lowWidthInfeasible = increment(lowWidthInfeasible);
+        }
+
+        private void recordIndependentPortfolioCutoff() {
+            independentPortfolioCutoff = true;
+            lowWidthCutoffs = increment(lowWidthCutoffs);
         }
 
         private void recordSearchCutoff() {

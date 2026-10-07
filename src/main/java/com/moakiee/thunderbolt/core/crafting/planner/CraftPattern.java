@@ -90,7 +90,12 @@ public final class CraftPattern<K> {
      * retain it. Exporters must identify tags explicitly; an ordinary 1:1 recipe is not free.
      */
     public static <K> CraftPattern<K> tagConversion(K member, K tag, Object source) {
-        return new CraftPattern<>(tag, BigInteger.ONE, List.of(CraftInput.of(member, 1)),
+        return tagConversion(member, 1, tag, source);
+    }
+
+    /** One indivisible member bundle supplies one logical input unit, without a machine firing. */
+    public static <K> CraftPattern<K> tagConversion(K member, long unitAmount, K tag, Object source) {
+        return new CraftPattern<>(tag, BigInteger.ONE, List.of(CraftInput.of(member, unitAmount)),
                 List.of(), source, List.of(), 0, true);
     }
 
@@ -126,7 +131,7 @@ public final class CraftPattern<K> {
     CraftPattern<K> projectMaterials(List<CraftInput<K>> inputs, List<CraftOutput<K>> byproducts) {
         if (executionCost == 0) {
             if (!this.inputs.equals(inputs) || !byproducts.isEmpty())
-                throw new IllegalArgumentException("a tag projection must retain its pure 1:1 material edge");
+                throw new IllegalArgumentException("a tag projection must retain its member bundle edge");
             return this;
         }
         return new CraftPattern<>(output, exactOutputAmount, inputs, byproducts, source,

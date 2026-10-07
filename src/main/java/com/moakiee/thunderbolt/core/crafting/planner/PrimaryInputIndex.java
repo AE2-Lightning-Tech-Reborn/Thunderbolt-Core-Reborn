@@ -41,12 +41,16 @@ final class PrimaryInputIndex<K> {
         for (int k = 0; k < keys.size(); k++) {
             PlanningCancellation.check();
             patternStarts.add(patterns.size());
-            for (var pattern : graph.patternsFor(keys.get(k))) {
+            var routes = graph.patternsFor(keys.get(k));
+            for (int p = 0; p < routes.size(); p++) {
+                var pattern = routes.get(p);
                 if ((patterns.size() & 1023) == 0) PlanningCancellation.check();
                 patterns.add(pattern);
                 output.add(k);
                 inputStarts.add(inputKeys.size);
-                for (var input : pattern.inputs()) {
+                var inputs = pattern.inputs();
+                for (int slot = 0; slot < inputs.size(); slot++) {
+                    var input = inputs.get(slot);
                     if ((inputKeys.size & 4095) == 0) PlanningCancellation.check();
                     Integer id = ids.get(input.key());
                     if (id == null) {
