@@ -32,15 +32,12 @@ def properties(root):
 def metadata(props, tag, prerelease):
     game = props["minecraft_version"]
     if game == "1.21.1":
-        prefix, loader, java, metadata_path = "v", "neoforge", "21", "META-INF/neoforge.mods.toml"
+        loader, java, metadata_path = "neoforge", "21", "META-INF/neoforge.mods.toml"
     elif game == "1.20.1":
-        prefix, loader, java, metadata_path = "forge-1.20.1-v", "forge", "17", "META-INF/mods.toml"
+        loader, java, metadata_path = "forge", "17", "META-INF/mods.toml"
     else:
         raise ValueError(f"Unsupported Minecraft release target: {game}")
-    match = re.fullmatch(re.escape(prefix) + VERSION_PATTERN, tag)
-    if not match:
-        raise ValueError(f"Minecraft {game} releases require tag {prefix}<version>; received: {tag}")
-    version = match[1]
+    version = tag
     if re.search(r"(?:^|[.-])alpha[0-9]*(?:[.-]|$)", version, re.I):
         release_type = "alpha"
     elif re.search(r"(?:^|[.-])beta[0-9]*(?:[.-]|$)", version, re.I) or prerelease:
@@ -120,9 +117,15 @@ def download_dependencies(root, props, owner):
     for mod_id, version in dependency_versions(props).items():
         file_base = f"{mod_id}-forge-1.20.1" if forge else mod_id
         file_name = f"{file_base}-{version}.jar"
-        tag = f"forge-1.20.1-v{version}" if forge else f"v{version}"
-        subprocess.run(["gh", "release", "download", tag, "--repo", f"{owner}/{PROJECTS[mod_id][0]}",
-                        "--pattern", file_name, "--dir", str(downloads)], check=True)
+        legacy_tag = f"forge-1.20.1-v{version}" if forge else f"v{version}"
+        for tag in (version, legacy_tag):
+            try:
+                subprocess.run(["gh", "release", "download", tag, "--repo", f"{owner}/{PROJECTS[mod_id][0]}",
+                                "--pattern", file_name, "--dir", str(downloads), "--clobber"], check=True)
+                break
+            except subprocess.CalledProcessError:
+                if tag == legacy_tag:
+                    raise
         jar_path = downloads / file_name
         validate_jar(jar_path, mod_id, version, metadata_path)
         artifact = props.get("thunderbolt_artifact_id", "thunderbolt") if mod_id == "thunderbolt" else mod_id
