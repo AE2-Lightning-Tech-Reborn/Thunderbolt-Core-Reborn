@@ -2,6 +2,7 @@
 
 import hashlib
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -32,20 +33,24 @@ class ReleaseContractTest(unittest.TestCase):
             ("2.1.2-alphabet", False, "release"),
             ("2.1.2-rc.1", True, "beta"),
         )
-        for game, prefix, loader, java in (("1.21.1", "v", "neoforge", "21"),
-                                           ("1.20.1", "forge-1.20.1-v", "forge", "17")):
+        for game, loader, java in (("1.21.1", "neoforge", "21"),
+                                  ("1.20.1", "forge", "17")):
             for version, prerelease, expected_type in cases:
                 with self.subTest(game=game, version=version, prerelease=prerelease):
-                    result = release.metadata({"minecraft_version": game}, prefix + version, prerelease)
+                    result = release.metadata({"minecraft_version": game}, version, prerelease)
                     self.assertEqual((result["version"], result["release_type"], result["mod_loader"], result["java_version"]),
                                      (version, expected_type, loader, java))
                     self.assertEqual(result["platform_version"], version + ("-forge.1.20.1" if loader == "forge" else ""))
 
-    def test_rejects_wrong_loader_tag_and_invalid_version(self):
-        for game, tag in (("1.20.1", "v2.0.0"), ("1.21.1", "forge-1.20.1-v2.0.0"),
-                          ("1.21.1", "v2.0"), ("1.21.1", "v2.0.0\nextra"), ("1.19.2", "v2.0.0")):
-            with self.subTest(game=game, tag=tag), self.assertRaises(ValueError):
-                release.metadata({"minecraft_version": game}, tag, False)
+    def test_preserves_tags_without_imposing_a_naming_format(self):
+        for game in ("1.21.1", "1.20.1"):
+            for tag in ("2.0.2-beta", "2.0.2", "2.0.3", "1.0.0-alpha", "2.0", "nightly-2026.10", "v2.0.2"):
+                with self.subTest(game=game, tag=tag):
+                    self.assertEqual(release.metadata({"minecraft_version": game}, tag, False)["version"], tag)
+
+    def test_rejects_unsupported_build_target(self):
+        with self.assertRaises(ValueError):
+            release.metadata({"minecraft_version": "1.19.2"}, "2.0.2-beta", False)
 
     def test_provider_versions_come_from_current_build_configuration(self):
         props = {"mod_id": "ae2ltpp", "ae2lt_jar": "../AE2-Lightning-Tech/build/libs/ae2lt-2.1.0-beta.1.jar",
@@ -73,8 +78,7 @@ class ReleaseContractTest(unittest.TestCase):
                         requests.append(command)
                         upstream = "ae2lt" if "AE2-Lightning-Tech-Reborn/AE2-Lightning-Tech-Reborn" in command else "thunderbolt"
                         version = props[f"{upstream}_version"]
-                        prefix = "forge-1.20.1-v" if forge else "v"
-                        self.assertEqual(command[3], prefix + version)
+                        self.assertEqual(command[3], version)
                         self.assertEqual(command[6], "--pattern")
                         name = f'{upstream}{"-forge-1.20.1" if forge else ""}-{version}.jar'
                         self.assertEqual(command[7], name)
@@ -92,6 +96,33 @@ class ReleaseContractTest(unittest.TestCase):
                         self.assertEqual(pom.findtext("{*}artifactId"), artifact)
                         self.assertEqual(pom.findtext("{*}version"), version)
 
+    def test_falls_back_to_legacy_dependency_tags(self):
+        for game in ("1.21.1", "1.20.1"):
+            with self.subTest(game=game), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                forge = game == "1.20.1"
+                requests = []
+                props = {"minecraft_version": game, "mod_id": "ae2lt", "thunderbolt_version": "2.0.1"}
+
+                def download(command, check):
+                    requests.append(command[3])
+                    if command[3] == "2.0.1":
+                        raise subprocess.CalledProcessError(1, command)
+                    jar_fixture(Path(command[9]) / command[7], "thunderbolt", "2.0.1", forge)
+
+                with patch.object(release.subprocess, "run", side_effect=download):
+                    outputs = release.download_dependencies(root, props, "AE2-Lightning-Tech-Reborn")
+                self.assertEqual(requests, ["2.0.1", ("forge-1.20.1-v" if forge else "v") + "2.0.1"])
+                self.assertEqual(outputs["thunderbolt_maven_notation"], "com.moakiee.thunderbolt:thunderbolt:2.0.1")
+
+    def test_missing_dependency_releases_still_fail(self):
+        with tempfile.TemporaryDirectory() as directory:
+            props = {"minecraft_version": "1.21.1", "mod_id": "ae2lt", "thunderbolt_version": "2.0.1"}
+            with patch.object(release.subprocess, "run", side_effect=subprocess.CalledProcessError(1, "gh")) as download:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    release.download_dependencies(Path(directory), props, "AE2-Lightning-Tech-Reborn")
+                self.assertEqual([call.args[0][3] for call in download.call_args_list], ["2.0.1", "v2.0.1"])
+
     def test_rejects_dependency_with_wrong_version_or_loader(self):
         with tempfile.TemporaryDirectory() as directory:
             jar = Path(directory) / "dependency.jar"
@@ -106,8 +137,7 @@ class ReleaseContractTest(unittest.TestCase):
             for mod_id in release.PROJECTS:
                 with self.subTest(game=game, mod_id=mod_id), tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)
-                    prefix = "forge-1.20.1-v" if game == "1.20.1" else "v"
-                    result = release.metadata({"minecraft_version": game}, prefix + "2.0.1-beta", True)
+                    result = release.metadata({"minecraft_version": game}, "2.0.1-beta", True)
                     jar = root / "build/libs/distributable.jar"
                     jar_fixture(jar, mod_id, result["version"], game == "1.20.1")
                     (jar.parent / "mod-slim.jar").write_bytes(b"excluded")
