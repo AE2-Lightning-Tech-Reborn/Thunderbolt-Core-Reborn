@@ -320,6 +320,20 @@ tasks.register('cpSatColdRefinementTest', Test) {
 }
 tasks.named('check') { dependsOn 'cpSatColdRefinementTest' }
 
+tasks.register('materialDagColdReplayTest', Test) {
+    group = 'verification'
+    description = 'Checks trillion-scale material replay in a fresh planner JVM.'
+    dependsOn 'testClasses'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MixedRouteQuantityRegressionTest.freshRecipeIdentitiesKeepTrillionScaleFeasibility'
+    }
+    testLogging { events 'failed' }
+}
+tasks.named('check') { dependsOn 'materialDagColdReplayTest' }
+
 tasks.register('prepareOptionalModShapeArtifacts', Sync) {
     from configurations.optionalModShapeArtifacts
     into layout.buildDirectory.dir('optional-mod-shapes')

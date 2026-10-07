@@ -16,7 +16,11 @@ class MaterialDagReplayTest {
 
     private static void check(CraftGraph<String> graph, String target, long amount) {
         var result = assertTimeoutPreemptively(Duration.ofSeconds(1),
-                () -> CraftPlannerV2.planDetailed(graph, target, amount));
+                () -> {
+                    var session = new CraftPlannerV2.PlanningSession<String>();
+                    session.optimizeFeasible = false;
+                    return CraftPlannerV2.planDetailed(graph, target, amount, session);
+                });
         var plan = result.plan();
         assertTrue(plan.feasible(), () -> result.toString());
         plan.usedStock().forEach((key, n) -> assertTrue(n <= graph.stock(key)));
@@ -371,7 +375,12 @@ class MaterialDagReplayTest {
     @Test
     void preservesMixedRoutesWhenFeedbackSideOutputIsUnneeded() {
         for (long scale : new long[] {1, 2, 1_000_000, 1_000_000_000_000L}) {
-            check(CraftGraph.<String>builder()
+            check(mixedRoutesGraph(scale), "M5", scale);
+        }
+    }
+
+    static CraftGraph<String> mixedRoutesGraph(long scale) {
+        return CraftGraph.<String>builder()
                     .stock("M0", 2*scale)
                     .stock("M1", 2*scale)
                     .stock("M2", 1*scale)
@@ -386,8 +395,7 @@ class MaterialDagReplayTest {
                     .pattern(recipe("M0", 1, Map.of("M2", 1L, "M3", 1L, "M4", 1L), Map.of("M3", 2L)))
                     .pattern(recipe("M4", 2, Map.of("M0", 1L, "M3", 1L), Map.of()))
                     .pattern(recipe("M5", 1, Map.of("M3", 2L), Map.of()))
-                    .build(), "M5", scale);
-        }
+                    .build();
     }
 
     // Exercise fresh recipe identities: bounded solving must not depend on identity-map row order.
