@@ -76,6 +76,7 @@ public final class CpSatRankedFlowSolver<K> {
         private int improvements;
         private int blockSolves;
         private int smallRecoveryAttempts;
+        private int compressedSeedAttempts;
         private boolean incomplete;
 
         public PlanningSession() { this(16, 4096, 250_000_000L); }
@@ -97,6 +98,7 @@ public final class CpSatRankedFlowSolver<K> {
         int improvements() { return improvements; }
         int blockSolves() { return blockSolves; }
         int smallRecoveryAttempts() { return smallRecoveryAttempts; }
+        int compressedSeedAttempts() { return compressedSeedAttempts; }
         boolean incomplete() { return incomplete; }
     }
 
@@ -322,6 +324,12 @@ public final class CpSatRankedFlowSolver<K> {
         long allowed = Math.min(session.remainingNanos,
                 PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
         try (var ignored = PlanningCancellation.limitOptionalWork(allowed)) {
+            CraftPlan<K> compressed = compressedSeedWitness(c, first.firings);
+            if (compressed != null && better(c, compressed, best)) {
+                best = compressed;
+                session.improvements++;
+                if (best.feasible()) return new Result<>(Status.SOLVED, best, branches);
+            }
             CraftPlan<K> seeded = smallSeedWitness(c, first.firings);
             if (seeded != null && better(c, seeded, best)) {
                 best = seeded;
@@ -502,6 +510,68 @@ public final class CpSatRankedFlowSolver<K> {
         }
         return new CraftPlan<>(true, missing.isEmpty(), Map.copyOf(fired), Map.copyOf(used), Map.of(),
                 Map.copyOf(missing), Map.copyOf(gross), c.items.size(), false);
+    }
+
+    /** Add one batch of unused external seed producers at cyclic ranks, then schedule their
+     * fixed vector with compact rounds. Every group draws from one shared physical marking.
+     * This is a positive witness within the existing allowance, not an optimality proof. */
+    private CraftPlan<K> compressedSeedWitness(Compilation<K> c, long[] relaxed) {
+        if (c.feedbackMacros.size() + c.conversionCycles.size() < 2
+                || c.items.size() > 64 || c.patterns.size() > 48
+                || session.verifier.remainingNodes() <= 0) return null;
+        for (var pattern : c.patterns) for (var input : pattern.inputs())
+            if (input.returned() || input.remainder() != null || input.reusableStockSource() != null) return null;
+        Set<Integer> cyclicGroups = new LinkedHashSet<>();
+        for (var macro : c.feedbackMacros) cyclicGroups.add(macro.rankGroup);
+        for (var cycle : c.conversionCycles) cyclicGroups.add(cycle.rankGroup);
+        long[] quantities = relaxed.clone();
+        boolean added = false;
+        for (int r = 0; r < quantities.length; r++) {
+            if (quantities[r] == 0 && c.firingUpperBounds[r] > 0
+                    && c.feedbackMacroByRecipe[r] < 0 && c.conversionCycleByRecipe[r] < 0
+                    && cyclicGroups.contains(c.rankGroups[c.outputItems[r]])) {
+                quantities[r] = 1;
+                added = true;
+            }
+        }
+        if (!added) return null;
+        session.compressedSeedAttempts++;
+        BigInteger[] demand = new BigInteger[c.items.size()];
+        BigInteger[] produced = new BigInteger[c.items.size()];
+        BigInteger[] primary = new BigInteger[c.items.size()];
+        Arrays.fill(demand, BigInteger.ZERO);
+        Arrays.fill(produced, BigInteger.ZERO);
+        Arrays.fill(primary, BigInteger.ZERO);
+        demand[c.targetItem] = BigInteger.valueOf(targetAmount);
+        for (int r = 0; r < quantities.length; r++) {
+            PlanningCancellation.check();
+            if (quantities[r] == 0) continue;
+            BigInteger n = BigInteger.valueOf(quantities[r]);
+            for (int i : c.consumed.rowKeys(r))
+                demand[i] = demand[i].add(BigInteger.valueOf(c.consumed.get(r, i)).multiply(n));
+            for (int i : c.produced.rowKeys(r))
+                produced[i] = produced[i].add(BigInteger.valueOf(c.produced.get(r, i)).multiply(n));
+            int output = c.primaryOutputItems[r];
+            primary[output] = primary[output].add(BigInteger.valueOf(c.primaryOutputAmounts[r])
+                    .multiply(n.subtract(BigInteger.ONE)).add(BigInteger.ONE));
+        }
+        boolean[] boundaries = boundariesFor(c, quantities);
+        BigInteger[] initial = new BigInteger[c.items.size()];
+        long[] supply = new long[initial.length];
+        for (int i = 0; i < initial.length; i++) {
+            if (primary[i].compareTo(demand[i]) > 0) return null;
+            BigInteger deficit = demand[i].subtract(produced[i]).subtract(BigInteger.valueOf(c.stocks[i]))
+                    .max(BigInteger.ZERO);
+            if ((deficit.signum() > 0 && !boundaries[i]) || deficit.compareTo(BigInteger.valueOf(Sat.SAT)) >= 0)
+                return null;
+            supply[i] = deficit.longValueExact();
+            initial[i] = BigInteger.valueOf(c.stocks[i]).add(deficit);
+        }
+        var proof = PetriBlockScheduler.schedule(c.consumed, c.produced, quantities, initial,
+                c.targetItem, targetAmount, executionBlocks(c, false), session.verifier);
+        if (proof == null) return null;
+        var plan = certifiedPlan(c, quantities, supply, proof);
+        return plan != null && legalMissing(c, plan) ? withBudget(plan) : null;
     }
 
     /** A small relaxed vector often omitted just its acyclic seed producers. Add one batch of
