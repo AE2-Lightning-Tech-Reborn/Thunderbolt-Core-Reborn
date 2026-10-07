@@ -1,0 +1,328 @@
+{
+  "date": "2026-10-03",
+  "baseline_commit": "60e2c0618e375d0b30ad51a0fb39d2b6f04e529d",
+  "tested_source_commit": "0d1f5706a159204f99205724436e9e4c0f6d0025",
+  "scope": "Final endpoint comparison after issue #5 was already fixed. Production source is unchanged when the local development series is consolidated for alpha publication.",
+  "timing": {
+    "date": "2026-10-03",
+    "baseline": "60e2c06 (issue #5 fixed; first optimization baseline)",
+    "protocol": {
+      "sequence": [
+        "baseline",
+        "candidate",
+        "candidate",
+        "baseline",
+        "baseline",
+        "candidate",
+        "candidate",
+        "baseline"
+      ],
+      "repeats_per_dataset_per_process": 3,
+      "discarded_repeat": 0,
+      "warm_samples_per_variant_per_dataset": 8,
+      "jvm": "Temurin 21.0.11+10, -Xmx3g -Xss16m",
+      "system_properties": [
+        "-Dthunderbolt.maxReachablePlanningWork=2000000",
+        "-Dthunderbolt.maxCraftSearchWork=2000000",
+        "-Dthunderbolt.feasibleOptimizationTrace=true"
+      ],
+      "limitations": "Offline single-output normalized recipe graphs, not in-game TPS or a global optimality proof. TB counts existing target inventory toward demand; AW excludes it. The NAST case has 1206 target items already in stock."
+    },
+    "class_snapshots": {
+      "baseline": {
+        "count": 443,
+        "sha256": "5d8e7a957d009868def5f3c019cdaf86286568fd44a1df19e723662408e5ff03"
+      },
+      "candidate": {
+        "count": 470,
+        "sha256": "d172cf19314890c056f1fc2073d8e4c9b45df54039a2f7d6bf05595361c79456"
+      }
+    },
+    "results": [
+      {
+        "dataset": "recipes-atm",
+        "amount": 100000,
+        "stock": "random20",
+        "real_executions": 100,
+        "tag_executions": 0,
+        "existing_target_stock": 0,
+        "aw_target_stock_exclusion_shortfalls": {},
+        "identical_plan_fingerprints": true,
+        "baseline": {
+          "planning_ms_samples": [
+            1165.6955,
+            1055.662,
+            1255.585542,
+            1086.840834,
+            1220.1,
+            1078.303542,
+            1199.106875,
+            1134.49675
+          ],
+          "planning_ms_median": 1150.096125,
+          "optimizer_ms_median": 491.475396
+        },
+        "candidate": {
+          "planning_ms_samples": [
+            554.096542,
+            470.456458,
+            530.831708,
+            527.431333,
+            531.650833,
+            521.215917,
+            538.364625,
+            507.073917
+          ],
+          "planning_ms_median": 529.1315205000001,
+          "optimizer_ms_median": 148.093625
+        },
+        "planning_reduction_percent": 53.992409069285394
+      },
+      {
+        "dataset": "recipes-nast",
+        "amount": 100000,
+        "stock": "random20",
+        "real_executions": 560511624,
+        "tag_executions": 9735296,
+        "existing_target_stock": 1206,
+        "aw_target_stock_exclusion_shortfalls": {
+          "6871": 1206
+        },
+        "identical_plan_fingerprints": true,
+        "baseline": {
+          "planning_ms_samples": [
+            658.738125,
+            625.208292,
+            699.00325,
+            647.297375,
+            674.854083,
+            632.686459,
+            684.057166,
+            657.771
+          ],
+          "planning_ms_median": 658.2545625,
+          "optimizer_ms_median": 548.203042
+        },
+        "candidate": {
+          "planning_ms_samples": [
+            449.127208,
+            398.098167,
+            460.546916,
+            409.419833,
+            463.352,
+            408.840667,
+            450.458,
+            406.61425
+          ],
+          "planning_ms_median": 429.2735205,
+          "optimizer_ms_median": 393.822354
+        },
+        "planning_reduction_percent": 34.78609265241515
+      }
+    ],
+    "all_48_records_balance_and_replay_passed": true
+  },
+  "quality": {
+    "method": "Read-only comparison of existing JSONL snapshots; no planner, Java or benchmark execution.",
+    "inputs": {
+      "before_first_round": {
+        "path": "outputs/tb-issue-5-20261003/alpha-experiments/final-integrated-audit/baseline.jsonl",
+        "commit": "60e2c0618e375d0b30ad51a0fb39d2b6f04e529d",
+        "sha256": "2d6688a901ec483279d64aaafaf0f0ea100245800455cdee2e305aa6c4f3d154",
+        "bytes": 639405,
+        "records": 3000
+      },
+      "first_round_delivered": {
+        "path": "outputs/tb-issue-5-20261003/alpha-experiments/final-integrated-audit/candidate.jsonl",
+        "commit": "ea0b4daac8f50c2ab3cff0d128adddcc8ba3afe6",
+        "sha256": "ddcf4bfeaa4f69e313dbf3d1d4d7b54d4a5452b9d6a7cd78094d01f7053177e8",
+        "bytes": 639435,
+        "records": 3000
+      },
+      "latest": {
+        "path": "outputs/tb-alpha-round5-20261003/combined-audit.jsonl",
+        "commit": "0d1f5706a159204f99205724436e9e4c0f6d0025",
+        "sha256": "b0dfdf54b11801c02741cc40b170bfb7dd062639db93ccc03d8c6605e8f36a2e",
+        "bytes": 3468900,
+        "records": 3000
+      }
+    },
+    "generator_and_validation_alignment": {
+      "original_source": "outputs/tb-issue-5-20261003/alpha-experiments/FinalAudit.java",
+      "original_source_sha256": "e4635dddd9b7c8ceae784d00a7c1b423147067bd91db24741a3a5865f5a143c0",
+      "latest_source": "outputs/tb-alpha-round5-20261003/ArchitectureAudit.java",
+      "latest_source_sha256": "8f4901eae7afa84f2797aec1f9f096d44a3165680fe03306c34e64eb6133b409",
+      "source_equal_after_removing_class_rename_and_added_output_fields": true,
+      "removed_output_fields": [
+        "usedReusableStock",
+        "grossDemand",
+        "itemsProcessed",
+        "budgetExhausted",
+        "diagnostics"
+      ],
+      "seed_formula": "725318L + sample",
+      "statement": "Generator, planner call, balance check and all three replay algorithms are unchanged."
+    },
+    "comparisons": {
+      "before_first_round_to_latest": {
+        "baseline_commit": "60e2c0618e375d0b30ad51a0fb39d2b6f04e529d",
+        "candidate_commit": "0d1f5706a159204f99205724436e9e4c0f6d0025",
+        "samples": 3000,
+        "alignment": {
+          "fields": [
+            "sample",
+            "mode",
+            "amount",
+            "patterns"
+          ],
+          "both_have_unique_ordered_sample_ids_0_through_2999": true,
+          "all_fields_equal": true
+        },
+        "compared_plan_fields": [
+          "feasible",
+          "supported",
+          "exec",
+          "used",
+          "missing",
+          "firings"
+        ],
+        "baseline_feasible": 2867,
+        "candidate_feasible": 2867,
+        "baseline_successful_replays": 8601,
+        "candidate_successful_replays": 8601,
+        "counts": {
+          "fewer_executions": 242,
+          "equal_execution_less_stock": 952,
+          "plan_changes": 1194
+        },
+        "same_plan_count": 1806,
+        "failure_counts": {
+          "identity_mismatch": 0,
+          "status_change": 0,
+          "execution_regression": 0,
+          "equal_execution_stock_increase": 0,
+          "baseline_invalid_balance": 0,
+          "candidate_invalid_balance": 0,
+          "baseline_replay_failure": 0,
+          "candidate_replay_failure": 0
+        },
+        "failures": {
+          "identity_mismatch": [],
+          "status_change": [],
+          "execution_regression": [],
+          "equal_execution_stock_increase": [],
+          "baseline_invalid_balance": [],
+          "candidate_invalid_balance": [],
+          "baseline_replay_failure": [],
+          "candidate_replay_failure": []
+        },
+        "passed": true
+      },
+      "first_round_delivered_to_latest": {
+        "baseline_commit": "ea0b4daac8f50c2ab3cff0d128adddcc8ba3afe6",
+        "candidate_commit": "0d1f5706a159204f99205724436e9e4c0f6d0025",
+        "samples": 3000,
+        "alignment": {
+          "fields": [
+            "sample",
+            "mode",
+            "amount",
+            "patterns"
+          ],
+          "both_have_unique_ordered_sample_ids_0_through_2999": true,
+          "all_fields_equal": true
+        },
+        "compared_plan_fields": [
+          "feasible",
+          "supported",
+          "exec",
+          "used",
+          "missing",
+          "firings"
+        ],
+        "baseline_feasible": 2867,
+        "candidate_feasible": 2867,
+        "baseline_successful_replays": 8601,
+        "candidate_successful_replays": 8601,
+        "counts": {
+          "fewer_executions": 232,
+          "equal_execution_less_stock": 927,
+          "plan_changes": 1159
+        },
+        "same_plan_count": 1841,
+        "failure_counts": {
+          "identity_mismatch": 0,
+          "status_change": 0,
+          "execution_regression": 0,
+          "equal_execution_stock_increase": 0,
+          "baseline_invalid_balance": 0,
+          "candidate_invalid_balance": 0,
+          "baseline_replay_failure": 0,
+          "candidate_replay_failure": 0
+        },
+        "failures": {
+          "identity_mismatch": [],
+          "status_change": [],
+          "execution_regression": [],
+          "equal_execution_stock_increase": [],
+          "baseline_invalid_balance": [],
+          "candidate_invalid_balance": [],
+          "baseline_replay_failure": [],
+          "candidate_replay_failure": []
+        },
+        "passed": true
+      }
+    },
+    "boundaries": [
+      "These are preserved results, not a fresh paired execution or timing measurement.",
+      "The finite corpus has 3000 normalized small graphs, including 1000 with byproducts; it is not a general optimality proof or a game TPS benchmark.",
+      "Ordinary stock is compared per key only when total executions are equal; fewer executions may consume different existing inventory, as authorized by the objective.",
+      "Each feasible stored plan has three deterministic unit-execution replay results, not an exhaustive proof over every possible execution order.",
+      "The first-round files omit reusable stock, gross demand, budgetExhausted and full diagnostics; those fields cannot be compared directly across these endpoints.",
+      "The field-alignment check is backed by equal generator and validation source after removing output-only additions; records do not contain full serialized input graphs.",
+      "Issue #5 was already fixed in 60e2c06, so its Dark Tank 40001-to-100 execution improvement predates both comparison baselines."
+    ],
+    "passed": true
+  },
+  "preflight": {
+    "class_snapshots": {
+      "baseline": {
+        "path": "outputs/tb-issue-5-20261003/issue5-baseline/classes",
+        "count": 443,
+        "sha256": "5d8e7a957d009868def5f3c019cdaf86286568fd44a1df19e723662408e5ff03"
+      },
+      "candidate": {
+        "path": "outputs/tb-alpha-round5-20261003/final-classes",
+        "count": 470,
+        "sha256": "d172cf19314890c056f1fc2073d8e4c9b45df54039a2f7d6bf05595361c79456"
+      }
+    },
+    "inputs": [
+      {
+        "path": "normalized/recipes-atm.bin",
+        "bytes": 12966108,
+        "sha256": "aa5cde5d2dda745824ceb22535f8a588e9849be4d5f726dd7d1cc5fd6a7fed07"
+      },
+      {
+        "path": "AW/bench/plans/recipes-atm.stock.random20.tsv",
+        "bytes": 134464,
+        "sha256": "26ff15252ffc4a9707a84f8d5fe36e13fc5baa8f1274e09f9914c41acc343204"
+      },
+      {
+        "path": "normalized/recipes-nast.bin",
+        "bytes": 1255472,
+        "sha256": "38bee92efcef25027b5b0598c0b080a8d64097f5e7b2948724c5d6052f734cc9"
+      },
+      {
+        "path": "AW/bench/plans/recipes-nast.stock.random20.tsv",
+        "bytes": 23231,
+        "sha256": "ccffbe94803687144b24d747f9f6bd2ade5e3d22f251c8c093dbeb16c56e1b67"
+      }
+    ]
+  },
+  "reproduction_sha256": {
+    "direct_abba.py": "75212d97dcf78105b9730d888b9113f1f38c50f61f0baf5638335e04bdf3b904",
+    "compare_existing_quality.py": "759abbc8f78ad9d455c8bbf8f021ee2a004da6d55aa25c3d17b4b447857d795a",
+    "quality-comparison.json": "682b550d82f9a00e224c7710b36b1e2e38fcf7f31c70731bfebc66bf4ca3c0b3"
+  }
+}

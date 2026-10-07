@@ -157,6 +157,7 @@ public final class BatchExecutor {
                 null);
     }
 
+    /** Uses the global {@link com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapters} registry. */
     public static BatchRunResult runBatchOnly(int remainingOps,
                                               BatchCpuAccounting.Mode accountingMode,
                                               CraftingService cs,
@@ -175,6 +176,7 @@ public final class BatchExecutor {
                 dispatchSchedule, null);
     }
 
+    /** A null adapter selects global lookup; a non-null adapter replaces it for this call. */
     public static BatchRunResult runBatchOnly(int remainingOps,
                                               BatchCpuAccounting.Mode accountingMode,
                                               CraftingService cs,
@@ -280,10 +282,10 @@ public final class BatchExecutor {
                 eligible.subList(1, eligible.size()).clear();
             }
 
-            boolean hasUnboundedProvider = eligible.stream()
-                    .anyMatch(provider -> provider.mode() == BatchDispatchMode.UNBOUNDED);
+            boolean hasUnboundedProvider = false;
             long availableBatchCapacity = 0;
             for (var provider : eligible) {
+                hasUnboundedProvider |= provider.mode() == BatchDispatchMode.UNBOUNDED;
                 availableBatchCapacity = saturatingAdd(availableBatchCapacity, provider.capacity());
             }
             if (availableBatchCapacity <= 0) continue;
@@ -492,6 +494,7 @@ public final class BatchExecutor {
             }
         }
 
+        if (taskDetails == executionDetails) return true;
         var taskOutputs = outputAmounts(taskDetails);
         var executionOutputs = outputAmounts(executionDetails);
         if (!taskOutputs.equals(executionOutputs)) return false;

@@ -1,0 +1,126 @@
+{
+    "java":  "17.0.20",
+    "before":  [
+                   {
+                       "scenario":  "chain-500",
+                       "iterations":  10,
+                       "p50_ns":  1952720.0,
+                       "p95_ns":  2832200.0,
+                       "bytes_per_op":  2363168.8
+                   },
+                   {
+                       "scenario":  "alternatives-1",
+                       "iterations":  50,
+                       "p50_ns":  254340.0,
+                       "p95_ns":  327460.0,
+                       "bytes_per_op":  122080.3
+                   },
+                   {
+                       "scenario":  "quantity-session-1",
+                       "iterations":  10,
+                       "p50_ns":  634910.0,
+                       "p95_ns":  1197530.0,
+                       "bytes_per_op":  205859.2
+                   },
+                   {
+                       "scenario":  "alternatives-1000000000000",
+                       "iterations":  50,
+                       "p50_ns":  277850.0,
+                       "p95_ns":  466546.0,
+                       "bytes_per_op":  178128.0
+                   },
+                   {
+                       "scenario":  "quantity-session-1000000000000",
+                       "iterations":  10,
+                       "p50_ns":  368880.0,
+                       "p95_ns":  735740.0,
+                       "bytes_per_op":  259064.0
+                   },
+                   {
+                       "scenario":  "useless-dispatch",
+                       "iterations":  10000,
+                       "p50_ns":  406.1,
+                       "p95_ns":  721.3,
+                       "bytes_per_op":  1040.0
+                   },
+                   {
+                       "scenario":  "ordinary-bulk-extract",
+                       "iterations":  3000,
+                       "p50_ns":  1688.2,
+                       "p95_ns":  2486.3,
+                       "bytes_per_op":  3953.0
+                   }
+               ],
+    "after":  [
+                  {
+                      "scenario":  "chain-500",
+                      "iterations":  10,
+                      "p50_ns":  2021520.0,
+                      "p95_ns":  2492990.0,
+                      "bytes_per_op":  2355160.0
+                  },
+                  {
+                      "scenario":  "alternatives-1",
+                      "iterations":  50,
+                      "p50_ns":  209872.0,
+                      "p95_ns":  280924.0,
+                      "bytes_per_op":  121672.0
+                  },
+                  {
+                      "scenario":  "quantity-session-1",
+                      "iterations":  10,
+                      "p50_ns":  501360.0,
+                      "p95_ns":  996720.0,
+                      "bytes_per_op":  205952.0
+                  },
+                  {
+                      "scenario":  "alternatives-1000000000000",
+                      "iterations":  50,
+                      "p50_ns":  242812.0,
+                      "p95_ns":  327656.0,
+                      "bytes_per_op":  177224.0
+                  },
+                  {
+                      "scenario":  "quantity-session-1000000000000",
+                      "iterations":  10,
+                      "p50_ns":  246230.0,
+                      "p95_ns":  411280.0,
+                      "bytes_per_op":  258088.0
+                  },
+                  {
+                      "scenario":  "useless-dispatch",
+                      "iterations":  10000,
+                      "p50_ns":  414.8,
+                      "p95_ns":  631.6,
+                      "bytes_per_op":  1040.0
+                  },
+                  {
+                      "scenario":  "useless-partial-dispatch",
+                      "iterations":  10000,
+                      "p50_ns":  250.2,
+                      "p95_ns":  276.5,
+                      "bytes_per_op":  1040.0
+                  },
+                  {
+                      "scenario":  "ordinary-bulk-extract",
+                      "iterations":  3000,
+                      "p50_ns":  1298.8,
+                      "p95_ns":  1978.1,
+                      "bytes_per_op":  3888.0
+                  }
+              ],
+    "baseline":  "Current worktree before these optimizations; optimizer restored from HEAD; Useless adapters from upstream 6ddfcae.",
+    "source_sha256":  {
+                          "src/test/java/com/moakiee/thunderbolt/compat/useless/OptimizationBenchmark.java":  "ce26909ec1c3f7b4946b0004f72eede6845bebe01571bae438ffb64f4ec35758",
+                          "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/FeasibleConsumptionOptimizer.java":  "685c7ddbcfe3a5071c3db44f04038da5ce5060eee2dabf440b07ee98962a74dd",
+                          "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/OptionalPlanningStages.java":  "2e6b67c2d763058b397b5f2311806c8b2e48aa50fd863d9daef94a13b7a84970",
+                          "src/main/java/com/moakiee/thunderbolt/compat/useless/UselessBatchApi.java":  "b061e802f2b95a7408faa1e5314e7d63e435466b9556392d3bc5e9e018378575"
+                      },
+    "measurement_samples":  20,
+    "percentile_definition":  "nearest-rank (p50/p95)",
+    "correctness_checks":  [
+                               "Useless partial acceptance preserves the borrowed input template",
+                               "Useless rejected commit performs one ordinary fallback attempt",
+                               "Useless ambiguous commit is propagated without ordinary retry"
+                           ]
+}

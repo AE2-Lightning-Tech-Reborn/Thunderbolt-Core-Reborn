@@ -6,7 +6,7 @@ Thunderbolt Core Reborn is the shared AE2 optimization and infrastructure layer 
 AE2 Lightning Tech Reborn. It can also be installed as a standalone AE2 autocrafting
 accelerator.
 
-This is the **Minecraft Forge 1.20.1** branch. For Minecraft 1.21.1 and
+This is the **Minecraft Forge 1.20.1_GTL** branch. For Minecraft 1.21.1 and
 NeoForge, see the [`main`](https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/tree/main)
 branch.
 
@@ -43,6 +43,11 @@ verification steps are described in `docs/gtl-core-coexistence.zh-CN.md`.
 
 ## Configuration
 
+V2 improves feasible plans by preferring fewer recipe executions and may use different
+available inventory to shorten a route. At equal execution counts, it only accepts
+material savings without increasing another material's draw. This optimization is bounded
+by the planning budget; it does not guarantee a globally optimal plan.
+
 Common options are written to `config/thunderbolt-common.toml`:
 
 - `planning.enableCpSatPlanner`: enables the experimental OR-Tools CP-SAT
@@ -64,10 +69,26 @@ properties:
   (default: `2000`)
 - `-Dthunderbolt.planningStopGraceMs=<ms>`: total post-deadline grace before
   isolation (default: `5000`)
-- `-Dthunderbolt.maxCraftSearchWork=<count>`: planner search-work budget
+- `-Dthunderbolt.maxCraftSearchWork=<count>`: planner search-work budget (default:
+  four times `thunderbolt.maxReachablePlanningWork`, or `262144`)
 - `-Dthunderbolt.maxCraftDepth=<count>`: planner depth limit
+- `-Dthunderbolt.feasibleOptimizationStallMs=<ms>`: stop optional optimization
+  after this long without a 1% execution-count gain (default: `500`; `0` disables
+  the stall cutoff, not the enclosing deadline)
+- `-Dthunderbolt.maxConsumptionOptimizationNanos=<ns>`: total optional optimization
+  allowance per calculation (default: `2800000000`; minimum: `1000000`). The
+  enclosing deadline and shared work/probe budgets can stop it earlier.
+
+## Acknowledgements
+
+Thanks to **AdUhTkJm**, author of [AW](https://github.com/AdUhTkJm/AW), for the
+optimization research and comparison cases that informed our work on reducing recipe
+executions. Thunderbolt's bounded proposals retain its own inventory and execution checks.
 
 ## Development
+
+The [AWR benchmark adapter](scripts/awr-benchmark/README.md) supports v1–v3 datasets,
+weighted multi-output recipes and explicit zero-cost tag transfers on Java 17.
 
 Build the distributable JAR:
 

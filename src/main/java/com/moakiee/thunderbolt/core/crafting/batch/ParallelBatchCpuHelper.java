@@ -144,13 +144,26 @@ public final class ParallelBatchCpuHelper {
         var sharedPerBatch = new KeyCounter[slots];
         var scalableDemand = new HashMap<AEKey, Long>(slots * 2);
         for (int slot = 0; slot < slots; slot++) {
-            scalablePerCopy[slot] = new KeyCounter();
             sharedPerBatch[slot] = new KeyCounter();
+            boolean hasShared = false;
+            if (allowSharedInputs) {
+                for (var entry : resolved.inputs[slot]) {
+                    if (SharedBatchInputs.isSharedInput(details, slot, entry.getKey())) {
+                        hasShared = true;
+                        break;
+                    }
+                }
+            }
+            // The resolved copy is owned here. Reuse it for ordinary slots, keeping
+            // provider-owned copies and the mutable scaled inventory separate.
+            scalablePerCopy[slot] = hasShared ? new KeyCounter() : resolved.inputs[slot];
             for (var entry : resolved.inputs[slot]) {
-                boolean shared = allowSharedInputs
+                boolean shared = hasShared
                         && SharedBatchInputs.isSharedInput(details, slot, entry.getKey());
-                var target = shared ? sharedPerBatch[slot] : scalablePerCopy[slot];
-                target.add(entry.getKey(), entry.getLongValue());
+                if (hasShared) {
+                    var target = shared ? sharedPerBatch[slot] : scalablePerCopy[slot];
+                    target.add(entry.getKey(), entry.getLongValue());
+                }
                 if (!shared) {
                     scalableDemand.merge(
                             entry.getKey(), entry.getLongValue(), ParallelBatchCpuHelper::saturatingAdd);
@@ -309,7 +322,7 @@ public final class ParallelBatchCpuHelper {
             BatchJobView job, IPatternDetails details, long dispatched, boolean sharedBatch) {
         var sharedPattern = sharedBatch && details instanceof SharedBatchInputPattern pattern
                 ? pattern : null;
-        var sharedOutputsLeft = new HashMap<AEKey, Long>();
+        var sharedOutputsLeft = sharedPattern == null ? null : new HashMap<AEKey, Long>();
         for (var output : details.getOutputs()) {
             long sharedAmount = 0L;
             if (sharedPattern != null) {

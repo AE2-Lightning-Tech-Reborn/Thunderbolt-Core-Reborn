@@ -15,9 +15,9 @@ class OptionalMixinSelectorTest {
     }
 
     @Test
-    void skipsExtendedAePlusTargetWhenAddonIsMissing() {
+    void skipsAppliedETargetWhenAddonIsMissing() {
         assertFalse(OptionalMixinSelector.shouldApply(
-                "ExtendedAePlusSuperMatrixBatchMixin",
+                "AppliedETransmutationModuleBatchMixin",
                 ignored -> false));
     }
 
@@ -25,8 +25,8 @@ class OptionalMixinSelectorTest {
     void appliesOptionalTargetsWhenTheirModIsLoaded() {
         assertTrue(OptionalMixinSelector.shouldApply("AdvCraftingCpuAccessor", "advanced_ae"::equals));
         assertTrue(OptionalMixinSelector.shouldApply(
-                "ExtendedAePlusSuperMatrixBatchMixin",
-                "extendedae_plus"::equals));
+                "AppliedETransmutationModuleBatchMixin",
+                "appliede"::equals));
     }
 
     @Test

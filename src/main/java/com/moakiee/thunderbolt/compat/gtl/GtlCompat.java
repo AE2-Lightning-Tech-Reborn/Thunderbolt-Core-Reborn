@@ -147,7 +147,7 @@ public final class GtlCompat {
      * <p>A definite answer is cached. An undetermined probe (neither {@code LoadingModList} nor
      * {@code ModList} is usable yet) returns {@code false} without caching, so a later call can still
      * observe GTLCore. Caching a premature {@code false} would leave Mixin CPU-dispatch
-     * stand-down in effect while {@link #isCraftingHandoverActive()} stayed false. The
+     * stand-down in effect while {@link #usesGtlCalculationScheduler()} stayed false. The
      * planner wrapper would then wait on AE2's per-tick monitor under GTLCore's no-op
      * {@code simulateFor} and deadlock, and leftover {@code ICraftingPlan} jobs would be
      * rejected as {@code CPU_OFFLINE} instead of being left to GTLCore.
@@ -238,13 +238,24 @@ public final class GtlCompat {
      * Reports whether Thunderbolt's CPU-dispatch hooks are handed over to GTLCore.
      *
      * <p>Planning is independent of this flag: {@code CraftingCalculationMixin} stays applied and
-     * wraps {@code computePlan()}. The flag still changes how that wrapper yields — GTLCore's
-     * {@code simulateFor} is a no-op, so the AE2 per-tick monitor protocol would deadlock.
+     * wraps {@code computePlan()}. Scheduler selection uses {@link #usesGtlCalculationScheduler()}
+     * independently, because GTLCore's {@code simulateFor} remains a no-op in every handover mode.
      *
      * @return true when the GTL CPU-dispatch stand-down is in effect for this run
      */
     public static boolean isCraftingHandoverActive() {
         return standDown(handoverMode(), isGtlPresent());
+    }
+
+    /**
+     * Whether calculations use GTLCore's scheduler rather than AE2's per-tick monitor.
+     *
+     * <p>The CPU handover override cannot restore AE2's scheduler: GTLCore still overwrites
+     * {@code simulateFor()} when the mode is {@code never}. Forced {@code always} keeps the
+     * polling path available for standalone compatibility tests.
+     */
+    public static boolean usesGtlCalculationScheduler() {
+        return isGtlPresent() || handoverMode() == Handover.ALWAYS;
     }
 
     /**

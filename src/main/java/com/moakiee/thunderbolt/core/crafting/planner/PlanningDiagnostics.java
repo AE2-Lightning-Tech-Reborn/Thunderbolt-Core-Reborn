@@ -69,6 +69,25 @@ public record PlanningDiagnostics(
                 missingRefinementImprovements, missingRefinementNanos, 0, 0, 0L);
     }
 
+    /** Small-graph recovery spends the existing request-wide search allowance. */
+    PlanningDiagnostics withAdditionalSearchWork(int work, long total) {
+        return withAdditionalSearchWork(work, total, false);
+    }
+
+    /** Additional cutoff is reported only after the shared work counter actually refuses work. */
+    PlanningDiagnostics withAdditionalSearchWork(int work, long total, boolean additionalSearchCutoff) {
+        return new PlanningDiagnostics(reachableWorkEstimate, reachableItems, reachablePatterns, inputEdges, contendedOutputs,
+                cycleCuts, seedOrdered, configuredSearchBudget, consumedSearchBudget + work,
+                configuredResolutionBudget, consumedResolutionBudget, configuredFallbackBudget,
+                consumedFallbackBudget, planRuns, compiledOrientations, reusedCompilations, hotNodeVisits,
+                dynamicCapacityEvaluations, equivalentRoutesPruned, failureMemoHits, frontierPeak,
+                searchCutoff || additionalSearchCutoff, resolutionCutoff, fallbackCutoff, graphCompileNanos, linearPassNanos,
+                searchNanos, total, separatorWidthPeak, lowWidthAttempts, lowWidthSolved,
+                lowWidthInfeasible, lowWidthCutoffs, lowWidthIntegerNodes, missingRefinementProbes,
+                missingRefinementImprovements, missingRefinementNanos, consumptionOptimizationProbes,
+                consumptionOptimizationImprovements, consumptionOptimizationNanos);
+    }
+
     /** Phase counters describe the initial search; optional probes have separate counters and total time includes both. */
     PlanningDiagnostics withConsumptionOptimization(int probes, int improvements, long nanos, long total) {
         return new PlanningDiagnostics(reachableWorkEstimate, reachableItems, reachablePatterns, inputEdges, contendedOutputs,

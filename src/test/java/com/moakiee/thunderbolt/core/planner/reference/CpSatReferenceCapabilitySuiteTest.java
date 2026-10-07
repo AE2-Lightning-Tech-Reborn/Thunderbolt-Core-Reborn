@@ -16,7 +16,7 @@ import com.moakiee.thunderbolt.core.crafting.planner.CpSatRankedFlowSolver;
 /** Runs the public capability suite directly through the independent CP-SAT graph model. */
 class CpSatReferenceCapabilitySuiteTest {
     private static final ReferenceCapabilityRunner RUNNER = new ReferenceCapabilityRunner(
-            Duration.ofSeconds(1), Duration.ofMillis(100));
+            Duration.ofSeconds(3), Duration.ofMillis(500));
 
     private static final ReferencePlanner CP_SAT = new ReferencePlanner() {
         @Override

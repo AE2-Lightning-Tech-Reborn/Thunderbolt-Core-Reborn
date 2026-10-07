@@ -1,0 +1,182 @@
+{
+  "date": "2026-10-03",
+  "baseline": "60e2c06 (issue #5 fixed, before subsequent alpha optimizations)",
+  "protocol": {
+    "sequence": [
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline",
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline"
+    ],
+    "repeats_per_dataset_per_process": 3,
+    "discarded_repeat": 0,
+    "warm_samples_per_variant_per_dataset": 8,
+    "jvm": "Temurin 21.0.11+10, -Xmx3g -Xss16m",
+    "system_properties": [
+      "-Dthunderbolt.maxReachablePlanningWork=2000000",
+      "-Dthunderbolt.maxCraftSearchWork=2000000",
+      "-Dthunderbolt.feasibleOptimizationTrace=true"
+    ],
+    "limitations": "Offline single-output normalized recipe graphs, not in-game TPS or a global optimality proof. TB counts existing target inventory toward demand; AW excludes it. The NAST case has 1206 target items already in stock."
+  },
+  "class_snapshots": {
+    "baseline": {
+      "count": 443,
+      "sha256": "5d8e7a957d009868def5f3c019cdaf86286568fd44a1df19e723662408e5ff03"
+    },
+    "candidate": {
+      "count": 452,
+      "sha256": "9bd1e8c866498ce54c75e689e9a0ea553d47562819cfdfa606c665e6b434d643"
+    }
+  },
+  "results": [
+    {
+      "dataset": "recipes-atm",
+      "amount": 100000,
+      "stock": "random20",
+      "real_executions": 100,
+      "tag_executions": 0,
+      "existing_target_stock": 0,
+      "aw_target_stock_exclusion_shortfalls": {},
+      "identical_plan_fingerprints": true,
+      "baseline": {
+        "planning_ms_samples": [
+          1232.527833,
+          1173.812375,
+          1237.25675,
+          1035.378792,
+          1233.509333,
+          1078.321,
+          1232.994291,
+          1080.187708
+        ],
+        "planning_ms_median": 1203.170104,
+        "optimizer_ms_median": 496.8862295
+      },
+      "candidate": {
+        "planning_ms_samples": [
+          980.847708,
+          872.00525,
+          983.66125,
+          893.492625,
+          1012.703833,
+          874.603125,
+          1031.093584,
+          863.919125
+        ],
+        "planning_ms_median": 937.1701665,
+        "optimizer_ms_median": 305.54281249999997
+      },
+      "planning_reduction_percent": 22.108256896981537,
+      "inputs": {
+        "graph_sha256": "aa5cde5d2dda745824ceb22535f8a588e9849be4d5f726dd7d1cc5fd6a7fed07",
+        "stock_sha256": "26ff15252ffc4a9707a84f8d5fe36e13fc5baa8f1274e09f9914c41acc343204"
+      }
+    },
+    {
+      "dataset": "recipes-nast",
+      "amount": 100000,
+      "stock": "random20",
+      "real_executions": 560511624,
+      "tag_executions": 9735296,
+      "existing_target_stock": 1206,
+      "aw_target_stock_exclusion_shortfalls": {
+        "6871": 1206
+      },
+      "identical_plan_fingerprints": true,
+      "baseline": {
+        "planning_ms_samples": [
+          669.481083,
+          627.860125,
+          674.889667,
+          642.4805,
+          678.834875,
+          631.290375,
+          675.976792,
+          634.377625
+        ],
+        "planning_ms_median": 655.9807915,
+        "optimizer_ms_median": 549.4986245
+      },
+      "candidate": {
+        "planning_ms_samples": [
+          578.081375,
+          491.846083,
+          539.60575,
+          500.651583,
+          532.713041,
+          502.580458,
+          559.507417,
+          511.690208
+        ],
+        "planning_ms_median": 522.2016245,
+        "optimizer_ms_median": 481.9872705
+      },
+      "planning_reduction_percent": 20.39376285608815,
+      "inputs": {
+        "graph_sha256": "38bee92efcef25027b5b0598c0b080a8d64097f5e7b2948724c5d6052f734cc9",
+        "stock_sha256": "ccffbe94803687144b24d747f9f6bd2ade5e3d22f251c8c093dbeb16c56e1b67"
+      }
+    }
+  ],
+  "all_48_records_balance_and_replay_passed": true,
+  "scope": "Final combined alpha optimization after the issue #5 fix",
+  "source_provenance": "Selective ordinary two-recipe allocation and structural input-index improvements adapted from local commit 205d00456e9cb2517b39f4569974902f609ead73; stock-policy semantics follow issue #5 and the current alpha.",
+  "tests_and_artifact": {
+    "tests": {
+      "tests": 917,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "java_class_major": 65,
+    "jar_compiled_classes_equal": 452,
+    "jar_sha256": "3af55ec23c5ca0f025f2382ac15772ab70a72cea7893c6aa7632b16615a4fd41",
+    "jar_bytes": 5017383
+  },
+  "changes": [
+    "Reuse zero-price inventory policy and lazily compute unit bounds and production-price potentials.",
+    "Share a stable primary-input index between iterative SCC analysis and heap-based producibility ordering.",
+    "Use immutable byproduct metadata to skip unnecessary feedback scans, recomputing metadata for recipe projections.",
+    "Try two-producer integer batch allocation only on ordinary graphs with at most 16 patterns; retain common work/probe/deadline limits and full candidate certificates."
+  ],
+  "independent_checks": {
+    "two_recipe_allocation_vs_exact_enumeration": 6000,
+    "small_graph_execution_and_consumption_optima": 256,
+    "route_rank_vs_full_scan": 6000,
+    "scc_vs_existing_analysis": 2000,
+    "deep_chain_nodes": 100000
+  },
+  "final_composition_differential_audit": {
+    "baseline": "60e2c06 issue5-baseline/classes",
+    "candidate": "build/classes/java/main with final structural preprocessing",
+    "samples": 3000,
+    "baselineFeasible": 2867,
+    "candidateFeasible": 2867,
+    "statusDelta": [],
+    "costRegression": [],
+    "equalExecIncreasedMaterial": [],
+    "invalidBalance": [],
+    "replayFailures": [],
+    "lowerExec": 16,
+    "sameExecLowerStock": 34,
+    "samePlan": 2950,
+    "maxProbes": 27,
+    "candidateClassChangesDuringRun": [],
+    "successfulReplaysPerVersion": 8601,
+    "byproductSamples": 1000,
+    "byproductExactSame": 1000,
+    "samePlanVsPriorCandidate": 3000,
+    "passed": true
+  },
+  "reproduction_artifacts": {
+    "abba_driver_sha256": "75be39ff98c96f047dac5edeba44329712df77cd8de3177725c603ae1f610cf0",
+    "corpus_harness_sha256": "6fd08b353c1c68036b91a8241ede1b012b2d2964b0d84ed05b55087c549ca397",
+    "issue_queries_sha256": "9da5b2bbfb210a9ae835f66af70a832a61d3636d0cfc7e1c8eb881534fe454be",
+    "differential_generator_sha256": "e4635dddd9b7c8ceae784d00a7c1b423147067bd91db24741a3a5865f5a143c0"
+  }
+}

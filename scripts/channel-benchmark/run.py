@@ -3,7 +3,6 @@
 
 Requires JDK 17 (JAVA_HOME) and the normal Gradle dependencies. No game world is
 started. Timings cover assignChannels, excluding graph creation and assertions.
-The default baseline is the Forge 1.20.1 Dinic calculator on this branch.
 """
 import argparse
 import hashlib
@@ -26,7 +25,8 @@ def main():
     classes = out / 'fixtures'
     classes.mkdir(parents=True, exist_ok=True)
     java_bin = Path(os.environ['JAVA_HOME']) / 'bin'
-    gradle = [str(root / 'gradlew'), '--console=plain', '-I', str(source_dir / 'classpath.init.gradle'),
+    gradle_launcher = root / ('gradlew.bat' if os.name == 'nt' else 'gradlew')
+    gradle = [str(gradle_launcher), '--console=plain', '-I', str(source_dir / 'classpath.init.gradle'),
               'writeChannelBenchmarkClasspath']
     if args.offline:
         gradle.append('--offline')
@@ -34,9 +34,9 @@ def main():
     baseline_path = 'src/main/java/com/moakiee/thunderbolt/core/channel/BorrowedCapacityCalculator.java'
     original = subprocess.check_output(['git', 'show', f'{args.baseline}:{baseline_path}'], cwd=root)
     baseline = out / 'BaselineCapacityCalculator.java'
-    baseline.write_text(original.decode().replace('BorrowedCapacityCalculator', 'BaselineCapacityCalculator'))
+    baseline.write_text(original.decode('utf-8').replace('BorrowedCapacityCalculator', 'BaselineCapacityCalculator'), encoding='utf-8')
     dependencies = (out / 'dependencies.txt').read_text().strip()
-    subprocess.run([str(java_bin / 'javac'), '-proc:none', '-cp', dependencies, '-d', str(classes),
+    subprocess.run([str(java_bin / 'javac'), '-encoding', 'UTF-8', '-proc:none', '-cp', dependencies, '-d', str(classes),
                     str(baseline), str(source_dir / 'ChannelStress.java'),
                     str(source_dir / 'AlgorithmComparison.java')], check=True)
     cp = str(classes) + os.pathsep + dependencies

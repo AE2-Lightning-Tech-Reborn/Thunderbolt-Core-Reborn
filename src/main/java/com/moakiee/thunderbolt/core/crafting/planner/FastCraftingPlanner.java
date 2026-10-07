@@ -313,7 +313,8 @@ public final class FastCraftingPlanner {
             var exact = CraftPlannerV2.planExactDiagnostic(compiled.graph, output,
                     BigInteger.valueOf(amount), session.plannerSession, compiled.emittable);
             return FastAttempt.handled(ExactPlanPreview.create(output, amount, multi,
-                    exact, compiled.durability, compiled.emittable), Map.of());
+                    exact, compiled.durability, compiled.emittable,
+                    key -> usableStock(snapshot, key, reservedStock)), Map.of());
         }
         // Emittable shortfalls are supplied by emitters, not crafted, so they don't make a plan
         // infeasible — only a non-emittable shortfall does.
@@ -538,9 +539,9 @@ public final class FastCraftingPlanner {
                 itemUnitKeys.add(key); // this node is priced in whole items from here on
             }
 
-            // Emitable items (e.g. via level/energy emitters) are an infinite on-demand source: keep
-            // them as a leaf with their current real stock, and treat any shortfall as emitted (handled
-            // in toAe2Plan) rather than crafted. Never decline just because an item is emittable.
+            // Emittable items (e.g. via level/energy emitters) are an infinite on-demand source.
+            // This virtual stock includes real inventory; plan conversion splits it back into
+            // policy-allowed physical stock and the shortfall supplied by the emitter.
             if (!lateBound && craftingService.canEmitFor(key)) {
                 emittable.add(key);
                 builder.stock(key, Sat.SAT);
@@ -919,15 +920,22 @@ public final class FastCraftingPlanner {
     }
 
     enum RequirementMode {
+        // A direct order selects a concrete catalog entry, including the entry advertised by a
+        // late-bound producer. It is not a downstream ingredient's promise about components.
+        REQUESTED_OUTPUT,
         STRICT,
         ID_ONLY,
         MIXED;
 
         boolean acceptsIdOnlyOutput() {
-            return this == ID_ONLY;
+            return this == REQUESTED_OUTPUT || this == ID_ONLY;
         }
 
         static RequirementMode merge(RequirementMode left, RequirementMode right) {
+            // Any actual ingredient demand takes precedence over the root's catalog selection.
+            // In particular, a later STRICT consumer must still exclude late-bound producers.
+            if (left == REQUESTED_OUTPUT) return right;
+            if (right == REQUESTED_OUTPUT) return left;
             return left == right ? left : MIXED;
         }
     }
@@ -949,7 +957,7 @@ public final class FastCraftingPlanner {
 
         RequirementModes(AEKey root, Map<AEKey, RequirementMode> forcedModes) {
             modes = new HashMap<>(forcedModes);
-            require(root, RequirementMode.STRICT);
+            require(root, RequirementMode.REQUESTED_OUTPUT);
         }
 
         RequirementMode modeFor(AEKey key) {
@@ -1502,7 +1510,10 @@ public final class FastCraftingPlanner {
         for (Map.Entry<AEKey, Long> e : plan.usedStock().entrySet()) {
             PlanningCancellation.check();
             if (emittable.contains(e.getKey())) {
-                emittedItems.add(e.getKey(), e.getValue());
+                long fromStock = Math.min(e.getValue(), usableStock(snapshot, e.getKey(), reservedStock));
+                if (fromStock > 0) usedItems.add(e.getKey(), fromStock);
+                long fromEmitter = e.getValue() - fromStock;
+                if (fromEmitter > 0) emittedItems.add(e.getKey(), fromEmitter);
                 continue;
             }
             DurabilityChain<AEKey> chain = durability.get(e.getKey());

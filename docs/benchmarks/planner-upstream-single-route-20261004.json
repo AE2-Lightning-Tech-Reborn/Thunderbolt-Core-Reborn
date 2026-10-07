@@ -1,0 +1,416 @@
+{
+  "title": "Upstream 单路线候选的精确批次数快路径",
+  "date": "2026-10-04",
+  "base_revision": "1e763c23902d7526ebe5ad11e4f80c26f7ff72c1",
+  "scope": {
+    "production_file": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.java",
+    "added_production_lines": 8,
+    "behavior": "For a positive non-mixed demand with exactly one route, compute ceil(net demand/output) directly.",
+    "applicability": "All single-route keys processed by propose, including a one-key uncached prefix; prepared multi-key prefix handling is unchanged.",
+    "preserved": [
+      "Original pattern identity",
+      "Stock subtraction before MAX_AMOUNT guard",
+      "Candidate-local demand and firing counts",
+      "Per-callback work amounts and failure positions",
+      "Original signature, replay and acceptance gates"
+    ],
+    "unchanged_limits": {
+      "patterns": 16,
+      "candidates": 64,
+      "shared_replay_probes": 32,
+      "production_helper_work": 4096,
+      "wall_clock_deadlines": "unchanged"
+    },
+    "new_caches": false
+  },
+  "equivalence_argument": {
+    "variables": "c = incumbent count, n = ceil(required/output), R = remaining executions",
+    "bounded_arithmetic": "Stock is subtracted first. Entering this branch guarantees 1 <= required <= SAT-1 and 0 < exact output = long output < SAT; n fits long.",
+    "grow": "When c < n, old growth produces n and rejects n > R before common propagation work.",
+    "trim": "When c >= n, old trimming produces n; common propagation work must be charged before rejecting n > R.",
+    "early_failure": "n > R && c < n",
+    "charges": "Keep the route-retention charge(1) and common propagation charge(1 + original input slots) separate, including zero-input routes.",
+    "changing_demand": "Recompute n for every proposal; no count or demand reuse is introduced."
+  },
+  "observations": {
+    "method": "External observation-only classes; four actual public planDetailed regression fixtures, not performance measurements.",
+    "complete_plan_and_nontiming_diagnostics_equal": true,
+    "fixtures": [
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "searches": 6,
+        "candidates": 155,
+        "active_single_route_visits": 216,
+        "post_branch_single_route_visits": 216
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "searches": 2,
+        "candidates": 65,
+        "active_single_route_visits": 79,
+        "post_branch_single_route_visits": 79
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "searches": 2,
+        "candidates": 59,
+        "active_single_route_visits": 179,
+        "post_branch_single_route_visits": 120
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "searches": 2,
+        "candidates": 6,
+        "active_single_route_visits": 6,
+        "post_branch_single_route_visits": 6
+      }
+    ]
+  },
+  "performance": {
+    "entrypoint": "CraftPlannerV2.planDetailed with normal production configuration",
+    "protocol": "One fixture per fresh JVM; four paired forks per fixture, alternating baseline/candidate then candidate/baseline; 40 sequential JVMs total.",
+    "runtime": "OpenJDK 21.0.11+10, -XX:ActiveProcessorCount=1 -Xms128m -Xmx512m",
+    "warmup_calls_per_jvm": 10000,
+    "measured_calls_per_jvm": 4000,
+    "measured_classes": "Uninstrumented candidate source compiled as an eight-class overlay over the frozen 472-class baseline.",
+    "statistics": "Median of four forks per variant; CPU and allocation totals divided by 4000; wall p50/p95 measured per call.",
+    "allocation_meter": "com.sun.management.ThreadMXBean.getThreadAllocatedBytes on the calling thread",
+    "measurements": [
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "baseline": {
+          "cpu_ns_per_plan": 307635.375,
+          "allocated_bytes_per_plan": 1195187.761,
+          "p50_ns": 305875.0,
+          "p95_ns": 345354.5
+        },
+        "candidate": {
+          "cpu_ns_per_plan": 286621.5,
+          "allocated_bytes_per_plan": 1080827.55,
+          "p50_ns": 285354.0,
+          "p95_ns": 321562.5
+        },
+        "percent_change": {
+          "cpu_ns": -6.831,
+          "allocated_bytes": -9.568,
+          "p50_ns": -6.709,
+          "p95_ns": -6.889
+        },
+        "paired_fork_percent_changes": [
+          {
+            "cpu_ns": -6.201,
+            "allocated_bytes": -9.339
+          },
+          {
+            "cpu_ns": -4.274,
+            "allocated_bytes": -9.732
+          },
+          {
+            "cpu_ns": -7.447,
+            "allocated_bytes": -10.063
+          },
+          {
+            "cpu_ns": -6.725,
+            "allocated_bytes": -9.405
+          }
+        ]
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "baseline": {
+          "cpu_ns_per_plan": 169921.0,
+          "allocated_bytes_per_plan": 509694.668,
+          "p50_ns": 167354.0,
+          "p95_ns": 192250.5
+        },
+        "candidate": {
+          "cpu_ns_per_plan": 164937.125,
+          "allocated_bytes_per_plan": 483579.09,
+          "p50_ns": 161375.0,
+          "p95_ns": 193000.0
+        },
+        "percent_change": {
+          "cpu_ns": -2.933,
+          "allocated_bytes": -5.124,
+          "p50_ns": -3.573,
+          "p95_ns": 0.39
+        },
+        "paired_fork_percent_changes": [
+          {
+            "cpu_ns": 6.881,
+            "allocated_bytes": -5.297
+          },
+          {
+            "cpu_ns": -5.289,
+            "allocated_bytes": -4.721
+          },
+          {
+            "cpu_ns": -5.106,
+            "allocated_bytes": -5.091
+          },
+          {
+            "cpu_ns": -1.499,
+            "allocated_bytes": -5.087
+          }
+        ]
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "baseline": {
+          "cpu_ns_per_plan": 135006.25,
+          "allocated_bytes_per_plan": 315347.371,
+          "p50_ns": 133312.5,
+          "p95_ns": 146750.0
+        },
+        "candidate": {
+          "cpu_ns_per_plan": 125642.25,
+          "allocated_bytes_per_plan": 265335.884,
+          "p50_ns": 123937.5,
+          "p95_ns": 137687.0
+        },
+        "percent_change": {
+          "cpu_ns": -6.936,
+          "allocated_bytes": -15.859,
+          "p50_ns": -7.032,
+          "p95_ns": -6.176
+        },
+        "paired_fork_percent_changes": [
+          {
+            "cpu_ns": -7.171,
+            "allocated_bytes": -16.065
+          },
+          {
+            "cpu_ns": -6.699,
+            "allocated_bytes": -16.076
+          },
+          {
+            "cpu_ns": -13.953,
+            "allocated_bytes": -15.661
+          },
+          {
+            "cpu_ns": -4.538,
+            "allocated_bytes": -14.73
+          }
+        ]
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "baseline": {
+          "cpu_ns_per_plan": 68959.25,
+          "allocated_bytes_per_plan": 173677.252,
+          "p50_ns": 67750.0,
+          "p95_ns": 75312.5
+        },
+        "candidate": {
+          "cpu_ns_per_plan": 66031.25,
+          "allocated_bytes_per_plan": 170877.587,
+          "p50_ns": 65000.5,
+          "p95_ns": 72646.5
+        },
+        "percent_change": {
+          "cpu_ns": -4.246,
+          "allocated_bytes": -1.612,
+          "p50_ns": -4.058,
+          "p95_ns": -3.54
+        },
+        "paired_fork_percent_changes": [
+          {
+            "cpu_ns": -1.413,
+            "allocated_bytes": -1.576
+          },
+          {
+            "cpu_ns": -3.865,
+            "allocated_bytes": -1.497
+          },
+          {
+            "cpu_ns": -3.845,
+            "allocated_bytes": -1.778
+          },
+          {
+            "cpu_ns": -5.999,
+            "allocated_bytes": -1.727
+          }
+        ]
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "baseline": {
+          "cpu_ns_per_plan": 88596.75,
+          "allocated_bytes_per_plan": 232788.941,
+          "p50_ns": 86604.5,
+          "p95_ns": 96979.0
+        },
+        "candidate": {
+          "cpu_ns_per_plan": 86726.125,
+          "allocated_bytes_per_plan": 232731.261,
+          "p50_ns": 85771.0,
+          "p95_ns": 93000.0
+        },
+        "percent_change": {
+          "cpu_ns": -2.111,
+          "allocated_bytes": -0.025,
+          "p50_ns": -0.962,
+          "p95_ns": -4.103
+        },
+        "paired_fork_percent_changes": [
+          {
+            "cpu_ns": -0.355,
+            "allocated_bytes": 0.007
+          },
+          {
+            "cpu_ns": -2.011,
+            "allocated_bytes": 0.019
+          },
+          {
+            "cpu_ns": -2.857,
+            "allocated_bytes": -0.171
+          },
+          {
+            "cpu_ns": -2.212,
+            "allocated_bytes": 0.02
+          }
+        ]
+      }
+    ],
+    "plan_fields": 9,
+    "non_timing_diagnostic_fields": 34,
+    "plan_or_diagnostic_changes": [],
+    "caveats": [
+      "The synthetic all-multi-route control cannot take this branch. Its CPU change is measurement variation, not attributable to this optimization.",
+      "twoOutputs has one paired CPU regression and median p95 +0.390%; retain these results alongside the allocation reduction.",
+      "These are selected planner microbenchmarks, not whole-modpack planning, server TPS, exhaustive workloads or deadline-equivalence evidence.",
+      "No full build or broad corpus rerun was performed in this narrow follow-up; combined integration validation belongs to the receiving change."
+    ]
+  },
+  "validation": {
+    "targeted_junit": {
+      "command": "./gradlew --offline --no-daemon --max-workers=1 test --tests '*Upstream*' --tests '*FeasibleConsumptionOptimizer*'",
+      "suite_count": 10,
+      "tests": 91,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "new_tests": 7,
+    "directed_boundaries": [
+      "Grow-before-propagation refusal: [1,1,3,2,2,1,1], total 11",
+      "Trim-after-propagation refusal: [1,1,1,3,1,3,2,2,2,1,1,4], total 22",
+      "Successful trim with five remaining executions: [1,1,1,3,1,4,3,3,2,1,1,4,1,1,5,15], total 47",
+      "Refuse each of the 35 charge positions; no further spend or replay after exhaustion",
+      "Cancellation at retention checked before the next callback",
+      "Same Search recomputes changed upstream demand 8 to 6",
+      "Gross demand MAX+1 becomes valid MAX after stock=1; stock=0 refuses before retention"
+    ],
+    "independent_fee_differential": {
+      "fixtures": 320,
+      "runs_per_version": 3516,
+      "full_budget_runs_per_version": 320,
+      "bounded_runs_per_version": 3196,
+      "compared_fields": [
+        "sample",
+        "cap",
+        "prefix",
+        "patterns",
+        "plan",
+        "improved",
+        "work",
+        "denied",
+        "candidates",
+        "probes",
+        "charges",
+        "executions",
+        "loss"
+      ],
+      "plan_fields": [
+        "supported",
+        "feasible",
+        "firings",
+        "usedStock",
+        "usedReusableStock",
+        "missing",
+        "grossDemand",
+        "itemsProcessed",
+        "budgetExhausted"
+      ],
+      "differences": [],
+      "charge_streams_equal": true,
+      "charge_requests_per_version": {
+        "baseline": 515903,
+        "candidate": 515903
+      },
+      "denied_requests_per_version": {
+        "baseline": 1184,
+        "candidate": 1184
+      },
+      "accepted_work_per_version": {
+        "baseline": 871450,
+        "candidate": 871450
+      },
+      "high_budget_work_per_version": {
+        "baseline": 109176,
+        "candidate": 109176
+      },
+      "pattern_count_range": [
+        8,
+        13
+      ],
+      "prefix_range": [
+        2,
+        7
+      ],
+      "input_hashes_unchanged": true,
+      "initial_run_preserved": "initial-run/",
+      "input_order_note": "Fixture incumbent firings stabilized in original-pattern-id order; all values and other eight fields unchanged. Initial run was not strict-stream-equal and is retained.",
+      "limitations": [
+        "Bounded helper fixtures, not public planDetailed benchmark",
+        "320 deterministic generated graphs; not exhaustive over all possible graphs",
+        "No wall-clock deadline imposed; this establishes per-charge/order/result equality, not timing equivalence"
+      ]
+    },
+    "static_review": "Two independent reviewers found no blocking counterexample; the seven directed tests invoke private attempt in mode 0. Other modes are covered by the related integration tests."
+  },
+  "binding": {
+    "production_source_sha256": "c5c4eb676149e7163b14ccb52de7bc366b8c7a6a20a4e4fe8c23b4d32a19ff7e",
+    "new_test_source_sha256": "51bdca582ab62abd7e18f7c906710dec125fb2984d9ba9a469d463ea4f89eacf",
+    "measured_source_byte_equal": true,
+    "baseline_class_count": 472,
+    "candidate_class_count": 472,
+    "changed_class_files": 5,
+    "changed_class_scope": "Only UpstreamBatchOptimizer and its nested classes; no added or removed classes.",
+    "measured_vs_gradle_eight_classes_equal": "All javap -p -c -s outputs equal after normalizing constant-pool reference numbers; debug metadata is excluded.",
+    "artifact": "Source and compiled-class verification only; this report does not certify a newly built or published JAR."
+  },
+  "reproduction": {
+    "local_evidence_directory": "outputs/tb-alpha-upstream-profile-round7-20261004",
+    "retained": "Complete source/class hashes, harness snapshots, command arrays, 40 raw measurement rows, and both initial and ordered-input fee audits.",
+    "steps": [
+      "Compile baseline revision and candidate with Java 21; freeze each class tree.",
+      "Compile PublicHotspotAudit.java, HotspotCounters.java and PublicHotspotBench.java against baseline classes and Gson 2.10.1.",
+      "Run the frozen run_profile.py protocol or its recorded command array: fixture indexes 0..4, warmup 10000, samples 4000, four alternating paired forks.",
+      "Run fee-equivalence/run_fee_audit.py using the retained cap grid and ordered original-pattern-id incumbent maps.",
+      "Run the targeted JUnit command above against the candidate source."
+    ]
+  },
+  "evidence_sha256": {
+    "final-binding.json": "787999da36b90a0def731d6b3acdaa3e69d0bfe7f4e2c92ef3c2e0088c1ab6e8",
+    "targeted-test-summary.json": "707715eedf4b94ec0073ab7b39ed360978ad883e06dedb5f796586378970ff72",
+    "hotspot-counts/summary.json": "c613cba0c38a0a370bfe43b82877c10279a606abf4b5b04c8f8023f7c225099b",
+    "hotspot-counts/manifest.json": "a1bf6f2a20cf24bc3c55c4f97f81e630c2c4ed8965785b5c6cddae0fa6195b90",
+    "single-route-profile/summary.json": "891606a3469423ed6ebe954ee755b4122835904e83f1235cffabaa911c71e434",
+    "run_profile.py": "049afdab623f8627a7b7a13c87848c2c2e68ca2fe58ae362df784fdb1b508339",
+    "single-route-profile/harness-source/PublicHotspotAudit.java": "65f36977dc2992b93d7e3eadbe4607c38bc25cce70ced0c072c01db154a8494a",
+    "single-route-profile/harness-source/HotspotCounters.java": "aa0bf97c35609a8c38ca0a827c3e3311709aa603eafe94bec6937415474cf668",
+    "single-route-profile/harness-source/PublicHotspotBench.java": "ec7542721f49be3488d2f45ec61a7ff115fa92ad0a356f60f0f5eca37e349611",
+    "fee-equivalence/summary.json": "6685731c0a0c0126d60d67d358e529167da9f229c7362c646129360a8bcc0fa9",
+    "fee-equivalence/manifest.json": "ca7ebfc9fbc53e08318059358739df60f7e3fceb3177df5dfe3d9d7f51fc7b6a",
+    "fee-equivalence/FeeIndependentAudit.java": "8dbdd934c865925e9ab3524ee8d1709cd1cb5309f874d7c1dd58728ac37bff6e",
+    "fee-equivalence/run_fee_audit.py": "243294528127ff7010817b2a356825d9e83ea6cc042232f8318b1899223d39e7",
+    "fee-equivalence/initial-run/summary.json": "f3ef353a7c4b77ac3058944af56dfec157d7eaf3a39c6c965a0e2e9678c1b6e6",
+    "fee-equivalence/initial-run/initial-order-diagnosis.json": "d8ff491bedcbdb381ce3c35b297b4a2b8c80433aa4e40120719fd87cb1ece95e"
+  }
+}

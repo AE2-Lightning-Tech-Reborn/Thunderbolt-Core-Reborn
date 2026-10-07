@@ -1,5 +1,7 @@
 # 与 GTLCore（GTL）共存：规划器接入与 CPU 派发让位
 
+2026-10-05 已将 `1.20.1@77b0d7e` 的更新移植到 GTL，并完成本次独立 Forge 构建与 AE2 游戏回归；更新范围、全局提供器让位及验证边界见 [本次移植说明](gtl-1.20.1-upstream-port-20261005.zh-CN.md)。下文早期整合包运行记录保留为历史证据。
+
 ## 文档状态
 
 - 状态：已在本地工作树实现；**尚未在 GTL 整合包内完整启动一次**（原因见"实机验证的进展与阻塞"），因此未合入 `main`。当前工作树已并入上游 `1.20.1` 的规划器 / 精确存储移植（`49233dc`），规划器仍挂在 `computePlan`。频道最大流求解器按上游 `alpha`（`acf9c19`）移植：双向树种子 + 精确残量补齐，Mixin 入口不变。
@@ -25,7 +27,7 @@ CPU 派发没有存活的替代入口：GTLCore 自己拥有 `executeCrafting`�
 
 规划器不同。GTLCore 覆盖后的 `run()` **仍然调用** AE2 原来的私有方法 `computePlan()`。Thunderbolt 用 MixinExtras `@WrapMethod` 包住这个方法本身，因此无论 `run()` 的调用点如何改写，规划引擎都在 GTLCore 的计算任务里运行（MAX_FAST 指标、日志、`finish()`）。Thunderbolt 回退到原版规划器时走 `original.call()`，仍落在 GTLCore 对 `CraftingTreeNode.request` 的 Redirect 上。
 
-GTLCore 的 `simulateFor(int)` 是空操作（`return !done`）。AE2 的每刻 monitor 协议（`running = false; monitor.wait()` 直到下一次 `simulateFor`）在 GTL 下会永久阻塞。候选隔离因此在 handover 生效时改用 `LockSupport.parkNanos(1_000_000L)` 轮询。
+GTLCore 的 `simulateFor(int)` 是空操作（`return !done`）。AE2 的每刻 monitor 协议（`running = false; monitor.wait()` 直到下一次 `simulateFor`）在 GTL 下会永久阻塞。候选隔离因此在 GTLCore 在场时改用 `LockSupport.parkNanos(1_000_000L)` 轮询；即使 `gtlCompat=never` 关闭 CPU 派发让位，也继续使用轮询。没有 GTLCore 时，`always` 仍可强制轮询以验证兼容路径。
 
 ## 接入与让位边界
 
@@ -54,7 +56,7 @@ GTLCore 的 `simulateFor(int)` 是空操作（`return !done`）。AE2 的每刻 
 -Dthunderbolt.gtlCompat=never   装了 gtlcore 也不让出 CPU 派发（保留 Thunderbolt 的 CPU 批量钩子）
 ```
 
-规划器不受该开关抑制：`CraftingCalculationMixin` 始终应用。开关仍改变规划器的让步方式——handover 生效时用 1 ms park，否则走 AE2 monitor。
+规划器不受该开关抑制：`CraftingCalculationMixin` 始终应用。规划调度由 `usesGtlCalculationScheduler()` 单独判断：GTLCore 在场或模式为 `always` 时用 1 ms park，其余场景走 AE2 monitor。`never` 无法撤销 GTLCore 对 `simulateFor()` 的覆盖，不能据此恢复 AE2 monitor。
 
 - 判定逻辑集中在 `GtlCompat`（纯函数），Mixin 阶段只读系统属性与调用方给出的"模组是否存在"谓词；GTLCore 是否存在在 Mixin 阶段由 `LoadingModList` 判定（`ModList` 那时还没填充）。运行期 `isGtlPresent()` 与插件同一策略：`LoadingModList` **命中**即视为在场，未命中则再问 `ModList`；只有 `ModList` 给出确定的否才缓存 `false`。探测尚不确定时返回 `false` **但不缓存**，避免 mixin 已让出 CPU 派发、运行期却按 AE2 monitor 等待（GTL 的 `simulateFor` 不会唤醒）或把剩余 `ICraftingPlan` 打成 `CPU_OFFLINE`。
 - CPU 派发让位生效时，Mixin 阶段每个被抑制的 mixin 打印一条 INFO，游戏启动时再打印一条汇总。
@@ -110,9 +112,10 @@ python tools/method_overlap.py     src/main/java <GTLCore>/src/main/java
 
 单元测试：
 
-- `GtlCompatTest`：模式解析表、`standDown` 判定表、presence 缓存策略。
+- `GtlCompatTest`：模式解析表、`standDown` 判定表、presence 缓存策略，以及 GTLCore 在场/不在场 × 三种模式下的独立规划调度判定。
 - `GtlStandDownSelectionTest`：gtlcore 存在/不存在 × 三种模式下的 CPU mixin 取舍；`CraftingCalculationMixin` 在 GTL 旁保持应用。
 - `CraftingCalculationMixinContractTest`：源码契约——`@WrapMethod` 挂在 `computePlan`，不注入 `run`，GTL 让步用 park 而不是 AE2 monitor。
+- `GtlCalculationSchedulerTest`：直接调用规划等待回调，模拟 GTLCore 在场且 `gtlCompat=never`，不调用 `simulateFor()` 或唤醒 monitor，确认等待正常返回；同时确认线程中断能终止等待。该测试不加载 GTLCore 或完整整合包。
 - `ThunderboltAccessorNamespaceTest`：扫描访问器源码，禁止 `getTasks` / `getValue` / `invokeAddMaxItems` 等 8 个名字再次出现。
 
 交叉面复核（对照 GTLCore 1.2.3.2-fix1 源码，与整合包内 jar 同版本）：

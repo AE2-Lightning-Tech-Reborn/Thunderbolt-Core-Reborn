@@ -173,6 +173,125 @@ class BorrowedCapacityCalculatorAssignChannelsTest {
     }
 
     @Test
+    void partialWeightedAssignmentReportsFlowWithoutGrantingAFullRequest() {
+        Graph graph = new Graph(ChannelMode.DEFAULT);
+        Node source = graph.source();
+        Node cable = graph.node(new Object(), 8);
+        Weighted owner = new Weighted(12);
+        Node device = graph.node(owner, INF, GridFlags.REQUIRE_CHANNEL);
+        graph.link(source, cable);
+        graph.link(cable, device);
+        graph.expected = 8;
+        var result = BorrowedCapacityCalculator.assignChannels(graph.grid, graph.sources);
+        verify(graph, result);
+        assertEquals(8, owner.used);
+        assertTrue(result.channelNodes().isEmpty());
+        assertEquals(8, result.nodeFlow().getInt(device));
+        assertEquals(8, result.connectionFlow().getInt(graph.edges.get(1).connection()));
+    }
+
+    @Test
+    void networkWithoutDemandsReturnsZeroFlowForItsConnections() {
+        Graph graph = new Graph(ChannelMode.DEFAULT);
+        Node source = graph.source();
+        Node cable = graph.relay();
+        graph.link(source, cable);
+        graph.expected = 0;
+        var result = BorrowedCapacityCalculator.assignChannels(graph.grid, graph.sources);
+        verify(graph, result);
+        assertTrue(result.channelNodes().isEmpty());
+        assertTrue(result.nodeFlow().isEmpty());
+        assertTrue(result.connectionFlow().isEmpty());
+    }
+
+    @Test
+    void aggregateDemandAboveIntegerRangeKeepsTheTotalFlowLimit() {
+        CoreConfig.setChannelsPerController(INF);
+        try {
+            Graph graph = new Graph(ChannelMode.DEFAULT);
+            Node a = graph.source();
+            Node b = graph.source();
+            Node c = graph.source();
+            graph.link(a, b);
+            graph.link(b, c);
+            Weighted[] owners = {new Weighted(INF), new Weighted(INF), new Weighted(INF)};
+            for (int i = 0; i < owners.length; i++) {
+                Node device = graph.node(owners[i], INF, GridFlags.REQUIRE_CHANNEL);
+                graph.link((Node) graph.sources.get(i), device);
+            }
+            graph.expected = INF;
+            var result = BorrowedCapacityCalculator.assignChannels(graph.grid, graph.sources);
+            verify(graph, result);
+            long assigned = 0;
+            for (Weighted owner : owners) assigned += owner.used;
+            assertEquals(INF, assigned);
+        } finally {
+            CoreConfig.setChannelsPerController(128);
+        }
+    }
+
+    @Test
+    void reducedSupplyRefreshesPreviouslyAssignedWeightedDemand() {
+        Graph graph = new Graph(ChannelMode.DEFAULT);
+        Node source = graph.source();
+        Weighted owner = new Weighted(12);
+        Node device = graph.node(owner, INF, GridFlags.REQUIRE_CHANNEL);
+        graph.link(source, device);
+        graph.expected = 12;
+        verify(graph, BorrowedCapacityCalculator.assignChannels(graph.grid, graph.sources));
+        assertEquals(12, owner.used);
+        CoreConfig.setChannelsPerController(1);
+        try {
+            graph.expected = 1;
+            var result = BorrowedCapacityCalculator.assignChannels(graph.grid, graph.sources);
+            verify(graph, result);
+            assertEquals(1, owner.used);
+            assertTrue(result.channelNodes().isEmpty());
+        } finally {
+            CoreConfig.setChannelsPerController(128);
+        }
+    }
+
+    @Test
+    void discoveredMembershipRemainsIndependentAcrossRecalculations() {
+        Graph graph = new Graph(ChannelMode.DEFAULT);
+        Node source = graph.source();
+        Node cable = graph.relay();
+        graph.link(source, cable);
+        graph.expected = 0;
+        var first = BorrowedCapacityCalculator.assignChannels(graph.grid, graph.sources);
+        verify(graph, first);
+
+        Node device = graph.terminal();
+        graph.link(cable, device);
+        graph.expected = 1;
+        var second = BorrowedCapacityCalculator.assignChannels(graph.grid, graph.sources);
+        verify(graph, second);
+        assertEquals(Set.of(source, cable), first.networkNodes());
+        assertEquals(Set.of(source, cable, device), second.networkNodes());
+        assertTrue(first.nodeFlow().isEmpty());
+        assertTrue(first.connectionFlow().isEmpty());
+    }
+
+    @Test
+    void vanillaControllerWithoutDemandPreservesCableMembershipAndZeroFaceFlow() {
+        Graph graph = new Graph(ChannelMode.DEFAULT);
+        Node face = graph.vanillaController();
+        Node cable = graph.relay();
+        Node relay = graph.relay();
+        graph.link(face, cable);
+        graph.link(cable, relay);
+        graph.expected = 0;
+        var result = BorrowedCapacityCalculator.assignChannels(graph.grid, graph.sources);
+        verify(graph, result);
+        assertEquals(Set.of(cable, relay), result.networkNodes());
+        assertTrue(result.channelNodes().isEmpty());
+        assertTrue(result.nodeFlow().isEmpty());
+        assertTrue(result.connectionFlow().isEmpty());
+        assertEquals(0, result.connectionFlow().getInt(graph.edges.get(0).connection()));
+    }
+
+    @Test
     void randomPhysicalNetworksMatchAnIndependentOracle() {
         for (int seed = 0; seed < 80; seed++) {
             Graph graph = random(seed);

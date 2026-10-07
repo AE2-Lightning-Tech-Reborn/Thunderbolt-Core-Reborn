@@ -1,0 +1,476 @@
+{
+  "date": "2026-10-03",
+  "baseline": "40b4e5c (delivered third alpha optimization round)",
+  "protocol": {
+    "sequence": [
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline",
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline"
+    ],
+    "repeats_per_dataset_per_process": 3,
+    "discarded_repeat": 0,
+    "warm_samples_per_variant_per_dataset": 8,
+    "jvm": "Temurin 21.0.11+10, -Xmx3g -Xss16m",
+    "system_properties": [
+      "-Dthunderbolt.maxReachablePlanningWork=2000000",
+      "-Dthunderbolt.maxCraftSearchWork=2000000",
+      "-Dthunderbolt.feasibleOptimizationTrace=true"
+    ],
+    "limitations": "Offline single-output normalized recipe graphs, not in-game TPS or a global optimality proof. TB counts existing target inventory toward demand; AW excludes it. The NAST case has 1206 target items already in stock."
+  },
+  "class_snapshots": {
+    "baseline": {
+      "count": 463,
+      "sha256": "566be9d57a9ad7e4f52e3cbf77f6e9af52519dcb860800770991e8f66b3adcdc"
+    },
+    "candidate": {
+      "count": 466,
+      "sha256": "24f3da7fc4b739f8a0fbe6a335aee18756ff0e82f209106b58f0cb749701ccb9"
+    }
+  },
+  "results": [
+    {
+      "dataset": "recipes-atm",
+      "amount": 100000,
+      "stock": "random20",
+      "real_executions": 100,
+      "tag_executions": 0,
+      "existing_target_stock": 0,
+      "aw_target_stock_exclusion_shortfalls": {},
+      "identical_plan_fingerprints": true,
+      "baseline": {
+        "planning_ms_samples": [
+          550.845875,
+          489.743542,
+          584.373334,
+          459.971,
+          565.033542,
+          521.018167,
+          464.26225,
+          464.331291
+        ],
+        "planning_ms_median": 505.38085449999994,
+        "optimizer_ms_median": 109.34824950000001
+      },
+      "candidate": {
+        "planning_ms_samples": [
+          467.824,
+          480.00975,
+          481.750875,
+          507.157875,
+          482.558958,
+          513.003625,
+          454.180167,
+          539.147875
+        ],
+        "planning_ms_median": 482.1549165,
+        "optimizer_ms_median": 106.0530205
+      },
+      "planning_reduction_percent": 4.595729694386341
+    },
+    {
+      "dataset": "recipes-nast",
+      "amount": 100000,
+      "stock": "random20",
+      "real_executions": 560511624,
+      "tag_executions": 9735296,
+      "existing_target_stock": 1206,
+      "aw_target_stock_exclusion_shortfalls": {
+        "6871": 1206
+      },
+      "identical_plan_fingerprints": true,
+      "baseline": {
+        "planning_ms_samples": [
+          474.266,
+          413.79,
+          465.552459,
+          410.771958,
+          437.20625,
+          417.159042,
+          449.55275,
+          415.659791
+        ],
+        "planning_ms_median": 427.182646,
+        "optimizer_ms_median": 392.87322900000004
+      },
+      "candidate": {
+        "planning_ms_samples": [
+          440.954542,
+          416.342958,
+          442.818458,
+          416.559291,
+          459.12725,
+          414.269333,
+          441.530541,
+          395.774167
+        ],
+        "planning_ms_median": 428.7569165,
+        "optimizer_ms_median": 394.29704200000003
+      },
+      "planning_reduction_percent": -0.36852398259643593
+    }
+  ],
+  "all_48_records_balance_and_replay_passed": true,
+  "scope": "Fourth alpha round against delivered 40b4e5c; final verified production classes only.",
+  "changes": [
+    "Preserve established whole-output, upstream and partial-replacement priority before additional upstream candidates.",
+    "Exchange one batch from an incumbent pair, or protect one newly added batch in a second output while rebuilding upstream demand.",
+    "Share the original upstream candidate allowance, work budget, duplicate-vector set and replay probes across both stages.",
+    "Reuse complete pair-allocation results only within one fixed-model search; interrupted or budget-exhausted solves are never stored.",
+    "Deduplicate repeated pattern identities in small recovery without merging distinct patterns sharing a source.",
+    "Check cancellation periodically inside verified wide-slot inventory and replay loops."
+  ],
+  "limits": {
+    "upstream_candidates_per_pass": 64,
+    "shared_complete_probes": 32,
+    "mixed_pattern_limit": 16,
+    "small_recovery_work_threshold": 128,
+    "small_recovery_states": 4096,
+    "small_recovery_firings": 32,
+    "statement": "Limits are unchanged. Exact-oracle coverage is evidence for these finite families, not a general optimality guarantee."
+  },
+  "tests_and_artifact": {
+    "tests": {
+      "tests": 1048,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "test_suites": 136,
+    "required_regression_suites": [
+      "SmallConservativeSearchTest",
+      "BatchCertificationCancellationTest",
+      "UpstreamBatchOptimizerAdditionalTest"
+    ],
+    "jar": {
+      "filename": "thunderbolt-2.0.0.jar",
+      "bytes": 5057205,
+      "sha256": "8cc66cceeb45745dfcce6a2d070a9c97f71a0c2e02151ba6b5bf7001d710261a"
+    },
+    "production_classes": {
+      "count": 466,
+      "sha256": "24f3da7fc4b739f8a0fbe6a335aee18756ff0e82f209106b58f0cb749701ccb9",
+      "jar_byte_identical": true,
+      "java_major": 65
+    },
+    "zip_integrity_passed": true
+  },
+  "differential_audit": {
+    "baseline": "40b4e5c",
+    "samples": 3000,
+    "baseline_feasible": 2867,
+    "candidate_feasible": 2867,
+    "status_delta": 0,
+    "regression": 0,
+    "invalid": 0,
+    "replay_fail": 0,
+    "fewer_executions": 0,
+    "equal_execution_less_stock": 0,
+    "changed": 0
+  },
+  "duplicate_recovery_and_cancellation": {
+    "duplicate_registration_cases": 12,
+    "recovered_public_cases": 6,
+    "distinct_pattern_counts": [
+      8,
+      8,
+      7
+    ],
+    "same_source_distinct_patterns_tested": true,
+    "minimum_firings_preserved": [
+      4,
+      2,
+      2
+    ],
+    "wide_input_slots": 4096,
+    "cancellation_sites": [
+      {
+        "site": "inventoryFor",
+        "width": "4096",
+        "cancellationTriggered": "true",
+        "cancellationPropagated": "true",
+        "distinctInputsVisitedAfterInterrupt": "255"
+      },
+      {
+        "site": "trim",
+        "width": "4096",
+        "cancellationTriggered": "true",
+        "cancellationPropagated": "true",
+        "distinctInputsVisitedAfterInterrupt": "255"
+      },
+      {
+        "site": "MaterialDagReplay",
+        "width": "4096",
+        "cancellationTriggered": "true",
+        "cancellationPropagated": "true",
+        "distinctInputsVisitedAfterInterrupt": "255"
+      },
+      {
+        "site": "publicInventoryFor",
+        "width": "4096",
+        "cancellationTriggered": "true",
+        "cancellationPropagated": "true",
+        "distinctInputsVisitedAfterInterrupt": "255"
+      }
+    ],
+    "candidate_uses_isolated_changed_classes_over_round3": true,
+    "final_build_regression_tests_required": false,
+    "evidence_sha256": {
+      "cancellation-targeted-tests.txt": "3029f4bdce4e2b3b51964abefc19398b8893e6ca98079e9837e85b0ce57d5ffe",
+      "duplicate-baseline.txt": "0192f2eec7093beb9dd38d501bb9ecdc80b637ceab42ab9d5113c965600599a6",
+      "targeted-tests.txt": "3651eb3bfd74b0452d7f6e8be0a6cef8df89e8f36f0637bd2d1ca825abc38369",
+      "ordinary-cancellation-candidate.txt": "a1025cb782b5bd4d193a3e65cdd8855678a6dec0ea04e3b6cf9a986ca29c7604",
+      "duplicate-candidate.txt": "3a8a910b716caf37847aa49dce2829695f4f6f1c9d1814863b482ba001724b68",
+      "cancellation-tests-baseline.txt": "38b5a841926d99ec885e7d81c492e472237c7a6e5ba04a3ad8ba9446bbd658e0",
+      "ordinary-cancellation.txt": "fff794ed0fd2d0baeae16a34f1b838dac2eda4d9330b0ceaa5e3e036506b699a"
+    },
+    "final_build_regression_suites_passed": true,
+    "final_build_class_sha256": "24f3da7fc4b739f8a0fbe6a335aee18756ff0e82f209106b58f0cb749701ccb9"
+  },
+  "terminal_oracle": {
+    "candidate": {
+      "samples": 2000,
+      "oracle_feasible": 1818,
+      "planner_feasible": 1818,
+      "false_negative": 0,
+      "false_positive": 0,
+      "execution_miss": 0,
+      "stock_dominated": 0,
+      "invalid": 0
+    },
+    "comparison": {
+      "fewer_executions": 0,
+      "less_stock": 0,
+      "recovered": 0
+    }
+  },
+  "terminal_three_recipe_regression": {
+    "allThreeOptMisses": 0,
+    "exactFeasible": 4210,
+    "samples": 5000,
+    "misses": 0,
+    "plannerFeasible": 4210,
+    "invalid": 0,
+    "falseNegative": 0
+  },
+  "two_layer_oracle": {
+    "samples": 1000,
+    "feasible": 996,
+    "exact_execution_hits": 996,
+    "stock_dominated": 0,
+    "balance_failures": 0,
+    "replay_failures": 0,
+    "replay_passes": 2988,
+    "fewer_executions": 0,
+    "same_execution_less_stock": 0,
+    "full_final_snapshot_independent_oracle_checked": true
+  },
+  "three_layer_oracle": {
+    "generated": 700,
+    "feasible": 627,
+    "execution_optimal": 627,
+    "remaining_gaps": [],
+    "fewer_executions": [
+      "single-500/random-304",
+      "dual-100/dual-48"
+    ],
+    "same_execution_less_stock": []
+  },
+  "corpus_regression": {
+    "queries": 192,
+    "datasets": [
+      {
+        "dataset": "recipes-vanilla",
+        "queries": 48,
+        "baseline_feasible": 20,
+        "candidate_feasible": 20,
+        "baseline_budget_exhausted": 10,
+        "candidate_budget_exhausted": 10,
+        "status_changes": 0,
+        "execution_regressions": 0,
+        "equal_execution_stock_increases": 0,
+        "invalid": 0,
+        "improved": 0,
+        "plan_changes": 0
+      },
+      {
+        "dataset": "recipes-small",
+        "queries": 48,
+        "baseline_feasible": 2,
+        "candidate_feasible": 2,
+        "baseline_budget_exhausted": 42,
+        "candidate_budget_exhausted": 42,
+        "status_changes": 0,
+        "execution_regressions": 0,
+        "equal_execution_stock_increases": 0,
+        "invalid": 0,
+        "improved": 0,
+        "plan_changes": 0
+      },
+      {
+        "dataset": "recipes-nast",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": 0,
+        "execution_regressions": 0,
+        "equal_execution_stock_increases": 0,
+        "invalid": 0,
+        "improved": 0,
+        "plan_changes": 0
+      },
+      {
+        "dataset": "recipes-atm",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": 0,
+        "execution_regressions": 0,
+        "equal_execution_stock_increases": 0,
+        "invalid": 0,
+        "improved": 0,
+        "plan_changes": 0
+      }
+    ],
+    "limitations": "Serial correctness regression, not a timing benchmark. Existing baseline budget cutoffs and infeasible cases are retained explicitly; target inventory follows TB semantics."
+  },
+  "non_adopted": {
+    "distinct_material_branch_cache": {
+      "reason": "NAST: 31218 calls per run, zero repeated list identities in a planner or prepared graph. ATM: zero calls. Cache adds no reuse for the measured issue cases.",
+      "evidence_sha256": "0594d950742b9df6dce257994e973b601ffbd2f53a4d21ecec86a1c8b1b31c66"
+    },
+    "cross_projection_input_metadata_cache": {
+      "reason": "NAST repeats pattern identities across projections, but the measured inputs have no duplicate raw keys and average only 1.26 slots. Raw-leaf classification and footprint propagation depend on the projected graph. No production cache was added.",
+      "evidence_sha256": "07440b4bd5df88a24d624e83d7b2c1fa37d4ba06f6fbbf5dfabd69e086ce54f7"
+    }
+  },
+  "input_provenance": {
+    "recipes-vanilla": [
+      {
+        "path": "normalized/recipes-vanilla.bin",
+        "bytes": 69580,
+        "sha256": "6a16e79133572147470324a468f4dd426e17a346dd479fa055e196948f190bb9"
+      },
+      {
+        "path": "AW/bench/plans/recipes-vanilla.targets.tsv",
+        "bytes": 371,
+        "sha256": "79ee58fdcdd3183041b7d18183cfa679c7bd3308b0382b281e2df260df5bc43f"
+      },
+      {
+        "path": "AW/bench/plans/recipes-vanilla.stock.none.tsv",
+        "bytes": 16,
+        "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+      },
+      {
+        "path": "AW/bench/plans/recipes-vanilla.stock.leaves.tsv",
+        "bytes": 6041,
+        "sha256": "63006c959876465de6f7627a19cfaf427bb1da637bf933b06efc7866f8caae8c"
+      },
+      {
+        "path": "AW/bench/plans/recipes-vanilla.stock.random20.tsv",
+        "bytes": 2307,
+        "sha256": "ba0f39d81d3ccf87c99576bb69aa4a89daaccbd64ecc92a6b8eac9f559598a2e"
+      }
+    ],
+    "recipes-small": [
+      {
+        "path": "normalized/recipes-small.bin",
+        "bytes": 214216,
+        "sha256": "fb2762ccd9af4887df93d75654c85242c9f74eb7af93b1790b5323f6efa455c7"
+      },
+      {
+        "path": "AW/bench/plans/recipes-small.targets.tsv",
+        "bytes": 414,
+        "sha256": "865f02174c117cbdab8a0631e2b6f0333cef2237fa422037e85edf7aba6294cf"
+      },
+      {
+        "path": "AW/bench/plans/recipes-small.stock.none.tsv",
+        "bytes": 16,
+        "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+      },
+      {
+        "path": "AW/bench/plans/recipes-small.stock.leaves.tsv",
+        "bytes": 5018,
+        "sha256": "e995a440c691f983d934db59ce118a1bf33398a87ecf0ebe695d36927e3befa3"
+      },
+      {
+        "path": "AW/bench/plans/recipes-small.stock.random20.tsv",
+        "bytes": 4043,
+        "sha256": "aa7331fcefcd572f54b0a61ab0b5a7360b3b75b998ca0294e6f813fed11c70d6"
+      }
+    ],
+    "recipes-nast": [
+      {
+        "path": "normalized/recipes-nast.bin",
+        "bytes": 1255472,
+        "sha256": "38bee92efcef25027b5b0598c0b080a8d64097f5e7b2948724c5d6052f734cc9"
+      },
+      {
+        "path": "AW/bench/plans/recipes-nast.targets.tsv",
+        "bytes": 484,
+        "sha256": "597652504a502266ea1aa443d9eeea5101c509c5717f921d6efdd68fa185e3bd"
+      },
+      {
+        "path": "AW/bench/plans/recipes-nast.stock.none.tsv",
+        "bytes": 16,
+        "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+      },
+      {
+        "path": "AW/bench/plans/recipes-nast.stock.leaves.tsv",
+        "bytes": 16808,
+        "sha256": "e625261c34d258a997797b32b8962dc879d38a0604b85894fbb044e2be6416f6"
+      },
+      {
+        "path": "AW/bench/plans/recipes-nast.stock.random20.tsv",
+        "bytes": 23231,
+        "sha256": "ccffbe94803687144b24d747f9f6bd2ade5e3d22f251c8c093dbeb16c56e1b67"
+      }
+    ],
+    "recipes-atm": [
+      {
+        "path": "normalized/recipes-atm.bin",
+        "bytes": 12966108,
+        "sha256": "aa5cde5d2dda745824ceb22535f8a588e9849be4d5f726dd7d1cc5fd6a7fed07"
+      },
+      {
+        "path": "AW/bench/plans/recipes-atm.targets.tsv",
+        "bytes": 536,
+        "sha256": "5cfc20ee7333edfefc9cce62a94c07c46e327b7478ddcd213050ec2ac9fb33f0"
+      },
+      {
+        "path": "AW/bench/plans/recipes-atm.stock.none.tsv",
+        "bytes": 16,
+        "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+      },
+      {
+        "path": "AW/bench/plans/recipes-atm.stock.leaves.tsv",
+        "bytes": 80100,
+        "sha256": "a0a3978fdbdd8d3554209d38cba128faac63101dafd4b9a141b32a4410226e42"
+      },
+      {
+        "path": "AW/bench/plans/recipes-atm.stock.random20.tsv",
+        "bytes": 134464,
+        "sha256": "26ff15252ffc4a9707a84f8d5fe36e13fc5baa8f1274e09f9914c41acc343204"
+      }
+    ]
+  },
+  "reproduction_sha256": {
+    "tb-alpha-round4-20261003/final_abba.py": "7be8793174f12e0f385afea4806335abc9c9187a647e12e2671259f08acac18f",
+    "tb-alpha-round4-20261003/run_combined_audit.py": "0a42fce3104e019b6a5eb87b878d0ae4a8d6d80b6fd8ee033467f6720e2abf72",
+    "tb-alpha-round4-20261003/run_terminal_oracle.py": "69eca564f988ef1a263ae327a7ff94adc47607f05da6930a734377f2ca9249f8",
+    "tb-alpha-round4-20261003/run_three_layer.py": "71fa9f44eee299a438610e0efccc47de3351dbdce6b1c949ab4def45026dcb25",
+    "tb-alpha-round4-20261003/run_corpus_regression.py": "8f7b98fe453048b0d7eafec10b07e42f7b1ef8d6495276174af9ff586ca09c82",
+    "tb-alpha-round4-20261003/compare_corpus.py": "1e97ae32586fc61e39688adaea78b3c1d0636bb14584f81932d812544076a3cd",
+    "tb-alpha-round4-20261003/TerminalOracle.java": "7295b6cf681021f27f3f4be3ee00a53d95f70ef7f3e1dba1b5ae2bba938353d8",
+    "tb-alpha-round4-20261003/QualityCases.java": "e09e80f30ceab19feacb41a2ab1c8494cfa80f4e55f1b83e7836df1304f558ed"
+  }
+}

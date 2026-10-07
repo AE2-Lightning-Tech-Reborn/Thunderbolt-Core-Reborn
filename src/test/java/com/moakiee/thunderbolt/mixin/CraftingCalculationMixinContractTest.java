@@ -32,8 +32,10 @@ class CraftingCalculationMixinContractTest {
                 "computePlan wrap must use MixinExtras WrapMethod, not a call-site WrapOperation");
         assertFalse(source.contains("method = \"run\""),
                 "must not inject or wrap run(); GTLCore @Overwrites that method");
-        assertTrue(source.contains("GtlCompat.isCraftingHandoverActive()"),
-                "GTL yield must detect handover: GTLCore's simulateFor is a no-op");
+        assertTrue(source.contains("GtlCompat.usesGtlCalculationScheduler()"),
+                "GTL yield must detect the scheduler even when CPU handover is disabled");
+        assertFalse(source.contains("GtlCompat.isCraftingHandoverActive()"),
+                "CPU handover cannot restore AE2's monitor under GTLCore's overwritten simulateFor");
         assertTrue(source.contains("LockSupport.parkNanos"),
                 "GTL yield must park instead of waiting on AE2's per-tick monitor");
         assertTrue(source.contains("ExactPlanReports.isPreview(result)"),

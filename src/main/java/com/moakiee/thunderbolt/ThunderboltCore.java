@@ -67,6 +67,7 @@ public final class ThunderboltCore {
 
     private void onCommonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
+            com.moakiee.thunderbolt.compat.OptionalBatchProviders.register();
             StorageCells.addCellHandler(IndexedStorageCellHandler.INSTANCE);
             GridServices.register(ICraftingPlanningService.class, CraftingPlanningService.class);
             CraftingPlanningEngines.register(
