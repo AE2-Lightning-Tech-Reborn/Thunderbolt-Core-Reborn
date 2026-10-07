@@ -14,7 +14,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
@@ -589,7 +588,15 @@ public final class CraftPlannerV2<K> {
         firstPlanner.replenishment = session.replenishment;
         firstPlanner.replenishmentCompiled = session.replenishmentCompiled;
         firstPlanner.cutPolicies = session.cutPolicies;
-        CraftPlan<K> first = UnorderedByproductSafety.protect(
+        if (!session.refineMissing && session.materialDagOrderTemplates != null) {
+            // A replenishment probe already owns completed, stock-independent supports. Refresh
+            // and replay them before rebuilding the unprojected graph's SCCs and fallback state.
+            // The same portfolio time/attempt and shared solver budgets still apply. Failure is
+            // only a heuristic miss: continue the ordinary calculation below with fresh stock.
+            CraftPlan<K> reused = firstPlanner.tryMaterialDagOrders(target, amount);
+            if (reused != null) return finish(reused, diagnostics, budget, started, graph, target, amount);
+        }
+        CraftPlan<K> first = diagnostics.protect(
                 graph, firstPlanner.run(target, amount, firstOrientation), target, amount);
         preparedByOrientation.put(new Orientation<>(firstOrientation, false), firstPlanner.preparedGraph);
         if (first.feasible()) {
@@ -745,34 +752,28 @@ public final class CraftPlannerV2<K> {
         long started = System.nanoTime();
         try (var ignored = PlanningCancellation.limitOptionalWork(remaining)) {
             if (session.materialDagOrders == null) {
+                var accepted = new java.util.concurrent.atomic.AtomicReference<CraftPlan<K>>();
+                int[] nextIndex = {0};
+                java.util.function.Predicate<MaterialDagOrders.Candidate<K>> replay = order -> {
+                    int index = nextIndex[0]++;
+                    CraftPlan<K> candidate = replayMaterialDagOrder(order, index, target, amount);
+                    if (candidate == null) return false;
+                    accepted.set(candidate);
+                    session.preferredMaterialDagOrder = index;
+                    return true;
+                };
                 session.materialDagOrders = session.materialDagOrderTemplates == null
-                        ? MaterialDagOrders.compile(graph, target, lowWidthWorkBudget)
+                        ? MaterialDagOrders.compile(graph, target, lowWidthWorkBudget, replay)
                         : MaterialDagOrders.withAdditionalStock(session.materialDagOrderTemplates,
-                                session.materialDagAdditionalStock, target, lowWidthWorkBudget);
-            }
-            int count = session.materialDagOrders.size();
-            for (int offset = 0; offset < count && session.materialDagOrderAttempts < 120; offset++) {
-                int index = (session.preferredMaterialDagOrder + offset) % count;
-                var order = session.materialDagOrders.get(index);
-                if (!order.maySupply(amount)) continue;
-                CraftGraph<K> projected = order.graph();
-                int charge = reachableWorkEstimate(projected, target);
-                // This finite portfolio builds exact DAG models. Charge its bounded compilation
-                // and replay work to the same shared budget as those models, even when recursive
-                // route search has stopped. Minimal-search replenishment uses this identical path.
-                if (!lowWidthWorkBudget.tryConsume(16L * charge)) return null;
-                session.materialDagOrderAttempts++;
-                PreparedGraph<K> prepared = session.preparedMaterialDagOrders.get(index);
-                CraftPlannerV2<K> planner = prepared == null
-                        ? new CraftPlannerV2<>(projected, visitCap, searchBudget, lowWidthWorkBudget, diagnostics)
-                        : new CraftPlannerV2<>(prepared, visitCap, searchBudget, lowWidthWorkBudget, diagnostics);
-                planner.objectiveDistances = objectiveDistances;
-                planner.materialDagProjection = true;
-                CraftPlan<K> candidate = planner.run(target, amount, List.of());
-                session.preparedMaterialDagOrders.putIfAbsent(index, planner.preparedGraph);
-                if (candidate.feasible()) {
-                    candidate = UnorderedByproductSafety.protect(graph, order.restore(candidate), target, amount);
-                    if (candidate.feasible()) {
+                                session.materialDagAdditionalStock, target, lowWidthWorkBudget, replay);
+                if (accepted.get() != null) return accepted.get();
+            } else {
+                int count = session.materialDagOrders.size();
+                for (int offset = 0; offset < count && session.materialDagOrderAttempts < 120; offset++) {
+                    int index = (session.preferredMaterialDagOrder + offset) % count;
+                    var order = session.materialDagOrders.get(index);
+                    CraftPlan<K> candidate = replayMaterialDagOrder(order, index, target, amount);
+                    if (candidate != null) {
                         session.preferredMaterialDagOrder = index;
                         return candidate;
                     }
@@ -795,6 +796,27 @@ public final class CraftPlannerV2<K> {
             return tryMaterialDagOrders(target, amount);
         }
         return null;
+    }
+
+    private CraftPlan<K> replayMaterialDagOrder(MaterialDagOrders.Candidate<K> order, int index,
+            K target, long amount) {
+        PlanningSession<K> session = planningSession;
+        if (!order.maySupply(amount) || session.materialDagOrderAttempts >= 120) return null;
+        CraftGraph<K> projected = order.graph();
+        // Compilation and replay still debit the same shared solver budget, including probes.
+        if (!lowWidthWorkBudget.tryConsume(16L * reachableWorkEstimate(projected, target))) return null;
+        session.materialDagOrderAttempts++;
+        PreparedGraph<K> prepared = session.preparedMaterialDagOrders.get(index);
+        CraftPlannerV2<K> planner = prepared == null
+                ? new CraftPlannerV2<>(projected, visitCap, searchBudget, lowWidthWorkBudget, diagnostics)
+                : new CraftPlannerV2<>(prepared, visitCap, searchBudget, lowWidthWorkBudget, diagnostics);
+        planner.objectiveDistances = objectiveDistances;
+        planner.materialDagProjection = true;
+        CraftPlan<K> candidate = planner.run(target, amount, List.of());
+        session.preparedMaterialDagOrders.putIfAbsent(index, planner.preparedGraph);
+        if (!candidate.feasible()) return null;
+        candidate = UnorderedByproductSafety.protect(graph, order.restore(candidate), target, amount);
+        return candidate.feasible() ? candidate : null;
     }
 
     private CraftPlan<K> replenishmentPlan(K target, long amount) {
@@ -1135,7 +1157,7 @@ public final class CraftPlannerV2<K> {
             DiagnosticsCollector diagnostics,
             SearchBudget budget,
             long started, CraftGraph<K> graph, K target, long amount) {
-        plan = UnorderedByproductSafety.protect(graph, plan, target, amount);
+        plan = diagnostics.protect(graph, plan, target, amount);
         return new PlanningResult<>(plan, diagnostics.finish(started, budget));
     }
 
@@ -1451,7 +1473,11 @@ public final class CraftPlannerV2<K> {
                 && lowWidth.components().stream().anyMatch(c -> !c.exactSolverEligible())) {
             CraftPlan<K> independent = tryIndependentRawStock(
                     byproductSchedule, target, amount, linear.firings(), lowWidth.components().size());
-            if (independent != null && independent.feasible()) return independent;
+            if (independent != null && independent.feasible()) {
+                // MaterialDagReplay has already proved every enabled order on this exact graph.
+                diagnostics.rememberProtected(graph, independent, target, amount);
+                return independent;
+            }
             independentDiagnosis = independent;
         }
 
@@ -2534,16 +2560,7 @@ public final class CraftPlannerV2<K> {
         }
     }
 
-    private static final class SccFrame<K> {
-        final K node;
-        final List<K> neighbors;
-        int next;
 
-        private SccFrame(K node, List<K> neighbors) {
-            this.node = node;
-            this.neighbors = neighbors;
-        }
-    }
 
     private static final class FixedPatternAllocation<K> {
         private final CraftPattern<K> pattern;
@@ -3423,6 +3440,75 @@ public final class CraftPlannerV2<K> {
     private LowWidthAnalysis<K> analyzeLowWidthComponents(
             ByproductSchedule<K> byproductSchedule, K target, long amount,
             Map<CraftPattern<K>, Long> baselineFirings, boolean relaxRawStock) {
+        PlanningCancellation.check();
+        LowWidthTopology<K> topology = relaxRawStock
+                ? preparedGraph.relaxedLowWidthTopology : preparedGraph.strictLowWidthTopology;
+        if (topology == null || topology.schedule() != byproductSchedule
+                || !java.util.Objects.equals(topology.target(), target)
+                || topology.materialDagProjection() != materialDagProjection) {
+            topology = discoverLowWidthTopology(byproductSchedule, target, relaxRawStock);
+            if (topology == null) return null;
+            PlanningCancellation.check();
+            // The graph, schedule and projection are fixed. Publish only completed topology;
+            // every quantity probe below still recomputes its own boundary balances.
+            if (relaxRawStock) preparedGraph.relaxedLowWidthTopology = topology;
+            else preparedGraph.strictLowWidthTopology = topology;
+        }
+        var template = topology.analysis();
+        int size = template.components().size();
+        var demands = new ArrayList<Map<K, Long>>(java.util.Collections.nCopies(size, null));
+        var supplies = new ArrayList<Map<K, Long>>(java.util.Collections.nCopies(size, null));
+        Integer targetComponent = topology.componentByItem().get(target);
+        if (targetComponent != null) addLowWidthBoundary(demands, targetComponent, target, amount);
+        int slotIndex = 0;
+        for (var firing : baselineFirings.entrySet()) {
+            PlanningCancellation.check();
+            long times = firing.getValue();
+            if (times <= 0) continue;
+            var pattern = firing.getKey();
+            Integer outputComponent = topology.componentByItem().get(pattern.output());
+            for (var input : pattern.inputs()) {
+                if ((++slotIndex & 255) == 0) PlanningCancellation.check();
+                Integer inputComponent = topology.componentByItem().get(input.key());
+                if (inputComponent != null && !inputComponent.equals(outputComponent))
+                    addLowWidthBoundary(demands, inputComponent, input.key(), input.unitsFor(times));
+            }
+            for (var byproduct : pattern.byproducts()) {
+                if ((++slotIndex & 255) == 0) PlanningCancellation.check();
+                if (!byproductSchedule.reuses(pattern, byproduct.key())) continue;
+                Integer suppliedComponent = topology.componentByItem().get(byproduct.key());
+                if (suppliedComponent != null && !suppliedComponent.equals(outputComponent))
+                    addLowWidthBoundary(supplies, suppliedComponent, byproduct.key(),
+                            Sat.mul(times, byproduct.amount()));
+            }
+        }
+        var components = new ArrayList<LowWidthComponent<K>>(size);
+        for (int i = 0; i < size; i++) {
+            PlanningCancellation.check();
+            var model = template.components().get(i);
+            diagnostics.recordSeparatorWidth(model.separatorWidth());
+            components.add(new LowWidthComponent<>(model.items(), model.patterns(),
+                    demands.get(i) == null ? Map.of() : Map.copyOf(demands.get(i)),
+                    supplies.get(i) == null ? Map.of() : Map.copyOf(supplies.get(i)),
+                    model.reusableByproducts(), model.separatorWidth(), model.hasSpeculativeByproducts(),
+                    model.exactSolverEligible(), model.requiresOrderedValidation(), model.infeasibilityProof()));
+        }
+        return new LowWidthAnalysis<>(List.copyOf(components), template.optimisticTargetCapacity(),
+                template.replayOrder());
+    }
+
+    private static <K> void addLowWidthBoundary(
+            List<Map<K, Long>> balances, int component, K key, long amount) {
+        Map<K, Long> balance = balances.get(component);
+        if (balance == null) {
+            balance = new HashMap<>();
+            balances.set(component, balance);
+        }
+        balance.merge(key, amount, Sat::add);
+    }
+
+    private LowWidthTopology<K> discoverLowWidthTopology(
+            ByproductSchedule<K> byproductSchedule, K target, boolean relaxRawStock) {
         if (preparedGraph.contendedOutputCount < 1 && !byproductSchedule.hasRelevantByproducts()
                 && !requiresSeedOrderedPlanning) {
             return null;
@@ -3433,11 +3519,15 @@ public final class CraftPlannerV2<K> {
         if (relaxRawStock) {
             // A raw key may have one independent row in each relaxed component. Actual shared
             // extraction is checked later in the full vector; generated material still couples.
-            for (K key : analysisOrder)
+            for (K key : analysisOrder) {
+                PlanningCancellation.check();
                 if (patternsByOutput.getOrDefault(key, List.of()).isEmpty()) relaxedRaw.add(key);
-            for (K key : analysisOrder)
+            }
+            for (K key : analysisOrder) {
+                PlanningCancellation.check();
                 for (var pattern : patternsByOutput.getOrDefault(key, List.of()))
                     for (var side : pattern.byproducts()) relaxedRaw.remove(side.key());
+            }
         }
 
         // Stock versus crafting is also a decision when crafting supplies a useful side output.
@@ -3451,10 +3541,13 @@ public final class CraftPlannerV2<K> {
                 K output = analysisOrder.get(i);
                 if (output.equals(target)) continue;
                 for (var pattern : patternsByOutput.getOrDefault(output, List.of())) {
-                    boolean choice = pattern.byproducts().stream()
-                            .anyMatch(side -> byproductSchedule.models(pattern, side.key()));
-                    if (!choice) choice = pattern.inputs().stream()
-                            .anyMatch(input -> sideOutputChoices.contains(input.key()));
+                    boolean choice = false;
+                    for (var side : pattern.byproducts()) {
+                        if (byproductSchedule.models(pattern, side.key())) { choice = true; break; }
+                    }
+                    if (!choice) for (var input : pattern.inputs()) {
+                        if (sideOutputChoices.contains(input.key())) { choice = true; break; }
+                    }
                     if (choice) {
                         sideOutputChoices.add(output);
                         break;
@@ -3525,46 +3618,47 @@ public final class CraftPlannerV2<K> {
             }
         }
 
-        Map<K, Integer> componentByItem = new HashMap<>(ownerByItem.size() * 2);
-        Map<Integer, List<K>> itemsByComponent = new HashMap<>();
-        List<Integer> componentSequence = new ArrayList<>();
-        Set<Integer> seenComponents = new HashSet<>();
+        // Union roots are dense decision indices. Keep one request-local accumulator per root,
+        // rather than rehashing its boxed index in several independent component tables.
+        List<LowWidthDiscovery<K>> componentByOwner = new ArrayList<>(
+                java.util.Collections.nCopies(decisionByOutput.size(), null));
+        Map<K, LowWidthDiscovery<K>> componentByItem = new HashMap<>(ownerByItem.size() * 2);
+        List<LowWidthDiscovery<K>> componentSequence = new ArrayList<>();
         for (K item : analysisOrder) {
             PlanningCancellation.check();
             Integer owner = ownerByItem.get(item);
             if (owner == null) {
                 continue;
             }
-            int component = unions.find(owner);
-            componentByItem.put(item, component);
-            itemsByComponent.computeIfAbsent(component, ignored -> new ArrayList<>()).add(item);
-            if (seenComponents.add(component)) {
+            int root = unions.find(owner);
+            LowWidthDiscovery<K> component = componentByOwner.get(root);
+            if (component == null) {
+                component = new LowWidthDiscovery<>(componentSequence.size());
+                componentByOwner.set(root, component);
                 componentSequence.add(component);
             }
+            componentByItem.put(item, component);
+            component.items.add(item);
         }
 
         if (!relaxedRaw.isEmpty()) {
-            for (var componentItems : itemsByComponent.values()) {
+            for (var component : componentSequence) {
+                PlanningCancellation.check();
                 Set<K> needed = new LinkedHashSet<>();
-                for (K key : componentItems)
+                for (K key : component.items)
                     for (var pattern : patternsByOutput.getOrDefault(key, List.of()))
                         for (var input : pattern.inputs())
                             if (relaxedRaw.contains(input.key())) needed.add(input.key());
-                componentItems.addAll(needed);
+                component.items.addAll(needed);
             }
         }
 
-        Map<Integer, List<CraftPattern<K>>> patternsByComponent = new HashMap<>();
-        Map<Integer, Boolean> supportedByComponent = new HashMap<>();
-        Map<Integer, Boolean> orderedValidationByComponent = new HashMap<>();
-        Map<Integer, Boolean> proofByComponent = new HashMap<>();
-        for (Map.Entry<Integer, List<K>> entry : itemsByComponent.entrySet()) {
+        for (var component : componentSequence) {
             PlanningCancellation.check();
-            List<CraftPattern<K>> componentPatterns = new ArrayList<>();
             boolean supported = true;
             boolean orderedValidation = false;
             boolean exactProof = true;
-            for (K output : entry.getValue()) {
+            for (K output : component.items) {
                 if (byproductSchedule.unsafeItems().contains(output)) {
                     // Unsafe byproduct precedences are deliberately not credited. A solved vector is
                     // still sound, but failure of that conservative model is not an infeasibility proof;
@@ -3574,7 +3668,7 @@ public final class CraftPlannerV2<K> {
                 }
                 List<CraftPattern<K>> outputPatterns =
                         patternsByOutput.getOrDefault(output, List.of());
-                componentPatterns.addAll(outputPatterns);
+                component.patterns.addAll(outputPatterns);
                 for (CraftPattern<K> pattern : outputPatterns) {
                     if (byproductSchedule.hasSpeculativeByproduct(pattern)) {
                         orderedValidation = true;
@@ -3602,56 +3696,16 @@ public final class CraftPlannerV2<K> {
                     }
                 }
             }
-            patternsByComponent.put(entry.getKey(), componentPatterns);
-            supportedByComponent.put(entry.getKey(), supported);
-            orderedValidationByComponent.put(entry.getKey(), orderedValidation);
-            proofByComponent.put(entry.getKey(), exactProof);
-        }
-
-        // Firings outside a component are deterministic prefix work. Their consumption is fixed
-        // boundary demand; reusable byproducts they emit are fixed boundary supply. Keeping these as
-        // separate non-negative maps avoids signed saturation and makes unused excess harmless.
-        Map<Integer, Map<K, Long>> externalDemandByComponent = new HashMap<>();
-        Map<Integer, Map<K, Long>> externalSupplyByComponent = new HashMap<>();
-        Integer targetComponent = componentByItem.get(target);
-        if (targetComponent != null) {
-            externalDemandByComponent.computeIfAbsent(targetComponent, ignored -> new HashMap<>())
-                    .merge(target, amount, Sat::add);
-        }
-        for (Map.Entry<CraftPattern<K>, Long> firing : baselineFirings.entrySet()) {
-            PlanningCancellation.check();
-            long times = firing.getValue();
-            if (times <= 0) {
-                continue;
-            }
-            CraftPattern<K> pattern = firing.getKey();
-            Integer outputComponent = componentByItem.get(pattern.output());
-            for (CraftInput<K> input : pattern.inputs()) {
-                Integer inputComponent = componentByItem.get(input.key());
-                if (inputComponent != null && !inputComponent.equals(outputComponent)) {
-                    externalDemandByComponent
-                            .computeIfAbsent(inputComponent, ignored -> new HashMap<>())
-                            .merge(input.key(), input.unitsFor(times), Sat::add);
-                }
-            }
-            for (CraftOutput<K> byproduct : pattern.byproducts()) {
-                if (!byproductSchedule.reuses(pattern, byproduct.key())) {
-                    continue;
-                }
-                Integer suppliedComponent = componentByItem.get(byproduct.key());
-                if (suppliedComponent != null && !suppliedComponent.equals(outputComponent)) {
-                    externalSupplyByComponent
-                            .computeIfAbsent(suppliedComponent, ignored -> new HashMap<>())
-                            .merge(byproduct.key(), Sat.mul(times, byproduct.amount()), Sat::add);
-                }
-            }
+            component.supported = supported;
+            component.orderedValidation = orderedValidation;
+            component.exactProof = exactProof;
         }
 
         List<LowWidthComponent<K>> components = new ArrayList<>(componentSequence.size());
-        for (int component : componentSequence) {
+        for (var component : componentSequence) {
             PlanningCancellation.check();
-            List<K> items = itemsByComponent.get(component);
-            List<CraftPattern<K>> patterns = patternsByComponent.get(component);
+            List<K> items = component.items;
+            List<CraftPattern<K>> patterns = component.patterns;
             Set<K> boundary = new HashSet<>();
             int width = 0;
             boolean hasSpeculativeByproduct = false;
@@ -3661,14 +3715,13 @@ public final class CraftPlannerV2<K> {
                 for (CraftPattern<K> pattern
                         : patternsByOutput.getOrDefault(output, List.of())) {
                     for (CraftInput<K> input : pattern.inputs()) {
-                        if (Integer.valueOf(component).equals(componentByItem.get(input.key()))) {
+                        if (componentByItem.get(input.key()) == component) {
                             boundary.add(input.key());
                         }
                     }
                     for (CraftOutput<K> byproduct : pattern.byproducts()) {
                         if (byproductSchedule.models(pattern, byproduct.key())
-                                && Integer.valueOf(component).equals(
-                                        componentByItem.get(byproduct.key()))) {
+                                && componentByItem.get(byproduct.key()) == component) {
                             hasSpeculativeByproduct |=
                                     byproductSchedule.isSpeculative(pattern, byproduct.key());
                             boundary.add(byproduct.key());
@@ -3680,7 +3733,6 @@ public final class CraftPlannerV2<K> {
                 }
                 width = Math.max(width, boundary.size());
             }
-            diagnostics.recordSeparatorWidth(width);
 
             boolean validatedByproductWidth = hasSpeculativeByproduct
                     && width <= MAX_VALIDATED_BYPRODUCT_SEPARATOR;
@@ -3688,29 +3740,31 @@ public final class CraftPlannerV2<K> {
             // A wide stock separator alone need not reject a small matrix or a sparse reduction.
             // Components needing ordered validation retain their narrower structural admission.
             boolean exactEligible = !patterns.isEmpty()
-                    && supportedByComponent.getOrDefault(component, false)
+                    && component.supported
                     && (width <= MAX_LOW_WIDTH_SEPARATOR || validatedByproductWidth
-                            || !orderedValidationByComponent.getOrDefault(component, true))
+                            || !component.orderedValidation)
                     && patterns.size() <= MAX_LOW_WIDTH_VARIABLES
                     && items.size() <= MAX_LOW_WIDTH_CONSTRAINTS;
             components.add(new LowWidthComponent<>(
                     List.copyOf(items),
                     List.copyOf(patterns),
-                    Map.copyOf(externalDemandByComponent.getOrDefault(component, Map.of())),
-                    Map.copyOf(externalSupplyByComponent.getOrDefault(component, Map.of())),
+                    Map.of(), Map.of(),
                     freezeByproductMap(componentByproducts),
                     width,
                     hasSpeculativeByproduct,
                     exactEligible,
-                    orderedValidationByComponent.getOrDefault(component, false),
-                    proofByComponent.getOrDefault(component, false)));
+                    component.orderedValidation,
+                    component.exactProof));
         }
 
         long optimisticCapacity = byproductSchedule.hasRelevantByproducts()
                 ? Sat.SAT
                 : optimisticTargetCapacity(analysisOrder, target);
-        return new LowWidthAnalysis<>(
-                List.copyOf(components), optimisticCapacity, List.copyOf(analysisOrder));
+        var owners = new HashMap<K, Integer>(componentByItem.size() * 2);
+        componentByItem.forEach((key, component) -> owners.put(key, component.index));
+        return new LowWidthTopology<>(target, byproductSchedule, materialDagProjection,
+                java.util.Collections.unmodifiableMap(owners),
+                new LowWidthAnalysis<>(List.copyOf(components), optimisticCapacity, List.copyOf(analysisOrder)));
     }
 
     private static <K> void unionItemOwner(
@@ -3943,114 +3997,18 @@ public final class CraftPlannerV2<K> {
 
     private static <K> Map<K, List<K>> freezeAdjacency(
             List<K> nodes, Map<K, LinkedHashSet<K>> mutable) {
-        Map<K, List<K>> frozen = new HashMap<>(nodes.size() * 2);
-        for (K node : nodes) {
-            frozen.put(node, List.copyOf(mutable.getOrDefault(node, new LinkedHashSet<>())));
-        }
-        return frozen;
+        return PlannerTopology.freezeAdjacency(nodes, mutable);
     }
 
     /** Iterative Kosaraju pass: linear in the local item and material-edge counts. */
     static <K> Map<K, Integer> stronglyConnectedComponents(
             List<K> nodes, Map<K, List<K>> adjacency) {
-        Set<K> seen = new HashSet<>();
-        List<K> finished = new ArrayList<>(nodes.size());
-        for (K start : nodes) {
-            PlanningCancellation.check();
-            if (!seen.add(start)) {
-                continue;
-            }
-            Deque<SccFrame<K>> stack = new ArrayDeque<>();
-            stack.push(new SccFrame<>(start, adjacency.getOrDefault(start, List.of())));
-            while (!stack.isEmpty()) {
-                PlanningCancellation.check();
-                SccFrame<K> frame = stack.peek();
-                if (frame.next < frame.neighbors.size()) {
-                    K next = frame.neighbors.get(frame.next++);
-                    if (seen.add(next)) {
-                        stack.push(new SccFrame<>(
-                                next, adjacency.getOrDefault(next, List.of())));
-                    }
-                } else {
-                    finished.add(frame.node);
-                    stack.pop();
-                }
-            }
-        }
-
-        Map<K, List<K>> reverse = new HashMap<>(nodes.size() * 2);
-        for (K node : nodes) {
-            PlanningCancellation.check();
-            reverse.put(node, new ArrayList<>());
-        }
-        adjacency.forEach((from, targets) -> {
-            for (K target : targets) {
-                reverse.computeIfAbsent(target, ignored -> new ArrayList<>()).add(from);
-            }
-        });
-
-        Map<K, Integer> component = new HashMap<>(nodes.size() * 2);
-        int nextComponent = 0;
-        for (int index = finished.size() - 1; index >= 0; index--) {
-            PlanningCancellation.check();
-            K start = finished.get(index);
-            if (component.containsKey(start)) {
-                continue;
-            }
-            Deque<K> stack = new ArrayDeque<>();
-            stack.push(start);
-            component.put(start, nextComponent);
-            while (!stack.isEmpty()) {
-                PlanningCancellation.check();
-                K node = stack.pop();
-                for (K previous : reverse.getOrDefault(node, List.of())) {
-                    if (!component.containsKey(previous)) {
-                        component.put(previous, nextComponent);
-                        stack.push(previous);
-                    }
-                }
-            }
-            nextComponent++;
-        }
-        return component;
+        return PlannerTopology.stronglyConnectedComponents(nodes, adjacency);
     }
 
     private static <K> List<K> stableTopologicalOrder(
             List<K> stableOrder, Map<K, List<K>> adjacency) {
-        Map<K, Integer> stableIndex = new HashMap<>(stableOrder.size() * 2);
-        Map<K, Integer> indegree = new HashMap<>(stableOrder.size() * 2);
-        for (int index = 0; index < stableOrder.size(); index++) {
-            PlanningCancellation.check();
-            K node = stableOrder.get(index);
-            stableIndex.put(node, index);
-            indegree.put(node, 0);
-        }
-        adjacency.forEach((ignored, targets) -> {
-            for (K target : targets) {
-                indegree.merge(target, 1, Integer::sum);
-            }
-        });
-
-        PriorityQueue<K> ready = new PriorityQueue<>(
-                java.util.Comparator.comparingInt(stableIndex::get));
-        for (K node : stableOrder) {
-            if (indegree.getOrDefault(node, 0) == 0) {
-                ready.add(node);
-            }
-        }
-        List<K> result = new ArrayList<>(stableOrder.size());
-        while (!ready.isEmpty()) {
-            PlanningCancellation.check();
-            K node = ready.poll();
-            result.add(node);
-            for (K target : adjacency.getOrDefault(node, List.of())) {
-                int remaining = indegree.merge(target, -1, Integer::sum);
-                if (remaining == 0) {
-                    ready.add(target);
-                }
-            }
-        }
-        return result;
+        return PlannerTopology.stableTopologicalOrder(stableOrder, adjacency);
     }
 
     /** Safe route-summing upper bound; shared stock is deliberately counted more than once. */
@@ -6428,6 +6386,22 @@ public final class CraftPlannerV2<K> {
             List<K> replayOrder) {
     }
 
+    /** Immutable partitions of one prepared graph; quantity-dependent boundaries are never cached. */
+    private record LowWidthTopology<K>(K target, ByproductSchedule<K> schedule, boolean materialDagProjection,
+            Map<K, Integer> componentByItem, LowWidthAnalysis<K> analysis) { }
+
+    /** Request-local discovery state; only frozen LowWidthComponent values reach the solver. */
+    private static final class LowWidthDiscovery<K> {
+        private final int index;
+        private final List<K> items = new ArrayList<>();
+        private final List<CraftPattern<K>> patterns = new ArrayList<>();
+        private boolean supported;
+        private boolean orderedValidation;
+        private boolean exactProof;
+
+        private LowWidthDiscovery(int index) { this.index = index; }
+    }
+
     private record LowWidthComponent<K>(
             List<K> items,
             List<CraftPattern<K>> patterns,
@@ -6557,6 +6531,8 @@ public final class CraftPlannerV2<K> {
         private final Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern;
         private Map<CraftPattern<K>, Integer> materialFootprintByPattern;
         private final ByproductSchedule<K> byproductSchedule;
+        private LowWidthTopology<K> strictLowWidthTopology;
+        private LowWidthTopology<K> relaxedLowWidthTopology;
         private final int patternCount;
         private final int inputCount;
         private final int contendedOutputCount;
@@ -6620,6 +6596,26 @@ public final class CraftPlannerV2<K> {
 
     /** Mutable counters shared by all cut-orientation runs; frozen without extra graph work. */
     private static final class DiagnosticsCollector {
+        private CraftGraph<?> protectedGraph;
+        private CraftPlan<?> protectedPlan;
+        private Object protectedTarget;
+        private long protectedAmount;
+
+        /** Request-local identity cache: changed stock or firing counts always require a new proof. */
+        private <K> CraftPlan<K> protect(CraftGraph<K> graph, CraftPlan<K> plan, K target, long amount) {
+            if (graph == protectedGraph && plan == protectedPlan
+                    && java.util.Objects.equals(target, protectedTarget) && amount == protectedAmount) return plan;
+            CraftPlan<K> result = UnorderedByproductSafety.protect(graph, plan, target, amount);
+            rememberProtected(graph, result, target, amount);
+            return result;
+        }
+
+        private <K> void rememberProtected(CraftGraph<K> graph, CraftPlan<K> result, K target, long amount) {
+            protectedGraph = graph;
+            protectedPlan = result;
+            protectedTarget = target;
+            protectedAmount = amount;
+        }
         private final int reachableWorkEstimate;
         private final int configuredSearchBudget;
         private final int configuredResolutionBudget;

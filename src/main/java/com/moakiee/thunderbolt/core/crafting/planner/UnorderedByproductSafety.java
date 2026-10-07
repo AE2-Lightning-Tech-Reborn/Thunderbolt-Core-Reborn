@@ -36,8 +36,11 @@ final class UnorderedByproductSafety {
             }
         }
         if (!hasByproducts) return plan;
-        var nodes = new LinkedHashSet<Object>();
-        var edges = new HashMap<Object, LinkedHashSet<Object>>();
+        // Dense disjoint IDs avoid repeatedly hashing arbitrary item keys inside SCC traversal.
+        // Pattern IDs are negative; item IDs are non-negative, even when their hashes collide.
+        var itemIds = new HashMap<K, Integer>();
+        var nodes = new LinkedHashSet<Integer>();
+        var edges = new HashMap<Integer, LinkedHashSet<Integer>>();
         var patterns = new ArrayList<MaterialPattern<K>>();
         var reserve = new HashMap<K, BigInteger>();
         for (var entry : plan.firings().entrySet()) {
@@ -58,21 +61,24 @@ final class UnorderedByproductSafety {
                     outputs.put(input.getKey(), BigInteger.ZERO);
                 }
             }
-            var node = new PatternNode(patterns.size());
+            int node = -patterns.size() - 1;
             nodes.add(node);
             // A fully returned input still has to exist before this producer can fire. Keep
             // its enabling arc in the dependency graph even though its net consumption is zero.
             // Otherwise a later, seed-dependent producer could incorrectly fund that same seed.
             for (var input : pattern.inputs())
-                edge(nodes, edges, new ItemNode<>(input.key()), node);
+                edge(nodes, edges, itemId(itemIds, input.key()), node);
             // Keep primary and side output arcs separate when deciding which feedback credits to cut.
-            edge(nodes, edges, node, new ItemNode<>(pattern.output()));
+            edge(nodes, edges, node, itemId(itemIds, pattern.output()));
             for (var output : outputs.entrySet()) if (output.getValue().signum() > 0)
-                edge(nodes, edges, node, new ItemNode<>(output.getKey()));
+                edge(nodes, edges, node, itemId(itemIds, output.getKey()));
             patterns.add(new MaterialPattern<>(pattern, entry.getValue(), node, inputs, outputs));
         }
-        var adjacency = new HashMap<Object, List<Object>>();
-        for (Object node : nodes) adjacency.put(node, List.copyOf(edges.getOrDefault(node, new LinkedHashSet<>())));
+        var adjacency = new HashMap<Integer, List<Integer>>();
+        for (Integer node : nodes) {
+            var next = edges.get(node);
+            adjacency.put(node, next == null ? List.of() : List.copyOf(next));
+        }
         var components = CraftPlannerV2.stronglyConnectedComponents(List.copyOf(nodes), adjacency);
         var balance = new HashMap<K, BigInteger>();
         add(balance, target, BigInteger.valueOf(amount));
@@ -82,11 +88,11 @@ final class UnorderedByproductSafety {
             BigInteger times = BigInteger.valueOf(material.times());
             material.inputs().forEach((key, value) -> add(balance, key, value.multiply(times)));
             var pattern = material.pattern();
-            if (!components.get(material.node()).equals(components.get(new ItemNode<>(pattern.output()))))
+            if (!components.get(material.node()).equals(components.get(itemIds.get(pattern.output()))))
                 add(balance, pattern.output(), BigInteger.valueOf(pattern.outputAmount()).multiply(times).negate());
             for (var output : material.outputs().entrySet()) {
                 if (output.getValue().signum() > 0
-                        && !components.get(material.node()).equals(components.get(new ItemNode<>(output.getKey()))))
+                        && !components.get(material.node()).equals(components.get(itemIds.get(output.getKey()))))
                     add(balance, output.getKey(), output.getValue().multiply(times).negate());
             }
         }
@@ -185,8 +191,8 @@ final class UnorderedByproductSafety {
         if (amount.signum() != 0) map.merge(key, amount, BigInteger::add);
     }
 
-    private static void edge(Set<Object> nodes, Map<Object, LinkedHashSet<Object>> edges,
-                             Object from, Object to) {
+    private static void edge(Set<Integer> nodes, Map<Integer, LinkedHashSet<Integer>> edges,
+                             int from, int to) {
         nodes.add(from); nodes.add(to);
         edges.computeIfAbsent(from, ignored -> new LinkedHashSet<>()).add(to);
     }
@@ -278,8 +284,10 @@ final class UnorderedByproductSafety {
         return true;
     }
 
-    private record ItemNode<K>(K key) {}
-    private record PatternNode(int index) {}
-    private record MaterialPattern<K>(CraftPattern<K> pattern, long times, PatternNode node,
+    private static <K> int itemId(Map<K, Integer> ids, K key) {
+        return ids.computeIfAbsent(key, ignored -> ids.size());
+    }
+
+    private record MaterialPattern<K>(CraftPattern<K> pattern, long times, int node,
                                       Map<K, BigInteger> inputs, Map<K, BigInteger> outputs) {}
 }

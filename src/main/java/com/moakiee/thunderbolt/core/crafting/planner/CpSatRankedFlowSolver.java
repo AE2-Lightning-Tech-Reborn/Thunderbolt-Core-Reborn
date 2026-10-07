@@ -168,6 +168,12 @@ public final class CpSatRankedFlowSolver<K> {
     private Candidate<K> solveCandidate(Compilation<K> compilation, long[] missingCaps,
                                         List<long[]> cuts, boolean enforceStartup,
                                         List<PetriBlockCatalog.Block> blocks) {
+        return solveCandidate(compilation, missingCaps, cuts, enforceStartup, blocks, null);
+    }
+
+    private Candidate<K> solveCandidate(Compilation<K> compilation, long[] missingCaps,
+                                        List<long[]> cuts, boolean enforceStartup,
+                                        List<PetriBlockCatalog.Block> blocks, long[] witnessBounds) {
         // Direct callers have no router deadline. Never let a native proof run without a bound.
         long remainingNanos = PlanningCancellation.remainingNanos(
                 PlanningCancellation.checkpointIfBound() ? Long.MAX_VALUE : 3_000_000_000L);
@@ -198,7 +204,7 @@ public final class CpSatRankedFlowSolver<K> {
                     compilation.itemDistances,
                     compilation.targetItem,
                     targetAmount,
-                    compilation.firingUpperBounds,
+                    witnessBounds == null ? compilation.firingUpperBounds : witnessBounds,
                     missingCaps,
                     cuts.toArray(long[][]::new),
                     enforceStartup,
@@ -280,7 +286,7 @@ public final class CpSatRankedFlowSolver<K> {
             plan = proof == null ? null : certifiedPlan(compilation, firings, missing, proof);
         }
         if (plan != null && !legalMissing(compilation, plan)) plan = null;
-        boolean partial = raw[0] == 4L || weightedDomainLimited;
+        boolean partial = raw[0] == 4L || weightedDomainLimited || witnessBounds != null;
         if (plan != null && partial) plan = withBudget(plan);
         return new Candidate<>(Status.SOLVED, plan, branches, firings, missing, ranks, partial);
     }
@@ -314,14 +320,26 @@ public final class CpSatRankedFlowSolver<K> {
         long allowed = Math.min(session.remainingNanos,
                 PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
         try (var ignored = PlanningCancellation.limitOptionalWork(allowed)) {
+            CraftPlan<K> seeded = smallSeedWitness(c, first.firings);
+            if (seeded != null && better(c, seeded, best)) {
+                best = seeded;
+                session.improvements++;
+                if (best.feasible()) return new Result<>(Status.SOLVED, best, branches);
+            }
             // Optimize route, seed and repetitions together. A bounded witness family is only an
             // under-approximation: failure here must never add an exclusion to the master model.
-            var blocks = executionBlocks(c);
+            // Certify the compact exact-round family before optional permutation discovery.
+            var blocks = executionBlocks(c, false);
             if (!blocks.isEmpty()) {
                 session.remainingCalls--;
                 session.refinementCalls++;
                 session.blockSolves++;
-                Candidate<K> joint = solveCandidate(c, new long[0], List.of(), false, blocks);
+                // This is a witness search, not a global optimization proof. The master's huge
+                // algebraic domains are unnecessary for its current vector's startup seed.
+                long[] witnessBounds = new long[first.firings.length];
+                for (int r = 0; r < witnessBounds.length; r++)
+                    witnessBounds[r] = Math.min(c.firingUpperBounds[r], Math.max(1L, first.firings[r]));
+                Candidate<K> joint = solveCandidate(c, new long[0], List.of(), false, blocks, witnessBounds);
                 branches = Sat.add(branches, joint.branches);
                 if (joint.plan != null && better(c, joint.plan, best)) {
                     best = joint.plan;
@@ -336,6 +354,26 @@ public final class CpSatRankedFlowSolver<K> {
                 var plan = certifiedPlan(c, first.firings, backwards.missing(), backwards.proof());
                 if (plan != null && better(c, plan, best)) { best = plan; session.improvements++; }
                 if (best.feasible()) return new Result<>(Status.SOLVED, best, branches);
+            }
+            // Keep the richer optional witness family as a fallback, not as a prerequisite for
+            // cheap rounds. It shares the unchanged time/call allowance and never learns a cut.
+            boolean reachesLowerBound = !first.partial;
+            for (int i = 0; i < c.items.size(); i++)
+                reachesLowerBound &= best.missing().getOrDefault(c.items.get(i), 0L) <= first.missing[i];
+            if (!reachesLowerBound && session.remainingCalls > 0) {
+                var expanded = executionBlocks(c);
+                if (expanded.size() > blocks.size()) {
+                    session.remainingCalls--;
+                    session.refinementCalls++;
+                    session.blockSolves++;
+                    var joint = solveCandidate(c, new long[0], List.of(), false, expanded);
+                    branches = Sat.add(branches, joint.branches);
+                    if (joint.plan != null && better(c, joint.plan, best)) {
+                        best = joint.plan;
+                        session.improvements++;
+                    }
+                    if (best.feasible()) return new Result<>(Status.SOLVED, best, branches);
+                }
             }
             List<long[]> cuts = new ArrayList<>();
             Candidate<K> candidate = first;
@@ -440,6 +478,58 @@ public final class CpSatRankedFlowSolver<K> {
                 Map.copyOf(missing), Map.copyOf(gross), c.items.size(), false);
     }
 
+    /** A small relaxed vector often omitted just its acyclic seed producers. Add one batch of
+     * each unused recipe, then independently check primary justification, legal boundaries and
+     * an exact execution prefix. This is a bounded positive witness, never a negative proof. */
+    private CraftPlan<K> smallSeedWitness(Compilation<K> c, long[] relaxed) {
+        if (c.items.size() > 12 || c.patterns.size() > 16 || session.verifier.remainingNodes() <= 0
+                || c.feedbackMacros.size() + c.conversionCycles.size() < 2)
+            return null;
+        for (var pattern : c.patterns) for (var input : pattern.inputs())
+            if (input.returned() || input.remainder() != null || input.reusableStockSource() != null) return null;
+        long[] quantities = relaxed.clone();
+        long total = 0;
+        for (int r = 0; r < quantities.length; r++) {
+            quantities[r] = Math.max(1L, quantities[r]);
+            if (quantities[r] > c.firingUpperBounds[r] || quantities[r] > 64L - total) return null;
+            total += quantities[r];
+        }
+        BigInteger[] demand = new BigInteger[c.items.size()];
+        BigInteger[] produced = new BigInteger[c.items.size()];
+        BigInteger[] primary = new BigInteger[c.items.size()];
+        Arrays.fill(demand, BigInteger.ZERO);
+        Arrays.fill(produced, BigInteger.ZERO);
+        Arrays.fill(primary, BigInteger.ZERO);
+        demand[c.targetItem] = BigInteger.valueOf(targetAmount);
+        for (int r = 0; r < quantities.length; r++) {
+            PlanningCancellation.check();
+            BigInteger n = BigInteger.valueOf(quantities[r]);
+            for (int i : c.consumed.rowKeys(r))
+                demand[i] = demand[i].add(BigInteger.valueOf(c.consumed.get(r, i)).multiply(n));
+            for (int i : c.produced.rowKeys(r))
+                produced[i] = produced[i].add(BigInteger.valueOf(c.produced.get(r, i)).multiply(n));
+            int output = c.primaryOutputItems[r];
+            primary[output] = primary[output].add(BigInteger.valueOf(c.primaryOutputAmounts[r])
+                    .multiply(n.subtract(BigInteger.ONE)).add(BigInteger.ONE));
+        }
+        boolean[] boundaries = boundariesFor(c, quantities);
+        BigInteger[] initial = new BigInteger[c.items.size()];
+        long[] supply = new long[initial.length];
+        for (int i = 0; i < initial.length; i++) {
+            if (primary[i].compareTo(demand[i]) > 0) return null;
+            BigInteger deficit = demand[i].subtract(produced[i]).subtract(BigInteger.valueOf(c.stocks[i]))
+                    .max(BigInteger.ZERO);
+            if ((deficit.signum() > 0 && !boundaries[i]) || deficit.compareTo(BigInteger.valueOf(Sat.SAT)) >= 0)
+                return null;
+            supply[i] = deficit.longValueExact();
+            initial[i] = BigInteger.valueOf(c.stocks[i]).add(deficit);
+        }
+        var checked = PetriExecutionVerifier.verify(c.consumed, c.produced, quantities, initial,
+                new int[0], c.targetItem, targetAmount, session.verifier);
+        return checked.status() == PetriExecutionVerifier.Status.EXECUTABLE
+                ? certifiedPlan(c, quantities, supply, checked.certificate()) : null;
+    }
+
     private static <K> boolean dominates(CraftPlan<K> candidate, CraftPlan<K> incumbent) {
         boolean smaller = false;
         for (var entry : candidate.missing().entrySet()) {
@@ -483,6 +573,10 @@ public final class CpSatRankedFlowSolver<K> {
     }
 
     private List<PetriBlockCatalog.Block> executionBlocks(Compilation<K> c) {
+        return executionBlocks(c, true);
+    }
+
+    private List<PetriBlockCatalog.Block> executionBlocks(Compilation<K> c, boolean discover) {
         Set<Integer> groups = new LinkedHashSet<>();
         List<FeedbackMacro<K>> macros = new ArrayList<>(c.feedbackMacros);
         for (var cycle : c.conversionCycles) macros.add(cycle.replayMacro);
@@ -502,7 +596,7 @@ public final class CpSatRankedFlowSolver<K> {
                 }
             }
         }
-        return PetriBlockCatalog.build(c.consumed, c.produced, c.rankGroups, c.outputItems, groups, suggested);
+        return PetriBlockCatalog.build(c.consumed, c.produced, c.rankGroups, c.outputItems, groups, suggested, discover);
     }
 
     private PetriExecutionTrace.Node executionTrace(Compilation<K> c, long[] quantities, long[] ranks,

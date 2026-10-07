@@ -12,6 +12,29 @@ import org.junit.jupiter.api.Test;
 class BoundedIntegerLinearSolverTest {
 
     @Test
+    void callerArrayMutationCannotChangePresolveOrResourceCuts() {
+        long[] demand = {1, 0}, resource = {-1, -1};
+        var demandRow = row(3, demand);
+        var resourceRow = row(-3, resource);
+        demand[0] = -99;
+        resource[1] = 99;
+        demandRow.coefficients()[0] = -99;
+        resourceRow.coefficients()[1] = 99;
+        var constraints = List.of(demandRow, resourceRow);
+        var cut = IntegerResourceCuts.weightedSum(constraints,
+                new java.math.BigInteger[] {java.math.BigInteger.ONE, java.math.BigInteger.ONE});
+        assertArrayEquals(new long[] {0, -1}, cut.coefficients());
+        assertEquals(0, cut.minimum());
+        cut.coefficients()[1] = 99;
+        var result = BoundedIntegerLinearSolver.solve(2, constraints, 10, 16);
+        assertTrue(result.solved());
+        assertArrayEquals(new long[] {3, 0}, result.values());
+        assertArrayEquals(new long[] {1, 0}, demandRow.coefficients());
+        assertArrayEquals(new long[] {-1, -1}, resourceRow.coefficients());
+        assertArrayEquals(new long[] {0, -1}, cut.coefficients());
+    }
+
+    @Test
     void aSharedResourceRowReplacesItsRedundantIndividualBounds() {
         long[] demand = new long[12], resource = new long[12];
         java.util.Arrays.fill(demand, 1);
@@ -223,6 +246,39 @@ class BoundedIntegerLinearSolverTest {
         assertTrue(large.work() <= 260);
         assertEquals(BoundedIntegerLinearSolver.Status.INFEASIBLE,
                 BoundedIntegerLinearSolver.solve(2, constraints, Sat.SAT, 16).status());
+    }
+
+    @Test
+    void mixedUnitAndLongBoundaryRowsPreserveEveryFiniteDomainWitness() {
+        long[] coefficients = {Long.MIN_VALUE, Long.MAX_VALUE, -4, -2, -1, 0, 1, 2, 4};
+        var random = new Random(2026100601L);
+        for (int sample = 0; sample < 256; sample++) {
+            var constraints = new java.util.ArrayList<BoundedIntegerLinearSolver.Constraint>();
+            // A unit term preceding an extreme term must still normalize the whole row exactly.
+            constraints.add(row(-Long.MAX_VALUE, -1, Long.MIN_VALUE));
+            for (int r = 0; r < 3; r++) constraints.add(row(
+                    coefficients[random.nextInt(coefficients.length)],
+                    coefficients[random.nextInt(coefficients.length)],
+                    coefficients[random.nextInt(coefficients.length)]));
+            var reduced = SparseIntegerBounds.reduce(2, constraints, 4,
+                    BoundedIntegerLinearSolver.WorkBudget.unlimited());
+            int witnesses = 0;
+            for (long x = 0; x <= 4; x++) for (long y = 0; y <= 4; y++) {
+                boolean feasible = true;
+                for (var constraint : constraints) {
+                    long[] terms = constraint.coefficients();
+                    var activity = java.math.BigInteger.valueOf(terms[0]).multiply(java.math.BigInteger.valueOf(x))
+                            .add(java.math.BigInteger.valueOf(terms[1]).multiply(java.math.BigInteger.valueOf(y)));
+                    feasible &= activity.compareTo(java.math.BigInteger.valueOf(constraint.minimum())) >= 0;
+                }
+                if (!feasible) continue;
+                witnesses++;
+                assertEquals(SparseIntegerBounds.Status.REDUCED, reduced.status(), "sample=" + sample);
+                assertTrue(x >= reduced.lower()[0] && x <= reduced.upper()[0], "sample=" + sample);
+                assertTrue(y >= reduced.lower()[1] && y <= reduced.upper()[1], "sample=" + sample);
+            }
+            if (reduced.status() == SparseIntegerBounds.Status.INFEASIBLE) assertEquals(0, witnesses);
+        }
     }
 
     @Test
