@@ -67,6 +67,12 @@ properties:
   optimization once this long passes without cutting executions by 1%
   (default: `500`; `0` runs to the 2.8 s cap)
 
+## Acknowledgements
+
+Thanks to **AdUhTkJm**, author of [AW](https://github.com/AdUhTkJm/AW), for the
+optimization research and comparison cases that informed our work on reducing recipe
+executions. Thunderbolt's bounded proposals retain its own inventory and execution checks.
+
 ## Development
 
 Build the distributable JAR:

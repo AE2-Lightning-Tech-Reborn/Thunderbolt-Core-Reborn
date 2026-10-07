@@ -1,0 +1,524 @@
+{
+  "title": "Round 8: search-local pair geometry reuse and lower-cost terminal preparation",
+  "baseline_revision": "0060538c8acf5edcbb0af10ae3da5ebbf640d7d0",
+  "baseline_note": "Published alpha has the exact previously verified Round 7 production tree.",
+  "production_source_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.java": "167591722e4c3229fe1c9ec3ae9772ec29707c30e19018a0b33cafbad61d1a2e",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/TerminalFixedDepthOptimizer.java": "363c5a7a43bea38d86d76f3e746bdc909f6cc366b578532c06cb4348f22a1376"
+  },
+  "production_classes": {
+    "count": 482,
+    "sha256": "e2ed5d6a2f880439b59a2bff685733288f77e6775f006bd7628bc6ed16ddc5bf"
+  },
+  "changed_classes": [
+    "com/moakiee/thunderbolt/core/crafting/planner/TerminalFixedDepthOptimizer$Budget.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/TerminalFixedDepthOptimizer$Frontier.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/TerminalFixedDepthOptimizer$Interval.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/TerminalFixedDepthOptimizer$Route.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/TerminalFixedDepthOptimizer$Stopped.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/TerminalFixedDepthOptimizer.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Budget.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Model.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$PairCache.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$PairDemand.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$PairGeometry.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.class"
+  ],
+  "unrelated_classes_byte_equal": true,
+  "jar": {
+    "sha256": "4b8c9e2cc67f76f7cda448cd9acab5a0b50ae03a2b3382f515d78adfe2039e32",
+    "bytes": 5093650,
+    "all_classes_match": true
+  },
+  "tests": {
+    "tests": 1158,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "test_suites": 146,
+  "upstream": {
+    "change": "Search-owned lazy ordered pattern identity geometry cache; original work charge remains before every lookup; PairDemand, dynamic demand and remaining execution allowance are unchanged",
+    "entry_bound": "At most 64 reached candidates in one Search; at most one mixed-output geometry lookup per candidate",
+    "geometry_lifecycle": "Only complete arrays published; no static/global cache; solver and exchange read without mutation",
+    "new_tests": 9,
+    "independent_upstream_tests": 66,
+    "original_slot_charge_on_every_lookup": true,
+    "dynamic_demand_and_remaining_execution_allowance_uncached": true,
+    "ordered_identity_keys": true,
+    "cross_search_reuse": false,
+    "full_build_fee_differential": {
+      "fixtures": 320,
+      "runs": 3516,
+      "all_results_work_candidates_probes_and_charge_streams_equal_published_alpha": true,
+      "input_order": "Identical fixture incumbent firings in original-pattern-id order"
+    },
+    "independent_source_review": "PASS_NO_BLOCKING_FINDINGS"
+  },
+  "terminal": {
+    "change": "Prepare a nonnegative packed rank after full quantity validation; compare it once per stable merge decision. Reuse the sorted buffer for retained routes and the other merge buffer for the query envelope.",
+    "removed_array_allocations": 2,
+    "proof": {
+      "packing": "Each raw coordinate is <512; the two9-bit fields and output field are disjoint. The nonnegative26-bit packed number has exactly the lexicographic order of(-output,raw1,raw2). Equal keys retain left-run priority.",
+      "comparisons": "In each bottom-up merge the right run has length<=left. At least right_length comparisons are needed. Summing right-run membership over widths counts set bits of indices0..N-1: Cmin(N)=sum popcount(i). Descending comparator order attains it.",
+      "range": "ForN=16+r,1<=r<=16:2Cmin-3N=16-r+2Cmin(r)>=0. ForN=32+r,1<=r<=32:2Cmin-3N=64-r+2Cmin(r)>0. Explicit48-size enumeration has minimum saving15.",
+      "alias": "Keep both original/scratch references; pick envelope by reference identity of returned ordered. Capture ordered[read] before retained write; retainedCount<=read, so no future ordered element is overwritten. Envelope is a distinct array and only its initialized prefix is read. Search uses retained count, not array length.",
+      "budget": "With identical admitted routes/comparator outcomes/Pareto decisions/search sequence, full successful-path work delta is5N-2N-2C=3N-2C<=-15. Therefore an additive remaining-work budget sufficient for the old full success is sufficient for the new full success, although individual charge values, positions, early refusals and checkpoints differ.",
+      "limits": "This proves structural ordering/alias and additive work sufficiency, not CPU speed, identical wall-clock cancellation, arbitrary callback-injection equivalence, or a universal allocator bound."
+    },
+    "all_route_counts_checked": [
+      17,
+      64
+    ],
+    "minimum_guaranteed_work_saving": 15,
+    "fixed_budget_claim": "An old complete success fits the new additive work budget; arbitrary callback rejection sequences and wall-clock cancellation timing may differ.",
+    "limits_unchanged": {
+      "distinct_routes": [
+        17,
+        64
+      ],
+      "quantities": 256,
+      "incumbent_executions": [
+        2,
+        32
+      ],
+      "local_work": 4096,
+      "additional_probes": 1
+    },
+    "known_gap": {
+      "case_id": "seed2-233",
+      "old_helper_complete_work": 3022,
+      "new_helper_complete_work": 2738,
+      "actual_entry_allowance": 2878,
+      "configured_search_budget": 4096,
+      "old_executions": 6,
+      "new_executions": 5,
+      "old_used_stock": {
+        "R": 20,
+        "S": 10
+      },
+      "new_used_stock": {
+        "R": 21,
+        "S": 15
+      },
+      "tradeoff": "The unchanged objective minimizes executions first; this improvement consumes more raw stock, still within R23/S15.",
+      "public_final_shared_work_remaining": 140
+    },
+    "original_incumbent_retained_on_failure": true,
+    "lower_public_work_budget_regression": 3955,
+    "full_build_public_cases": {
+      "cases": 28,
+      "at_oracle": 28,
+      "improvements": 1,
+      "other_original_plans_unchanged": true,
+      "actual_remaining_work_never_decreased": true,
+      "scope": "Public PlanningSession with complete final Gradle classes; remaining shared budget read directly, not inferred from legacy diagnostics."
+    }
+  },
+  "public_regression": {
+    "samples": 3000,
+    "feasible": 2867,
+    "all_plan_and_non_timing_diagnostics_equal_published_alpha": true,
+    "all_balance_and_replays_passed": true
+  },
+  "wide_terminal_regression": {
+    "generated": 1500,
+    "certified": 1454,
+    "feasible": 1454,
+    "improvements": [
+      {
+        "case_id": "seed2-233",
+        "before": 6,
+        "after": 5,
+        "oracle": 5,
+        "at_oracle": true
+      }
+    ],
+    "remaining_execution_gaps": []
+  },
+  "wide_terminal_limit": "Only the 1454 independently certified cases establish optimal firing counts. The other 46 generated cases are not proved infeasible, and this is not a universal optimality claim.",
+  "corpus_regression": {
+    "baseline": "0060538",
+    "query_count": 192,
+    "datasets": [
+      {
+        "dataset": "recipes-vanilla",
+        "queries": 48,
+        "baseline_feasible": 20,
+        "candidate_feasible": 20,
+        "baseline_budget_exhausted": 10,
+        "candidate_budget_exhausted": 10,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-small",
+        "queries": 48,
+        "baseline_feasible": 2,
+        "candidate_feasible": 2,
+        "baseline_budget_exhausted": 42,
+        "candidate_budget_exhausted": 42,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-nast",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-atm",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      }
+    ],
+    "note": "Serial correctness regression, not a timing benchmark. Existing baseline budget cutoffs and infeasible cases are retained explicitly; target inventory follows TB semantics."
+  },
+  "performance": {
+    "protocol": "Final Gradle classes on both sides, one fixture per JVM, sequential alternating variants, CPU1, Xms128m/Xmx512m",
+    "forks": 4,
+    "warmups": 10000,
+    "samples": 4000,
+    "jvms": 40,
+    "uninstrumented_complete_gradle_classes": true,
+    "no_overlapping_gradle_or_benchmark": true,
+    "plan_and_non_timing_diagnostics_unchanged": true,
+    "measurements": [
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 1203017958.5,
+          "cpu_ns": 1191793000.0,
+          "allocated_bytes": 4327957148.0,
+          "p50_ns": 295771.0,
+          "p95_ns": 336708.0
+        },
+        "candidate": {
+          "wall_ns": 1166773229.0,
+          "cpu_ns": 1156280500.0,
+          "allocated_bytes": 4127275012.0,
+          "p50_ns": 286687.5,
+          "p95_ns": 323874.5
+        },
+        "relative_change_percent": {
+          "wall_ns": -3.0128169944522054,
+          "cpu_ns": -2.9797540344673967,
+          "allocated_bytes": -4.636878997120785,
+          "p50_ns": -3.0711259724584217,
+          "p95_ns": -3.811462751107786
+        },
+        "forks": [
+          {
+            "fork": 0,
+            "relative_change_percent": {
+              "cpu_ns": -2.918700754038539,
+              "allocated_bytes": -4.517392657557496,
+              "p95_ns": -3.8653290197233847
+            }
+          },
+          {
+            "fork": 1,
+            "relative_change_percent": {
+              "cpu_ns": -4.2398134132926035,
+              "allocated_bytes": -4.763481203009645,
+              "p95_ns": -4.52415879017013
+            }
+          },
+          {
+            "fork": 2,
+            "relative_change_percent": {
+              "cpu_ns": -1.9613022463973895,
+              "allocated_bytes": -4.326424846247246,
+              "p95_ns": -3.7737167819439366
+            }
+          },
+          {
+            "fork": 3,
+            "relative_change_percent": {
+              "cpu_ns": -2.4898316815142874,
+              "allocated_bytes": -4.718380394362953,
+              "p95_ns": -3.059253617669455
+            }
+          }
+        ]
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 617854062.5,
+          "cpu_ns": 612847000.0,
+          "allocated_bytes": 1932620904.0,
+          "p50_ns": 152437.5,
+          "p95_ns": 170229.0
+        },
+        "candidate": {
+          "wall_ns": 593786104.0,
+          "cpu_ns": 588641000.0,
+          "allocated_bytes": 1847254076.0,
+          "p50_ns": 146062.0,
+          "p95_ns": 164208.5
+        },
+        "relative_change_percent": {
+          "wall_ns": -3.895411547933292,
+          "cpu_ns": -3.9497623387240166,
+          "allocated_bytes": -4.417153298058296,
+          "p50_ns": -4.18236982369824,
+          "p95_ns": -3.5367064366236045
+        },
+        "forks": [
+          {
+            "fork": 0,
+            "relative_change_percent": {
+              "cpu_ns": -3.974988469049623,
+              "allocated_bytes": -4.355588280836676,
+              "p95_ns": -3.5950110051357287
+            }
+          },
+          {
+            "fork": 1,
+            "relative_change_percent": {
+              "cpu_ns": -2.289875111285744,
+              "allocated_bytes": -4.2495502710981015,
+              "p95_ns": -2.356406480117823
+            }
+          },
+          {
+            "fork": 2,
+            "relative_change_percent": {
+              "cpu_ns": -4.294183911339156,
+              "allocated_bytes": -4.4786656296248335,
+              "p95_ns": -3.50213078618663
+            }
+          },
+          {
+            "fork": 3,
+            "relative_change_percent": {
+              "cpu_ns": -4.20878127034694,
+              "allocated_bytes": -4.579980578247911,
+              "p95_ns": -3.816054434548799
+            }
+          }
+        ]
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 468074145.5,
+          "cpu_ns": 465643000.0,
+          "allocated_bytes": 1062766180.0,
+          "p50_ns": 116375.0,
+          "p95_ns": 125333.5
+        },
+        "candidate": {
+          "wall_ns": 451054458.5,
+          "cpu_ns": 448557000.0,
+          "allocated_bytes": 988972148.0,
+          "p50_ns": 111916.5,
+          "p95_ns": 123479.0
+        },
+        "relative_change_percent": {
+          "wall_ns": -3.6361091856119243,
+          "cpu_ns": -3.669334661962065,
+          "allocated_bytes": -6.943581136539367,
+          "p50_ns": -3.831149301825998,
+          "p95_ns": -1.4796522876964313
+        },
+        "forks": [
+          {
+            "fork": 0,
+            "relative_change_percent": {
+              "cpu_ns": -1.3519165313341186,
+              "allocated_bytes": -6.682101830052312,
+              "p95_ns": -2.8397565922920864
+            }
+          },
+          {
+            "fork": 1,
+            "relative_change_percent": {
+              "cpu_ns": -4.62643444116273,
+              "allocated_bytes": -9.122553681696143,
+              "p95_ns": -0.7954924742120562
+            }
+          },
+          {
+            "fork": 2,
+            "relative_change_percent": {
+              "cpu_ns": -4.200920401383145,
+              "allocated_bytes": -6.672162167493056,
+              "p95_ns": -5.936857347515656
+            }
+          },
+          {
+            "fork": 3,
+            "relative_change_percent": {
+              "cpu_ns": -0.49125509975728177,
+              "allocated_bytes": -6.952161320087969,
+              "p95_ns": 1.469162801502799
+            }
+          }
+        ]
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 249176229.0,
+          "cpu_ns": 247511000.0,
+          "allocated_bytes": 684361144.0,
+          "p50_ns": 61646.0,
+          "p95_ns": 68604.5
+        },
+        "candidate": {
+          "wall_ns": 249575124.5,
+          "cpu_ns": 247931500.0,
+          "allocated_bytes": 681744312.0,
+          "p50_ns": 60937.5,
+          "p95_ns": 68813.0
+        },
+        "relative_change_percent": {
+          "wall_ns": 0.1600856958149155,
+          "cpu_ns": 0.16989143916836813,
+          "allocated_bytes": -0.3823758877812611,
+          "p50_ns": -1.1493040911008001,
+          "p95_ns": 0.3039159238825473
+        },
+        "forks": [
+          {
+            "fork": 0,
+            "relative_change_percent": {
+              "cpu_ns": -0.9306195956729213,
+              "allocated_bytes": 0.04716330618319553,
+              "p95_ns": -0.4808664259927764
+            }
+          },
+          {
+            "fork": 1,
+            "relative_change_percent": {
+              "cpu_ns": -3.2635803073309155,
+              "allocated_bytes": -0.44025304255468356,
+              "p95_ns": -2.6550302480767285
+            }
+          },
+          {
+            "fork": 2,
+            "relative_change_percent": {
+              "cpu_ns": 1.448857522242486,
+              "allocated_bytes": -0.25854860420202463,
+              "p95_ns": 0.6121337865477638
+            }
+          },
+          {
+            "fork": 3,
+            "relative_change_percent": {
+              "cpu_ns": 1.5006364852955478,
+              "allocated_bytes": -0.43145411956566626,
+              "p95_ns": 3.817791328116793
+            }
+          }
+        ]
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "baseline": {
+          "wall_ns": 334920896.0,
+          "cpu_ns": 332676500.0,
+          "allocated_bytes": 930343456.0,
+          "p50_ns": 83458.5,
+          "p95_ns": 90458.5
+        },
+        "candidate": {
+          "wall_ns": 317725750.0,
+          "cpu_ns": 315790000.0,
+          "allocated_bytes": 851797400.0,
+          "p50_ns": 79187.5,
+          "p95_ns": 84875.0
+        },
+        "relative_change_percent": {
+          "wall_ns": -5.134091722960155,
+          "cpu_ns": -5.07595216373865,
+          "allocated_bytes": -8.442694522483961,
+          "p50_ns": -5.117513494730918,
+          "p95_ns": -6.172443717284725
+        },
+        "forks": [
+          {
+            "fork": 0,
+            "relative_change_percent": {
+              "cpu_ns": -5.969682301689428,
+              "allocated_bytes": -8.533031034396688,
+              "p95_ns": -6.0657091327872
+            }
+          },
+          {
+            "fork": 1,
+            "relative_change_percent": {
+              "cpu_ns": -7.115658352302412,
+              "allocated_bytes": -8.322761838036541,
+              "p95_ns": -7.536369351583261
+            }
+          },
+          {
+            "fork": 2,
+            "relative_change_percent": {
+              "cpu_ns": -5.7573979630214716,
+              "allocated_bytes": -8.4779910206076,
+              "p95_ns": -6.453481894150414
+            }
+          },
+          {
+            "fork": 3,
+            "relative_change_percent": {
+              "cpu_ns": -3.2416891066359477,
+              "allocated_bytes": -8.467837125316546,
+              "p95_ns": -4.93961218836565
+            }
+          }
+        ]
+      }
+    ],
+    "limits": "Finite public planner fixtures; no universal modpack speedup or server TPS claim. The all-suffix multi-route fixture is retained as a synthetic comparison and may also exercise pair geometry."
+  },
+  "evidence": {
+    "output_directory": "tb-alpha-round8-combined-20261004",
+    "files": {
+      "build-verification.json": "ffe4694509e96ef28e1d67e14d08bfe89867fca912bcbe93be92c1fd4f0b4041",
+      "combined-validation.json": "a4381dfeb1a67767ec6f5ccec1c31b8d45f91e16d1a6023481fcedb475b44f10",
+      "wide-terminal/summary.json": "afc1ef90c42ebeeb36424c482b9ae5da7cff4738e5310bc94adcaf70d3473b5f",
+      "terminal28/summary.json": "da64f0b472804847e92576f513e715b0ed82a35608217ac398b5097113406dcd",
+      "prefix/summary.json": "4f4e63d0d061ca1e7d4abdf7a925df974517f674b30c0cd41cc3ea606e1911c6",
+      "corpus-regression/summary.json": "10e20a1bdddd984f631f480b0088f5c8f976deee3df60f8ab380228e77506626",
+      "final-profile/summary.json": "54f5408bd24a60718ddd70300a5dbd29678306e4e85c7b84f46f6f9917d7a381",
+      "commands.json": "a03e979710ff8e509c5299631d707f452dcf2157e017dba4a8f52e4b55b2046a"
+    }
+  }
+}

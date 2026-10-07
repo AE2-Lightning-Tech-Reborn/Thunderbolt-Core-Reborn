@@ -513,6 +513,141 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
         assertEquals(1L, attempt.simulationFallback().missingItems().get(TARGET));
     }
 
+    @ParameterizedTest
+    @CsvSource({"6,1,false", "7,1,false", "8,1,false", "18,1,false", "4,100000,false",
+            "4,3000000000,false", "8,1,true", "4,100000,true"})
+    void idOnlyInputsKeepEveryProducerWithoutCartesianExpansion(int slots, long units, boolean cpSat) {
+        var service = new FakeCraftingService();
+        var inputs = new IPatternDetails.IInput[slots];
+        var idOnly = new java.util.LinkedHashSet<Integer>();
+        var producers = new ArrayList<IPatternDetails>();
+        for (int slot = 0; slot < slots; slot++) {
+            var actual = new VariantKey("material-" + slot, "producer");
+            var captured = new VariantKey("material-" + slot, "captured");
+            var producer = new FakeOverloadPattern(actual,
+                    new IPatternDetails.IInput[] {new StrictInput(BASE, 1)}, Set.of(), Set.of(0));
+            producers.add(producer);
+            service.pattern(actual, producer).craftable(actual);
+            inputs[slot] = new MultipliedIdInput(captured, 1, units);
+            idOnly.add(slot);
+        }
+        var consumer = new FakeOverloadPattern(TARGET, inputs, idOnly, Set.of());
+        service.pattern(TARGET, consumer).craftable(TARGET);
+        var inventory = new ChildCraftingSimulationState(new StockInventory(Map.of(BASE, units * slots)));
+        if (cpSat) assertTrue(CpSatIntegerLinearSolver.initializeFromTestClasspath());
+        var session = cpSat ? FastCraftingPlanner.CalculationSession.cpSat()
+                : new FastCraftingPlanner.CalculationSession();
+        var attempt = FastCraftingPlanner.tryAttempt(service, inventory, null, TARGET, 1, false, null, session);
+
+        assertNotNull(attempt.plan(), "all actual variants have a producer and enough raw stock");
+        assertEquals(units * slots, attempt.plan().usedItems().get(BASE));
+        assertEquals(slots + 1, attempt.plan().patternTimes().size(), "only real patterns reach the CPU");
+        assertEquals(1L, attempt.plan().patternTimes().get(consumer));
+        for (var producer : producers) assertEquals(units, attempt.plan().patternTimes().get(producer));
+        assertTrue(attempt.plan().missingItems().isEmpty());
+        assertEquals(1, compiledGraph(session).patternsFor(TARGET).size(),
+                "the consumer stays one recipe, regardless of NBT combinations or requested amount");
+    }
+
+    @Test
+    void idOnlyInputSplitsLargeQuantitiesAcrossConcreteStock() {
+        var consumer = new FakeOverloadPattern(TARGET,
+                new IPatternDetails.IInput[] {new MultipliedIdInput(MAT_DECLARED, 1, 100_000)}, Set.of(0));
+        var service = new FakeCraftingService().pattern(TARGET, consumer).craftable(TARGET);
+        var stock = Map.<AEKey, Long>of(MAT_CRAFTABLE, 30_000L,
+                MAT_CRAFTABLE_2, 20_000L, MAT_STOCKED, 50_000L);
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(stock)), null, TARGET, 1, false);
+
+        assertNotNull(attempt.plan(), "a group can consume an exact mix without enumerating integer partitions");
+        stock.forEach((key, amount) -> assertEquals(amount.longValue(), attempt.plan().usedItems().get(key)));
+        assertEquals(Map.of(consumer, 1L), attempt.plan().patternTimes());
+    }
+
+    @Test
+    void idOnlyInputPreservesIndivisibleTemplateUnits() {
+        var consumer = new FakeOverloadPattern(TARGET,
+                new IPatternDetails.IInput[] {new MultipliedIdInput(MAT_DECLARED, 2, 3)}, Set.of(0));
+        var service = new FakeCraftingService().pattern(TARGET, consumer).craftable(TARGET);
+        var fragmented = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(
+                        Map.of(MAT_CRAFTABLE, 3L, MAT_STOCKED, 3L))), null, TARGET, 1, false);
+        assertNull(fragmented.plan(), "two three-item piles cannot supply three whole two-item units");
+        var enough = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(
+                        Map.of(MAT_CRAFTABLE, 4L, MAT_STOCKED, 2L))), null, TARGET, 1, false);
+        assertNotNull(enough.plan());
+        assertEquals(4L, enough.plan().usedItems().get(MAT_CRAFTABLE));
+        assertEquals(2L, enough.plan().usedItems().get(MAT_STOCKED));
+    }
+
+    @Test
+    void sameIdentityWithDifferentUnitSizesSharesOnlyPhysicalStock() {
+        var consumer = new FakeOverloadPattern(TARGET, new IPatternDetails.IInput[] {
+                new MultipliedIdInput(MAT_DECLARED, 2, 1),
+                new MultipliedIdInput(MAT_CRAFTABLE, 1, 2)}, Set.of(0, 1));
+        var service = new FakeCraftingService().pattern(TARGET, consumer).craftable(TARGET);
+        var shortAttempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(MAT_STOCKED, 3L))),
+                null, TARGET, 1, false);
+        assertNull(shortAttempt.plan(), "logical groups cannot duplicate shared concrete stock");
+        var enough = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(MAT_STOCKED, 4L))),
+                null, TARGET, 1, false);
+        assertNotNull(enough.plan());
+        assertEquals(4L, enough.plan().usedItems().get(MAT_STOCKED));
+        assertEquals(Map.of(consumer, 1L), enough.plan().patternTimes());
+        // Item keys charge one byte per item: 1 target + 4 inputs + 16 node bytes + 1 real firing.
+        assertEquals(22L, enough.plan().bytes(), "logical transfers add neither CPU tasks nor bytes");
+    }
+
+    @Test
+    void exactGroupPreviewContainsOnlyPhysicalQuantities() {
+        var producer = new FakeOverloadPattern(MAT_CRAFTABLE,
+                new IPatternDetails.IInput[] {new StrictInput(BASE, 1)}, Set.of(), Set.of(0));
+        var consumer = new FakeOverloadPattern(TARGET,
+                new IPatternDetails.IInput[] {new MultipliedIdInput(MAT_CRAFTABLE, 3, Sat.SAT)}, Set.of(0));
+        var service = new FakeCraftingService().pattern(TARGET, consumer).craftable(TARGET)
+                .pattern(MAT_CRAFTABLE, producer).craftable(MAT_CRAFTABLE);
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(BASE, 1L))),
+                null, TARGET, 2, true);
+        assertNotNull(attempt.plan());
+        assertTrue(attempt.plan().simulation());
+        assertTrue(attempt.plan().patternTimes().isEmpty(), "exact previews cannot become executable jobs");
+        var report = com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.get(attempt.plan());
+        assertNotNull(report);
+        var required = java.math.BigInteger.valueOf(Sat.SAT).multiply(java.math.BigInteger.valueOf(6));
+        assertEquals(required.subtract(java.math.BigInteger.ONE), report.entries().get(BASE).missing());
+        assertEquals(required, report.entries().get(MAT_CRAFTABLE).crafting());
+        assertEquals(Set.of(BASE, MAT_CRAFTABLE, TARGET), report.entries().keySet());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static CraftGraph<AEKey> compiledGraph(FastCraftingPlanner.CalculationSession session) {
+        try {
+            var field = session.getClass().getDeclaredField("compiledGraph");
+            field.setAccessible(true);
+            var compiled = field.get(session);
+            var graph = compiled.getClass().getDeclaredField("graph");
+            graph.setAccessible(true);
+            return (CraftGraph<AEKey>) graph.get(compiled);
+        } catch (ReflectiveOperationException failure) {
+            throw new AssertionError(failure);
+        }
+    }
+
+    private record MultipliedIdInput(AEKey key, long unit, long multiplier) implements IPatternDetails.IInput {
+        @Override public appeng.api.stacks.GenericStack[] getPossibleInputs() {
+            return new appeng.api.stacks.GenericStack[] {new appeng.api.stacks.GenericStack(key, unit)};
+        }
+        @Override public long getMultiplier() { return multiplier; }
+        @Override public boolean isValid(AEKey candidate, Level level) {
+            return key.dropSecondary().equals(candidate.dropSecondary());
+        }
+        @Override public AEKey getRemainingKey(AEKey template) { return null; }
+    }
+
     private record FakePattern(AEKey output, IInput[] inputs) implements IPatternDetails {
         @Override public AEItemKey getDefinition() { return null; }
         @Override public IInput[] getInputs() { return inputs; }

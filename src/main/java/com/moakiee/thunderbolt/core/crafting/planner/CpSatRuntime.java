@@ -127,6 +127,72 @@ final class CpSatRuntime {
             long[][] executionBlocks,
             int blockStages,
             double maxSeconds) {
+        return solveRankedPlan(
+                consumed,
+                produced,
+                catalysts,
+                finiteUseAmounts,
+                finiteUseLifetimes,
+                outputItems,
+                primaryOutputItems,
+                primaryOutputAmounts,
+                rankGroups,
+                cycleRecipes,
+                cycleInputItems,
+                cycleInputAmounts,
+                cyclePrimitiveFirings,
+                stocks,
+                reusableCatalysts,
+                reusableItems,
+                reusableCandidatePhysicals,
+                reusablePhysicalStocks,
+                itemDistances,
+                targetItem,
+                targetAmount,
+                firingUpperBounds,
+                missingCaps,
+                unreachable,
+                enforceStartup,
+                missingAllowed,
+                missingCutProducers,
+                executionBlocks,
+                blockStages,
+                unitExecutionCosts(firingUpperBounds.length),
+                maxSeconds);
+    }
+
+    static long[] solveRankedPlan(
+            SparseLongMatrix consumed,
+            SparseLongMatrix produced,
+            SparseLongMatrix catalysts,
+            SparseLongMatrix finiteUseAmounts,
+            SparseLongMatrix finiteUseLifetimes,
+            int[] outputItems,
+            int[] primaryOutputItems,
+            long[] primaryOutputAmounts,
+            int[] rankGroups,
+            int[][] cycleRecipes,
+            int[][] cycleInputItems,
+            long[][] cycleInputAmounts,
+            long[][] cyclePrimitiveFirings,
+            long[] stocks,
+            SparseLongMatrix reusableCatalysts,
+            int[] reusableItems,
+            int[][] reusableCandidatePhysicals,
+            long[] reusablePhysicalStocks,
+            int[] itemDistances,
+            int targetItem,
+            long targetAmount,
+            long[] firingUpperBounds,
+            long[] missingCaps,
+            long[][] unreachable,
+            boolean enforceStartup,
+            boolean[] missingAllowed,
+            int[][] missingCutProducers,
+            long[][] executionBlocks,
+            int blockStages,
+            int[] executionCosts,
+            double maxSeconds) {
         Bridge loaded = bridge;
         if (loaded == null) {
             throw new IllegalStateException("CP-SAT runtime is not initialized", loadFailure);
@@ -163,6 +229,7 @@ final class CpSatRuntime {
                     missingCutProducers,
                     executionBlocks,
                     blockStages,
+                    executionCosts,
                     maxSeconds);
         } catch (IllegalAccessException impossible) {
             throw new IllegalStateException("CP-SAT bridge is inaccessible", impossible);
@@ -179,13 +246,26 @@ final class CpSatRuntime {
         }
     }
 
+    private static int[] unitExecutionCosts(int count) {
+        int[] costs = new int[count];
+        java.util.Arrays.fill(costs, 1);
+        return costs;
+    }
+
     static long[] solveSparseDag(int[][] variables, long[][] coefficients, int[][] producers,
             long[] batches, long[] upper, long[] stocks, int[] distances, long amount, double maxSeconds) {
+        return solveSparseDag(variables, coefficients, producers, batches, upper, stocks, distances,
+                amount, unitExecutionCosts(upper.length), maxSeconds);
+    }
+
+    static long[] solveSparseDag(int[][] variables, long[][] coefficients, int[][] producers,
+            long[] batches, long[] upper, long[] stocks, int[] distances, long amount,
+            int[] executionCosts, double maxSeconds) {
         Bridge loaded = bridge;
         if (loaded == null) throw new IllegalStateException("CP-SAT runtime is not initialized", loadFailure);
         try {
             return (long[]) loaded.solveSparseDag().invoke(null, variables, coefficients, producers,
-                    batches, upper, stocks, distances, amount, maxSeconds);
+                    batches, upper, stocks, distances, amount, executionCosts, maxSeconds);
         } catch (IllegalAccessException impossible) {
             throw new IllegalStateException("CP-SAT sparse bridge is inaccessible", impossible);
         } catch (InvocationTargetException failure) {
@@ -305,6 +385,7 @@ final class CpSatRuntime {
                     int[][].class,
                     long[][].class,
                     int.class,
+                    int[].class,
                     double.class);
             Method chooseFeedbackOption = bridgeClass.getMethod(
                     "chooseFeedbackOption",
@@ -314,7 +395,7 @@ final class CpSatRuntime {
                     double.class);
             Method solveSparseDag = bridgeClass.getMethod("solveSparseDag",
                     int[][].class, long[][].class, int[][].class, long[].class, long[].class,
-                    long[].class, int[].class, long.class, double.class);
+                    long[].class, int[].class, long.class, int[].class, double.class);
             initialize.invoke(null);
             bridge = new Bridge(loader, solve, solveRankedPlan, chooseFeedbackOption, solveSparseDag);
             loadFailure = null;

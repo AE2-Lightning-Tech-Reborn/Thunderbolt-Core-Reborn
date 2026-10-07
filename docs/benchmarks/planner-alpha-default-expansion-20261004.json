@@ -1,0 +1,1237 @@
+{
+  "title": "Skip provably repeated active-first-route extensions within the existing search limits",
+  "baseline_revision": "e7d35663064450a6b1fb7d8b1ccefcd66e017a56",
+  "production_source_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.java": "9c4dba922ac49fbddf1f3ff892ebd2a1f470b4abb362eef91100be09dc871736"
+  },
+  "production_classes": {
+    "count": 483,
+    "sha256": "dafd5be7a46886c118525e679b146ee4f05fb1a8470076b1d3dcc4ae0f3a051c"
+  },
+  "changed_classes": [
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Budget.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$FixedPrefix.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Model.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$PairCache.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$PairDemand.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$PairGeometry.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$ProposalState.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer$Search.class",
+    "com/moakiee/thunderbolt/core/crafting/planner/UpstreamBatchOptimizer.class"
+  ],
+  "unrelated_classes_byte_equal": true,
+  "jar": {
+    "sha256": "6a7148665656dd2ed50fc653892fb6943428c21ee3e2c5f85f96f1e6caddf62a",
+    "bytes": 5095162,
+    "all_classes_match": true
+  },
+  "tests": {
+    "tests": 1163,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "test_suites": 148,
+  "change": {
+    "production_added_lines": 4,
+    "scope": "EXTEND_ROUTES only; expansion equals the first route of its own output group and has positive incumbent firings.",
+    "reason": "The null expansion and its three exchanges were already attempted for the same pair. With the active first route, explicit growth chooses exactly the same producer and yields the same counts or arithmetic/material rejection.",
+    "state": "No new list, scan, cache, workspace or sorting charge.",
+    "semantic_change": "Remove these repeated attempts from candidate/work counts; remaining candidate order is unchanged. More distinct candidates can become reachable within the unchanged 64 candidate / existing shared work and probe limits.",
+    "limits": "A local equivalence proof does not establish global non-regression: a newly reached established improvement can change the incumbent before additional neighborhoods run."
+  },
+  "behavioral_tests": {
+    "count": 3,
+    "cases": [
+      "Preserve room for KEEP_NEW_BATCH within 64 candidates and independently replay 7 to 6 firings.",
+      "Retain explicit growth of an inactive first supplier.",
+      "Retain REPLACE_SECOND_OUTPUT for an already active first supplier, independently replaying 9 to 8 firings."
+    ],
+    "negative_controls": {
+      "candidate": "3/3 pass",
+      "baseline": "fails new bounded-reachability witness",
+      "inactive_first_guard": "mutation rejected by behavioral test",
+      "phase_guard": "mutation rejected by joint replacement test",
+      "scope": "Standalone JUnit against frozen classes; deliberately invalid mutations exist only in external overlays."
+    }
+  },
+  "quality": [
+    {
+      "name": "existing-public",
+      "runs": 3000,
+      "fewer_execution_runs": 5,
+      "fewer_execution_examples": [
+        {
+          "key": {
+            "sample": 5
+          },
+          "before": 6,
+          "after": 5
+        },
+        {
+          "key": {
+            "sample": 1127
+          },
+          "before": 9,
+          "after": 8
+        },
+        {
+          "key": {
+            "sample": 2202
+          },
+          "before": 3,
+          "after": 2
+        },
+        {
+          "key": {
+            "sample": 2714
+          },
+          "before": 10,
+          "after": 9
+        }
+      ],
+      "equal_execution_plan_changes": [
+        {
+          "key": {
+            "sample": 929
+          },
+          "executions": 5,
+          "before_stock": {
+            "0": 1,
+            "6": 1,
+            "2": 3
+          },
+          "after_stock": {
+            "6": 1,
+            "2": 3,
+            "0": 1
+          }
+        }
+      ],
+      "regression_runs": 0,
+      "increased_stock_with_fewer_executions": 5,
+      "diagnostic_changes": 64
+    },
+    {
+      "name": "heldout-public",
+      "runs": 1500,
+      "fewer_execution_runs": 3,
+      "fewer_execution_examples": [
+        {
+          "key": {
+            "sample": 18
+          },
+          "before": 4,
+          "after": 3
+        },
+        {
+          "key": {
+            "sample": 236
+          },
+          "before": 10,
+          "after": 8
+        },
+        {
+          "key": {
+            "sample": 1394
+          },
+          "before": 11,
+          "after": 9
+        }
+      ],
+      "equal_execution_plan_changes": [],
+      "regression_runs": 0,
+      "increased_stock_with_fewer_executions": 3,
+      "diagnostic_changes": 23
+    },
+    {
+      "name": "fresh-public",
+      "runs": 3000,
+      "fewer_execution_runs": 3,
+      "fewer_execution_examples": [
+        {
+          "key": {
+            "sample": 1229
+          },
+          "before": 10,
+          "after": 9
+        },
+        {
+          "key": {
+            "sample": 1730
+          },
+          "before": 7,
+          "after": 5
+        },
+        {
+          "key": {
+            "sample": 1799
+          },
+          "before": 11,
+          "after": 10
+        }
+      ],
+      "equal_execution_plan_changes": [
+        {
+          "key": {
+            "sample": 1470
+          },
+          "executions": 5,
+          "before_stock": {
+            "1": 3,
+            "6": 1,
+            "4": 2,
+            "2": 1
+          },
+          "after_stock": {
+            "4": 1,
+            "2": 1,
+            "1": 3
+          }
+        },
+        {
+          "key": {
+            "sample": 1599
+          },
+          "executions": 4,
+          "before_stock": {
+            "0": 4,
+            "1": 4
+          },
+          "after_stock": {
+            "0": 2,
+            "1": 2
+          }
+        }
+      ],
+      "regression_runs": 0,
+      "increased_stock_with_fewer_executions": 3,
+      "diagnostic_changes": 49
+    },
+    {
+      "name": "existing-prefix",
+      "runs": 3516,
+      "fewer_execution_runs": 2,
+      "fewer_execution_examples": [
+        {
+          "key": {
+            "sample": 100,
+            "cap": 512
+          },
+          "before": 95,
+          "after": 84
+        },
+        {
+          "key": {
+            "sample": 228,
+            "cap": 512
+          },
+          "before": 418,
+          "after": 285
+        }
+      ],
+      "equal_execution_plan_changes": [],
+      "regression_runs": 0,
+      "increased_stock_with_fewer_executions": 2,
+      "diagnostic_changes": 0
+    },
+    {
+      "name": "heldout-prefix-1",
+      "runs": 5623,
+      "fewer_execution_runs": 17,
+      "fewer_execution_examples": [
+        {
+          "key": {
+            "sample": 0,
+            "cap": 684
+          },
+          "before": 138,
+          "after": 126
+        },
+        {
+          "key": {
+            "sample": 8,
+            "cap": 441
+          },
+          "before": 45,
+          "after": 44
+        },
+        {
+          "key": {
+            "sample": 56,
+            "cap": 469
+          },
+          "before": 98,
+          "after": 40
+        },
+        {
+          "key": {
+            "sample": 120,
+            "cap": 512
+          },
+          "before": 30,
+          "after": 27
+        }
+      ],
+      "equal_execution_plan_changes": [],
+      "regression_runs": 0,
+      "increased_stock_with_fewer_executions": 17,
+      "diagnostic_changes": 0
+    },
+    {
+      "name": "heldout-prefix-32",
+      "runs": 5623,
+      "fewer_execution_runs": 27,
+      "fewer_execution_examples": [
+        {
+          "key": {
+            "sample": 0,
+            "cap": 684
+          },
+          "before": 138,
+          "after": 126
+        },
+        {
+          "key": {
+            "sample": 8,
+            "cap": 441
+          },
+          "before": 45,
+          "after": 44
+        },
+        {
+          "key": {
+            "sample": 52,
+            "cap": 1024
+          },
+          "before": 137,
+          "after": 136
+        },
+        {
+          "key": {
+            "sample": 52,
+            "cap": 1060
+          },
+          "before": 137,
+          "after": 136
+        }
+      ],
+      "equal_execution_plan_changes": [],
+      "regression_runs": 0,
+      "increased_stock_with_fewer_executions": 27,
+      "diagnostic_changes": 0
+    },
+    {
+      "name": "fresh-prefix-1",
+      "runs": 5620,
+      "fewer_execution_runs": 25,
+      "fewer_execution_examples": [
+        {
+          "key": {
+            "sample": 44,
+            "cap": 468
+          },
+          "before": 20,
+          "after": 19
+        },
+        {
+          "key": {
+            "sample": 48,
+            "cap": 393
+          },
+          "before": 50,
+          "after": 20
+        },
+        {
+          "key": {
+            "sample": 56,
+            "cap": 512
+          },
+          "before": 31,
+          "after": 29
+        },
+        {
+          "key": {
+            "sample": 56,
+            "cap": 548
+          },
+          "before": 31,
+          "after": 29
+        }
+      ],
+      "equal_execution_plan_changes": [],
+      "regression_runs": 0,
+      "increased_stock_with_fewer_executions": 24,
+      "diagnostic_changes": 0
+    },
+    {
+      "name": "fresh-prefix-32",
+      "runs": 5620,
+      "fewer_execution_runs": 33,
+      "fewer_execution_examples": [
+        {
+          "key": {
+            "sample": 40,
+            "cap": 1024
+          },
+          "before": 12,
+          "after": 11
+        },
+        {
+          "key": {
+            "sample": 40,
+            "cap": 1055
+          },
+          "before": 12,
+          "after": 11
+        },
+        {
+          "key": {
+            "sample": 44,
+            "cap": 468
+          },
+          "before": 20,
+          "after": 19
+        },
+        {
+          "key": {
+            "sample": 48,
+            "cap": 393
+          },
+          "before": 50,
+          "after": 20
+        }
+      ],
+      "equal_execution_plan_changes": [],
+      "regression_runs": 0,
+      "increased_stock_with_fewer_executions": 32,
+      "diagnostic_changes": 0
+    }
+  ],
+  "public_summary": {
+    "generated": 7500,
+    "fewer_execution_plans": 11,
+    "same_execution_material_improvements": 2,
+    "equivalent_route_replacements": 1,
+    "observed_regressions": 0,
+    "qualifier": "Finite generated coverage, no universal quality guarantee.",
+    "equivalent_replacement": {
+      "dataset": "existing-public",
+      "sample": 929,
+      "description": "Recipe 0 and recipe 1 both consume input 0 x1 and produce output 2 x5. Stock, execution count and net loss unchanged."
+    },
+    "material_improvements": [
+      {
+        "dataset": "fresh-public",
+        "sample": 1470,
+        "executions": 5,
+        "stock_decreases": {
+          "6": [
+            1,
+            0
+          ],
+          "4": [
+            2,
+            1
+          ]
+        },
+        "net_loss_increased": false
+      },
+      {
+        "dataset": "fresh-public",
+        "sample": 1599,
+        "executions": 4,
+        "stock_decreases": {
+          "0": [
+            4,
+            2
+          ],
+          "1": [
+            4,
+            2
+          ]
+        },
+        "net_loss_increased": false
+      }
+    ]
+  },
+  "prefix_summary": {
+    "graph_sets": [
+      320,
+      512,
+      512
+    ],
+    "budget_runs": 26002,
+    "fewer_execution_runs": 104,
+    "observed_regressions": 0,
+    "scope": "Repeated runs at multiple work/probe limits on 1344 generated fixtures; not 26002 independent graphs.",
+    "same_execution_net_loss_and_stock_not_increased": true
+  },
+  "terminal": {
+    "generated": 1500,
+    "certified": 1454,
+    "feasible": 1454,
+    "improvements": [],
+    "remaining_execution_gaps": []
+  },
+  "terminal28": {
+    "cases": 28,
+    "at_oracle": 28,
+    "improvements": 0,
+    "all_original_plans_unchanged": true,
+    "actual_remaining_work_identical": true,
+    "scope": "Public PlanningSession with complete final Gradle classes; remaining shared budget read directly, not inferred from legacy diagnostics."
+  },
+  "corpus": {
+    "baseline": "e7d3566",
+    "query_count": 192,
+    "datasets": [
+      {
+        "dataset": "recipes-vanilla",
+        "queries": 48,
+        "baseline_feasible": 20,
+        "candidate_feasible": 20,
+        "baseline_budget_exhausted": 10,
+        "candidate_budget_exhausted": 10,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-small",
+        "queries": 48,
+        "baseline_feasible": 2,
+        "candidate_feasible": 2,
+        "baseline_budget_exhausted": 42,
+        "candidate_budget_exhausted": 42,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-nast",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      },
+      {
+        "dataset": "recipes-atm",
+        "queries": 48,
+        "baseline_feasible": 48,
+        "candidate_feasible": 48,
+        "baseline_budget_exhausted": 0,
+        "candidate_budget_exhausted": 0,
+        "status_changes": [],
+        "execution_regressions": [],
+        "equal_execution_stock_increases": [],
+        "invalid": [],
+        "improved": [],
+        "plan_changes": []
+      }
+    ],
+    "note": "Serial correctness regression, not a timing benchmark. Existing baseline budget cutoffs and infeasible cases are retained explicitly; target inventory follows TB semantics."
+  },
+  "performance": {
+    "protocol": "Final Gradle classes on both sides, one fixture per JVM, sequential alternating variants, CPU1, Xms128m/Xmx512m",
+    "forks": 4,
+    "warmups": 10000,
+    "samples": 4000,
+    "summary": [
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 1156914958.5,
+          "cpu_ns": 1146245000.0,
+          "allocated_bytes": 4021234140.0,
+          "p50_ns": 280625.0,
+          "p95_ns": 325250.0
+        },
+        "candidate": {
+          "wall_ns": 1168661083.5,
+          "cpu_ns": 1157626500.0,
+          "allocated_bytes": 4096559428.0,
+          "p50_ns": 285583.5,
+          "p95_ns": 323833.0
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 1.0101529718443865,
+          "cpu_ns": 1.0099293780997953,
+          "allocated_bytes": 1.018731883142721,
+          "p50_ns": 1.0176694877505568,
+          "p95_ns": 0.9956433512682552
+        }
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 593427437.5,
+          "cpu_ns": 588350000.0,
+          "allocated_bytes": 1765412020.0,
+          "p50_ns": 145917.0,
+          "p95_ns": 163333.5
+        },
+        "candidate": {
+          "wall_ns": 574788770.5,
+          "cpu_ns": 570299500.0,
+          "allocated_bytes": 1688803768.0,
+          "p50_ns": 141375.0,
+          "p95_ns": 160583.0
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.9685914977599936,
+          "cpu_ns": 0.9693201325741481,
+          "allocated_bytes": 0.9566060210692346,
+          "p50_ns": 0.9688727153107588,
+          "p95_ns": 0.9831602212650803
+        }
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 439606187.5,
+          "cpu_ns": 437220500.0,
+          "allocated_bytes": 885597392.0,
+          "p50_ns": 109208.5,
+          "p95_ns": 119146.5
+        },
+        "candidate": {
+          "wall_ns": 423654333.0,
+          "cpu_ns": 421135000.0,
+          "allocated_bytes": 857039140.0,
+          "p50_ns": 104687.5,
+          "p95_ns": 116479.5
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 0.9637133076067088,
+          "cpu_ns": 0.9632096390722759,
+          "allocated_bytes": 0.9677525563444749,
+          "p50_ns": 0.9586021234610859,
+          "p95_ns": 0.9776157923228966
+        }
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "synthetic": false,
+        "baseline": {
+          "wall_ns": 248107125.0,
+          "cpu_ns": 246333500.0,
+          "allocated_bytes": 663437284.0,
+          "p50_ns": 61354.5,
+          "p95_ns": 68541.5
+        },
+        "candidate": {
+          "wall_ns": 250768667.0,
+          "cpu_ns": 248844000.0,
+          "allocated_bytes": 662320084.0,
+          "p50_ns": 62166.5,
+          "p95_ns": 69208.5
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 1.0107273904366914,
+          "cpu_ns": 1.0101914680707254,
+          "allocated_bytes": 0.9983160427866457,
+          "p50_ns": 1.0132345630719832,
+          "p95_ns": 1.0097313306536915
+        }
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "synthetic": true,
+        "baseline": {
+          "wall_ns": 317339333.5,
+          "cpu_ns": 315392500.0,
+          "allocated_bytes": 814098048.0,
+          "p50_ns": 79020.5,
+          "p95_ns": 85791.5
+        },
+        "candidate": {
+          "wall_ns": 339874812.5,
+          "cpu_ns": 337661500.0,
+          "allocated_bytes": 865302524.0,
+          "p50_ns": 84354.5,
+          "p95_ns": 91771.0
+        },
+        "candidate_over_baseline": {
+          "wall_ns": 1.0710138221803507,
+          "cpu_ns": 1.0706072592087637,
+          "allocated_bytes": 1.0628971855734015,
+          "p50_ns": 1.0675014711372366,
+          "p95_ns": 1.0696980470093191
+        }
+      }
+    ],
+    "raw": [
+      {
+        "fixture_index": 0,
+        "fork": 0,
+        "variant": "baseline",
+        "wall_ns": 1175513041,
+        "cpu_ns": 1158527000,
+        "allocated_bytes": 4031523112,
+        "p50_ns": 281083,
+        "p95_ns": 382166
+      },
+      {
+        "fixture_index": 0,
+        "fork": 0,
+        "variant": "candidate",
+        "wall_ns": 1141771625,
+        "cpu_ns": 1130676000,
+        "allocated_bytes": 4087249704,
+        "p50_ns": 279791,
+        "p95_ns": 320000
+      },
+      {
+        "fixture_index": 0,
+        "fork": 1,
+        "variant": "baseline",
+        "wall_ns": 1168032625,
+        "cpu_ns": 1158080000,
+        "allocated_bytes": 4002771552,
+        "p50_ns": 287792,
+        "p95_ns": 325417
+      },
+      {
+        "fixture_index": 0,
+        "fork": 1,
+        "variant": "candidate",
+        "wall_ns": 1183632500,
+        "cpu_ns": 1171385000,
+        "allocated_bytes": 4105869152,
+        "p50_ns": 287000,
+        "p95_ns": 359125
+      },
+      {
+        "fixture_index": 0,
+        "fork": 2,
+        "variant": "baseline",
+        "wall_ns": 1145797292,
+        "cpu_ns": 1134410000,
+        "allocated_bytes": 4037786864,
+        "p50_ns": 280167,
+        "p95_ns": 325083
+      },
+      {
+        "fixture_index": 0,
+        "fork": 2,
+        "variant": "candidate",
+        "wall_ns": 1155405833,
+        "cpu_ns": 1144882000,
+        "allocated_bytes": 4071212480,
+        "p50_ns": 284167,
+        "p95_ns": 317791
+      },
+      {
+        "fixture_index": 0,
+        "fork": 3,
+        "variant": "baseline",
+        "wall_ns": 1106317333,
+        "cpu_ns": 1096272000,
+        "allocated_bytes": 4010945168,
+        "p50_ns": 272667,
+        "p95_ns": 306167
+      },
+      {
+        "fixture_index": 0,
+        "fork": 3,
+        "variant": "candidate",
+        "wall_ns": 1181916334,
+        "cpu_ns": 1170371000,
+        "allocated_bytes": 4110188240,
+        "p50_ns": 290500,
+        "p95_ns": 327666
+      },
+      {
+        "fixture_index": 1,
+        "fork": 0,
+        "variant": "baseline",
+        "wall_ns": 597720250,
+        "cpu_ns": 593105000,
+        "allocated_bytes": 1772821216,
+        "p50_ns": 147125,
+        "p95_ns": 163750
+      },
+      {
+        "fixture_index": 1,
+        "fork": 0,
+        "variant": "candidate",
+        "wall_ns": 572263834,
+        "cpu_ns": 567662000,
+        "allocated_bytes": 1685430848,
+        "p50_ns": 140500,
+        "p95_ns": 159709
+      },
+      {
+        "fixture_index": 1,
+        "fork": 1,
+        "variant": "baseline",
+        "wall_ns": 583188167,
+        "cpu_ns": 578641000,
+        "allocated_bytes": 1765671656,
+        "p50_ns": 143750,
+        "p95_ns": 160791
+      },
+      {
+        "fixture_index": 1,
+        "fork": 1,
+        "variant": "candidate",
+        "wall_ns": 576723708,
+        "cpu_ns": 572179000,
+        "allocated_bytes": 1681865992,
+        "p50_ns": 142250,
+        "p95_ns": 160416
+      },
+      {
+        "fixture_index": 1,
+        "fork": 2,
+        "variant": "baseline",
+        "wall_ns": 597115083,
+        "cpu_ns": 591947000,
+        "allocated_bytes": 1764429472,
+        "p50_ns": 146542,
+        "p95_ns": 168333
+      },
+      {
+        "fixture_index": 1,
+        "fork": 2,
+        "variant": "candidate",
+        "wall_ns": 577429042,
+        "cpu_ns": 572668000,
+        "allocated_bytes": 1693724664,
+        "p50_ns": 142250,
+        "p95_ns": 162167
+      },
+      {
+        "fixture_index": 1,
+        "fork": 3,
+        "variant": "baseline",
+        "wall_ns": 589739792,
+        "cpu_ns": 584753000,
+        "allocated_bytes": 1765152384,
+        "p50_ns": 145292,
+        "p95_ns": 162917
+      },
+      {
+        "fixture_index": 1,
+        "fork": 3,
+        "variant": "candidate",
+        "wall_ns": 572853833,
+        "cpu_ns": 568420000,
+        "allocated_bytes": 1692176688,
+        "p50_ns": 140458,
+        "p95_ns": 160750
+      },
+      {
+        "fixture_index": 2,
+        "fork": 0,
+        "variant": "baseline",
+        "wall_ns": 436331166,
+        "cpu_ns": 433988000,
+        "allocated_bytes": 882231336,
+        "p50_ns": 108792,
+        "p95_ns": 117209
+      },
+      {
+        "fixture_index": 2,
+        "fork": 0,
+        "variant": "candidate",
+        "wall_ns": 426518625,
+        "cpu_ns": 424063000,
+        "allocated_bytes": 857185944,
+        "p50_ns": 105041,
+        "p95_ns": 118708
+      },
+      {
+        "fixture_index": 2,
+        "fork": 1,
+        "variant": "baseline",
+        "wall_ns": 442686583,
+        "cpu_ns": 440142000,
+        "allocated_bytes": 883877248,
+        "p50_ns": 109625,
+        "p95_ns": 121084
+      },
+      {
+        "fixture_index": 2,
+        "fork": 1,
+        "variant": "candidate",
+        "wall_ns": 423771583,
+        "cpu_ns": 421388000,
+        "allocated_bytes": 856892336,
+        "p50_ns": 104959,
+        "p95_ns": 116375
+      },
+      {
+        "fixture_index": 2,
+        "fork": 2,
+        "variant": "baseline",
+        "wall_ns": 436525792,
+        "cpu_ns": 434299000,
+        "allocated_bytes": 887317536,
+        "p50_ns": 108792,
+        "p95_ns": 116417
+      },
+      {
+        "fixture_index": 2,
+        "fork": 2,
+        "variant": "candidate",
+        "wall_ns": 421207916,
+        "cpu_ns": 418642000,
+        "allocated_bytes": 852713576,
+        "p50_ns": 104000,
+        "p95_ns": 116584
+      },
+      {
+        "fixture_index": 2,
+        "fork": 3,
+        "variant": "baseline",
+        "wall_ns": 443692416,
+        "cpu_ns": 441070000,
+        "allocated_bytes": 890030384,
+        "p50_ns": 109875,
+        "p95_ns": 121500
+      },
+      {
+        "fixture_index": 2,
+        "fork": 3,
+        "variant": "candidate",
+        "wall_ns": 423537083,
+        "cpu_ns": 420882000,
+        "allocated_bytes": 862052272,
+        "p50_ns": 104416,
+        "p95_ns": 116084
+      },
+      {
+        "fixture_index": 3,
+        "fork": 0,
+        "variant": "baseline",
+        "wall_ns": 250603750,
+        "cpu_ns": 248569000,
+        "allocated_bytes": 663731376,
+        "p50_ns": 61625,
+        "p95_ns": 70834
+      },
+      {
+        "fixture_index": 3,
+        "fork": 0,
+        "variant": "candidate",
+        "wall_ns": 253945833,
+        "cpu_ns": 252136000,
+        "allocated_bytes": 663896312,
+        "p50_ns": 62583,
+        "p95_ns": 73791
+      },
+      {
+        "fixture_index": 3,
+        "fork": 1,
+        "variant": "baseline",
+        "wall_ns": 244476291,
+        "cpu_ns": 242843000,
+        "allocated_bytes": 663414328,
+        "p50_ns": 60625,
+        "p95_ns": 67458
+      },
+      {
+        "fixture_index": 3,
+        "fork": 1,
+        "variant": "candidate",
+        "wall_ns": 248799667,
+        "cpu_ns": 246903000,
+        "allocated_bytes": 662178104,
+        "p50_ns": 61792,
+        "p95_ns": 67792
+      },
+      {
+        "fixture_index": 3,
+        "fork": 2,
+        "variant": "baseline",
+        "wall_ns": 249787375,
+        "cpu_ns": 247947000,
+        "allocated_bytes": 662843960,
+        "p50_ns": 61625,
+        "p95_ns": 69625
+      },
+      {
+        "fixture_index": 3,
+        "fork": 2,
+        "variant": "candidate",
+        "wall_ns": 247691959,
+        "cpu_ns": 245903000,
+        "allocated_bytes": 662462064,
+        "p50_ns": 61209,
+        "p95_ns": 68417
+      },
+      {
+        "fixture_index": 3,
+        "fork": 3,
+        "variant": "baseline",
+        "wall_ns": 246426875,
+        "cpu_ns": 244720000,
+        "allocated_bytes": 663460240,
+        "p50_ns": 61084,
+        "p95_ns": 66916
+      },
+      {
+        "fixture_index": 3,
+        "fork": 3,
+        "variant": "candidate",
+        "wall_ns": 252737667,
+        "cpu_ns": 250785000,
+        "allocated_bytes": 661490936,
+        "p50_ns": 62541,
+        "p95_ns": 70000
+      },
+      {
+        "fixture_index": 4,
+        "fork": 0,
+        "variant": "baseline",
+        "wall_ns": 316145666,
+        "cpu_ns": 313930000,
+        "allocated_bytes": 814314456,
+        "p50_ns": 78625,
+        "p95_ns": 85583
+      },
+      {
+        "fixture_index": 4,
+        "fork": 0,
+        "variant": "candidate",
+        "wall_ns": 340455667,
+        "cpu_ns": 338191000,
+        "allocated_bytes": 863569312,
+        "p50_ns": 84417,
+        "p95_ns": 90792
+      },
+      {
+        "fixture_index": 4,
+        "fork": 1,
+        "variant": "baseline",
+        "wall_ns": 317311584,
+        "cpu_ns": 315391000,
+        "allocated_bytes": 814856288,
+        "p50_ns": 79000,
+        "p95_ns": 86000
+      },
+      {
+        "fixture_index": 4,
+        "fork": 1,
+        "variant": "candidate",
+        "wall_ns": 339293958,
+        "cpu_ns": 337132000,
+        "allocated_bytes": 865190608,
+        "p50_ns": 84167,
+        "p95_ns": 91875
+      },
+      {
+        "fixture_index": 4,
+        "fork": 2,
+        "variant": "baseline",
+        "wall_ns": 327833625,
+        "cpu_ns": 325133000,
+        "allocated_bytes": 813881640,
+        "p50_ns": 80291,
+        "p95_ns": 93917
+      },
+      {
+        "fixture_index": 4,
+        "fork": 2,
+        "variant": "candidate",
+        "wall_ns": 345380500,
+        "cpu_ns": 343174000,
+        "allocated_bytes": 865414440,
+        "p50_ns": 85500,
+        "p95_ns": 93584
+      },
+      {
+        "fixture_index": 4,
+        "fork": 3,
+        "variant": "baseline",
+        "wall_ns": 317367083,
+        "cpu_ns": 315394000,
+        "allocated_bytes": 813215216,
+        "p50_ns": 79041,
+        "p95_ns": 83916
+      },
+      {
+        "fixture_index": 4,
+        "fork": 3,
+        "variant": "candidate",
+        "wall_ns": 338714625,
+        "cpu_ns": 336191000,
+        "allocated_bytes": 865961936,
+        "p50_ns": 84292,
+        "p95_ns": 91667
+      }
+    ],
+    "plan_or_diagnostic_changes": [
+      {
+        "fixture": 4,
+        "fork": 0,
+        "variant": "candidate",
+        "fields": [
+          "diagnostics"
+        ]
+      },
+      {
+        "fixture": 4,
+        "fork": 1,
+        "variant": "candidate",
+        "fields": [
+          "diagnostics"
+        ]
+      },
+      {
+        "fixture": 4,
+        "fork": 2,
+        "variant": "candidate",
+        "fields": [
+          "diagnostics"
+        ]
+      },
+      {
+        "fixture": 4,
+        "fork": 3,
+        "variant": "candidate",
+        "fields": [
+          "diagnostics"
+        ]
+      }
+    ],
+    "scope": "Five bounded planner fixtures; mixed CPU/allocation changes retained. This change can use freed budget on more search. No universal speedup, TPS claim, or 50 percent improvement."
+  },
+  "exploratory_performance": {
+    "scope": "Exploratory external source overlay versus frozen current Round9 e7d3566 classes; 2 alternating forks, CPU1, 10000 warmups/4000 samples. Not final Gradle verification.",
+    "summary": [
+      {
+        "fixture": "Additional.sharedRaw(27)",
+        "baseline": {
+          "cpu_ns": 1136374000.0,
+          "allocated_bytes": 4031703176.0,
+          "p95_ns": 323417.0
+        },
+        "heuristic-subset": {
+          "cpu_ns": 1161982500.0,
+          "allocated_bytes": 4106460312.0,
+          "p95_ns": 343854.5
+        },
+        "change_percent": {
+          "cpu_ns": 2.253527447829673,
+          "allocated_bytes": 1.854232138045675,
+          "p95_ns": 6.3192411035907226
+        }
+      },
+      {
+        "fixture": "Additional.twoOutputs(8,0)",
+        "baseline": {
+          "cpu_ns": 582682500.0,
+          "allocated_bytes": 1761909288.0,
+          "p95_ns": 164792.0
+        },
+        "heuristic-subset": {
+          "cpu_ns": 579332000.0,
+          "allocated_bytes": 1684533724.0,
+          "p95_ns": 166812.5
+        },
+        "change_percent": {
+          "cpu_ns": -0.5750129787663094,
+          "allocated_bytes": -4.391574783502705,
+          "p95_ns": 1.2260910723821627
+        }
+      },
+      {
+        "fixture": "Branch.fixture(2,1,false)",
+        "baseline": {
+          "cpu_ns": 448536500.0,
+          "allocated_bytes": 888689868.0,
+          "p95_ns": 127458.0
+        },
+        "heuristic-subset": {
+          "cpu_ns": 421808000.0,
+          "allocated_bytes": 861145836.0,
+          "p95_ns": 117645.5
+        },
+        "change_percent": {
+          "cpu_ns": -5.959046811129087,
+          "allocated_bytes": -3.099397550462457,
+          "p95_ns": -7.698614445542851
+        }
+      },
+      {
+        "fixture": "Test.singleUpstream(1,1,10)",
+        "baseline": {
+          "cpu_ns": 248632500.0,
+          "allocated_bytes": 662654452.0,
+          "p95_ns": 71208.0
+        },
+        "heuristic-subset": {
+          "cpu_ns": 244447000.0,
+          "allocated_bytes": 662378480.0,
+          "p95_ns": 69958.5
+        },
+        "change_percent": {
+          "cpu_ns": -1.6834082430897013,
+          "allocated_bytes": -0.04164644169628584,
+          "p95_ns": -1.7547185709470892
+        }
+      },
+      {
+        "fixture": "synthetic.all-suffix-multi-route",
+        "baseline": {
+          "cpu_ns": 316273500.0,
+          "allocated_bytes": 815319232.0,
+          "p95_ns": 87333.5
+        },
+        "heuristic-subset": {
+          "cpu_ns": 334660000.0,
+          "allocated_bytes": 866576064.0,
+          "p95_ns": 91000.0
+        },
+        "change_percent": {
+          "cpu_ns": 5.813481053581793,
+          "allocated_bytes": 6.286719359515858,
+          "p95_ns": 4.198274430773985
+        }
+      }
+    ],
+    "changed": [
+      {
+        "fixture": 4,
+        "fork": 0,
+        "variant": "heuristic-subset",
+        "keys": [
+          "diagnostics"
+        ]
+      },
+      {
+        "fixture": 4,
+        "fork": 1,
+        "variant": "heuristic-subset",
+        "keys": [
+          "diagnostics"
+        ]
+      }
+    ]
+  },
+  "evidence_sha256": {
+    "validate_final.py": "714db9c319d25e3ddb01c2521cefa5f2e4a8e9144810b7222bff3ea6fd61793b",
+    "combined-validation.json": "1822bae9d63f186362a09f6da83c599190d6127bcb6f8dddfd4c35f381236030",
+    "negative_controls.py": "cef3e947c9f67a400717099c8e4eb29b274e7f6d530fba89911a00d4c5deb577",
+    "negative-controls/summary.json": "ca2d68db2272422c237f74a6782b8334507e7edee09a464285cc064ab98cc254"
+  }
+}

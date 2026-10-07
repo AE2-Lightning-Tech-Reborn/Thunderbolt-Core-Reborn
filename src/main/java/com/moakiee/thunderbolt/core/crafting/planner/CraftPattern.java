@@ -31,6 +31,9 @@ public final class CraftPattern<K> {
     private final List<CraftOutput<K>> byproducts;
     private final Object source;
     private final List<List<CraftInput<K>>> executionSlots;
+    private final int executionCost;
+    private final boolean hasStatefulInputs;
+    private final boolean hasHostFeedbackSeed;
 
     public CraftPattern(K output, long outputAmount, List<CraftInput<K>> inputs, Object source) {
         this(output, outputAmount, inputs, List.of(), source);
@@ -49,6 +52,14 @@ public final class CraftPattern<K> {
     public CraftPattern(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
                         List<CraftOutput<K>> byproducts, Object source,
                         List<List<CraftInput<K>>> executionSlots) {
+        this(output, outputAmount, inputs, byproducts, source, executionSlots, 1, false);
+    }
+
+    private CraftPattern(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
+                         List<CraftOutput<K>> byproducts, Object source,
+                         List<List<CraftInput<K>>> executionSlots, int executionCost, boolean tagConversion) {
+        if (tagConversion ? executionCost != 0 : executionCost <= 0)
+            throw new IllegalArgumentException("ordinary executionCost must be positive; only tag conversion is free");
         this.output = Objects.requireNonNull(output, "output");
         if (outputAmount.signum() <= 0) {
             throw new IllegalArgumentException("outputAmount must be > 0, was " + outputAmount);
@@ -56,10 +67,75 @@ public final class CraftPattern<K> {
         this.exactOutputAmount = outputAmount;
         this.outputAmount = outputAmount.min(BigInteger.valueOf(Long.MAX_VALUE)).longValueExact();
         this.inputs = List.copyOf(inputs);
+        boolean stateful = false;
+        boolean hostFeedbackSeed = false;
+        for (int slot = 0; slot < this.inputs.size(); slot++) {
+            CraftInput<K> input = this.inputs.get(slot);
+            stateful |= input.returned() || input.remainder() != null || input.reusableStockSource() != null;
+            hostFeedbackSeed |= input.returned() && input.uses() == CraftInput.INFINITE_USES
+                    && input.reusableStockSource() != null;
+        }
+        this.hasStatefulInputs = stateful;
+        this.hasHostFeedbackSeed = hostFeedbackSeed;
         this.byproducts = normalizeByproducts(this.inputs, byproducts);
         this.source = source;
         this.executionSlots = executionSlots.isEmpty() ? List.of()
                 : executionSlots.stream().map(List::copyOf).toList();
+        this.executionCost = executionCost;
+    }
+
+    /**
+     * A graph export's virtual member-to-tag edge, not a machine operation. The edge still
+     * consumes one member and supplies one tag unit, so stock accounting and execution proofs
+     * retain it. Exporters must identify tags explicitly; an ordinary 1:1 recipe is not free.
+     */
+    public static <K> CraftPattern<K> tagConversion(K member, K tag, Object source) {
+        return tagConversion(member, 1, tag, source);
+    }
+
+    /** One indivisible member bundle supplies one logical input unit, without a machine firing. */
+    public static <K> CraftPattern<K> tagConversion(K member, long unitAmount, K tag, Object source) {
+        return new CraftPattern<>(tag, BigInteger.ONE, List.of(CraftInput.of(member, unitAmount)),
+                List.of(), source, List.of(), 0, true);
+    }
+
+    /**
+     * An ordinary recipe with an explicit positive execution cost per firing. All outputs belong
+     * to that same firing: byproducts do not add another execution charge. Zero remains reserved
+     * for the pure member-to-tag factory, never inferred from a recipe's inputs or source.
+     */
+    public static <K> CraftPattern<K> weighted(K output, long outputAmount, List<CraftInput<K>> inputs,
+            List<CraftOutput<K>> byproducts, Object source, int executionCost) {
+        return weighted(output, BigInteger.valueOf(outputAmount), inputs, byproducts, source, executionCost);
+    }
+
+    public static <K> CraftPattern<K> weighted(K output, BigInteger outputAmount, List<CraftInput<K>> inputs,
+            List<CraftOutput<K>> byproducts, Object source, int executionCost) {
+        return new CraftPattern<>(output, outputAmount, inputs, byproducts, source, List.of(), executionCost, false);
+    }
+
+    /** Cost per firing: one by default, a positive explicit weight, or zero for tag conversion. */
+    public int executionCost() {
+        return executionCost;
+    }
+
+    boolean hasStatefulInputs() {
+        return hasStatefulInputs;
+    }
+
+    boolean hasHostFeedbackSeed() {
+        return hasHostFeedbackSeed;
+    }
+
+    /** Preserve objective/source metadata when an internal material projection drops side outputs. */
+    CraftPattern<K> projectMaterials(List<CraftInput<K>> inputs, List<CraftOutput<K>> byproducts) {
+        if (executionCost == 0) {
+            if (!this.inputs.equals(inputs) || !byproducts.isEmpty())
+                throw new IllegalArgumentException("a tag projection must retain its member bundle edge");
+            return this;
+        }
+        return new CraftPattern<>(output, exactOutputAmount, inputs, byproducts, source,
+                executionSlots, executionCost, false);
     }
 
     /**

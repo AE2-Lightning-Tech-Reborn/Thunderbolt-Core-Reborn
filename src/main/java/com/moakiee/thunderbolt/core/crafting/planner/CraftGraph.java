@@ -25,11 +25,12 @@ public final class CraftGraph<K> {
     private final Map<ReusableStockRouteKey<K>, List<K>> reusableStockRoutes;
     private final boolean hasByproducts;
     private final boolean hasHostFeedbackSeeds;
+    private final boolean hasTagConversions;
 
     private CraftGraph(Map<K, List<CraftPattern<K>>> patternsByOutput, Map<K, Long> stock,
                        Map<ReusableStockKey<K>, Long> reusableStock,
                        Map<ReusableStockRouteKey<K>, List<K>> reusableStockRoutes, Map<K, BigInteger> exactStock,
-                       boolean hasByproducts, boolean hasHostFeedbackSeeds) {
+                       boolean hasByproducts, boolean hasHostFeedbackSeeds, boolean hasTagConversions) {
         this.patternsByOutput = patternsByOutput;
         this.stock = stock;
         this.exactStock = exactStock;
@@ -37,6 +38,7 @@ public final class CraftGraph<K> {
         this.reusableStockRoutes = reusableStockRoutes;
         this.hasByproducts = hasByproducts;
         this.hasHostFeedbackSeeds = hasHostFeedbackSeeds;
+        this.hasTagConversions = hasTagConversions;
     }
 
     /** Immutable recipe metadata; stock projections cannot introduce a side-output edge. */
@@ -45,12 +47,11 @@ public final class CraftGraph<K> {
     /** A converter bootstrap must find a returned, unlimited host-backed seed in some recipe. */
     boolean hasHostFeedbackSeeds() { return hasHostFeedbackSeeds; }
 
+    /** Explicit zero-cost virtual edges invalidate shortcuts that count every firing. */
+    boolean hasTagConversions() { return hasTagConversions; }
+
     private static boolean hasHostFeedbackSeed(CraftPattern<?> pattern) {
-        for (var input : pattern.inputs()) {
-            if (input.returned() && input.uses() == CraftInput.INFINITE_USES
-                    && input.reusableStockSource() != null) return true;
-        }
-        return false;
+        return pattern.hasHostFeedbackSeed();
     }
 
     /** Patterns whose primary output is {@code key}, in caller-defined preference order. */
@@ -66,6 +67,11 @@ public final class CraftGraph<K> {
     public long stock(K key) {
         Long v = stock.get(key);
         return v == null ? 0L : Math.max(0L, v);
+    }
+
+    /** Conservative equality check for an incumbent-limited optimality certificate. */
+    boolean hasSameOrdinaryStock(Map<K, Long> limits) {
+        return stock.equals(limits);
     }
 
     /** Host-private stock is invisible to ordinary demands and is addressed by reusable inputs only. */
@@ -105,7 +111,7 @@ public final class CraftGraph<K> {
             }
         });
         return new CraftGraph<>(patternsByOutput, Map.copyOf(merged), reusableStock,
-                reusableStockRoutes, Map.copyOf(exactMerged), hasByproducts, hasHostFeedbackSeeds);
+                reusableStockRoutes, Map.copyOf(exactMerged), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
     }
 
     /** Read-only recipe projection over exactly the same inventory snapshot. */
@@ -113,15 +119,20 @@ public final class CraftGraph<K> {
         var frozen = new HashMap<K, List<CraftPattern<K>>>();
         boolean selectedByproducts = false;
         boolean selectedHostFeedbackSeeds = false;
+        boolean selectedTagConversions = false;
         for (var entry : selected.entrySet()) {
             frozen.put(entry.getKey(), List.copyOf(entry.getValue()));
-            if (!selectedByproducts) for (var pattern : entry.getValue())
-                if (!pattern.byproducts().isEmpty()) { selectedByproducts = true; break; }
-            if (!selectedHostFeedbackSeeds) for (var pattern : entry.getValue())
-                if (hasHostFeedbackSeed(pattern)) { selectedHostFeedbackSeeds = true; break; }
+            var patterns = entry.getValue();
+            for (int p = 0; p < patterns.size(); p++) {
+                var pattern = patterns.get(p);
+                selectedByproducts |= !pattern.byproducts().isEmpty();
+                selectedHostFeedbackSeeds |= hasHostFeedbackSeed(pattern);
+                selectedTagConversions |= pattern.executionCost() == 0;
+                if (selectedByproducts && selectedHostFeedbackSeeds && selectedTagConversions) break;
+            }
         }
         return new CraftGraph<>(Map.copyOf(frozen), stock, reusableStock, reusableStockRoutes, exactStock,
-                selectedByproducts, selectedHostFeedbackSeeds);
+                selectedByproducts, selectedHostFeedbackSeeds, selectedTagConversions);
     }
 
     /** Recipe projection with explicit ordinary-stock caps, bounded by this snapshot. */
@@ -136,7 +147,7 @@ public final class CraftGraph<K> {
             }
         });
         return new CraftGraph<>(patternsByOutput, Map.copyOf(limited), reusableStock,
-                reusableStockRoutes, Map.copyOf(exact), hasByproducts, hasHostFeedbackSeeds);
+                reusableStockRoutes, Map.copyOf(exact), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
     }
 
     /** Residual ordinary stock for a prefix plan; committed draws cannot be spent a second time. */
@@ -149,7 +160,7 @@ public final class CraftGraph<K> {
             exactRemaining.put(key, exactStock(key).subtract(BigInteger.valueOf(amount)));
         });
         return new CraftGraph<>(patternsByOutput, Map.copyOf(remaining), reusableStock,
-                reusableStockRoutes, Map.copyOf(exactRemaining), hasByproducts, hasHostFeedbackSeeds);
+                reusableStockRoutes, Map.copyOf(exactRemaining), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
     }
 
     Map<ReusableStockKey<K>, Long> reusableStock() {
@@ -169,12 +180,14 @@ public final class CraftGraph<K> {
                 new HashMap<>();
         private boolean hasByproducts;
         private boolean hasHostFeedbackSeeds;
+        private boolean hasTagConversions;
 
         /** Adds a pattern; patterns for the same output keep insertion order (= preference order). */
         public Builder<K> pattern(CraftPattern<K> pattern) {
             patterns.computeIfAbsent(pattern.output(), k -> new ArrayList<>()).add(pattern);
             hasByproducts |= !pattern.byproducts().isEmpty();
             if (!hasHostFeedbackSeeds) hasHostFeedbackSeeds = hasHostFeedbackSeed(pattern);
+            hasTagConversions |= pattern.executionCost() == 0;
             return this;
         }
 
@@ -239,7 +252,7 @@ public final class CraftGraph<K> {
                 frozenRoutes.put(entry.getKey(), List.copyOf(entry.getValue()));
             }
             return new CraftGraph<>(frozen, Map.copyOf(stock), Map.copyOf(reusableStock),
-                    Map.copyOf(frozenRoutes), Map.copyOf(exactStock), hasByproducts, hasHostFeedbackSeeds);
+                    Map.copyOf(frozenRoutes), Map.copyOf(exactStock), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
         }
     }
 }

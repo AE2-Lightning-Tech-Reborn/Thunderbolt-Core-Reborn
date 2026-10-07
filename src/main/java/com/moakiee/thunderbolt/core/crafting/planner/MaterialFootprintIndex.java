@@ -41,16 +41,22 @@ final class MaterialFootprintIndex {
         int metadataWork = 0;
         for (Map.Entry<K, List<CraftPattern<K>>> entry : patternsByOutput.entrySet()) {
             PlanningCancellation.check();
-            for (CraftPattern<K> pattern : entry.getValue()) {
+            var routes = entry.getValue();
+            for (int p = 0; p < routes.size(); p++) {
+                CraftPattern<K> pattern = routes.get(p);
                 if ((++metadataWork & 255) == 0) PlanningCancellation.check();
                 if (pattern.outputAmount() > 1) {
                     dynamicPoolKeys.add(pattern.output());
                 }
-                for (CraftOutput<K> output : pattern.byproducts()) {
+                var byproducts = pattern.byproducts();
+                for (int slot = 0; slot < byproducts.size(); slot++) {
+                    CraftOutput<K> output = byproducts.get(slot);
                     if ((++metadataWork & 255) == 0) PlanningCancellation.check();
                     dynamicPoolKeys.add(output.key());
                 }
-                for (CraftInput<K> input : pattern.inputs()) {
+                var inputs = pattern.inputs();
+                for (int slot = 0; slot < inputs.size(); slot++) {
+                    CraftInput<K> input = inputs.get(slot);
                     if ((++metadataWork & 255) == 0) PlanningCancellation.check();
                     if (input.returned() || input.remainder() != null
                             || input.reusableStockSource() != null) {
@@ -79,7 +85,8 @@ final class MaterialFootprintIndex {
 
             Integer common = null;
             boolean allEquivalent = true;
-            for (CraftPattern<K> pattern : patterns) {
+            for (int p = 0; p < patterns.size(); p++) {
+                CraftPattern<K> pattern = patterns.get(p);
                 if ((++patternsVisited & 255) == 0) PlanningCancellation.check();
                 Integer footprint = materialFootprint(pattern, footprintByKey, interner, scratchIds, scratchAmounts);
                 if (footprint != null) {
@@ -118,7 +125,9 @@ final class MaterialFootprintIndex {
         if (pattern.inputs().size() <= scratchIds.length) {
             int size = 0;
             // Small recipes share sorted scratch storage; size limits all reads to this recipe.
-            for (CraftInput<K> input : pattern.inputs()) {
+            var inputs = pattern.inputs();
+            for (int slot = 0; slot < inputs.size(); slot++) {
+                CraftInput<K> input = inputs.get(slot);
                 if (input.returned() || input.remainder() != null
                         || input.reusableStockSource() != null) return null;
                 Integer footprint = footprintByKey.get(input.key());
@@ -142,7 +151,9 @@ final class MaterialFootprintIndex {
         }
         Map<Integer, Long> amounts = new HashMap<>();
         int inputIndex = 0;
-        for (CraftInput<K> input : pattern.inputs()) {
+        var inputs = pattern.inputs();
+        for (int slot = 0; slot < inputs.size(); slot++) {
+            CraftInput<K> input = inputs.get(slot);
             if ((++inputIndex & 255) == 0) PlanningCancellation.check();
             if (input.returned() || input.remainder() != null
                     || input.reusableStockSource() != null) {

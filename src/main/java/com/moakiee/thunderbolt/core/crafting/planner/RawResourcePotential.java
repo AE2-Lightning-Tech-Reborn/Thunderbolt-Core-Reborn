@@ -10,25 +10,34 @@ final class RawResourcePotential {
     private static final int MAX_BITS = 256;
     private record Cost(BigInteger numerator, BigInteger denominator) {
         Cost {
-            BigInteger gcd = numerator.gcd(denominator);
-            numerator = numerator.divide(gcd);
-            denominator = denominator.divide(gcd);
+            if (!denominator.equals(BigInteger.ONE)) {
+                BigInteger gcd = numerator.gcd(denominator);
+                numerator = numerator.divide(gcd);
+                denominator = denominator.divide(gcd);
+            }
         }
         Cost add(Cost other, long copies) {
+            if (numerator.signum() == 0 && copies == 1) return other;
+            if (denominator.equals(other.denominator))
+                return new Cost(numerator.add(other.numerator.multiply(BigInteger.valueOf(copies))), denominator);
             return new Cost(numerator.multiply(other.denominator).add(
                     other.numerator.multiply(BigInteger.valueOf(copies)).multiply(denominator)),
                     denominator.multiply(other.denominator));
         }
         Cost divide(long divisor) {
+            if (divisor == 1 || numerator.signum() == 0) return this;
             return new Cost(numerator, denominator.multiply(BigInteger.valueOf(divisor)));
         }
         boolean lessThan(Cost other) {
+            if (denominator.equals(other.denominator)) return numerator.compareTo(other.numerator) < 0;
             return numerator.multiply(other.denominator).compareTo(other.numerator.multiply(denominator)) < 0;
         }
         boolean tooWide() {
             return numerator.bitLength() > MAX_BITS || denominator.bitLength() > MAX_BITS;
         }
     }
+    private static final Cost ZERO_COST = new Cost(BigInteger.ZERO, BigInteger.ONE);
+    private static final Cost UNIT_COST = new Cost(BigInteger.ONE, BigInteger.ONE);
 
     private RawResourcePotential() { }
 
@@ -40,10 +49,10 @@ final class RawResourcePotential {
             PlanningCancellation.check();
             K item = order.get(i);
             var routes = producers.getOrDefault(item, List.of());
-            Cost best = routes.isEmpty() ? new Cost(BigInteger.ONE, BigInteger.ONE) : null;
+            Cost best = routes.isEmpty() ? UNIT_COST : null;
             for (var route : routes) {
                 if (!route.byproducts().isEmpty()) return Map.of();
-                Cost sum = new Cost(BigInteger.ZERO, BigInteger.ONE);
+                Cost sum = ZERO_COST;
                 for (var input : route.inputs()) {
                     Cost cost = costs.get(input.key());
                     if (cost == null || input.returned() || input.remainder() != null
@@ -56,14 +65,17 @@ final class RawResourcePotential {
                 if (best == null || sum.lessThan(best)) best = sum;
             }
             costs.put(item, best);
-            scale = scale.divide(scale.gcd(best.denominator)).multiply(best.denominator);
+            if (!best.denominator.equals(BigInteger.ONE) && !scale.equals(best.denominator))
+                scale = scale.divide(scale.gcd(best.denominator)).multiply(best.denominator);
             if (scale.bitLength() > MAX_BITS) return Map.of();
         }
         var weights = new HashMap<K, BigInteger>();
         for (K item : order) {
             PlanningCancellation.check();
             Cost cost = costs.get(item);
-            BigInteger weight = cost.numerator.multiply(scale.divide(cost.denominator));
+            BigInteger factor = cost.denominator.equals(BigInteger.ONE) ? scale : scale.divide(cost.denominator);
+            BigInteger weight = factor.equals(BigInteger.ONE) ? cost.numerator
+                    : cost.numerator.equals(BigInteger.ONE) ? factor : cost.numerator.multiply(factor);
             if (weight.bitLength() > MAX_BITS) return Map.of();
             weights.put(item, weight);
         }
