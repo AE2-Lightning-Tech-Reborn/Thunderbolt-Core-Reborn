@@ -184,7 +184,7 @@ publishing {
     publications {
         register('mavenJava', MavenPublication) {
             from components.java
-            artifactId = mod_id
+            artifactId = maven_artifact_id
         }
     }
     repositories {

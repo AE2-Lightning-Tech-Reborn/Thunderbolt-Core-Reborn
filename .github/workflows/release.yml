@@ -51,7 +51,8 @@ jobs:
         env:
           VERSION: ${{ steps.metadata.outputs.version }}
         run: |
-          ./gradlew --no-daemon clean build -x check --max-workers 1 -Pmod_version="$VERSION"
+          ./gradlew --no-daemon clean build generatePomFileForMavenJavaPublication -x check --max-workers 1 -Pmod_version="$VERSION"
+          python3 .github/scripts/release.py publication
 
       - name: Publish Maven package or restore the existing package
         shell: bash

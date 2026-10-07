@@ -20,3 +20,11 @@ AE2LT 和样板供应器通过 GitHub Release 下载构建依赖。若依赖仓�
 依赖下载优先使用直接版本号标签；找不到对应产物时兼容历史 `v<版本>` 和 Forge 的 `forge-1.20.1-v<版本>` 标签。
 
 发布前的工作流检查运行 `.github/scripts/test_release.py` 和 actionlint，不需要平台 Token，也不执行发布。发布流程保留原有 `build -x check` 打包策略；功能测试应在创建发布标签前完成。发布流程验证 JAR 入口、版本、加载器元数据路径和 SHA-256。实际平台上传需发布 Release 后查看 Release 工作流的结果。
+
+## Reborn Maven 坐标
+
+Thunderbolt 的 `maven_artifact_id` 单独控制 Maven 包名：NeoForge 1.21.1 为 `thunderbolt-reborn`，Forge 1.20.1 为 `thunderbolt-reborn-forge-1.20.1`，groupId 均为 `com.moakiee.thunderbolt`。这样避开已归档旧仓库占用的同名包。Gradle 生成的 POM 必须与工作流的 Maven 坐标一致才会继续发布。
+
+`artifact_name` 仍控制原有 JAR 名，模组 ID 为 `thunderbolt`。GitHub Release 下载文件名和 CF/MR 项目、依赖标识沿用原有配置。下游通过 `thunderbolt_artifact_id` 使用 Reborn 坐标，CI 将指定版本的原名 Release JAR 暂存到该 Maven 坐标。
+
+工作流修复必须包含在发布标签指向的提交中；直接重跑旧标签的失败任务仍使用旧配置。两种加载器分别验证并发布。

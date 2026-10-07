@@ -52,6 +52,43 @@ class ReleaseContractTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             release.metadata({"minecraft_version": "1.19.2"}, "2.0.2-beta", False)
 
+    def test_maven_identity_is_separate_from_distributable_identity(self):
+        for game, artifact, jar_base in (("1.21.1", "thunderbolt-reborn", "thunderbolt"),
+                                         ("1.20.1", "thunderbolt-reborn-forge-1.20.1", "thunderbolt-forge-1.20.1")):
+            with self.subTest(game=game), tempfile.TemporaryDirectory() as directory:
+                props = {"minecraft_version": game, "mod_id": "thunderbolt", "artifact_name": "thunderbolt",
+                         "maven_artifact_id": artifact, "mod_group_id": "com.moakiee.thunderbolt"}
+                result = release.metadata(props, "2.0.2-beta", True)
+                self.assertEqual(result["artifact_id"], artifact)
+                self.assertEqual(result["jar_file"], f"{jar_base}-2.0.2-beta.jar")
+                root = Path(directory)
+                jar = root / "build/libs" / result["jar_file"]
+                jar_fixture(jar, "thunderbolt", result["version"], game == "1.20.1")
+                release.prepare_artifacts(root, props, result)
+                self.assertTrue((root / "release-artifacts" / result["jar_file"]).is_file())
+                pom = root / "build/publications/mavenJava/pom-default.xml"
+                pom.parent.mkdir(parents=True)
+                pom.write_text(f'<project xmlns="http://maven.apache.org/POM/4.0.0"><groupId>com.moakiee.thunderbolt</groupId>'
+                               f'<artifactId>{artifact}</artifactId><version>2.0.2-beta</version></project>')
+                release.validate_publication(root, props, result)
+                pom.write_text(pom.read_text().replace(artifact, jar_base))
+                with self.assertRaisesRegex(ValueError, "artifactId"):
+                    release.validate_publication(root, props, result)
+
+    def test_downloaded_release_can_use_an_explicit_maven_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            props = {"minecraft_version": "1.21.1", "mod_id": "ae2lt", "thunderbolt_version": "2.0.2-beta",
+                     "thunderbolt_artifact_id": "thunderbolt-reborn-custom"}
+
+            def download(command, check):
+                self.assertEqual(command[7], "thunderbolt-2.0.2-beta.jar")
+                jar_fixture(Path(command[9]) / command[7], "thunderbolt", "2.0.2-beta")
+
+            with patch.object(release.subprocess, "run", side_effect=download):
+                outputs = release.download_dependencies(root, props, "AE2-Lightning-Tech-Reborn")
+            self.assertEqual(outputs["thunderbolt_maven_notation"], "com.moakiee.thunderbolt:thunderbolt-reborn-custom:2.0.2-beta")
+
     def test_provider_versions_come_from_current_build_configuration(self):
         props = {"mod_id": "ae2ltpp", "ae2lt_jar": "../AE2-Lightning-Tech/build/libs/ae2lt-2.1.0-beta.1.jar",
                  "thunderbolt_maven_notation": "com.moakiee.thunderbolt:thunderbolt:2.0.0"}
@@ -71,7 +108,7 @@ class ReleaseContractTest(unittest.TestCase):
                     props = {"minecraft_version": game, "mod_id": mod_id,
                              "ae2lt_version": "2.1.0-beta.1", "thunderbolt_version": "2.0.1"}
                     if forge and mod_id == "ae2lt":
-                        props["thunderbolt_artifact_id"] = "thunderbolt-forge-1.20.1"
+                        props["thunderbolt_artifact_id"] = "thunderbolt-reborn-forge-1.20.1"
                     requests = []
 
                     def download(command, check):
@@ -88,6 +125,8 @@ class ReleaseContractTest(unittest.TestCase):
                     with patch.object(release.subprocess, "run", side_effect=download):
                         outputs = release.download_dependencies(root, props, "AE2-Lightning-Tech-Reborn")
                     self.assertEqual(len(requests), 2 if mod_id == "ae2ltpp" else 1)
+                    artifact = "thunderbolt-reborn-forge-1.20.1" if forge else "thunderbolt-reborn"
+                    self.assertEqual(outputs["thunderbolt_maven_notation"], f"com.moakiee.thunderbolt:{artifact}:2.0.1")
                     for notation in outputs.values():
                         group, artifact, version = notation.split(":")
                         folder = root / "release-dependencies/maven" / group.replace(".", "/") / artifact / version
@@ -113,7 +152,8 @@ class ReleaseContractTest(unittest.TestCase):
                 with patch.object(release.subprocess, "run", side_effect=download):
                     outputs = release.download_dependencies(root, props, "AE2-Lightning-Tech-Reborn")
                 self.assertEqual(requests, ["2.0.1", ("forge-1.20.1-v" if forge else "v") + "2.0.1"])
-                self.assertEqual(outputs["thunderbolt_maven_notation"], "com.moakiee.thunderbolt:thunderbolt:2.0.1")
+                artifact = "thunderbolt-reborn-forge-1.20.1" if forge else "thunderbolt-reborn"
+                self.assertEqual(outputs["thunderbolt_maven_notation"], f"com.moakiee.thunderbolt:{artifact}:2.0.1")
 
     def test_missing_dependency_releases_still_fail(self):
         with tempfile.TemporaryDirectory() as directory:
