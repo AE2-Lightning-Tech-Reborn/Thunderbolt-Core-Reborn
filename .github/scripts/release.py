@@ -54,7 +54,7 @@ def metadata(props, tag, prerelease):
         "java_version": java,
         "mod_loader": loader,
         "metadata_path": metadata_path,
-        "artifact_id": jar_base,
+        "artifact_id": props.get("maven_artifact_id", jar_base),
         "jar_file": f"{jar_base}-{version}.jar",
     }
 
@@ -128,11 +128,22 @@ def download_dependencies(root, props, owner):
                     raise
         jar_path = downloads / file_name
         validate_jar(jar_path, mod_id, version, metadata_path)
-        artifact = props.get("thunderbolt_artifact_id", "thunderbolt") if mod_id == "thunderbolt" else mod_id
+        default_artifact = "thunderbolt-reborn-forge-1.20.1" if forge else "thunderbolt-reborn"
+        artifact = props.get("thunderbolt_artifact_id", default_artifact) if mod_id == "thunderbolt" else mod_id
         group = f"com.moakiee.{mod_id}"
         stage_maven(jar_path, repository, group, artifact, version)
         outputs[f"{mod_id}_maven_notation"] = f"{group}:{artifact}:{version}"
     return outputs
+
+
+def validate_publication(root, props, release):
+    pom = ET.parse(root / "build/publications/mavenJava/pom-default.xml")
+    expected = {"groupId": props["mod_group_id"], "artifactId": release["artifact_id"],
+                "version": release["version"]}
+    for name, value in expected.items():
+        actual = pom.findtext(f"{{*}}{name}")
+        if actual != value:
+            raise ValueError(f"Unexpected Maven publication {name}: {actual!r} != {value!r}")
 
 
 def prepare_artifacts(root, props, release):
@@ -151,7 +162,7 @@ def prepare_artifacts(root, props, release):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("metadata", "dependencies", "artifacts"))
+    parser.add_argument("command", choices=("metadata", "dependencies", "artifacts", "publication"))
     args = parser.parse_args()
     root = Path.cwd()
     props = properties(root)
@@ -161,6 +172,8 @@ def main():
         outputs = release
     elif args.command == "dependencies":
         outputs = download_dependencies(root, props, os.environ["RELEASE_OWNER"])
+    elif args.command == "publication":
+        validate_publication(root, props, release)
     else:
         prepare_artifacts(root, props, release)
     if outputs:

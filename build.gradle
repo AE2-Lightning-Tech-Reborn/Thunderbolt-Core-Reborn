@@ -378,7 +378,7 @@ processResources {
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
-            artifactId = 'thunderbolt-forge-1.20.1'
+            artifactId = maven_artifact_id
             // Publish the actual distributable: Forge-remapped and with MixinExtras jar-in-jar.
             // Publishing components.java leaks ForgeGradle's synthetic `_mapped_official`
             // dependencies and selects the non-jarJar artifact.
