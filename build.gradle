@@ -5,14 +5,7 @@ plugins {
 }
 
 def releaseTag = System.getenv('TAG')?.trim()
-if (releaseTag) {
-    if (!releaseTag.startsWith('v')) {
-        throw new GradleException("Release tags must start with v: ${releaseTag}")
-    }
-    version = releaseTag.substring(1)
-} else {
-    version = mod_version
-}
+version = releaseTag ?: mod_version
 def resolvedProjectVersion = project.version.toString()
 group = mod_group_id
 

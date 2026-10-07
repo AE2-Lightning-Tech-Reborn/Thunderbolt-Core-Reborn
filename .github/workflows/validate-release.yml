@@ -21,6 +21,20 @@ jobs:
       - name: Test release types, dependency downloads, and JAR validation
         run: python3 .github/scripts/test_release.py
 
+      - name: Set up Java for build configuration validation
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Verify Gradle preserves the release tag
+        env:
+          TAG: 2.0.2-beta
+        run: |
+          set -euo pipefail
+          actual="$(bash ./gradlew --no-daemon --max-workers 1 -q printProjectVersion -Pmod_version=0.0.0)"
+          test "$actual" = "$TAG" || { echo "Unexpected Gradle release version: $actual" >&2; exit 1; }
+
       - name: Lint GitHub Actions workflows
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
