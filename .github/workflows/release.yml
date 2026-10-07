@@ -96,7 +96,7 @@ jobs:
           set -euo pipefail
           jar_path="build/libs/$JAR_FILE"
           test -f "$jar_path"
-          package_base="https://maven.pkg.github.com/ae2lt/Thunderbolt-Core/com/moakiee/thunderbolt/$ARTIFACT_ID/$VERSION/$ARTIFACT_ID-$VERSION"
+          package_base="https://maven.pkg.github.com/${GITHUB_REPOSITORY,,}/com/moakiee/thunderbolt/$ARTIFACT_ID/$VERSION/$ARTIFACT_ID-$VERSION"
           downloaded_jar="$(mktemp)"
           downloaded_pom="$(mktemp)"
           trap 'rm -f "$downloaded_jar" "$downloaded_pom"' EXIT
