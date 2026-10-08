@@ -19,13 +19,7 @@ public final class UselessBatchCompat {
         var scaled = UselessScaledBatchAdapter.loadAdapter(loader);
         if (bigint == null) return scaled;
         if (scaled == null) return bigint;
-        return new BatchProviderResolver() {
-            @Override public boolean cacheResolutionAcrossTicks() { return true; }
-            @Override public IBatchCraftingProvider resolve(ICraftingProvider provider) {
-                var endpoint = bigint.resolve(provider);
-                return endpoint != null ? endpoint : scaled.resolve(provider);
-            }
-        };
+        return new UselessHybridBatchAdapter(bigint, scaled);
     }
 
     static @Nullable BatchProviderResolver loadAdapter(ClassLoader loader) {
