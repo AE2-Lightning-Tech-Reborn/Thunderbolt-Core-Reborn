@@ -53,5 +53,7 @@ libs/*.jar
 /*.local.md
 
 # Maintenance/self-check artifacts
+__pycache__/
+*.pyc
 /.qoder-cn/
 /*.log

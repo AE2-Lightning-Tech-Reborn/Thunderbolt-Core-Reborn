@@ -37,6 +37,11 @@ final class UnorderedByproductSafety {
             }
         }
         if (!hasByproducts) return plan;
+        // A selected vector may already have enough physical stock when feedback credits
+        // are discarded. Verify that linear DAG witness before inventing a cyclic reserve;
+        // this is mandatory replay of the existing counts, not another timed route search.
+        var conservative = MaterialDagReplay.tryConservativePlan(graph, plan, target, amount);
+        if (conservative != null) return conservative;
         var nodes = new LinkedHashSet<Object>();
         var edges = new HashMap<Object, LinkedHashSet<Object>>();
         var patterns = new ArrayList<MaterialPattern<K>>();

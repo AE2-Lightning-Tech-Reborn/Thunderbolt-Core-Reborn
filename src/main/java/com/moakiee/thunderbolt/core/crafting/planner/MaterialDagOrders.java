@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /** Bounded, quantity-independent ordinary material DAGs, including side-output dependencies. */
 final class MaterialDagOrders {
@@ -35,6 +36,11 @@ final class MaterialDagOrders {
                     plan.usedStock(), plan.usedReusableStock(), plan.missing(), plan.grossDemand(),
                     plan.itemsProcessed(), plan.budgetExhausted());
         }
+
+        CraftPlan<K> restore(CraftPlan<K> plan, CraftGraph<K> originalGraph, K target, long amount) {
+            return MaterialDagReplay.restoreConservativeCertificate(
+                    graph, plan, originalGraph, restore(plan), originals, target, amount);
+        }
     }
 
     private MaterialDagOrders() {}
@@ -45,11 +51,24 @@ final class MaterialDagOrders {
 
     static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target,
             BoundedIntegerLinearSolver.WorkBudget budget) {
+        return compile(graph, target, budget, candidate -> false);
+    }
+
+    /** Visit each complete support immediately; a certified witness can stop discovery. */
+    static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target,
+            BoundedIntegerLinearSolver.WorkBudget budget, Predicate<Candidate<K>> visitor) {
         var result = new ArrayList<Candidate<K>>();
+        boolean[] complete = {false};
+        Predicate<Candidate<K>> boundedVisitor = candidate -> {
+            complete[0] = visitor.test(candidate);
+            return complete[0];
+        };
         try {
-            result.addAll(compile(graph, target, 0, budget));
-            result.addAll(compile(graph, target, 2, budget));
-            result.addAll(compile(graph, target, 1, budget));
+            // Conservative projections often need fewer competing material orders. Restore
+            // and certify their real recipes before paying for side-output-rich supports.
+            result.addAll(compile(graph, target, 1, budget, boundedVisitor));
+            if (!complete[0]) result.addAll(compile(graph, target, 0, budget, boundedVisitor));
+            if (!complete[0]) result.addAll(compile(graph, target, 2, budget, boundedVisitor));
         } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
             // Already completed supports remain valid even if the next family expires.
         }
@@ -76,7 +95,7 @@ final class MaterialDagOrders {
     }
 
     private static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target, int sidePolicy,
-            BoundedIntegerLinearSolver.WorkBudget budget) {
+            BoundedIntegerLinearSolver.WorkBudget budget, Predicate<Candidate<K>> visitor) {
         boolean ignoreSideOutputs = sidePolicy != 0;
         boolean retainedSelfReturn = false;
         var originals = new IdentityHashMap<CraftPattern<K>, CraftPattern<K>>();
@@ -151,8 +170,8 @@ final class MaterialDagOrders {
         ranks[ordered.size()] = ordered.size() + 1;
         try {
             permute(graph, target, ordered, permutation, 0, patterns, new HashSet<>(),
-                    Map.copyOf(originals), result, budget, ranks, inputMasks, outputMasks);
-        } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
+                    Map.copyOf(originals), result, budget, ranks, inputMasks, outputMasks, visitor);
+        } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit | WitnessFound exhausted) {
             // A timeout must not discard already completed supports and force replenishment
             // to repeat the same permutations. Every retained projection is self-contained;
             // user cancellation and router exits are deliberately not caught here.
@@ -186,7 +205,8 @@ final class MaterialDagOrders {
     private static <K> void permute(CraftGraph<K> graph, K target, List<K> ordered, int[] permutation,
             int index, List<CraftPattern<K>> patterns, Set<BitSet> seen,
             Map<CraftPattern<K>, CraftPattern<K>> originals, List<Candidate<K>> result,
-            BoundedIntegerLinearSolver.WorkBudget budget, int[] ranks, int[] inputMasks, int[] outputMasks) {
+            BoundedIntegerLinearSolver.WorkBudget budget, int[] ranks, int[] inputMasks, int[] outputMasks,
+            Predicate<Candidate<K>> visitor) {
         charge(budget, 1);
         if (index < permutation.length) {
             for (int next = index; next < permutation.length; next++) {
@@ -194,7 +214,7 @@ final class MaterialDagOrders {
                 permutation[index] = permutation[next];
                 permutation[next] = saved;
                 permute(graph, target, ordered, permutation, index + 1, patterns, seen, originals,
-                        result, budget, ranks, inputMasks, outputMasks);
+                        result, budget, ranks, inputMasks, outputMasks, visitor);
                 permutation[next] = permutation[index];
                 permutation[index] = saved;
             }
@@ -242,7 +262,9 @@ final class MaterialDagOrders {
         // A zero-stock support can become productive after replenishment. Retain it as a
         // topology template, but maySupply still rejects its current zero capacity. Filtering
         // here would make reuse silently miss routes enabled by the hypothetical inventory.
-        result.add(new Candidate<>(graph.withPatterns(selected), capacity, originals, List.copyOf(supplyOrder)));
+        var candidate = new Candidate<>(graph.withPatterns(selected), capacity, originals, List.copyOf(supplyOrder));
+        result.add(candidate);
+        if (visitor.test(candidate)) throw new WitnessFound();
     }
 
     private static void charge(BoundedIntegerLinearSolver.WorkBudget budget, long work) {
@@ -251,6 +273,9 @@ final class MaterialDagOrders {
     }
 
     private static final class WorkLimit extends RuntimeException {}
+    private static final class WitnessFound extends RuntimeException {
+        private WitnessFound() { super(null, null, false, false); }
+    }
 
     private static <K> int lastInputRank(CraftPattern<K> pattern, Map<K, Integer> rank) {
         int last = -1;

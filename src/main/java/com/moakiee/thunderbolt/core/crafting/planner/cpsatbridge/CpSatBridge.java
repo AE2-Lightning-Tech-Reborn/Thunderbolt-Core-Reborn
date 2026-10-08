@@ -898,13 +898,23 @@ public final class CpSatBridge {
                 deadlineNanos(Math.min(0.05D, maxSeconds / 4.0D))) : deadline;
         SolveAttempt attempt = solveOptimal(zero, zeroDeadline, cyclic);
         long branches = attempt.branches;
-        if (attempt.status == CpSolverStatus.FEASIBLE || attempt.status == CpSolverStatus.MODEL_INVALID) {
+        if (attempt.status == CpSolverStatus.MODEL_INVALID) {
             return keepWitness(attempt, null, branches);
         }
         SolveAttempt incumbent = null;
-        if (attempt.status == CpSolverStatus.OPTIMAL) {
+        if (attempt.status == CpSolverStatus.OPTIMAL || attempt.status == CpSolverStatus.FEASIBLE) {
             model.addEquality(LinearExpr.sum(missing), 0L);
             incumbent = attempt;
+            // Any zero-missing witness proves the missing optimum. A short feasibility
+            // sub-deadline need not abandon execution optimization while the shared allowance
+            // remains; retain that witness if the remaining solve cannot prove its objective.
+            if (attempt.status == CpSolverStatus.FEASIBLE) {
+                model.minimize(executionObjective);
+                attempt = solveOptimal(model, deadline, cyclic);
+                branches = saturatedAdd(branches, attempt.branches);
+                if (attempt.status != CpSolverStatus.OPTIMAL) return keepWitness(attempt, incumbent, branches);
+                incumbent = attempt;
+            }
         } else {
             var tiers = new java.util.TreeMap<Integer, java.util.List<IntVar>>();
             for (int i = 0; i < missing.length; i++) tiers.computeIfAbsent(

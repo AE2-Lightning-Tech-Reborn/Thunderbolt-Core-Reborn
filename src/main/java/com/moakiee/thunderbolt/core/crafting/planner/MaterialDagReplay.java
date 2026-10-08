@@ -67,6 +67,30 @@ final class MaterialDagReplay {
         return tryPlan(graph, counts, target, amount, true, false);
     }
 
+    /** Certify an existing vector against real stock without relying on feedback output credit. */
+    static <K> CraftPlan<K> tryConservativePlan(CraftGraph<K> graph, CraftPlan<K> proposal,
+            K target, long amount) {
+        var originals = new IdentityHashMap<CraftPattern<K>, CraftPattern<K>>();
+        var counts = new IdentityHashMap<CraftPattern<K>, Long>();
+        var selected = new HashMap<K, java.util.List<CraftPattern<K>>>();
+        for (var entry : proposal.firings().entrySet()) {
+            PlanningCancellation.check();
+            var original = entry.getKey();
+            var projected = original.byproducts().isEmpty() ? original
+                    : original.projectMaterials(original.inputs(), java.util.List.of());
+            if (projected != original) originals.put(projected, original);
+            counts.put(projected, entry.getValue());
+            selected.computeIfAbsent(projected.output(), ignored -> new java.util.ArrayList<>()).add(projected);
+        }
+        var projection = graph.withPatterns(selected);
+        var certified = tryPlan(projection, counts, target, amount);
+        if (certified == null) return null;
+        var restored = new CraftPlan<>(true, true, proposal.firings(), proposal.usedStock(), Map.of(), Map.of(),
+                certified.grossDemand(), certified.itemsProcessed(), proposal.budgetExhausted());
+        var result = restoreConservativeCertificate(projection, certified, graph, restored, originals, target, amount);
+        return hasCertificate(graph, result, target, amount) ? result : null;
+    }
+
     private static <K> CraftPlan<K> tryPlan(CraftGraph<K> graph, Map<CraftPattern<K>, Long> counts,
             K target, long amount, boolean proveEveryOrder, boolean allowLeafMissing) {
         var demand = new HashMap<K, BigInteger>();
@@ -148,6 +172,46 @@ final class MaterialDagReplay {
 
     private static <K> void add(Map<K, BigInteger> map, K key, BigInteger amount) {
         map.merge(key, amount, BigInteger::add);
+    }
+
+    /** Adding side outputs to unchanged DAG recipes cannot disable any firing order. */
+    static <K> CraftPlan<K> restoreConservativeCertificate(CraftGraph<K> projection,
+            CraftPlan<K> projected, CraftGraph<K> graph, CraftPlan<K> restored,
+            Map<CraftPattern<K>, CraftPattern<K>> originals, K target, long amount) {
+        if (!projected.feasible() || !projected.missing().isEmpty()) return restored;
+        // Require a material DAG specifically; an arbitrary small cyclic certificate cannot
+        // authorize a projection transformation by this conservative argument.
+        var certified = tryPlan(projection, projected.firings(), target, amount);
+        if (certified == null) return restored;
+        for (var entry : projected.firings().entrySet()) {
+            PlanningCancellation.check();
+            var recipe = entry.getKey();
+            var original = originals.getOrDefault(recipe, recipe);
+            if (restored.firings().getOrDefault(original, 0L).longValue() != entry.getValue().longValue()
+                    || !recipe.output().equals(original.output())
+                    || !recipe.exactOutputAmount().equals(original.exactOutputAmount())
+                    || !recipe.inputs().equals(original.inputs())
+                    || recipe != original && !recipe.byproducts().isEmpty()) return restored;
+            boolean registered = false;
+            for (var candidate : graph.patternsFor(original.output())) registered |= candidate == original;
+            if (!registered) return restored;
+        }
+        if (restored.firings().size() != projected.firings().size()) return restored;
+        // Replay establishes a minimum draw, not a replacement inventory policy. Preserve
+        // already reserved batch stock; reducing it would change stock-first planning merely
+        // because its proof was rebound to the real recipes. More available stock cannot
+        // disable a material-DAG firing, but every retained reservation must be physical.
+        var used = new HashMap<K, Long>(restored.usedStock());
+        certified.usedStock().forEach((key, value) -> used.merge(key, value, Math::max));
+        for (var entry : used.entrySet()) {
+            PlanningCancellation.check();
+            if (entry.getValue() < 0 || entry.getValue() > graph.stock(entry.getKey())) return restored;
+        }
+        var proof = new CertifiedFirings<>(restored.firings(), graph, target, amount);
+        var plan = new CraftPlan<>(true, true, proof, Map.copyOf(used), Map.of(), Map.of(),
+                certified.grossDemand(), certified.itemsProcessed(), restored.budgetExhausted());
+        proof.plan = plan;
+        return plan;
     }
 
     /** Material amounts and positive firing counts stay exact even beyond the long domain. */

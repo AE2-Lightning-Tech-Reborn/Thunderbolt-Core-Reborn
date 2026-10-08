@@ -7,15 +7,7 @@ plugins {
 }
 
 def releaseTag = System.getenv('TAG')?.trim()
-if (releaseTag) {
-    def releaseTagMatcher = releaseTag =~ /^forge-1\.20\.1-v([0-9]+\.[0-9]+\.[0-9]+(?:[.-][0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?)$/
-    if (!releaseTagMatcher.matches()) {
-        throw new GradleException("Minecraft 1.20.1 release tags must match forge-1.20.1-v<version>: ${releaseTag}")
-    }
-    version = releaseTagMatcher.group(1)
-} else {
-    version = mod_version
-}
+version = releaseTag?.startsWith('1.20.1-') ? releaseTag.substring('1.20.1-'.length()) : (releaseTag ?: mod_version)
 def resolvedProjectVersion = project.version.toString()
 group = mod_group_id
 
@@ -322,6 +314,20 @@ tasks.register('cpSatColdRefinementTest', Test) {
 }
 tasks.named('check') { dependsOn 'cpSatColdRefinementTest' }
 
+tasks.register('materialDagColdReplayTest', Test) {
+    group = 'verification'
+    description = 'Checks trillion-scale material replay in a fresh planner JVM.'
+    dependsOn 'testClasses'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MixedRouteQuantityRegressionTest.freshRecipeIdentitiesKeepTrillionScaleFeasibility'
+    }
+    testLogging { events 'failed' }
+}
+tasks.named('check') { dependsOn 'materialDagColdReplayTest' }
+
 tasks.register('prepareOptionalModShapeArtifacts', Sync) {
     from configurations.optionalModShapeArtifacts
     into layout.buildDirectory.dir('optional-mod-shapes')
@@ -374,7 +380,7 @@ processResources {
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
-            artifactId = 'thunderbolt-forge-1.20.1'
+            artifactId = maven_artifact_id
             // Publish the actual distributable: Forge-remapped and with MixinExtras jar-in-jar.
             // Publishing components.java leaks ForgeGradle's synthetic `_mapped_official`
             // dependencies and selects the non-jarJar artifact.
@@ -390,7 +396,7 @@ publishing {
         if (githubPackagesUser && githubPackagesToken) {
             maven {
                 name = 'GitHubPackages'
-                url = uri('https://maven.pkg.github.com/ae2lt/Thunderbolt-Core')
+                url = uri("https://maven.pkg.github.com/${(System.getenv('GITHUB_REPOSITORY') ?: 'AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn').toLowerCase(Locale.ROOT)}")
                 credentials {
                     username = githubPackagesUser
                     password = githubPackagesToken

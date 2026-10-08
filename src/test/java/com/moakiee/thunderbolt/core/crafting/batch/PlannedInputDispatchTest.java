@@ -28,6 +28,123 @@ class PlannedInputDispatchTest {
     private static final TestKey B = new TestKey("b");
 
     @Test
+    void preparedProviderControlsReservationAndReceivesOnlyTheFinalOffer() {
+        for (String mode : List.of("accept", "reject", "prepare-fails", "low-energy", "submit-fails")) {
+            var source = pattern(input(1, B, A));
+            var planned = new PlannedInputPattern(source, List.of(Map.of(A, 1L)));
+            var stock = inventory(10, 10);
+            long[] progress = {10};
+            int[] preparations = {0}, submissions = {0};
+            String[] error = {null};
+            var providerType = com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider.class;
+            var provider = (com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider)
+                    java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{providerType},
+                            (proxy, method, args) -> switch (method.getName()) {
+                                case "getBatchCapacity" -> 10L;
+                                case "getBatchDispatchMode" -> com.moakiee.thunderbolt.api.crafting.batch.BatchDispatchMode.NORMAL;
+                                case "isBusy", "supportsSharedBatchInputs" -> false;
+                                case "prepareBatch" -> {
+                                    preparations[0]++;
+                                    assertSame(source, args[0]);
+                                    assertEquals(1L, ((KeyCounter[]) args[1])[0].get(A));
+                                    assertEquals(0L, ((KeyCounter[]) args[1])[0].get(B));
+                                    assertEquals(9L, held(stock, A));
+                                    assertEquals(10L, args[2]);
+                                    if (mode.equals("prepare-fails")) throw new IllegalStateException("no reservation");
+                                    yield new com.moakiee.thunderbolt.api.crafting.batch.PreparedBatch() {
+                                        @Override public long capacity() { return mode.equals("reject") ? 0L : 3L; }
+                                        @Override public long push(long copies) {
+                                            submissions[0]++;
+                                            assertEquals(mode.equals("low-energy") ? 2L : 3L, copies);
+                                            assertEquals(10L - copies, held(stock, A));
+                                            if (mode.equals("submit-fails")) throw new IllegalStateException("ambiguous ownership");
+                                            return 0L;
+                                        }
+                                    };
+                                }
+                                case "pushBatch" -> throw new AssertionError("must submit through the prepared contract");
+                                default -> null;
+                            });
+            var schedule = new TickProviderDispatchSchedule();
+            schedule.beginTick(1);
+            schedule.candidates(null, 1, source, () -> List.of(provider));
+            var handle = new com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle() {
+                public IPatternDetails details() { return planned; }
+                public long getValue() { return progress[0]; }
+                public void setValue(long value) { progress[0] = value; }
+            };
+            var job = new com.moakiee.thunderbolt.api.crafting.batch.BatchJobView() {
+                public Level level() { return null; }
+                public java.util.UUID craftingId() { return null; }
+                public java.util.Iterator<com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle> taskIterator() {
+                    return List.<com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle>of(handle).iterator();
+                }
+                public ListCraftingInventory waitingFor() { return new ListCraftingInventory(key -> {}); }
+                public void addContainerMaxItems(long count, AEKeyType type) { }
+                public void failDispatch(String reason, Throwable cause) { error[0] = reason; }
+            };
+            var energyType = appeng.api.networking.energy.IEnergyService.class;
+            var energy = (appeng.api.networking.energy.IEnergyService)
+                    java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{energyType},
+                            (proxy, method, args) -> method.getName().equals("extractAEPower")
+                                    ? (mode.equals("low-energy") && args[1] == Actionable.SIMULATE
+                                        ? (double) args[0] * 2.0 / 3.0 : args[0]) : null);
+            var result = BatchExecutor.runBatchOnly(10, BatchCpuAccounting.Mode.SUCCESSFUL_DISPATCH, null, energy,
+                    job, stock, new java.util.HashMap<>(), () -> {}, Map.of(), 10, 10, false, schedule);
+            boolean rejected = mode.equals("reject") || mode.equals("prepare-fails");
+            long dispatched = rejected || mode.equals("submit-fails") ? 0 : mode.equals("low-energy") ? 2 : 3;
+            assertEquals(1, preparations[0], mode);
+            assertEquals(rejected ? 0 : 1, submissions[0], mode);
+            assertEquals(dispatched, result.dispatchedCopies(), mode);
+            assertEquals(10L - dispatched, progress[0], mode);
+            assertEquals(mode.equals("submit-fails") ? 7L : 10L - dispatched, held(stock, A), mode);
+            assertEquals(10L, held(stock, B), mode);
+            assertEquals(mode.equals("submit-fails") ? "AMBIGUOUS_BATCH_PROVIDER_OWNERSHIP" : null, error[0], mode);
+            assertNull(ParallelBatchCpuHelper.currentBatchCapacityLimiter(planned, stock));
+        }
+    }
+
+    @Test
+    void concreteAdmissionLimitsExtractionAndRollsBackRejectedOrFailedPreparation() {
+        var source = pattern(input(1, B, A));
+        var planned = new PlannedInputPattern(source, List.of(Map.of(A, 1L)));
+        var stock = inventory(10, 10);
+        int[] calls = {0};
+        ParallelBatchCpuHelper.BatchCapacityLimiter limiter = (oneCopy, copies) -> {
+            calls[0]++;
+            assertEquals(1L, oneCopy[0].get(A));
+            assertEquals(0L, oneCopy[0].get(B));
+            assertEquals(9L, held(stock, A), "only the prototype is extracted during preparation");
+            assertEquals(10L, copies);
+            return 3L;
+        };
+        var result = ParallelBatchCpuHelper.withBatchCapacityLimiter(planned, stock, limiter,
+                () -> ParallelBatchCpuHelper.bulkExtract(planned, stock, 10, false, Map.of(), null));
+        assertEquals(1, calls[0]);
+        assertNotNull(result);
+        assertEquals(3L, result.actualCopies);
+        assertEquals(7L, held(stock, A));
+        assertEquals(10L, held(stock, B));
+        ParallelBatchCpuHelper.reinject(result, 3, stock);
+        assertEquals(10L, held(stock, A));
+
+        for (boolean throwsFailure : List.of(false, true)) {
+            ParallelBatchCpuHelper.BatchCapacityLimiter rejected = (oneCopy, copies) -> {
+                if (throwsFailure) throw new IllegalStateException("preparation failed");
+                return 0L;
+            };
+            java.util.function.Supplier<ParallelBatchCpuHelper.BulkResult> extraction = () ->
+                    ParallelBatchCpuHelper.withBatchCapacityLimiter(planned, stock, rejected,
+                            () -> ParallelBatchCpuHelper.bulkExtract(planned, stock, 10, false, Map.of(), null));
+            if (throwsFailure) assertThrows(IllegalStateException.class, extraction::get);
+            else assertNull(extraction.get());
+            assertEquals(10L, held(stock, A));
+            assertEquals(10L, held(stock, B));
+            assertNull(ParallelBatchCpuHelper.currentBatchCapacityLimiter(planned, stock));
+        }
+    }
+
+    @Test
     void changedInputCountsCannotRestoreAnUnexecutableAllocation() {
         assertThrows(IllegalArgumentException.class,
                 () -> new PlannedInputPattern(pattern(input(2, A, B)), List.of(Map.of(A, 1L))));

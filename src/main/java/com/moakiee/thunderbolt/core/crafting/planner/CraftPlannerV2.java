@@ -736,38 +736,28 @@ public final class CraftPlannerV2<K> {
         long started = System.nanoTime();
         try (var ignored = PlanningCancellation.limitOptionalWork(remaining)) {
             if (session.materialDagOrders == null) {
-                session.materialDagOrders = session.materialDagOrderTemplates == null
-                        ? MaterialDagOrders.compile(graph, target, lowWidthWorkBudget)
-                        : MaterialDagOrders.withAdditionalStock(session.materialDagOrderTemplates,
-                                session.materialDagAdditionalStock, target, lowWidthWorkBudget);
+                if (session.materialDagOrderTemplates == null) {
+                    // Discovery and replay share one allowance. Evaluating complete supports as
+                    // they arrive prevents cold permutation discovery from spending the entire
+                    // slice before an already available feasible route is ever considered.
+                    var found = new java.util.concurrent.atomic.AtomicReference<CraftPlan<K>>();
+                    int[] index = {0};
+                    session.materialDagOrders = MaterialDagOrders.compile(graph, target, lowWidthWorkBudget,
+                            order -> {
+                                var candidate = tryMaterialDagOrder(order, index[0]++, target, amount);
+                                if (candidate != null) found.set(candidate);
+                                return candidate != null;
+                            });
+                    return found.get();
+                }
+                session.materialDagOrders = MaterialDagOrders.withAdditionalStock(session.materialDagOrderTemplates,
+                        session.materialDagAdditionalStock, target, lowWidthWorkBudget);
             }
             int count = session.materialDagOrders.size();
             for (int offset = 0; offset < count && session.materialDagOrderAttempts < 120; offset++) {
                 int index = (session.preferredMaterialDagOrder + offset) % count;
-                var order = session.materialDagOrders.get(index);
-                if (!order.maySupply(amount)) continue;
-                CraftGraph<K> projected = order.graph();
-                int charge = reachableWorkEstimate(projected, target);
-                // This finite portfolio builds exact DAG models. Charge its bounded compilation
-                // and replay work to the same shared budget as those models, even when recursive
-                // route search has stopped. Minimal-search replenishment uses this identical path.
-                if (!lowWidthWorkBudget.tryConsume(16L * charge)) return null;
-                session.materialDagOrderAttempts++;
-                PreparedGraph<K> prepared = session.preparedMaterialDagOrders.get(index);
-                CraftPlannerV2<K> planner = prepared == null
-                        ? new CraftPlannerV2<>(projected, visitCap, searchBudget, lowWidthWorkBudget, diagnostics)
-                        : new CraftPlannerV2<>(prepared, visitCap, searchBudget, lowWidthWorkBudget, diagnostics);
-                planner.objectiveDistances = objectiveDistances;
-                planner.materialDagProjection = true;
-                CraftPlan<K> candidate = planner.run(target, amount, List.of());
-                session.preparedMaterialDagOrders.putIfAbsent(index, planner.preparedGraph);
-                if (candidate.feasible()) {
-                    candidate = UnorderedByproductSafety.protect(graph, order.restore(candidate), target, amount);
-                    if (candidate.feasible()) {
-                        session.preferredMaterialDagOrder = index;
-                        return candidate;
-                    }
-                }
+                var candidate = tryMaterialDagOrder(session.materialDagOrders.get(index), index, target, amount);
+                if (candidate != null) return candidate;
             }
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             // Only this optional portfolio stopped; retain the ordinary cut/search fallback.
@@ -786,6 +776,30 @@ public final class CraftPlannerV2<K> {
             return tryMaterialDagOrders(target, amount);
         }
         return null;
+    }
+
+    private CraftPlan<K> tryMaterialDagOrder(MaterialDagOrders.Candidate<K> order, int index,
+            K target, long amount) {
+        PlanningSession<K> session = planningSession;
+        if (!order.maySupply(amount) || session.materialDagOrderAttempts >= 120) return null;
+        CraftGraph<K> projected = order.graph();
+        int charge = reachableWorkEstimate(projected, target);
+        // Discovery and replay debit the same shared exact-work budget, including probes.
+        if (!lowWidthWorkBudget.tryConsume(16L * charge)) return null;
+        session.materialDagOrderAttempts++;
+        PreparedGraph<K> prepared = session.preparedMaterialDagOrders.get(index);
+        CraftPlannerV2<K> planner = prepared == null
+                ? new CraftPlannerV2<>(projected, visitCap, searchBudget, lowWidthWorkBudget, diagnostics)
+                : new CraftPlannerV2<>(prepared, visitCap, searchBudget, lowWidthWorkBudget, diagnostics);
+        planner.objectiveDistances = objectiveDistances;
+        planner.materialDagProjection = true;
+        CraftPlan<K> candidate = planner.run(target, amount, List.of());
+        session.preparedMaterialDagOrders.putIfAbsent(index, planner.preparedGraph);
+        if (!candidate.feasible()) return null;
+        candidate = UnorderedByproductSafety.protect(graph, order.restore(candidate, graph, target, amount), target, amount);
+        if (!candidate.feasible()) return null;
+        session.preferredMaterialDagOrder = index;
+        return candidate;
     }
 
     private CraftPlan<K> replenishmentPlan(K target, long amount) {

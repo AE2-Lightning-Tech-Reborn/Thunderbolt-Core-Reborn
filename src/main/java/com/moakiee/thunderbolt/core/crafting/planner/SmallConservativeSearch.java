@@ -119,6 +119,11 @@ final class SmallConservativeSearch {
                     vector.put(patterns.get(r), (long) node.counts.values[r]);
                     mask |= 1 << r;
                 }
+                // Complete material-DAG balance already proves every enabled order. Certify
+                // that common alternative without loading cyclic search/SCC machinery inside
+                // the bounded cold preflight; cyclic vectors still need the proof below.
+                var dag = MaterialDagReplay.tryPlan(graph, vector, target, amount);
+                if (dag != null) return dag;
                 // A successful sequential witness alone is not safe to export to an unordered
                 // CPU. This also checks primary-demand support for every selected final batch.
                 CraftPlan<K> certified = MaterialDagReplay.trySmallPlan(graph, vector, target, amount);
