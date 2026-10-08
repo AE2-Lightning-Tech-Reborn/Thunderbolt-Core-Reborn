@@ -1,0 +1,12 @@
+allprojects {
+    afterEvaluate {
+        tasks.register('writeBatchBenchmarkClasspath') {
+            dependsOn 'testClasses'
+            doLast {
+                def output = rootProject.file('build/batch-benchmark')
+                output.mkdirs()
+                new File(output, 'runtime-classpath.txt').text = sourceSets.test.runtimeClasspath.asPath
+            }
+        }
+    }
+}
