@@ -31,6 +31,16 @@ public interface IBatchCraftingProvider extends ICraftingProvider {
     }
 
     /**
+     * Optional concrete-input admission before bulk inventory extraction. The template is borrowed
+     * read-only; a preparation needing it later must make its own copy. A null result keeps the
+     * advisory capacity and ordinary pushBatch contract. The CPU may reduce the eventual offer.
+     */
+    default PreparedBatch prepareBatch(IPatternDetails details, KeyCounter[] oneCopyTemplate,
+                                       long maxCraft, BatchJobView job) {
+        return null;
+    }
+
+    /**
      * Whether explicitly identified reusable inputs may be supplied once for all accepted copies.
      *
      * <p>This is capability only. It does not decide which input is reusable and does not grant

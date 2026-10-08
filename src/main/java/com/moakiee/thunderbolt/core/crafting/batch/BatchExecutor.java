@@ -23,6 +23,7 @@ import com.moakiee.thunderbolt.api.crafting.batch.BatchDispatchMode;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapter;
 import com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider;
+import com.moakiee.thunderbolt.api.crafting.batch.PreparedBatch;
 import com.moakiee.thunderbolt.core.crafting.batch.BatchCopyLimitPattern;
 import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
 
@@ -270,7 +271,7 @@ public final class BatchExecutor {
                 if (eligible == null) {
                     eligible = new java.util.ArrayList<>();
                 }
-                eligible.add(new EligibleProvider(batch, provider, capacity, dispatchMode));
+                eligible.add(new EligibleProvider(batch, provider, capacity, dispatchMode, null));
             }
             if (eligible == null) continue;
 
@@ -313,11 +314,36 @@ public final class BatchExecutor {
             }
             if (budget <= 0) continue;
 
-            var result = ParallelBatchCpuHelper.bulkExtract(
-                    details, inv, budget, true, reservedStock, job.level());
+            var dispatchProviders = eligible;
+            ParallelBatchCpuHelper.BulkResult result;
+            try (var scope = ParallelBatchCpuHelper.limitBatchCapacity(details, inv, (prototype, availableCopies) -> {
+                        long preparedCapacity = 0;
+                        for (int i = 0; i < dispatchProviders.size(); i++) {
+                            var candidate = dispatchProviders.get(i);
+                            long capacity = Math.min(candidate.capacity(), availableCopies);
+                            PreparedBatch prepared = null;
+                            try {
+                                prepared = candidate.provider().prepareBatch(
+                                        executionDetails, prototype, capacity, job);
+                                if (prepared != null) {
+                                    capacity = Math.min(capacity, Math.max(0L, prepared.capacity()));
+                                }
+                            } catch (Throwable failure) {
+                                appeng.core.AELog.warn("[thunderbolt] Batch admission failed before bulk extraction: %s", failure);
+                                capacity = 0;
+                            }
+                            dispatchProviders.set(i, new EligibleProvider(candidate.provider(),
+                                    candidate.identity(), capacity, candidate.mode(), prepared));
+                            preparedCapacity = saturatingAdd(preparedCapacity, capacity);
+                        }
+                        return preparedCapacity;
+                    })) {
+                result = ParallelBatchCpuHelper.bulkExtract(details, inv, budget, true, reservedStock, job.level());
+            }
             if (result == null) {
                 continue;
             }
+            eligible.removeIf(provider -> provider.capacity() <= 0L);
             if (result.hasSharedInputs() && !hasSharedInputs) {
                 eligible.removeIf(provider -> !provider.provider().supportsSharedBatchInputs());
                 if (eligible.isEmpty()) {
@@ -384,7 +410,9 @@ public final class BatchExecutor {
 
                     long subLeftover;
                     try {
-                        subLeftover = batch.pushBatch(executionDetails, oneCopy, slice, job);
+                        subLeftover = eligibleProvider.prepared() != null
+                                ? eligibleProvider.prepared().push(slice)
+                                : batch.pushBatch(executionDetails, oneCopy, slice, job);
                     } catch (Throwable t) {
                         // The provider may already own the whole slice. Only untouched copies
                         // are returned by finally; never replay this ambiguous submission.
@@ -553,7 +581,7 @@ public final class BatchExecutor {
     }
 
     private record EligibleProvider(IBatchCraftingProvider provider, ICraftingProvider identity,
-                                    long capacity, BatchDispatchMode mode) {
+                                    long capacity, BatchDispatchMode mode, PreparedBatch prepared) {
     }
 
     public record BatchRunResult(long dispatchedCopies, int consumedCpuOps, boolean sawBatchProvider) {

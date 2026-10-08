@@ -30,6 +30,7 @@ import com.moakiee.thunderbolt.core.crafting.batch.BatchExecutor;
 import com.moakiee.thunderbolt.core.crafting.batch.BatchCpuAccounting;
 import com.moakiee.thunderbolt.core.crafting.batch.BatchProviderFilterIterable;
 import com.moakiee.thunderbolt.core.crafting.batch.DefaultBatchJobView;
+import com.moakiee.thunderbolt.core.crafting.batch.TickProviderDispatchSchedule;
 
 /**
  * Batches identical pattern firings on the vanilla crafting CPU within a tick.
@@ -65,6 +66,9 @@ public abstract class CraftingCpuLogicBatchMixin {
     @Unique
     private boolean thunderbolt$batchExhaustedThisTick;
 
+    @Unique
+    private TickProviderDispatchSchedule thunderbolt$dispatchSchedule;
+
     @WrapOperation(
             method = "tickCraftingLogic",
             at = @At(
@@ -81,6 +85,10 @@ public abstract class CraftingCpuLogicBatchMixin {
                                           Level level,
                                           Operation<Integer> original) {
         long now = TickHandler.instance().getCurrentTick();
+        if (thunderbolt$dispatchSchedule == null) {
+            thunderbolt$dispatchSchedule = new TickProviderDispatchSchedule();
+        }
+        thunderbolt$dispatchSchedule.beginTick(now);
         var batchedByTask = thunderbolt$getBatchedByTask();
         if (now != thunderbolt$batchTick) {
             thunderbolt$batchTick = now;
@@ -114,7 +122,9 @@ public abstract class CraftingCpuLogicBatchMixin {
                                 }),
                 getInventory(),
                 batchedByTask,
-                cluster::markDirty);
+                cluster::markDirty,
+                Map.of(), Integer.MAX_VALUE, Long.MAX_VALUE, false,
+                thunderbolt$dispatchSchedule);
 
         if (jobAccessor.getLink().isCanceled()) return remainingOps;
         if (batchResult.dispatchedCopies() > 0) {
