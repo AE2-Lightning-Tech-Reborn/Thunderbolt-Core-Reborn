@@ -1753,12 +1753,27 @@ public final class CraftPlannerV2<K> {
             counts = new IdentityHashMap<CraftPattern<K>, Long>(baseline);
             var witness = new BoundedIntegerLinearSolver.FeasibleWitness();
             for (var component : relaxed.components()) {
-                diagnostics.recordLowWidthAttempt();
-                var result = solveLowWidthComponent(component, List.of(), witness);
-                diagnostics.recordLowWidthResult(result.status(), result.integerNodes());
-                if (result.status() == BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED)
-                    diagnostics.independentPortfolioCutoff = true;
-                if (result.firings() == null) return null;
+                PlanningCancellation.check();
+                // PreparedGraph fixes stock and orientation. Match the entire boundary model,
+                // including demand/supply and credited byproducts, before reusing a proof.
+                // The first immutable recipe is an identity key, not a portfolio list index.
+                var key = component.patterns().get(0);
+                var cached = preparedGraph.independentComponentProofs.get(key);
+                LowWidthSolve<K> result;
+                if (cached != null && cached.component().sameIndependentModel(component)) {
+                    result = cached.solve();
+                } else {
+                    diagnostics.recordLowWidthAttempt();
+                    result = solveLowWidthComponent(component, List.of(), witness);
+                    diagnostics.recordLowWidthResult(result.status(), result.integerNodes());
+                    if (result.status() == BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED)
+                        diagnostics.independentPortfolioCutoff = true;
+                    if (result.firings() == null) return null;
+                    // Publish each completed proof immediately so an optional cutoff keeps
+                    // progress. Retain only the latest model per component across amount probes.
+                    preparedGraph.independentComponentProofs.put(key,
+                            new SolvedLowWidthComponent<>(component, result));
+                }
                 for (var pattern : component.patterns()) counts.remove(pattern);
                 counts.putAll(result.firings());
             }
@@ -6354,6 +6369,24 @@ public final class CraftPlannerV2<K> {
             boolean requiresOrderedValidation,
             boolean infeasibilityProof) {
 
+        private boolean sameIndependentModel(LowWidthComponent<K> other) {
+            if (!items.equals(other.items) || !patterns.equals(other.patterns)
+                    || !externalDemand.equals(other.externalDemand)
+                    || !externalSupply.equals(other.externalSupply)
+                    || separatorWidth != other.separatorWidth
+                    || hasSpeculativeByproducts != other.hasSpeculativeByproducts
+                    || exactSolverEligible != other.exactSolverEligible
+                    || requiresOrderedValidation != other.requiresOrderedValidation
+                    || infeasibilityProof != other.infeasibilityProof
+                    || reusableByproducts.size() != other.reusableByproducts.size()) return false;
+            // Recipe keys use identity, but newly compiled credit sets compare by contents.
+            // IdentityHashMap.equals would also compare those set values by identity.
+            for (var entry : reusableByproducts.entrySet()) {
+                if (!entry.getValue().equals(other.reusableByproducts.get(entry.getKey()))) return false;
+            }
+            return true;
+        }
+
         private boolean reusesByproduct(CraftPattern<K> pattern, K key) {
             return reusableByproducts.getOrDefault(pattern, Set.of()).contains(key);
         }
@@ -6470,6 +6503,9 @@ public final class CraftPlannerV2<K> {
         private final Map<K, List<CraftPattern<K>>> capacityOrderByOutput;
         private final Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern;
         private Map<CraftPattern<K>, Integer> materialFootprintByPattern;
+        /** Completed local proposals only; every combined vector still needs full inventory replay. */
+        private final Map<CraftPattern<K>, SolvedLowWidthComponent<K>> independentComponentProofs =
+                new IdentityHashMap<>();
         private final ByproductSchedule<K> byproductSchedule;
         private final int patternCount;
         private final int inputCount;
