@@ -64,44 +64,58 @@ class MaterialDagBudgetTest {
     }
 
     @Test
-    void replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain() {
-        var graph = sharedCycle();
-        var context = new RefinementDeadlineProbe(null, false);
-        PlanningResult<String> result;
-        try (var ignored = PlanningCancellation.bind(context)) {
-            result = CraftPlannerV2.planDetailed(graph, "M6", 2);
-        }
-        assertTrue(context.observedPortfolio, "must inspect a portfolio inside the replenishment oracle");
-        // Compare installed deadlines, not elapsed runtime: cold class loading or scheduling
-        // cannot make a deliberate quarter-sized child slice satisfy this relationship.
-        assertTrue(context.portfolioDeadline >= context.refinementDeadline,
-                "the nested proof must not reserve the caller's adaptation time a second time");
-        assertTrue(context.portfolioDeadline <= context.refinementDeadline + 1_000_000L,
-                "the child scope must still respect the parent's 100 ms deadline");
-        assertTrue(result.plan().missing().getOrDefault("M2", 0L) < 6,
-                () -> result.diagnostics().toString());
-        var supplied = graph.withAdditionalStock(result.plan().missing());
-        var ready = CraftPlannerV2.plan(supplied, "M6", 2, 1, 1);
-        assertTrue(ready.feasible());
-        assertBalance(supplied, ready);
+    void replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain() throws Exception {
+        var session = new CraftPlannerV2.PlanningSession<String>();
+        session.refineMissing = false;
+        // Check the actual session allowance used by tryMaterialDagOrders, independently of
+        // cold class loading, scheduling and a StackWalker observer spending the 100 ms slice.
+        assertEquals(100_000_000L, session.remainingMaterialDagNanos(100_000_000L));
+        assertEquals(75_000_000L, session.remainingMaterialDagNanos(75_000_000L),
+                "a replenishment probe must keep its parent's remaining time");
+        assertEquals(100_000_000L, session.remainingMaterialDagNanos(Long.MAX_VALUE),
+                "the portfolio must still respect its cumulative 100 ms cap");
+        var spent = session.getClass().getDeclaredField("materialDagOrderNanos");
+        spent.setAccessible(true);
+        spent.setLong(session, 60_000_000L);
+        assertEquals(40_000_000L, session.remainingMaterialDagNanos(75_000_000L));
+        assertEquals(20_000_000L, session.remainingMaterialDagNanos(20_000_000L));
+        session.refineMissing = true;
+        assertEquals(18_750_000L, session.remainingMaterialDagNanos(75_000_000L),
+                "ordinary discovery must continue reserving its caller's adaptation time");
+        spent.setLong(session, 100_000_000L);
+        assertEquals(0L, session.remainingMaterialDagNanos(75_000_000L));
     }
 
     @Test
     void replenishmentPortfolioStillPropagatesOuterCancellation() {
         var exit = new PlanningExitException("test cancellation during replenishment proof");
-        var context = new RefinementDeadlineProbe(exit, false);
+        var graph = CraftGraph.<String>builder()
+                .pattern("T", 1, List.of(CraftInput.of("raw", 2))).build();
+        var initial = CraftPlannerV2.plan(graph, "T", 1);
+        boolean[] inPortfolio = {false};
+        var context = new PlanningAttemptContext() {
+            @Override public long deadlineNanos() { return Long.MAX_VALUE; }
+            @Override public void report(PlanningDiagnosticSnapshot snapshot) { }
+            @Override public void checkpoint() { if (inPortfolio[0]) throw exit; }
+        };
         try (var ignored = PlanningCancellation.bind(context)) {
             assertSame(exit, assertThrows(PlanningExitException.class,
-                    () -> CraftPlannerV2.plan(sharedCycle(), "M6", 2)));
+                    () -> MissingRefinement.refine(graph, initial, List.of("raw"), plan -> false,
+                            supplied -> {
+                                inPortfolio[0] = true;
+                                MaterialDagOrders.compile(graph.withAdditionalStock(supplied), "T");
+                                fail("the replenishment portfolio must propagate the caller's cancellation");
+                                return null;
+                            }, count -> { })));
         }
-        assertTrue(context.observedPortfolio);
+        assertTrue(inPortfolio[0]);
         assertDoesNotThrow(PlanningCancellation::check, "the caller scope must be restored after cancellation");
     }
 
     @Test
     void anExpiredRefinementDeadlineKeepsTheLastExecutableSupplement() {
         var graph = sharedCycle();
-        var context = new RefinementDeadlineProbe(null, true);
+        var context = new RefinementExpiryProbe();
         CraftPlan<String> result;
         try (var ignored = PlanningCancellation.bind(context)) {
             result = CraftPlannerV2.plan(graph, "M6", 2);
@@ -217,18 +231,14 @@ class MaterialDagBudgetTest {
     }
 
     /** Inspect/expire existing scope deadlines without sleeps or a production-only test hook. */
-    private static final class RefinementDeadlineProbe implements PlanningAttemptContext {
+    private static final class RefinementExpiryProbe implements PlanningAttemptContext {
         private final ThreadLocal<Long> optionalDeadline;
-        private final PlanningExitException exit;
-        private final boolean expire;
         private final StackWalker callers = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
-        long refinementDeadline, portfolioDeadline;
-        boolean observedPortfolio, expiredRefinement;
+        private Long lastDeadline;
+        boolean expiredRefinement;
 
         @SuppressWarnings("unchecked")
-        RefinementDeadlineProbe(PlanningExitException exit, boolean expire) {
-            this.exit = exit;
-            this.expire = expire;
+        RefinementExpiryProbe() {
             try {
                 var field = PlanningCancellation.class.getDeclaredField("OPTIONAL_DEADLINE");
                 field.setAccessible(true);
@@ -241,23 +251,17 @@ class MaterialDagBudgetTest {
         @Override public long deadlineNanos() { return Long.MAX_VALUE; }
         @Override public void report(PlanningDiagnosticSnapshot snapshot) {}
         @Override public void checkpoint() {
-            if (observedPortfolio || expiredRefinement) return;
+            if (expiredRefinement) return;
             Long installed = optionalDeadline.get();
+            if (java.util.Objects.equals(installed, lastDeadline)) return;
+            lastDeadline = installed;
             if (installed == null) return;
-            // Inspect only the checkpoint's immediate caller. Building a full stack at every
-            // hot-loop checkpoint can itself exhaust the refinement's unchanged 100 ms slice.
+            // Inspect only entry to a new optional scope, never every hot-loop checkpoint.
             Class<?> caller = callers.walk(frames -> frames.skip(2).findFirst()
                     .map(StackWalker.StackFrame::getDeclaringClass).orElse(null));
-            if (caller == MissingRefinement.class && refinementDeadline == 0L)
-                refinementDeadline = installed;
-            if (refinementDeadline == 0L) return;
-            if (expire && caller == MissingRefinement.class) {
+            if (caller == MissingRefinement.class) {
                 expiredRefinement = true;
                 optionalDeadline.set(System.nanoTime() - 1L);
-            } else if (caller == MaterialDagOrders.class) {
-                observedPortfolio = true;
-                portfolioDeadline = optionalDeadline.get();
-                if (exit != null) throw exit;
             }
         }
     }

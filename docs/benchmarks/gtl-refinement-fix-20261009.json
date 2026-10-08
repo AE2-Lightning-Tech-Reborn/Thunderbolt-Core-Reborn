@@ -1,0 +1,533 @@
+{
+  "base_commit": "aadb003168d3f989709ba05955ba4fa1d44e000d",
+  "tested_state": "Local repair on base_commit; exact source hashes below identify the tested changes.",
+  "date": "2026-10-09",
+  "environment": {
+    "java": 17,
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10"
+  },
+  "production_changed": true,
+  "thresholds_and_budgets_changed": false,
+  "certificate_limits": {
+    "reachable_graph_work": 128,
+    "recipes": 16,
+    "firings": 64,
+    "states": 4096,
+    "proof": "Every enabled firing order must finish."
+  },
+  "material_dag_order_budget": {
+    "cumulative_cap_ms": 100,
+    "ordinary_discovery_parent_fraction": 0.25,
+    "replenishment_parent_fraction": 1
+  },
+  "red_before": {
+    "label": "regression-before",
+    "exit_code": 1,
+    "seconds": 18.767,
+    "test": {
+      "total": 2,
+      "passed": 0,
+      "failed": 2,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.ReplenishmentCertificateTest",
+          "test": "smallFeedbackKeepsItsMinimumSeedWithoutOptionalReplanning()",
+          "status": "failed",
+          "message": "org.opentest4j.AssertionFailedError: expected: <{A=5}> but was: <{A=8}>"
+        },
+        {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.ReplenishmentCertificateTest",
+          "test": "smallFeedbackRetainsExternalConsumableShortfallsWithoutOptionalReplanning()",
+          "status": "failed",
+          "message": "org.opentest4j.AssertionFailedError: expected: <{A=5, raw=2}> but was: <{A=8, raw=2}>"
+        }
+      ]
+    }
+  },
+  "targeted_after": {
+    "label": "targeted-after",
+    "exit_code": 0,
+    "seconds": 76.488,
+    "test": {
+      "total": 163,
+      "passed": 163,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    }
+  },
+  "full_build": {
+    "label": "full-build",
+    "exit_code": 0,
+    "seconds": 182.336,
+    "test": {
+      "total": 1400,
+      "passed": 1399,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 1,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "test": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+          "status": "skipped",
+          "message": "Assumption failed: Optional EAEP artifact not supplied"
+        }
+      ]
+    },
+    "cpSatColdRefinementTest": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "materialDagColdReplayTest": {
+      "total": 20,
+      "passed": 20,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    }
+  },
+  "repeated_tests": {
+    "found": 280,
+    "passed": 280,
+    "failed": 0,
+    "cases": [
+      {
+        "label": "weighted-feedback",
+        "exit_code": 0,
+        "found": 100,
+        "passed": 100,
+        "failed": 0,
+        "failures": []
+      },
+      {
+        "label": "portfolio-budget",
+        "exit_code": 0,
+        "found": 100,
+        "passed": 100,
+        "failed": 0,
+        "failures": []
+      },
+      {
+        "label": "expired-refinement",
+        "exit_code": 0,
+        "found": 20,
+        "passed": 20,
+        "failed": 0,
+        "failures": []
+      },
+      {
+        "label": "small-certificate-cancel",
+        "exit_code": 0,
+        "found": 20,
+        "passed": 20,
+        "failed": 0,
+        "failures": []
+      },
+      {
+        "label": "small-certificate-seed",
+        "exit_code": 0,
+        "found": 20,
+        "passed": 20,
+        "failed": 0,
+        "failures": []
+      },
+      {
+        "label": "small-certificate-raw",
+        "exit_code": 0,
+        "found": 20,
+        "passed": 20,
+        "failed": 0,
+        "failures": []
+      }
+    ],
+    "process_model": "One independent JVM per method, repeated invocations within that JVM."
+  },
+  "cycle_pressure": {
+    "exit_code": 0,
+    "measured_queries": 144,
+    "warmup_queries": 36,
+    "replay_failures": 0,
+    "incomplete": 0,
+    "budget_exits": 144,
+    "rows": [
+      {
+        "scenario": "cycles-2-quantity-3",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 142.5045,
+        "p50_ms": 10.5991,
+        "p95_ms": 13.4694,
+        "max_ms": 13.4694,
+        "alloc_mib": 0.5409774780273438,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {}
+        ]
+      },
+      {
+        "scenario": "cycles-2-quantity-3-short-seed",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 257.0615,
+        "p50_ms": 237.3587,
+        "p95_ms": 255.8594,
+        "max_ms": 255.8594,
+        "alloc_mib": 5.2293853759765625,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {
+            "S": 1
+          }
+        ]
+      },
+      {
+        "scenario": "cycles-2-quantity-1000000000000",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 8.1331,
+        "p50_ms": 7.644,
+        "p95_ms": 8.3348,
+        "max_ms": 8.3348,
+        "alloc_mib": 0.5347518920898438,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {}
+        ]
+      },
+      {
+        "scenario": "cycles-2-quantity-1000000000000-short-seed",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 234.9353,
+        "p50_ms": 233.0406,
+        "p95_ms": 255.1804,
+        "max_ms": 255.1804,
+        "alloc_mib": 5.898811340332031,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {
+            "S": 1
+          }
+        ]
+      },
+      {
+        "scenario": "cycles-4-quantity-3",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 16.0776,
+        "p50_ms": 11.7769,
+        "p95_ms": 15.6646,
+        "max_ms": 15.6646,
+        "alloc_mib": 1.1231842041015625,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {}
+        ]
+      },
+      {
+        "scenario": "cycles-4-quantity-3-short-seed",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 261.422,
+        "p50_ms": 260.2962,
+        "p95_ms": 271.6284,
+        "max_ms": 271.6284,
+        "alloc_mib": 8.26519775390625,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {
+            "S": 1
+          }
+        ]
+      },
+      {
+        "scenario": "cycles-4-quantity-1000000000000",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 10.7164,
+        "p50_ms": 10.2827,
+        "p95_ms": 11.3984,
+        "max_ms": 11.3984,
+        "alloc_mib": 1.0981063842773438,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {}
+        ]
+      },
+      {
+        "scenario": "cycles-4-quantity-1000000000000-short-seed",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 257.6194,
+        "p50_ms": 259.5529,
+        "p95_ms": 263.2168,
+        "max_ms": 263.2168,
+        "alloc_mib": 7.574493408203125,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {
+            "S": 1
+          }
+        ]
+      },
+      {
+        "scenario": "cycles-8-quantity-3",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 38.0646,
+        "p50_ms": 15.7555,
+        "p95_ms": 17.8717,
+        "max_ms": 17.8717,
+        "alloc_mib": 2.5728988647460938,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {}
+        ]
+      },
+      {
+        "scenario": "cycles-8-quantity-3-short-seed",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 264.1884,
+        "p50_ms": 265.5412,
+        "p95_ms": 269.0289,
+        "max_ms": 269.0289,
+        "alloc_mib": 17.541603088378906,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {
+            "S": 1
+          }
+        ]
+      },
+      {
+        "scenario": "cycles-8-quantity-1000000000000",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 17.0274,
+        "p50_ms": 19.2121,
+        "p95_ms": 39.659,
+        "max_ms": 39.659,
+        "alloc_mib": 2.621002197265625,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {}
+        ]
+      },
+      {
+        "scenario": "cycles-8-quantity-1000000000000-short-seed",
+        "samples": 12,
+        "warmup": 3,
+        "cold_ms": 264.9144,
+        "p50_ms": 264.5776,
+        "p95_ms": 282.2656,
+        "max_ms": 282.2656,
+        "alloc_mib": 16.884506225585938,
+        "budget_exits": 12,
+        "incomplete": 0,
+        "failures": 0,
+        "status": "CUTOFF",
+        "observed_result_statuses": [
+          "SOLVED"
+        ],
+        "observed_missing_vectors": [
+          {
+            "S": 1
+          }
+        ]
+      }
+    ],
+    "validation": "Independent compressed resource replay with the reported supplement. The reused harness skips optional replenishment replanning on cutoff results.",
+    "replenishment_replans": 0,
+    "measured_cutoff_replan_skips": 72,
+    "warmup_cutoff_replan_skips": 18,
+    "quality": "CUTOFF: executable results do not establish global optimality."
+  },
+  "concurrent_soak": {
+    "exit_code": 0,
+    "result": {
+      "scenario": "four-workers-independent-session-soak",
+      "workers": 4,
+      "queries": 1600,
+      "warmup_queries": 320,
+      "rounds": [
+        {
+          "round": 0,
+          "heap_after_gc_mib": 13.06439208984375,
+          "completed_queries": 320
+        },
+        {
+          "round": 1,
+          "heap_after_gc_mib": 13.127708435058594,
+          "completed_queries": 640
+        },
+        {
+          "round": 2,
+          "heap_after_gc_mib": 13.145462036132812,
+          "completed_queries": 960
+        },
+        {
+          "round": 3,
+          "heap_after_gc_mib": 13.135711669921875,
+          "completed_queries": 1280
+        },
+        {
+          "round": 4,
+          "heap_after_gc_mib": 13.156364440917969,
+          "completed_queries": 1600
+        }
+      ],
+      "budget_exits": 800,
+      "incomplete": 0,
+      "anomalies": [],
+      "p50_ms": 5.7815,
+      "p95_ms": 9.6498,
+      "max_ms": 22.2179,
+      "v2_p50_ms": 5.5375,
+      "v2_p95_ms": 9.2921,
+      "cp_sat_p50_ms": 5.8713,
+      "cp_sat_p95_ms": 11.6883,
+      "elapsed_ms_with_warmup_gc_validation": 4558.5314,
+      "heap_after_gc_mib": [
+        13.050949096679688,
+        13.06439208984375,
+        13.127708435058594,
+        13.145462036132812,
+        13.135711669921875,
+        13.156364440917969
+      ],
+      "heap_growth_mib": 0.10541534423828125,
+      "status": "PASS"
+    },
+    "validation": "Independent V2 resource replay and CP-SAT compressed cycle replay.",
+    "quality": "Correctness PASS; retain budget_exits as quality cutoffs."
+  },
+  "forge_game_tests": [
+    {
+      "mode": "auto",
+      "exit_code": 0,
+      "required_tests": 10,
+      "passed": 10,
+      "v2_selection_records": 9,
+      "mixin_failures": 0,
+      "forced_stand_down_observed": false,
+      "real_gtlcore_installed": false,
+      "seconds": 51.567
+    },
+    {
+      "mode": "always",
+      "exit_code": 0,
+      "required_tests": 10,
+      "passed": 10,
+      "v2_selection_records": 9,
+      "mixin_failures": 0,
+      "forced_stand_down_observed": true,
+      "real_gtlcore_installed": false,
+      "seconds": 50.234
+    }
+  ],
+  "release_jar": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "version": "2.0.0",
+    "bytes": 5364076,
+    "sha256": "f767d4bd43817d638ffd294fc4ef0ed5b4d2ff374e370685653c342b11c0a29e",
+    "release_verification_task": "verifyReleaseJar passed in full-build"
+  },
+  "source_hash_normalization": "SHA-256 of source bytes with CRLF normalized to LF.",
+  "source_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.java": "86c3fdcd3deb0105dcd85ccb94d01bbf946a827f2cef33c8d999caed3885a7ff",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/MaterialDagBudgetTest.java": "46b15c2a2d6b473e7f88f77db74fce2033ba06c9cd90273fabbca2f99bcdc2cd",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/ReplenishmentCertificateTest.java": "90342c8deaabea4a0220223d90165f85f66b1839cee89e8b7f372503ac7f02bf",
+    "build/gtl-failure-diagnosis-20261008/JunitFailureProbe.java": "59c3e426c3496d26fb6877679663f6f2e01c94e39dc95cdf9b03d86562e56285",
+    "build/gtl-pressure-20261007/CyclePressure.java": "50f7fe335dd955742f767cdf5c0aa79e1abee5e62a31d0ee82249d4b46eaa8e8",
+    "build/gtl-pressure-20261007/ConcurrentSoak.java": "3d3e84547d863b525ab9d71d1249e3624f721999a88a9c49647a14e8acbcc994",
+    "build/material-vector-20261006/fixtures/SideStress.java": "40e236157d4d823645d8bb1e16098dbae973be1ff4eec4aefe0ea3e86f140897",
+    "build/gtl-upstream-port-20261005/game/game.init.gradle": "1674300d6c982ed7f67758dc9d8689d3ac9881fb140ef31ff7e8f5c782f14ede",
+    "build/gtl-upstream-port-20261005/game/java/ThunderboltInWorldTests.java": "7c8c122c8733fdaf1e2a7370c24bec4a0e186ca4334d8f070305b56d566442ee"
+  },
+  "limitations": [
+    "One real EAEP artifact integration test skipped because the optional artifact was not supplied.",
+    "Forge GameTests cover auto and forced always stand-down; no real GTLCore modpack TPS measurement.",
+    "Unsupported or large cyclic vectors still use bounded optional replanning and its safe fallback.",
+    "Optional quality cutoff classification was not changed by this repair.",
+    "Original failure JVM had no phase trace; the specific GC/JIT/scheduling trigger remains unknown.",
+    "Raw logs, classpaths, native files and local harnesses remain in ignored build directories."
+  ]
+}

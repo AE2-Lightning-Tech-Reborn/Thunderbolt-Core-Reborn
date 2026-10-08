@@ -176,6 +176,12 @@ public final class CraftPlannerV2<K> {
         public PlanningSession() {
         }
 
+        /** Replenishment already reserves its caller's adaptation time; retain the shared cap. */
+        long remainingMaterialDagNanos(long availableNanos) {
+            return Math.min(100_000_000L - materialDagOrderNanos,
+                    refineMissing ? availableNanos / 4L : availableNanos);
+        }
+
         int reachableWork(CraftGraph<K> candidateGraph, K candidateTarget) {
             validateOwner(candidateGraph, candidateTarget);
             return compileReachableGraph(candidateGraph, candidateTarget);
@@ -725,13 +731,7 @@ public final class CraftPlannerV2<K> {
         if (diagnostics.reachableWorkEstimate > MaterialDagOrders.MAX_GRAPH_WORK
                 || session.materialDagOrderAttempts >= 120) return null;
         long available = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
-        // Replenishment probes already run inside the caller's bounded optional deadline.
-        // Quartering that slice again gives a 100 ms refinement only ~25 ms to certify a
-        // smaller supplement, turning a portfolio timeout into a heuristic false negative.
-        // Keep the portfolio's own cumulative cap and all shared work budgets unchanged.
-        boolean replenishmentProbe = !session.refineMissing;
-        long remaining = Math.min(100_000_000L - session.materialDagOrderNanos,
-                replenishmentProbe ? available : available / 4L);
+        long remaining = session.remainingMaterialDagNanos(available);
         if (remaining <= 0) return null;
         long started = System.nanoTime();
         try (var ignored = PlanningCancellation.limitOptionalWork(remaining)) {
@@ -921,12 +921,15 @@ public final class CraftPlannerV2<K> {
     }
 
     private boolean rechecksReplenishment(CraftPlan<K> candidate, K target, long amount) {
-        // The unary-flow diagnosis already carries a complete material DAG. Certify its
-        // exact supplement directly, so slower Java 17 cold starts do not discard a proof
-        // merely because a redundant optional planning pass expires.
+        // Certify the existing count vector before spending time on a redundant planning pass.
+        // Tiny cyclic vectors have the same fixed all-enabled-orders proof used during replay;
+        // their replenishment must not depend on an optional search finishing before its deadline.
         if (candidate.usedReusableStock().isEmpty()) {
-            var ready = MaterialDagReplay.tryPlan(graph.withAdditionalStock(candidate.missing()),
+            var suppliedGraph = graph.withAdditionalStock(candidate.missing());
+            var ready = MaterialDagReplay.tryPlan(suppliedGraph,
                     candidate.firings(), target, amount);
+            if (ready == null && diagnostics.reachableWorkEstimate <= MaterialDagOrders.MAX_GRAPH_WORK)
+                ready = MaterialDagReplay.trySmallPlan(suppliedGraph, candidate.firings(), target, amount);
             if (ready != null && ready.feasible()) return true;
         }
         PlanningSession<K> session = planningSession;
