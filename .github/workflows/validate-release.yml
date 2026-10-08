@@ -27,17 +27,17 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Verify Gradle preserves the release tag
+      - name: Verify Gradle extracts the Forge release version
         env:
-          TAG: 2.0.2-beta
+          TAG: 1.20.1-2.0.2-beta
         run: |
           set -euo pipefail
           actual="$(bash ./gradlew --no-daemon --max-workers 1 -q generatePomFileForMavenJavaPublication printProjectVersion -Pmod_version=0.0.0 | tail -n 1)"
-          test "$actual" = "$TAG" || { echo "Unexpected Gradle release version: $actual" >&2; exit 1; }
+          test "$actual" = "2.0.2-beta" || { echo "Unexpected Gradle release version: $actual" >&2; exit 1; }
 
       - name: Verify Maven publication matches release metadata
         env:
-          TAG: 2.0.2-beta
+          TAG: 1.20.1-2.0.2-beta
         run: python3 .github/scripts/release.py publication
 
       - name: Lint GitHub Actions workflows

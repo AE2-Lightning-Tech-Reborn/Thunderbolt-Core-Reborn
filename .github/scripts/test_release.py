@@ -48,6 +48,15 @@ class ReleaseContractTest(unittest.TestCase):
                 with self.subTest(game=game, tag=tag):
                     self.assertEqual(release.metadata({"minecraft_version": game}, tag, False)["version"], tag)
 
+    def test_platform_tag_uses_pure_version_for_jar_and_maven(self):
+        props = {"minecraft_version": "1.20.1", "mod_id": "thunderbolt"}
+        result = release.metadata(props, "1.20.1-2.0.3-beta", False)
+        self.assertEqual(result["version"], "2.0.3-beta")
+        self.assertEqual(result["jar_file"], "thunderbolt-forge-1.20.1-2.0.3-beta.jar")
+        self.assertEqual(result["release_type"], "beta")
+        self.assertEqual(release.metadata({"minecraft_version": "1.21.1"},
+                                         "1.20.1-2.0.3-beta", False)["version"], "1.20.1-2.0.3-beta")
+
     def test_rejects_unsupported_build_target(self):
         with self.assertRaises(ValueError):
             release.metadata({"minecraft_version": "1.19.2"}, "2.0.2-beta", False)
@@ -115,7 +124,7 @@ class ReleaseContractTest(unittest.TestCase):
                         requests.append(command)
                         upstream = "ae2lt" if "AE2-Lightning-Tech-Reborn/AE2-Lightning-Tech-Reborn" in command else "thunderbolt"
                         version = props[f"{upstream}_version"]
-                        self.assertEqual(command[3], version)
+                        self.assertEqual(command[3], f"1.20.1-{version}" if forge else version)
                         self.assertEqual(command[6], "--pattern")
                         name = f'{upstream}{"-forge-1.20.1" if forge else ""}-{version}.jar'
                         self.assertEqual(command[7], name)
@@ -145,13 +154,13 @@ class ReleaseContractTest(unittest.TestCase):
 
                 def download(command, check):
                     requests.append(command[3])
-                    if command[3] == "2.0.1":
+                    if command[3] == ("1.20.1-2.0.1" if forge else "2.0.1"):
                         raise subprocess.CalledProcessError(1, command)
                     jar_fixture(Path(command[9]) / command[7], "thunderbolt", "2.0.1", forge)
 
                 with patch.object(release.subprocess, "run", side_effect=download):
                     outputs = release.download_dependencies(root, props, "AE2-Lightning-Tech-Reborn")
-                self.assertEqual(requests, ["2.0.1", ("forge-1.20.1-v" if forge else "v") + "2.0.1"])
+                self.assertEqual(requests, ["1.20.1-2.0.1", "forge-1.20.1-v2.0.1"] if forge else ["2.0.1", "v2.0.1"])
                 artifact = "thunderbolt-reborn-forge-1.20.1" if forge else "thunderbolt-reborn"
                 self.assertEqual(outputs["thunderbolt_maven_notation"], f"com.moakiee.thunderbolt:{artifact}:2.0.1")
 

@@ -7,7 +7,7 @@ plugins {
 }
 
 def releaseTag = System.getenv('TAG')?.trim()
-version = releaseTag ?: mod_version
+version = releaseTag?.startsWith('1.20.1-') ? releaseTag.substring('1.20.1-'.length()) : (releaseTag ?: mod_version)
 def resolvedProjectVersion = project.version.toString()
 group = mod_group_id
 

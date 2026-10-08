@@ -37,7 +37,7 @@ def metadata(props, tag, prerelease):
         loader, java, metadata_path = "forge", "17", "META-INF/mods.toml"
     else:
         raise ValueError(f"Unsupported Minecraft release target: {game}")
-    version = tag
+    version = tag.removeprefix("1.20.1-") if game == "1.20.1" else tag
     if re.search(r"(?:^|[.-])alpha[0-9]*(?:[.-]|$)", version, re.I):
         release_type = "alpha"
     elif re.search(r"(?:^|[.-])beta[0-9]*(?:[.-]|$)", version, re.I) or prerelease:
@@ -118,13 +118,14 @@ def download_dependencies(root, props, owner):
         file_base = f"{mod_id}-forge-1.20.1" if forge else mod_id
         file_name = f"{file_base}-{version}.jar"
         legacy_tag = f"forge-1.20.1-v{version}" if forge else f"v{version}"
-        for tag in (version, legacy_tag):
+        tags = (f"1.20.1-{version}", legacy_tag, version) if forge else (version, legacy_tag)
+        for tag in tags:
             try:
                 subprocess.run(["gh", "release", "download", tag, "--repo", f"{owner}/{PROJECTS[mod_id][0]}",
                                 "--pattern", file_name, "--dir", str(downloads), "--clobber"], check=True)
                 break
             except subprocess.CalledProcessError:
-                if tag == legacy_tag:
+                if tag == tags[-1]:
                     raise
         jar_path = downloads / file_name
         validate_jar(jar_path, mod_id, version, metadata_path)
