@@ -1,0 +1,2020 @@
+{
+  "tested_commit": "2c16aa2a3bdc6e16100766eb97a69838e8c94d25",
+  "environment": {
+    "java": 17,
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10"
+  },
+  "production_changed": false,
+  "thresholds_and_budgets_changed": false,
+  "optional_refinement_budget_ms": 100,
+  "limitation": "The original failed JVM had no phase trace/JFR; controlled replay establishes failure mechanisms, not the specific GC/JIT/scheduler event in that JVM.",
+  "controlled_phase_replay": [
+    {
+      "label": "weighted-rechecksReplenishment-0",
+      "exit_code": 0,
+      "rows": [
+        {
+          "iteration": 0,
+          "injected_delay_ms": 0.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": false,
+          "missing": {
+            "A": 5
+          },
+          "used_stock": {
+            "raw": 2,
+            "A": 1
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 2621399,
+            "materialDagOrderNanos": 11186000,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": []
+        },
+        {
+          "iteration": 1,
+          "injected_delay_ms": 0.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": false,
+          "missing": {
+            "A": 5
+          },
+          "used_stock": {
+            "raw": 2,
+            "A": 1
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 2222001,
+            "materialDagOrderNanos": 427700,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": []
+        },
+        {
+          "iteration": 2,
+          "injected_delay_ms": 0.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": false,
+          "missing": {
+            "A": 5
+          },
+          "used_stock": {
+            "raw": 2,
+            "A": 1
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 1982600,
+            "materialDagOrderNanos": 382300,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": []
+        },
+        {
+          "iteration": 3,
+          "injected_delay_ms": 0.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": false,
+          "missing": {
+            "A": 5
+          },
+          "used_stock": {
+            "raw": 2,
+            "A": 1
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 1903100,
+            "materialDagOrderNanos": 609099,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": []
+        },
+        {
+          "iteration": 4,
+          "injected_delay_ms": 0.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": false,
+          "missing": {
+            "A": 5
+          },
+          "used_stock": {
+            "raw": 2,
+            "A": 1
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 1679300,
+            "materialDagOrderNanos": 344000,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": []
+        }
+      ]
+    },
+    {
+      "label": "weighted-rechecksReplenishment-25",
+      "exit_code": 0,
+      "rows": [
+        {
+          "iteration": 0,
+          "injected_delay_ms": 25.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "A": 5
+          },
+          "used_stock": {
+            "raw": 2,
+            "A": 1
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 28670000,
+            "materialDagOrderNanos": 12104800,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": []
+        },
+        {
+          "iteration": 1,
+          "injected_delay_ms": 25.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "A": 5
+          },
+          "used_stock": {
+            "raw": 2,
+            "A": 1
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 28165600,
+            "materialDagOrderNanos": 401200,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": []
+        },
+        {
+          "iteration": 2,
+          "injected_delay_ms": 25.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "A": 5
+          },
+          "used_stock": {
+            "raw": 2,
+            "A": 1
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 26886401,
+            "materialDagOrderNanos": 700701,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": []
+        },
+        {
+          "iteration": 3,
+          "injected_delay_ms": 25.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "A": 5
+          },
+          "used_stock": {
+            "raw": 2,
+            "A": 1
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 27463300,
+            "materialDagOrderNanos": 376399,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": []
+        },
+        {
+          "iteration": 4,
+          "injected_delay_ms": 25.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "A": 5
+          },
+          "used_stock": {
+            "raw": 2,
+            "A": 1
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 27741400,
+            "materialDagOrderNanos": 330299,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": []
+        }
+      ]
+    },
+    {
+      "label": "weighted-rechecksReplenishment-110",
+      "exit_code": 0,
+      "rows": [
+        {
+          "iteration": 0,
+          "injected_delay_ms": 110.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "A": 8
+          },
+          "used_stock": {
+            "A": 1,
+            "raw": 2
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 111743101,
+            "materialDagOrderNanos": 14330799,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 0,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": [
+            {
+              "wall_ms": 133.404101,
+              "thread_cpu_ms": 31.25,
+              "optional_remaining_ms": -11.4933,
+              "checkpoint": 356,
+              "stack": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.rechecksReplenishment",
+                "CraftPlannerV2.guaranteeReplenishment",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 1,
+          "injected_delay_ms": 110.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "A": 8
+          },
+          "used_stock": {
+            "A": 1,
+            "raw": 2
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 111363301,
+            "materialDagOrderNanos": 925300,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 0,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": [
+            {
+              "wall_ms": 114.399,
+              "thread_cpu_ms": 15.625,
+              "optional_remaining_ms": -11.093399,
+              "checkpoint": 356,
+              "stack": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.rechecksReplenishment",
+                "CraftPlannerV2.guaranteeReplenishment",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "injected_delay_ms": 110.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "A": 8
+          },
+          "used_stock": {
+            "A": 1,
+            "raw": 2
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 110454500,
+            "materialDagOrderNanos": 305000,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 0,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": [
+            {
+              "wall_ms": 112.140699,
+              "thread_cpu_ms": 0.0,
+              "optional_remaining_ms": -10.2953,
+              "checkpoint": 356,
+              "stack": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.rechecksReplenishment",
+                "CraftPlannerV2.guaranteeReplenishment",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 3,
+          "injected_delay_ms": 110.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "A": 8
+          },
+          "used_stock": {
+            "A": 1,
+            "raw": 2
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 110679600,
+            "materialDagOrderNanos": 416199,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 0,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": [
+            {
+              "wall_ms": 112.621199,
+              "thread_cpu_ms": 0.0,
+              "optional_remaining_ms": -10.4865,
+              "checkpoint": 356,
+              "stack": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.rechecksReplenishment",
+                "CraftPlannerV2.guaranteeReplenishment",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 4,
+          "injected_delay_ms": 110.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "A": 8
+          },
+          "used_stock": {
+            "A": 1,
+            "raw": 2
+          },
+          "budget_exhausted": false,
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 110924801,
+            "materialDagOrderNanos": 287300,
+            "materialDagOrderAttempts": 0
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 0,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": [
+            {
+              "wall_ms": 112.656799,
+              "thread_cpu_ms": 15.625,
+              "optional_remaining_ms": -10.799701,
+              "checkpoint": 356,
+              "stack": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.rechecksReplenishment",
+                "CraftPlannerV2.guaranteeReplenishment",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "portfolio-rechecksReplenishment-0",
+      "exit_code": 0,
+      "rows": [
+        {
+          "iteration": 0,
+          "injected_delay_ms": 0.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": false,
+          "missing": {
+            "M2": 2
+          },
+          "used_stock": {
+            "M1": 5,
+            "M0": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 5,
+            "missingRefinementNanos": 100570400,
+            "materialDagOrderNanos": 101421499,
+            "materialDagOrderAttempts": 7
+          },
+          "portfolio_observed": true,
+          "replenishment_feasible": true,
+          "refinement_probes": 5,
+          "refinement_improvements": 3,
+          "nested_deadline_delta_ns": 500,
+          "expired_scope_events": [
+            {
+              "wall_ms": 193.574101,
+              "thread_cpu_ms": 187.5,
+              "optional_remaining_ms": -0.1725,
+              "checkpoint": 13948,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 194.657801,
+              "thread_cpu_ms": 187.5,
+              "optional_remaining_ms": -1.2514,
+              "checkpoint": 13949,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 355.305701,
+              "thread_cpu_ms": 343.75,
+              "optional_remaining_ms": -0.158501,
+              "checkpoint": 187966,
+              "stack": [
+                "CraftPlannerV2.obtainAggregate",
+                "CraftPlannerV2.obtain",
+                "CraftPlannerV2.run",
+                "CraftPlannerV2.tryMaterialDagOrder",
+                "CraftPlannerV2.lambda$tryMaterialDagOrders$0",
+                "MaterialDagOrders.lambda$compile$1",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 355.681501,
+              "thread_cpu_ms": 343.75,
+              "optional_remaining_ms": -0.5197,
+              "checkpoint": 187967,
+              "stack": [
+                "CraftPlannerV2.enqueueOrientations",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing",
+                "CraftPlannerV2.guaranteeReplenishment"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 1,
+          "injected_delay_ms": 0.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": false,
+          "missing": {
+            "M2": 2
+          },
+          "used_stock": {
+            "M1": 5,
+            "M0": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 5,
+            "missingRefinementNanos": 83221100,
+            "materialDagOrderNanos": 100954000,
+            "materialDagOrderAttempts": 16
+          },
+          "portfolio_observed": true,
+          "replenishment_feasible": true,
+          "refinement_probes": 5,
+          "refinement_improvements": 3,
+          "nested_deadline_delta_ns": 500,
+          "expired_scope_events": [
+            {
+              "wall_ms": 102.0324,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.1592,
+              "checkpoint": 32005,
+              "stack": [
+                "BoundedIntegerLinearSolver$WorkBudget.tryConsume",
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 102.741699,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.8541,
+              "checkpoint": 32006,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "injected_delay_ms": 0.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": false,
+          "missing": {
+            "M2": 2
+          },
+          "used_stock": {
+            "M1": 5,
+            "M0": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 5,
+            "missingRefinementNanos": 57402100,
+            "materialDagOrderNanos": 100240000,
+            "materialDagOrderAttempts": 19
+          },
+          "portfolio_observed": true,
+          "replenishment_feasible": true,
+          "refinement_probes": 5,
+          "refinement_improvements": 3,
+          "nested_deadline_delta_ns": 501,
+          "expired_scope_events": [
+            {
+              "wall_ms": 101.2372,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.0808,
+              "checkpoint": 38682,
+              "stack": [
+                "MaterialFootprintIndex.build",
+                "CraftPlannerV2$PreparedGraph.materialFootprints",
+                "CraftPlannerV2.distinctMaterialBranches",
+                "CraftPlannerV2.isContendedOutput",
+                "CraftPlannerV2.analyzeLowWidthComponents",
+                "CraftPlannerV2.analyzeLowWidthComponents",
+                "CraftPlannerV2.run",
+                "CraftPlannerV2.tryMaterialDagOrder",
+                "CraftPlannerV2.lambda$tryMaterialDagOrders$0",
+                "MaterialDagOrders.lambda$compile$1"
+              ]
+            },
+            {
+              "wall_ms": 101.370699,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.211299,
+              "checkpoint": 38683,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 3,
+          "injected_delay_ms": 0.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": false,
+          "missing": {
+            "M2": 2
+          },
+          "used_stock": {
+            "M1": 5,
+            "M0": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 5,
+            "missingRefinementNanos": 57360301,
+            "materialDagOrderNanos": 100269500,
+            "materialDagOrderAttempts": 22
+          },
+          "portfolio_observed": true,
+          "replenishment_feasible": true,
+          "refinement_probes": 5,
+          "refinement_improvements": 3,
+          "nested_deadline_delta_ns": 501,
+          "expired_scope_events": [
+            {
+              "wall_ms": 101.1656,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.1225,
+              "checkpoint": 42295,
+              "stack": [
+                "BoundedIntegerLinearSolver$WorkBudget.tryConsume",
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 101.296799,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.2487,
+              "checkpoint": 42296,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 4,
+          "injected_delay_ms": 0.0,
+          "delay_method": "rechecksReplenishment",
+          "delay_triggered": false,
+          "missing": {
+            "M2": 2
+          },
+          "used_stock": {
+            "M1": 5,
+            "M0": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 5,
+            "missingRefinementNanos": 47313200,
+            "materialDagOrderNanos": 100348601,
+            "materialDagOrderAttempts": 17
+          },
+          "portfolio_observed": true,
+          "replenishment_feasible": true,
+          "refinement_probes": 5,
+          "refinement_improvements": 3,
+          "nested_deadline_delta_ns": 500,
+          "expired_scope_events": [
+            {
+              "wall_ms": 100.925901,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.14,
+              "checkpoint": 38196,
+              "stack": [
+                "CraftPlannerV2.analyzeLowWidthComponents",
+                "CraftPlannerV2.analyzeLowWidthComponents",
+                "CraftPlannerV2.run",
+                "CraftPlannerV2.tryMaterialDagOrder",
+                "CraftPlannerV2.lambda$tryMaterialDagOrders$0",
+                "MaterialDagOrders.lambda$compile$1",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 101.1123,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.322401,
+              "checkpoint": 38197,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "portfolio-probeReplenishment-110",
+      "exit_code": 0,
+      "rows": [
+        {
+          "iteration": 0,
+          "injected_delay_ms": 110.0,
+          "delay_method": "probeReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 119417801,
+            "materialDagOrderNanos": 101511300,
+            "materialDagOrderAttempts": 11
+          },
+          "portfolio_observed": true,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": 400,
+          "expired_scope_events": [
+            {
+              "wall_ms": 194.9221,
+              "thread_cpu_ms": 156.25,
+              "optional_remaining_ms": -0.411701,
+              "checkpoint": 17497,
+              "stack": [
+                "CraftPlannerV2.linearPassState",
+                "CraftPlannerV2.linearPassState",
+                "CraftPlannerV2.linearPass",
+                "CraftPlannerV2.run",
+                "CraftPlannerV2.tryMaterialDagOrder",
+                "CraftPlannerV2.lambda$tryMaterialDagOrders$0",
+                "MaterialDagOrders.lambda$compile$1",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 195.738,
+              "thread_cpu_ms": 156.25,
+              "optional_remaining_ms": -1.222001,
+              "checkpoint": 17498,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 364.4287,
+              "thread_cpu_ms": 218.75,
+              "optional_remaining_ms": -19.0013,
+              "checkpoint": 23060,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine"
+              ]
+            },
+            {
+              "wall_ms": 364.774299,
+              "thread_cpu_ms": 218.75,
+              "optional_remaining_ms": -19.3166,
+              "checkpoint": 23061,
+              "stack": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 1,
+          "injected_delay_ms": 110.0,
+          "delay_method": "probeReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 114792100,
+            "materialDagOrderNanos": 100376900,
+            "materialDagOrderAttempts": 18
+          },
+          "portfolio_observed": true,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": 400,
+          "expired_scope_events": [
+            {
+              "wall_ms": 101.416,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.1073,
+              "checkpoint": 38434,
+              "stack": [
+                "RawResourcePotential.weights",
+                "CraftPlannerV2.addRawResourceCut",
+                "CraftPlannerV2.solveLowWidthComponent",
+                "CraftPlannerV2.solveLowWidthComponent",
+                "CraftPlannerV2.run",
+                "CraftPlannerV2.tryMaterialDagOrder",
+                "CraftPlannerV2.lambda$tryMaterialDagOrders$0",
+                "MaterialDagOrders.lambda$compile$1",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 101.580499,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.27,
+              "checkpoint": 38435,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 236.0134,
+              "thread_cpu_ms": 125.0,
+              "optional_remaining_ms": -14.5224,
+              "checkpoint": 43997,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine"
+              ]
+            },
+            {
+              "wall_ms": 236.2789,
+              "thread_cpu_ms": 125.0,
+              "optional_remaining_ms": -14.738,
+              "checkpoint": 43998,
+              "stack": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "injected_delay_ms": 110.0,
+          "delay_method": "probeReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 113817599,
+            "materialDagOrderNanos": 100423901,
+            "materialDagOrderAttempts": 22
+          },
+          "portfolio_observed": true,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": 399,
+          "expired_scope_events": [
+            {
+              "wall_ms": 101.2296,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.151299,
+              "checkpoint": 42541,
+              "stack": [
+                "BoundedIntegerLinearSolver$WorkBudget.tryConsume",
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 101.4353,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.3531,
+              "checkpoint": 42542,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 230.955799,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -13.199402,
+              "checkpoint": 48104,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine"
+              ]
+            },
+            {
+              "wall_ms": 231.3061,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -13.543601,
+              "checkpoint": 48105,
+              "stack": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 3,
+          "injected_delay_ms": 110.0,
+          "delay_method": "probeReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 112772100,
+            "materialDagOrderNanos": 100311900,
+            "materialDagOrderAttempts": 21
+          },
+          "portfolio_observed": true,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": 300,
+          "expired_scope_events": [
+            {
+              "wall_ms": 101.2075,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.1047,
+              "checkpoint": 39631,
+              "stack": [
+                "BoundedIntegerLinearSolver$WorkBudget.tryConsume",
+                "CraftPlannerV2.addRawResourceCut",
+                "CraftPlannerV2.solveLowWidthComponent",
+                "CraftPlannerV2.solveLowWidthComponent",
+                "CraftPlannerV2.run",
+                "CraftPlannerV2.tryMaterialDagOrder",
+                "CraftPlannerV2.lambda$tryMaterialDagOrders$0",
+                "MaterialDagOrders.lambda$compile$1",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 101.351899,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.244399,
+              "checkpoint": 39632,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 227.8903,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -12.473001,
+              "checkpoint": 45194,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine"
+              ]
+            },
+            {
+              "wall_ms": 228.1394,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -12.710901,
+              "checkpoint": 45195,
+              "stack": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 4,
+          "injected_delay_ms": 110.0,
+          "delay_method": "probeReplenishment",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 1,
+            "missingRefinementNanos": 114867300,
+            "materialDagOrderNanos": 100919900,
+            "materialDagOrderAttempts": 22
+          },
+          "portfolio_observed": true,
+          "replenishment_feasible": true,
+          "refinement_probes": 1,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": 500,
+          "expired_scope_events": [
+            {
+              "wall_ms": 102.0503,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.739399,
+              "checkpoint": 41138,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 102.195099,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.8801,
+              "checkpoint": 41139,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 229.335099,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -14.6753,
+              "checkpoint": 46701,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine"
+              ]
+            },
+            {
+              "wall_ms": 229.518499,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -14.8438,
+              "checkpoint": 46702,
+              "stack": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.probeReplenishment",
+                "CraftPlannerV2.lambda$refineMissing$6",
+                "MissingRefinement.probe",
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "portfolio-refine-110",
+      "exit_code": 0,
+      "rows": [
+        {
+          "iteration": 0,
+          "injected_delay_ms": 110.0,
+          "delay_method": "refine",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 115073000,
+            "materialDagOrderNanos": 102063400,
+            "materialDagOrderAttempts": 13
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 0,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": [
+            {
+              "wall_ms": 186.2397,
+              "thread_cpu_ms": 171.875,
+              "optional_remaining_ms": -0.5338,
+              "checkpoint": 17736,
+              "stack": [
+                "CraftPlannerV2.linearPassState",
+                "CraftPlannerV2.linearPassState",
+                "CraftPlannerV2.linearPass",
+                "CraftPlannerV2.run",
+                "CraftPlannerV2.tryMaterialDagOrder",
+                "CraftPlannerV2.lambda$tryMaterialDagOrders$0",
+                "MaterialDagOrders.lambda$compile$1",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 187.445,
+              "thread_cpu_ms": 171.875,
+              "optional_remaining_ms": -1.731499,
+              "checkpoint": 17737,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 350.2061,
+              "thread_cpu_ms": 218.75,
+              "optional_remaining_ms": -14.852699,
+              "checkpoint": 22904,
+              "stack": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing",
+                "CraftPlannerV2.guaranteeReplenishment",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 372.303099,
+              "thread_cpu_ms": 234.375,
+              "optional_remaining_ms": -0.1501,
+              "checkpoint": 26486,
+              "stack": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 1,
+          "injected_delay_ms": 110.0,
+          "delay_method": "refine",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 110791800,
+            "materialDagOrderNanos": 100637101,
+            "materialDagOrderAttempts": 21
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 0,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": [
+            {
+              "wall_ms": 101.8883,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.1983,
+              "checkpoint": 39619,
+              "stack": [
+                "RawResourcePotential.weights",
+                "CraftPlannerV2.addRawResourceCut",
+                "CraftPlannerV2.solveLowWidthComponent",
+                "CraftPlannerV2.solveLowWidthComponent",
+                "CraftPlannerV2.run",
+                "CraftPlannerV2.tryMaterialDagOrder",
+                "CraftPlannerV2.lambda$tryMaterialDagOrders$0",
+                "MaterialDagOrders.lambda$compile$1",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 102.2107,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.5042,
+              "checkpoint": 39620,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 232.1673,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -10.6456,
+              "checkpoint": 44787,
+              "stack": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing",
+                "CraftPlannerV2.guaranteeReplenishment",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 252.625199,
+              "thread_cpu_ms": 140.625,
+              "optional_remaining_ms": -0.2016,
+              "checkpoint": 49472,
+              "stack": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "injected_delay_ms": 110.0,
+          "delay_method": "refine",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 111518201,
+            "materialDagOrderNanos": 100315300,
+            "materialDagOrderAttempts": 22
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 0,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": [
+            {
+              "wall_ms": 101.258199,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.112401,
+              "checkpoint": 41106,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 101.4094,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.259901,
+              "checkpoint": 41107,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 227.8352,
+              "thread_cpu_ms": 125.0,
+              "optional_remaining_ms": -11.3595,
+              "checkpoint": 46274,
+              "stack": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing",
+                "CraftPlannerV2.guaranteeReplenishment",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 3,
+          "injected_delay_ms": 110.0,
+          "delay_method": "refine",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 110823200,
+            "materialDagOrderNanos": 100689000,
+            "materialDagOrderAttempts": 19
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 0,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": [
+            {
+              "wall_ms": 101.643299,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.1272,
+              "checkpoint": 38681,
+              "stack": [
+                "MaterialFootprintIndex.build",
+                "CraftPlannerV2$PreparedGraph.materialFootprints",
+                "CraftPlannerV2.distinctMaterialBranches",
+                "CraftPlannerV2.isContendedOutput",
+                "CraftPlannerV2.analyzeLowWidthComponents",
+                "CraftPlannerV2.analyzeLowWidthComponents",
+                "CraftPlannerV2.run",
+                "CraftPlannerV2.tryMaterialDagOrder",
+                "CraftPlannerV2.lambda$tryMaterialDagOrders$0",
+                "MaterialDagOrders.lambda$compile$1"
+              ]
+            },
+            {
+              "wall_ms": 102.1232,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.6049,
+              "checkpoint": 38682,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 226.425399,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -10.645699,
+              "checkpoint": 43849,
+              "stack": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing",
+                "CraftPlannerV2.guaranteeReplenishment",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 4,
+          "injected_delay_ms": 110.0,
+          "delay_method": "refine",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 112245000,
+            "materialDagOrderNanos": 100355800,
+            "materialDagOrderAttempts": 18
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "refinement_probes": 0,
+          "refinement_improvements": 0,
+          "nested_deadline_delta_ns": null,
+          "expired_scope_events": [
+            {
+              "wall_ms": 101.3018,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.0905,
+              "checkpoint": 38331,
+              "stack": [
+                "ConservativeFeedbackAnalysis.analyzeAll",
+                "CraftPlannerV2.run",
+                "CraftPlannerV2.tryMaterialDagOrder",
+                "CraftPlannerV2.lambda$tryMaterialDagOrders$0",
+                "MaterialDagOrders.lambda$compile$1",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 101.4974,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": -0.283399,
+              "checkpoint": 38332,
+              "stack": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile",
+                "MaterialDagOrders.compile",
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 225.810799,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -11.9811,
+              "checkpoint": 43499,
+              "stack": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing",
+                "CraftPlannerV2.guaranteeReplenishment",
+                "CraftPlannerV2.planCore",
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "certificate_comparison": [
+    {
+      "supplement": 4,
+      "dag_certificate": false,
+      "small_cycle_certificate": false,
+      "small_cycle_certificate_ms": 7.2363,
+      "used_stock": {}
+    },
+    {
+      "supplement": 5,
+      "dag_certificate": false,
+      "small_cycle_certificate": true,
+      "small_cycle_certificate_ms": 0.639,
+      "used_stock": {
+        "A": 6,
+        "raw": 2
+      }
+    },
+    {
+      "supplement": 8,
+      "dag_certificate": false,
+      "small_cycle_certificate": true,
+      "small_cycle_certificate_ms": 0.6996,
+      "used_stock": {
+        "A": 9,
+        "raw": 2
+      }
+    }
+  ],
+  "unmodified_junit_controls": [
+    {
+      "label": "feedback-default",
+      "flags": [],
+      "exit_code": 0,
+      "result": [
+        {
+          "iteration": 0,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 235,
+          "failures": []
+        },
+        {
+          "iteration": 1,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 16,
+          "failures": []
+        },
+        {
+          "iteration": 2,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 12,
+          "failures": []
+        },
+        {
+          "iteration": 3,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 13,
+          "failures": []
+        },
+        {
+          "iteration": 4,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 11,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "label": "feedback-interpreter",
+      "flags": [
+        "-Xint"
+      ],
+      "exit_code": 0,
+      "result": [
+        {
+          "iteration": 0,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 348,
+          "failures": []
+        },
+        {
+          "iteration": 1,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 34,
+          "failures": []
+        },
+        {
+          "iteration": 2,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 29,
+          "failures": []
+        },
+        {
+          "iteration": 3,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 28,
+          "failures": []
+        },
+        {
+          "iteration": 4,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 28,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "label": "portfolio-default",
+      "flags": [],
+      "exit_code": 0,
+      "result": [
+        {
+          "iteration": 0,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 631,
+          "failures": []
+        },
+        {
+          "iteration": 1,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 232,
+          "failures": []
+        },
+        {
+          "iteration": 2,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 207,
+          "failures": []
+        },
+        {
+          "iteration": 3,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 158,
+          "failures": []
+        },
+        {
+          "iteration": 4,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 168,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "label": "portfolio-interpreter",
+      "flags": [
+        "-Xint"
+      ],
+      "exit_code": 0,
+      "result": [
+        {
+          "iteration": 0,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 677,
+          "failures": []
+        },
+        {
+          "iteration": 1,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 289,
+          "failures": []
+        },
+        {
+          "iteration": 2,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 296,
+          "failures": []
+        },
+        {
+          "iteration": 3,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 310,
+          "failures": []
+        },
+        {
+          "iteration": 4,
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 321,
+          "failures": []
+        }
+      ]
+    }
+  ],
+  "unmodified_junit_repeats": [
+    {
+      "label": "feedback-repeat-100",
+      "exit_code": 0,
+      "found": 100,
+      "passed": 100,
+      "failed": 0
+    },
+    {
+      "label": "portfolio-repeat-100",
+      "exit_code": 0,
+      "found": 100,
+      "passed": 100,
+      "failed": 0
+    }
+  ],
+  "diagnostic_fixture_sha256": {
+    "CertificateProbe.java": "4ee9e71be0b59e024593df2e6644ae1106fcce0922f67e4f35fdaf8bf54b30a0",
+    "JunitFailureProbe.java": "59c3e426c3496d26fb6877679663f6f2e01c94e39dc95cdf9b03d86562e56285",
+    "RefinementFailureProbe.java": "772acc46a3278ee211bff6d820d4f8809dd92cc39a41587293d70e16a888f617"
+  }
+}
