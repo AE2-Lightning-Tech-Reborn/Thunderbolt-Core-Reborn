@@ -210,71 +210,6 @@ public final class CpSatBridge {
             int[][] missingCutProducers,
             long[][] executionBlocks,
             int blockStages,
-            double maxSeconds) {
-        return solveRankedPlan(
-                consumedWire,
-                producedWire,
-                catalystsWire,
-                finiteUseAmountsWire,
-                finiteUseLifetimesWire,
-                outputItems,
-                primaryOutputItems,
-                primaryOutputAmounts,
-                rankGroups,
-                cycleRecipes,
-                cycleInputItems,
-                cycleInputAmounts,
-                cyclePrimitiveFirings,
-                stocks,
-                reusableCatalystsWire,
-                reusableItems,
-                reusableCandidatePhysicals,
-                reusablePhysicalStocks,
-                itemDistances,
-                targetItem,
-                targetAmount,
-                firingUpperBounds,
-                missingCaps,
-                unreachable,
-                enforceStartup,
-                missingAllowed,
-                missingCutProducers,
-                executionBlocks,
-                blockStages,
-                unitExecutionCosts(firingUpperBounds.length),
-                maxSeconds);
-    }
-
-    public static long[] solveRankedPlan(
-            long[][] consumedWire,
-            long[][] producedWire,
-            long[][] catalystsWire,
-            long[][] finiteUseAmountsWire,
-            long[][] finiteUseLifetimesWire,
-            int[] outputItems,
-            int[] primaryOutputItems,
-            long[] primaryOutputAmounts,
-            int[] rankGroups,
-            int[][] cycleRecipes,
-            int[][] cycleInputItems,
-            long[][] cycleInputAmounts,
-            long[][] cyclePrimitiveFirings,
-            long[] stocks,
-            long[][] reusableCatalystsWire,
-            int[] reusableItems,
-            int[][] reusableCandidatePhysicals,
-            long[] reusablePhysicalStocks,
-            int[] itemDistances,
-            int targetItem,
-            long targetAmount,
-            long[] firingUpperBounds,
-            long[] missingCaps,
-            long[][] unreachable,
-            boolean enforceStartup,
-            boolean[] missingAllowed,
-            int[][] missingCutProducers,
-            long[][] executionBlocks,
-            int blockStages,
             int[] executionCosts,
             double maxSeconds) {
         long deadline = deadlineNanos(maxSeconds);
@@ -740,12 +675,6 @@ public final class CpSatBridge {
 
     private record RankedOptimum(SolveAttempt attempt, long status, long branches) { }
 
-    private static int[] unitExecutionCosts(int count) {
-        int[] costs = new int[count];
-        java.util.Arrays.fill(costs, 1);
-        return costs;
-    }
-
     private static boolean validExecutionCosts(int[] costs, int count) {
         if (costs == null || costs.length != count) return false;
         for (int cost : costs) if (cost < 0) return false;
@@ -765,12 +694,6 @@ public final class CpSatBridge {
     }
 
     /** Sparse ordinary DAG model; rows contain only incident recipes, never recipe-by-item grids. */
-    public static long[] solveSparseDag(int[][] variables, long[][] coefficients, int[][] producers,
-            long[] batches, long[] upper, long[] stocks, int[] distances, long amount, double maxSeconds) {
-        return solveSparseDag(variables, coefficients, producers, batches, upper, stocks, distances,
-                amount, unitExecutionCosts(upper.length), maxSeconds);
-    }
-
     public static long[] solveSparseDag(int[][] variables, long[][] coefficients, int[][] producers,
             long[] batches, long[] upper, long[] stocks, int[] distances, long amount,
             int[] executionCosts, double maxSeconds) {

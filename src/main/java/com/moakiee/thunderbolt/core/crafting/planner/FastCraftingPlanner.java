@@ -41,64 +41,21 @@ import com.moakiee.thunderbolt.core.crafting.pattern.ReusableStockPattern;
 import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
 
 /**
- * Bridges one of AE2's per-amount crafting attempts ({@code CraftingCalculation#runCraftAttempt})
- * to a Thunderbolt graph solver, producing AE2-compatible {@link CraftingPlan}s.
+ * Adapts AE2's per-amount crafting attempt to {@link CraftPlannerV2} and exports {@link CraftingPlan}s.
+ * AE2 retains its strategy loop: real attempts return a feasible plan or {@code null}; simulation
+ * attempts return a plan with the selected route's missing materials, including on budget exhaustion.
  *
- * <p>This is Thunderbolt's single production fast-planner entry. Ordinary AE2 patterns, overload
- * patterns and contracted closed-loop patterns all enter through this adapter; capability interfaces
- * in {@code core.crafting.pattern}, {@code core.crafting.overload} and {@code core.crafting.loop}
- * describe the extra facts needed by the same graph build and solve.
+ * <p>Inputs follow AE2's declared candidates and {@code isValid} rules. The adapter models fuzzy
+ * substitutes, byproducts, returned containers, durability chains and emitted items; capability
+ * interfaces supply overload, closed-loop and host-private seed semantics. Unsupported recipe
+ * steps become missing inputs. Feasibility requires material accounting and ordered execution checks.
  *
- * <p>Hooking the per-amount attempt (rather than the whole {@code computePlan}) lets AE2 keep driving
- * its own strategy/binary-search loop while we replace only the expensive tree simulation of each
- * attempt. The contract of {@code runCraftAttempt(simulate, amount)} is mirrored exactly:
- * {@code simulate=false} returns a feasible plan or {@code null} (this amount can't be made);
- * {@code simulate=true} must return a non-null plan carrying the missing items.
+ * <p>Built-in planners export native pattern counts. CPUs choose fuzzy variants from live inventory;
+ * legacy fixed slot assignments remain opt-in through {@code PlannedInputAssignments}. Durability
+ * carriers, same-id slots and contracted macros retain their own execution contracts.
  *
- * <p>Engine: the v2 planner ({@link CraftPlannerV2}) — a linear topological backbone with a bounded
- * backtracking fallback for contention. It natively handles byproducts and multiple competing recipes.
- *
- * <p>Correctness rules:
- * <ul>
- *   <li>Modeled in-engine (no decline): byproducts (shared pool), hard-fuzzy substitution (OR
- *       expansion), catalysts/non-degrading containers ({@code returned}), filled containers
- *       (consumed + leftover byproduct, e.g. bucket→empty), durability tools (use-token chain), and
- *       emittable items (infinite on-demand source → {@code emittedItems}). A recipe step we still
- *       cannot model (e.g. a durability chain longer than the cyclic budget) is dropped so its item
- *       surfaces as <em>missing</em> rather than declining the whole attempt.</li>
- *   <li><b>Recursion / cycle</b> → handled in-engine: the v2 planner breaks back-edges ("去头尾") so a
- *       compress/decompress pair (1 block ⇄ 9 ingots) is planned directly instead of declining. The
- *       reverse side resolves from stock/missing; cuts only remove options, never overstate feasibility.</li>
- *   <li>A <b>feasible</b> plan must satisfy both material accounting and the solver's ordered
- *       execution/startup checks; aggregate balance alone is not a cycle reachability proof.</li>
- *   <li><b>Proven infeasible</b>: best-effort, never declined (Policy A).
- *       {@code simulate=false}→null, {@code simulate=true}→partial plan with missing items.</li>
- *   <li><b>Search budget exhausted</b>: stop enumerating alternatives and finish the current route
- *       deterministically from the already-built graph and current shared pools. Its missing items are
- *       exposed through AE2's simulation result. The missing list is a targeted replenishment
- *       suggestion, not a proof about every alternate route; no second diagnostic plan is run.</li>
- * </ul>
- *
- * <p><b>Execution-time contract (fuzzy substitution).</b> For a hard-fuzzy slot the planner commits to a
- * <em>concrete</em> allocation, including mixed substitutes within a slot, and charges those exact keys.
- * The registered pattern counts remain available to native CPUs. A separate weakly held execution
- * manifest preserves each chosen slot allocation for integrating CPUs such as Tianshu. Its task wrappers
- * constrain extraction while delegating physical execution to the original pattern. Durability carriers
- * and late-bound same-id slots retain their dynamic semantics; contracted macros retain their own
- * expansion and seed routing contract.
- *
- * <p><b>Planning-side input discovery.</b> Every input follows AE2's native contract: each
- * {@link IPatternDetails.IInput#getPossibleInputs()} entry anchors one primary-identity candidate
- * group, and concrete stocked/craftable keys from those groups are retained only when
- * {@link IPatternDetails.IInput#isValid(AEKey, Level)} accepts them. This works for ordinary AE2
- * substitutions, tags and custom matchers without requiring a Thunderbolt interface. Optional
- * {@link FuzzyPatternInputs#acceptsSameIdVariants(int)} metadata is only a closure proof: it permits a
- * late-bound same-id output to feed that slot, while an unmarked arbitrary accepted-key set may still
- * consume any concrete output that {@code isValid} accepts.
- *
- * <p>Byte accounting reproduces AE2's formulas (see {@code CraftingTreeNode#request},
- * {@code CraftingTreeProcess#request} and {@code ICraftingSimulationState#addStackBytes}) over the
- * memoized DAG: byte-identical to AE2 for jobs without shared sub-graphs, smaller otherwise.
+ * <p>Byte accounting applies AE2's request/stack formulas to the memoized DAG: equal for jobs
+ * without shared subgraphs, smaller where shared subgraphs are reused.
  */
 public final class FastCraftingPlanner {
     private static final PlanningDiagnosticSnapshot GRAPH_EXPORT_DIAGNOSTIC =
@@ -107,22 +64,14 @@ public final class FastCraftingPlanner {
             PlanningDiagnosticSnapshot.phase("planning");
 
     /**
-     * Hard-fuzzy budget: an input slot that accepts several substitutes is expanded into the cartesian
-     * product of concrete choices, each becoming a competing recipe the v2 planner selects among by
-     * availability. If a pattern's product of substitute counts exceeds this, we DON'T drop the recipe
-     * (that would be a false negative for something AE2 can craft); instead we greedily keep the best
-     * {@code FUZZY_NONCYCLE_STEPS} combinations — the lowest rank-sum over per-slot, most-available-first
-     * ordered options — bounding the graph without losing the cheapest routes ("贪心前 N" for non-cyclic
-     * fuzzy).
+     * Maximum concrete fuzzy combinations, ordered by substitute availability and rank sum.
+     * Large Cartesian products retain the best combinations instead of dropping the whole recipe.
      */
     static final long FUZZY_NONCYCLE_STEPS = 64;
 
     /**
-     * Cyclic-fuzzy budget. A durability tool {@code 1·A(n) + 1·B → 1·C + A(n-1)} forms a degradation
-     * chain {@code A(n)→A(n-1)→…→broken}. We walk that chain once via {@code getRemainingKey}, capping
-     * the walk here ("超步报缺失" → omit that recipe), then reduce it to the closed form
-     * {@code uses = chainLen} so a batch costs {@code ceil(times / uses)} full tools instead of one
-     * firing per durability point. Also bounds the secondary-fuzzy (re-fuzzy output) collapse.
+     * Maximum durability-chain or secondary-fuzzy collapse steps. Longer chains omit the recipe;
+     * accepted chains batch tool usage with {@code ceil(firings / lifetime)}.
      */
     static final long FUZZY_CYCLE_STEPS = 8192;
 
@@ -1139,49 +1088,12 @@ public final class FastCraftingPlanner {
     }
 
     /**
-     * Detect a durability-tool input from an AE2 crafting pattern and capture its degradation chain
-     * once, delegating the chain building / reduction to the engine ({@link DurabilityChain}). Callers
-     * must not invoke this for processing or other pattern kinds. A chain is accepted only when this
-     * input's remainder stays on the same item id; null, unchanged, and different-id remainders are not
-     * durability semantics.
+     * Builds or reuses a crafting input's {@link DurabilityChain} under that slot's remainder rule.
+     * Anchors at the fullest accepted variant so damaged templates do not hide the full-tool recipe.
      *
-     * <p>The only AE2-specific bits are the two lambdas: {@code remaining} follows
-     * {@code getRemainingKey} but returns {@code null} when the step leaves the tool's own {@link Item}
-     * (a container like a bucket degrades into a <em>different</em> item → not durability), and
-     * {@code stock} probes each exact variant's count (so partial tools are counted). The aggregate uses
-     * become the carrier's stock in the graph.
-     *
-     * <p><b>Chains are matched to SLOT semantics, not just to the item.</b> {@code getRemainingKey} is
-     * per-input: one recipe may cost 1 durability per craft, another 2. The chain is built by stepping
-     * <em>this slot's</em> rule, so a 2-per-craft slot yields a chain whose length is the firings a full
-     * tool survives — self-consistent on its own.
-     *
-     * <p><b>Anchoring at the fullest tool.</b> A slot's declared template need not be the full tool: an
-     * overload pattern is captured from real items the player inserts, so its template is frequently a
-     * <em>partially used</em> tool, while the tool that will actually refill the pool is crafted brand
-     * new (full). Building the chain straight from a damaged template would miss the fuller variants
-     * above it and, worse, never discover the tool's own craft recipe (that recipe's output is the full
-     * key, which nothing else would poll). {@link #fullestAnchor} therefore relocates the anchor to the
-     * fullest same-item variant the slot accepts (craftable variant first, à la AE2's
-     * {@code CraftingTreeNode.findCraftedStack}, otherwise the longest-downward-walk stock variant). That
-     * makes the fullest tool the single carrier for every slot on the orbit, so discovery order stops
-     * mattering and we never need to re-anchor a chain backward.
-     *
-     * <p><b>Merge by connectivity ("相接"), not by item identity.</b> {@code linkOwner} indexes every
-     * link of every already-built chain back to that chain. When a slot's (anchored) start key is
-     * already a link of an existing chain we <em>reuse</em> that chain — but only when this slot's own
-     * step from that link lands on the chain's <em>next</em> link, i.e. the two share the same
-     * durability-per-craft granularity and lie on one orbit. That is precisely the case where two slots
-     * start at different damage levels of the same tool yet connect into one chain, so pooling their
-     * stock once is sound. If the step lands elsewhere (e.g. a 2-per-craft slot meeting a 1-per-craft
-     * chain), the same physical tools would be priced in two incompatible "uses" units on one pool with
-     * no sound linear split, so it reports an item-local conflict. The graph is then rebuilt with that
-     * item represented as concrete whole-item inputs; unrelated durability items retain their reduced
-     * chains. The same conflict is reported when a fresh chain's links overlap keys already priced as
-     * whole items ({@code itemUnitKeys}) or links owned by another chain.
-     *
-     * <p>Returns {@link ChainLookup#NONE} when this slot is not a reducible durability tool (plain
-     * item, container, or a chain longer than {@link #FUZZY_CYCLE_STEPS}).
+     * <p>Chains share stock only when overlapping links use the same degradation step. Conflicting
+     * step sizes or whole-item accounting trigger an item-local rebuild with concrete tool inputs.
+     * Non-degrading, different-item and over-budget chains return {@link ChainLookup#NONE}.
      */
     private static ChainLookup durabilityChain(IPatternDetails.IInput in,
                                                ICraftingService craftingService,
@@ -1294,20 +1206,9 @@ public final class FastCraftingPlanner {
     }
 
     /**
-     * Pick the fullest (most-uses-remaining) same-item variant this slot accepts, to anchor its chain.
-     *
-     * <p>The relative durability of two variants is decided <em>structurally</em> — the one whose
-     * downward {@code getRemainingKey} walk is longer takes more crafts to break, so it has more uses
-     * left — never by reading a damage value (modded tools may not use vanilla durability at all).
-     *
-     * <p>A craftable variant, when present, is the absolute fullest: a freshly crafted tool is at max
-     * durability, so no stock variant can beat it. So we take AE2's {@code getFuzzyCraftable} answer
-     * directly when it exists (and skip the potentially expensive stock scan). Only when nothing
-     * craftable is valid for the slot do we widen the search to same-item stock variants (fuzzy,
-     * ignore-NBT) and the declared template, keeping the one with the longest downward walk. Any variant
-     * that turns out to sit off this slot's step lattice simply isn't reached by the anchor's walk and
-     * is left uncounted — an undercount, which is safe (it can only over-report missing, never
-     * over-promise).
+     * Prefers AE2's accepted craftable tool; otherwise picks the declared/stock variant with the
+     * longest remainder walk. This supports modded durability without reading vanilla damage.
+     * Variants outside the chosen step lattice remain uncounted, so stock is never overstated.
      */
     private static AEItemKey fullestAnchor(IPatternDetails.IInput in, ICraftingService craftingService,
                                            ChildCraftingSimulationState snapshot, Level level,

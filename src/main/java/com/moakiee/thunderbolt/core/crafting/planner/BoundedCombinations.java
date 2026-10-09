@@ -8,19 +8,9 @@ import java.util.PriorityQueue;
 import java.util.Set;
 
 /**
- * Bounded, overflow-free enumeration of the "best" combinations across per-slot option lists.
- *
- * <p>Used by the hard-fuzzy (OR) expansion: each input slot accepts several concrete substitutes, and a
- * recipe is the cartesian product of one choice per slot. That product can be astronomically large (many
- * slots over big tags), so instead of either enumerating it all (hang / Long overflow) or dropping the
- * whole recipe when it overruns a budget (false negative for something craftable), we keep only the best
- * {@code limit} combinations.
- *
- * <p>"Best" = lowest rank-sum, where each slot's options are assumed pre-sorted best-first (e.g. most
- * available substitute at index 0). Starting from the all-best vector we pop the lowest rank-sum index
- * vector and push its single-step neighbors; since every neighbor's rank-sum is strictly larger, the
- * first {@code limit} popped vectors are exactly the {@code limit} cheapest combinations. Work is bounded
- * by {@code O(limit * slots * log(limit * slots))} regardless of the true product size.
+ * Enumerates at most {@code limit} combinations from best-first per-slot options.
+ * A priority queue visits index vectors by increasing rank sum without expanding the Cartesian
+ * product. Work is {@code O(limit * slots * log(limit * slots))}, independent of product size.
  */
 public final class BoundedCombinations {
 

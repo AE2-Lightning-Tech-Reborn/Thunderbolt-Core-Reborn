@@ -20,61 +20,22 @@ import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
 
 /**
- * v2 autocrafting planner: an iterative linear backbone plus bounded integer flow over shared
- * material conflicts, with ordered execution validation for stateful recipes and bounded fallback.
+ * Quantity-independent crafting planner with an iterative demand pass, shared stock/byproduct
+ * pools, bounded integer flow and backtracking for competing recipes.
  *
- * <p>This is the evolution of the v1 planner (closed-form two-pass, removed). It keeps v1's strengths
- * — quantity-independent batching ({@code ceil} arithmetic), {@code returned} (container/catalyst)
- * inputs in closed form, saturating arithmetic — and adds:
- *
- * <ul>
- *   <li><b>In-engine cycle breaking ("去头尾")</b>: instead of declining when the recipe graph has a
- *       cycle, a DFS from the target drops back-edges, keeping the recipe direction toward the target
- *       and cutting the reverse. A compress/decompress pair (1 block ⇄ 9 ingots) is planned directly;
- *       the reverse side resolves from stock/missing. Cuts only remove options, so feasibility is never
- *       overstated (no false positives).</li>
- *   <li><b>Shared pool + byproducts</b>: stock and crafting byproducts live in one mutable pool;
- *       demand draws byproducts first, then stock, then crafts. Multi-output patterns are supported
- *       (a pattern's extra outputs feed sibling demands).</li>
- *   <li><b>Dynamic-capacity greedy</b>: among an item's recipes, the one with the highest current
- *       capacity ({@code stock + craftable}) is preferred. Concrete fuzzy expansions of one real
- *       recipe are kept in a source group and consume already-stocked variants before recursively
- *       crafting another accepted variant.</li>
- *   <li><b>Budgeted backtracking</b>: contended items (more than one recipe) are searched in
- *       capacity order with a {@code trail} for commit/rollback. No node drops candidates at a fixed
- *       route count: a hot node re-ranks every materially distinct route against the current pools and
- *       search continues while the plan-wide deterministic work budget remains. Failed speculative
- *       subtrees are memoized only for the exact node, amount, depth and rollback-restored availability
- *       state, preventing repeated proof work without reusing a stale inventory result.</li>
- *   <li><b>Global integer flow</b>: every bounded-width material conflict, including a single fork
- *       that competes with a later sibling, is solved as one integral balance model. Its firing vector
- *       is validated in deterministic producer/seed order; ordinary recipe choices never trigger
- *       a whole-plan replay. Unsupported stateful or over-budget components retain the bounded local
- *       fallback, while conversion SCCs may retry a small fixed set of cut orientations.</li>
- *   <li><b>Consumable-bound no-goods</b>: an unavoidable direct raw-consumable shortage is proven
- *       against the exact current pool and quantity, rather than tied to a whole recipe identity.
- *       Thus materially different routes that both require eight unavailable C are pruned alike,
- *       while a route requiring one available C remains eligible.</li>
- * </ul>
- *
- * <p><b>Soundness (no false positives):</b> the pool is never overdrawn (a draw is capped by what is
- * actually present), so a plan reports {@link CraftPlan#feasible() feasible} only when every demand was
- * met from stock or from a craft whose own inputs were met. Shortfalls always surface in
- * {@link CraftPlan#missing()}.
+ * <p>Cycle orientations only remove routes. Stateful recipes require ordered execution witnesses;
+ * aggregate material balance alone does not prove feasibility. Exhausted searches retain the
+ * selected route's missing-material result without claiming global infeasibility.
  */
 public final class CraftPlannerV2<K> {
 
     /**
-     * Default hot-node threshold. It does not truncate search: after this many visits the node merely
-     * switches from its immutable capacity order to current-pool re-ranking. Normal graphs are resolved
-     * by the linear backbone or recover via a handful of backtracks, never approaching this threshold.
+     * Visits before a hot node re-ranks routes against current stock; this does not truncate search.
      */
     public static final int DEFAULT_VISIT_CAP = 256;
 
     /**
-     * Whole-graph preprocessing guard. Optional exact/local stages have their own smaller budgets,
-     * but even linear normalization becomes disruptive on a deliberately enormous reachable graph.
-     * Exceeding this bound reports the requested key as missing (Policy A), never feasible.
+     * Preprocessing work cap. Oversized reachable graphs report the target as missing.
      */
     private static final int MAX_REACHABLE_PLANNING_WORK = Math.min(
             Integer.MAX_VALUE - 1,
@@ -119,27 +80,16 @@ public final class CraftPlannerV2<K> {
     private static final long MAX_MISSING_REFINEMENT_NANOS = 100_000_000L;
 
     /**
-     * Stack-overflow safety net for the bounded fallback search. {@link #obtain} recurses once per
-     * crafting edge along a single root-to-leaf path ({@code obtain → fire → obtain}), so its stack depth
-     * equals the depth of the (acyclic) recipe DAG. The clean linear backbone ({@link #linearPass}) is
-     * fully iterative and resolves every feasible, non-contended request without recursing — the
-     * recursion is entered only when that backbone reports infeasible or hits contention. To keep a
-     * pathologically deep recipe chain from overflowing the calculating thread's stack, descent past this
-     * many levels degrades only that branch to "missing" (Policy A), allowing its parent to try another
-     * route. 256 levels (~512 stack frames with the paired {@code fire}) is far
-     * deeper than any real Minecraft recipe chain yet safe on a default thread stack; overridable via
-     * {@code -Dthunderbolt.maxCraftDepth} for unusual {@code -Xss} setups.
+     * Depth cap for recursive fallback ({@code obtain → fire → obtain}); deeper branches report
+     * missing so another route may be tried. The ordinary linear pass is iterative.
+     * Override with {@code -Dthunderbolt.maxCraftDepth} for nonstandard thread stacks.
      */
     public static final int MAX_OBTAIN_DEPTH =
             Math.max(16, Integer.getInteger("thunderbolt.maxCraftDepth", 256));
 
     /**
-     * Single-threaded state shared by every amount probe of one external crafting calculation.
-     *
-     * <p>AE2's {@code CRAFT_LESS} strategy may call the planner once per quantity bit. Reusing this
-     * object makes those probes share exact/search/fallback budgets and immutable graph compilation,
-     * instead of multiplying every bound by {@code O(log requestedAmount)}. Create one session per
-     * calculation and discard it when that calculation finishes.
+     * Single-threaded state for one calculation's amount probes. Shares immutable graph compilation
+     * and work budgets across AE2's {@code CRAFT_LESS} search; discard when the calculation ends.
      */
     public static final class PlanningSession<K> {
         private CraftGraph<K> graph;

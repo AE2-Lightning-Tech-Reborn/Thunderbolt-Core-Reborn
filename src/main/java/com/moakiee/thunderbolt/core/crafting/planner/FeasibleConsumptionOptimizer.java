@@ -18,20 +18,11 @@ import java.util.function.Function;
 import java.util.function.IntPredicate;
 
 /**
- * Optional anytime improvement of an already certified plan; probes never replace its witness.
- * Fewer executions come first, using any ordinary stock in the inventory snapshot. At equal
- * executions, stock and net resource loss must improve without increasing any material's draw.
+ * Bounded improvement of a certified plan. Prefer fewer executions; at equal executions require
+ * componentwise improvement in stock draw or net resource loss. Stateful firings stay unchanged.
  *
- * <p>Candidates are pruned before the planner runs. A forward fixpoint from the available stock
- * keeps only patterns that can ever fire, and a dual-feasible cost potential over them bounds the
- * executions (and stock units) of every plan inside the probed pattern set. A probe whose bound
- * cannot beat the incumbent by 1% executions, or by stock at equal executions, never enters the
- * planner, and once the whole reachable graph is bounded that way the search stops.
- *
- * <p>The first proposal is the cheapest route per item over the whole reachable graph, with scarce
- * stock priced up until its fixed replay fits the inventory snapshot. Subsequent local probes use
- * the incumbent's draws: adding unrelated stocked routes to every withdrawal dilutes the bounded
- * search and can hide the improvements it already finds within the incumbent's materials.
+ * <p>Fireability and cost bounds prune proposals before planning. Probe the whole-graph cheap
+ * policy first, then local alternatives around the incumbent's draws under shared work limits.
  */
 final class FeasibleConsumptionOptimizer {
     static final int MAX_PROBES = 32;
@@ -40,9 +31,7 @@ final class FeasibleConsumptionOptimizer {
             Long.getLong("thunderbolt.maxConsumptionOptimizationNanos", 2_800_000_000L));
     static final long EXPORT_RESERVE_NANOS = 50_000_000L;
     /**
-     * Stop once probes have spent this long without cutting executions by at least 1%; 0 disables.
-     * Measured in time, not probes: a probe is a whole planning run, milliseconds on a small graph
-     * and over a second on a large pack, and the player waits for every one of them.
+     * Stop after this much time without a 1% execution gain; 0 disables the stall limit.
      */
     static final long STALL_NANOS = Math.max(0L, Long.getLong("thunderbolt.feasibleOptimizationStallMs", 500L))
             * 1_000_000L;
@@ -56,10 +45,6 @@ final class FeasibleConsumptionOptimizer {
     static final int MAX_WITHDRAWN = 4;
     /** Larger graphs retain their existing probe allocation and local-search behavior. */
     private static final int MAX_MIXED_PATTERNS = 16;
-
-    // Evaluation-only trace.
-    static final boolean TRACE = Boolean.getBoolean("thunderbolt.feasibleOptimizationTrace");
-    static final ThreadLocal<String> LAST_TRACE = new ThreadLocal<>();
 
     record Result<K>(CraftPlan<K> plan, int probes, int improvements, int pruned) {}
 
@@ -93,10 +78,8 @@ final class FeasibleConsumptionOptimizer {
             state.mixTerminalBatches();
             state.probeAvailableAlternatives();
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
-            // External cancellation and the enclosing router deadline must still propagate.
-            state.stop = "time";
+            // Retain the certified incumbent on optional timeout; external cancellation propagates.
         }
-        if (TRACE) LAST_TRACE.set(state.trace());
         return new Result<>(state.best, state.probes, state.improvements, state.pruned);
     }
 
@@ -182,7 +165,6 @@ final class FeasibleConsumptionOptimizer {
         private final IntPredicate spendWork;
         private CraftPlan<K> best;
         private int probes;
-        private int mixedProbes;
         private int improvements;
         private int pruned;
         private long lastGain;
@@ -211,20 +193,11 @@ final class FeasibleConsumptionOptimizer {
         private int[] availableChoices;
         private long availableExecBound;
         private long execBound;
-        private long stockBound;
         private int[] region;
         private int regionVersion;
         /** Whether the region also offers the alternative producers of its filled inputs. */
         private boolean extendRegion;
         private boolean regionExtensible;
-
-        // Trace
-        private String stop = "none";
-        private final long started = System.nanoTime();
-        private long indexNanos, propagationNanos;
-        private long initialExecutions, initialStock;
-        private final List<Long> oracleNanos = new ArrayList<>();
-        private int regionSize;
 
         Search(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial, int limit,
                 Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache, IntPredicate spendWork) {
@@ -238,6 +211,20 @@ final class FeasibleConsumptionOptimizer {
             this.spendWork = spendWork;
         }
 
+        private boolean spend(int work) {
+            if (exhausted || !spendWork.test(work)) {
+                exhausted = true;
+                return false;
+            }
+            return true;
+        }
+
+        private boolean reserveProbe() {
+            if (exhausted || probes >= limit) return false;
+            probes++;
+            return true;
+        }
+
         /** Finish small ordinary DAGs with integer batch mixes under the same budgets. */
         private void mixSmallBatches() {
             if (targetOptimal || index == null || !index.choices || index.patterns.size() > MAX_MIXED_PATTERNS
@@ -245,20 +232,8 @@ final class FeasibleConsumptionOptimizer {
                 return;
             for (var pattern : index.patterns)
                 if (stateful(pattern) || !pattern.byproducts().isEmpty()) return;
-            IntPredicate charge = work -> {
-                if (exhausted || !spendWork.test(work)) {
-                    exhausted = true;
-                    stop = "budget";
-                    return false;
-                }
-                return true;
-            };
-            BooleanSupplier reserve = () -> {
-                if (exhausted || probes >= limit) return false;
-                probes++;
-                mixedProbes++;
-                return true;
-            };
+            IntPredicate charge = this::spend;
+            BooleanSupplier reserve = this::reserveProbe;
             while (!exhausted && probes < limit) {
                 PlanningCancellation.check();
                 var ordinary = OrdinaryBatchOptimizer.startSearch(graph, target, amount, best, charge, reserve);
@@ -293,19 +268,7 @@ final class FeasibleConsumptionOptimizer {
             if (targetOptimal || index == null || !TerminalBatchOptimizer.acceptsRouteCount(index.patterns.size())
                     || exhausted || probes >= limit) return;
             var candidate = TerminalBatchOptimizer.tryImprove(graph, target, amount, best, index.patterns,
-                    work -> {
-                        if (exhausted || !spendWork.test(work)) {
-                            exhausted = true;
-                            stop = "budget";
-                            return false;
-                        }
-                        return true;
-                    }, () -> {
-                        if (exhausted || probes >= limit) return false;
-                        probes++;
-                        mixedProbes++;
-                        return true;
-                    });
+                    this::spend, this::reserveProbe);
             if (candidate != null && improves(best, candidate)) {
                 best = candidate;
                 improvements++;
@@ -317,19 +280,7 @@ final class FeasibleConsumptionOptimizer {
         private void mixTerminalFixedDepthBatches() {
             if (exhausted || probes >= limit) return;
             var candidate = TerminalFixedDepthOptimizer.tryImprove(graph, target, amount, best,
-                    work -> {
-                        if (exhausted || !spendWork.test(work)) {
-                            exhausted = true;
-                            stop = "budget";
-                            return false;
-                        }
-                        return true;
-                    }, () -> {
-                        if (exhausted || probes >= limit) return false;
-                        probes++;
-                        mixedProbes++;
-                        return true;
-                    });
+                    this::spend, this::reserveProbe);
             if (candidate != null && improves(best, candidate)) {
                 best = candidate;
                 improvements++;
@@ -343,42 +294,26 @@ final class FeasibleConsumptionOptimizer {
             if (best.usedStock().values().stream().anyMatch(Sat::isSaturated)
                     || best.firings().values().stream().anyMatch(Sat::isSaturated)
                     || best.grossDemand().values().stream().anyMatch(Sat::isSaturated)) return;
-            initialExecutions = executionCount(best);
             // Optional bounds use a saturating long. A weighted objective can saturate even
             // when every individual firing count is executable; do not turn that into a proof.
-            if (Sat.isSaturated(initialExecutions)) return;
-            initialStock = stockCount(best);
+            if (Sat.isSaturated(executionCount(best))) return;
             if (targetOnlyBound()) {
                 targetOptimal = true;
-                stop = "target-lb";
                 return;
             }
-            long indexStarted = System.nanoTime();
             index = cache.get(graph, target);
-            indexNanos = System.nanoTime() - indexStarted;
-            if (index == null) {
-                stop = "saturated";
-                return;
-            }
-            if (!index.choices) {
-                stop = "fixed"; // Fixed ordinary recipe chains have no allocation to improve.
-                return;
-            }
+            if (index == null || !index.choices) return;
 
             propagateStock();
             if (!graph.hasByproducts() && index.patterns.size() <= MAX_REGION_PATTERNS) {
                 availableChoices = global.freeArgmin;
                 availableExecBound = execBound;
             }
-            if (proven()) {
-                stop = "lb";
-                return;
-            }
+            if (proven()) return;
 
             probePolicy();
             if (targetOnlyBound()) {
                 targetOptimal = true;
-                stop = "target-lb";
                 return;
             }
             // Keep the full-inventory proposal separate from the established local search. Its
@@ -393,10 +328,7 @@ final class FeasibleConsumptionOptimizer {
             var tried = new HashSet<Integer>();
             while (!exhausted && probes < limit && !stalled()) {
                 PlanningCancellation.check();
-                if (proven()) {
-                    stop = "lb";
-                    return;
-                }
+                if (proven()) return;
                 if (!withdraw(tried)) {
                     // Every route has had its turn in the closed region; widen it once and retry.
                     if (!extendRegion && regionExtensible) {
@@ -406,11 +338,9 @@ final class FeasibleConsumptionOptimizer {
                         chains.clear();
                         continue;
                     }
-                    stop = "done";
                     return;
                 }
             }
-            stop = exhausted ? "budget" : probes >= limit ? "probes" : stalled() ? "stall" : stop;
         }
 
         private boolean targetOnlyBound() {
@@ -418,7 +348,6 @@ final class FeasibleConsumptionOptimizer {
         }
 
         private void propagateStock() {
-            long propagationStarted = System.nanoTime();
             limits = new long[index.keys.size()];
             var limitedKeys = new IntBuf();
             for (int id = 0; id < index.keys.size(); id++) {
@@ -434,20 +363,17 @@ final class FeasibleConsumptionOptimizer {
             globalCost = global.cost;
             globalArgmin = global.argmin;
             execBound = global.execBound;
-            stockBound = global.stockBound;
             // The bounds assume every executable plan fires only patterns the fixpoint reaches.
             // The incumbent is executable; if the model disagrees with it, trust no bound.
             for (var pattern : best.firings().keySet()) {
                 Integer id = index.patternIds.get(pattern);
                 if (id == null || !global.fired[id]) {
                     execBound = 0;
-                    stockBound = 0;
                     global.stockBound = 0;
                     global.stockBoundComputed = true;
                     break;
                 }
             }
-            propagationNanos += System.nanoTime() - propagationStarted;
         }
 
         private boolean stalled() {
@@ -458,8 +384,7 @@ final class FeasibleConsumptionOptimizer {
             long current = executionCount(best);
             if (execBound <= current - minimumGain(current)) return false;
             if (execBound > current || stockCount(best) == 0) return true;
-            stockBound = stockBound(global);
-            return stockBound >= stockCount(best);
+            return stockBound(global) >= stockCount(best);
         }
 
         private boolean worthwhile(Prop prop) {
@@ -550,7 +475,7 @@ final class FeasibleConsumptionOptimizer {
                 work += index.patterns.get(p).inputs().size();
             }
             int charge = (int) Math.min(Integer.MAX_VALUE, work);
-            if (!spendWork.test(charge)) { exhausted = true; stop = "budget"; return; }
+            if (!spendWork.test(charge)) { exhausted = true; return; }
             availableStock = true;
             for (int k = 0; k < limits.length; k++) {
                 if ((k & 255) == 0) PlanningCancellation.check();
@@ -570,7 +495,7 @@ final class FeasibleConsumptionOptimizer {
                     if (p == original) continue;
                     if (attempts++ >= MAX_PROBES || exhausted || probes >= limit) return;
                     PlanningCancellation.check();
-                    if (!spendWork.test(charge)) { exhausted = true; stop = "budget"; return; }
+                    if (!spendWork.test(charge)) { exhausted = true; return; }
                     choice[key] = p;
                     var selected = select(choice);
                     choice[key] = original;
@@ -872,7 +797,6 @@ final class FeasibleConsumptionOptimizer {
             }
             regionExtensible = list.size > closed;
             region = extendRegion ? list.toArray() : Arrays.copyOf(list.data, closed);
-            regionSize = region.length;
             return region;
         }
 
@@ -920,9 +844,7 @@ final class FeasibleConsumptionOptimizer {
             PlanningCancellation.check();
             if (exhausted || probes >= limit) return false;
             probes++;
-            long probeStarted = System.nanoTime();
             CraftPlan<K> candidate = oracle.apply(candidateGraph);
-            oracleNanos.add(System.nanoTime() - probeStarted);
             lastCandidate = null;
             if (candidate == null) {
                 exhausted = true;
@@ -1192,25 +1114,6 @@ final class FeasibleConsumptionOptimizer {
 
         private long minimumGain(long executions) {
             return Math.max(1L, (executions * MIN_GAIN_PERCENT + 99) / 100);
-        }
-
-        String trace() {
-            var text = new StringBuilder("{\"stop\":\"").append(stop).append('"');
-            if (index != null) text.append(",\"keys\":").append(index.keys.size())
-                    .append(",\"patterns\":").append(index.patterns.size());
-            if (global != null) text.append(",\"fired\":").append(global.firedCount);
-            text.append(",\"region\":").append(regionSize);
-            text.append(",\"execBound\":").append(execBound).append(",\"stockBound\":").append(stockBound);
-            text.append(",\"exec0\":").append(initialExecutions).append(",\"exec1\":").append(executionCount(best));
-            text.append(",\"stock0\":").append(initialStock).append(",\"stock1\":").append(stockCount(best));
-            text.append(",\"oracle\":").append(probes - mixedProbes).append(",\"mixed\":").append(mixedProbes)
-                    .append(",\"improvements\":").append(improvements);
-            text.append(",\"pruned\":").append(pruned);
-            text.append(",\"indexMs\":").append(indexNanos / 1e6).append(",\"propMs\":").append(propagationNanos / 1e6);
-            text.append(",\"oracleMs\":[");
-            for (int i = 0; i < oracleNanos.size(); i++) text.append(i == 0 ? "" : ",").append(oracleNanos.get(i) / 1e6);
-            text.append("],\"totalMs\":").append((System.nanoTime() - started) / 1e6).append('}');
-            return text.toString();
         }
     }
 

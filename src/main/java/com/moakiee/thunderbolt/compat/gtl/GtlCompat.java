@@ -11,47 +11,13 @@ import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.LoadingModList;
 
 /**
- * Detects a GregTech Leisure Core ("GTL") environment and decides which Thunderbolt hooks must
- * stand down there.
+ * GTLCore compatibility for early Mixin selection and runtime scheduler choice.
+ * GTLCore overwrites CPU dispatch methods, so Thunderbolt's batch hooks stand down. Planning stays
+ * attached to {@code computePlan()}, which GTLCore's overwritten {@code run()} still calls.
  *
- * <p><b>Why a stand-down exists at all.</b> GTLCore ships its own crafting-calculation wrapper and
- * crafting-CPU-dispatch layer and implements both with {@code @Overwrite}:
- *
- * <ul>
- *   <li>{@code appeng.crafting.CraftingCalculation#run/finish/simulateFor}</li>
- *   <li>{@code appeng.crafting.execution.CraftingCpuLogic#tickCraftingLogic/executeCrafting}
- *       (priority 1100)</li>
- * </ul>
- *
- * <p>An overwrite replaces the method body, so injectors that anchored on a <em>call site inside
- * the overwritten method</em> ({@code computePlan()} inside {@code run()}, {@code executeCrafting}
- * inside {@code tickCraftingLogic}) disappear at injection time. Thunderbolt's mixin config
- * declares {@code defaultRequire: 1}, so a missing injection point is a hard failure.
- *
- * <p>CPU dispatch has no surviving alternative: GTLCore owns {@code executeCrafting} itself, and
- * its pattern expansion (catalysts, automated ME-pattern inflation) is what the pack executes.
- * Those mixins stand down.
- *
- * <p>Planning is different. GTLCore's overwritten {@code run()} still calls
- * {@code computePlan()} — the same private method AE2 used — so Thunderbolt wraps
- * <em>that</em> method instead of fighting the overwrite. The planner therefore runs inside
- * GTLCore's calculation job (MAX_FAST metrics, logging, {@code finish()}) rather than replacing
- * it. Vanilla fallback from Thunderbolt still lands in GTLCore's redirected tree request.
- *
- * <p>So in a GTL environment Thunderbolt yields <b>CPU dispatch</b> to GTLCore, keeps the
- * planning engines attached at {@code computePlan()}, and keeps every other subsystem (channel
- * max-flow, ejection, indexed storage, extended crafting CPUs, client screens, the AE2LT-facing
- * APIs).
- *
- * <p><b>Timing.</b> {@link #standDown} is consulted by the Mixin config plugin while mods are still
- * being discovered, so it must not touch Forge config values and must not load game classes. The
- * mode therefore comes from a system property, which is available before Mixin applies anything:
- *
- * <pre>
- *   -Dthunderbolt.gtlCompat=auto    (default) stand CPU dispatch down only when gtlcore is present
- *   -Dthunderbolt.gtlCompat=always            stand CPU dispatch down even without gtlcore
- *   -Dthunderbolt.gtlCompat=never             keep Thunderbolt's CPU-dispatch hooks in a GTL environment
- * </pre>
+ * <p>Early selection must not load game classes or Forge config. Use
+ * {@code -Dthunderbolt.gtlCompat=auto|always|never}: auto follows GTLCore presence, always forces
+ * handover for testing, and never retains batch hooks despite GTLCore's conflicting overwrites.
  */
 public final class GtlCompat {
     /** GTLCore's Forge mod id. */
@@ -85,19 +51,14 @@ public final class GtlCompat {
     }
 
     /**
-     * Resolves the configured mode. Pure: safe to call from the Mixin config plugin.
-     *
-     * @return the configured mode; {@link Handover#AUTO} when unset or unrecognized
+     * Reads the system property; unset or unrecognized modes use {@link Handover#AUTO}.
      */
     public static Handover handoverMode() {
         return parseMode(System.getProperty(MODE_PROPERTY));
     }
 
     /**
-     * Parses a mode token.
-     *
-     * @param raw property value, may be {@code null}
-     * @return the matching mode, or {@link Handover#AUTO} for {@code null}/blank/unknown values
+     * Parses mode aliases; null, blank or unknown values use {@link Handover#AUTO}.
      */
     public static Handover parseMode(@Nullable String raw) {
         if (raw == null || raw.isBlank()) {
@@ -111,14 +72,7 @@ public final class GtlCompat {
     }
 
     /**
-     * Decides whether the GTL stand-down applies.
-     *
-     * <p>Pure decision table shared by the Mixin plugin (which supplies GTLCore's presence from the
-     * early mod list) and the runtime accessors.
-     *
-     * @param mode configured handover mode
-     * @param gtlPresent whether GTLCore is loaded
-     * @return true when Thunderbolt's GTL-owned hooks must not apply
+     * Pure handover decision shared by early Mixin selection and runtime accessors.
      */
     public static boolean standDown(Handover mode, boolean gtlPresent) {
         return switch (mode) {
@@ -129,41 +83,23 @@ public final class GtlCompat {
     }
 
     /**
-     * Decides whether to suppress a mixin that GTLCore supersedes.
-     *
-     * <p>Called from {@code OptionalMixinSelector} during Mixin application, so it only reads system
-     * properties and the caller-supplied presence predicate.
-     *
-     * @param gtlModLoaded predicate reporting whether {@value #GTL_MOD_ID} is present
-     * @return true when the caller must not apply the mixin
+     * Early Mixin decision using only the system property and caller-supplied mod detection.
      */
     public static boolean standDown(Predicate<String> gtlModLoaded) {
         return standDown(handoverMode(), gtlModLoaded.test(GTL_MOD_ID));
     }
 
     /**
-     * Reports whether GTLCore is loaded.
-     *
-     * <p>A definite answer is cached. An undetermined probe (neither {@code LoadingModList} nor
-     * {@code ModList} is usable yet) returns {@code false} without caching, so a later call can still
-     * observe GTLCore. Caching a premature {@code false} would leave Mixin CPU-dispatch
-     * stand-down in effect while {@link #usesGtlCalculationScheduler()} stayed false. The
-     * planner wrapper would then wait on AE2's per-tick monitor under GTLCore's no-op
-     * {@code simulateFor} and deadlock, and leftover {@code ICraftingPlan} jobs would be
-     * rejected as {@code CPU_OFFLINE} instead of being left to GTLCore.
-     *
-     * @return true when {@value #GTL_MOD_ID} is present
+     * Caches definite presence only. Inconclusive early probes remain retryable; freezing a false
+     * absence could select AE2's monitor under GTLCore's no-op {@code simulateFor} and deadlock.
      */
     public static boolean isGtlPresent() {
-        return rememberPresence(detectGtlPresent());
+        Boolean cached = gtlPresent;
+        return cached != null ? cached : rememberPresence(detectGtlPresent());
     }
 
     /**
-     * Records a definite presence probe. Package-visible so the cache policy can be unit-tested
-     * without constructing Forge's mod lists.
-     *
-     * @param detected {@code true}/{@code false} when known, {@code null} when the probe was inconclusive
-     * @return the cached or newly recorded value; {@code false} when still unknown
+     * Records a definite probe; null remains unknown and returns false. Package-visible for tests.
      */
     static boolean rememberPresence(@Nullable Boolean detected) {
         Boolean cached = gtlPresent;
@@ -183,33 +119,16 @@ public final class GtlCompat {
     }
 
     /**
-     * Combines the two Forge lists the Mixin plugin also consults.
-     *
-     * <p>A hit on {@code LoadingModList} is enough. A miss there is <em>not</em> a definite
-     * absence: the plugin falls through to {@code ModList}, and so must this probe. Only a
-     * ready {@code ModList} may record {@code false}. Either list missing entirely is
-     * inconclusive ({@code null}) so {@link #rememberPresence} will not freeze a premature no.
-     *
-     * @param loadingHasGtl {@code true}/{@code false} when {@code LoadingModList} answered,
-     *                      {@code null} when it was unusable
-     * @param modListHasGtl {@code true}/{@code false} when {@code ModList} answered,
-     *                      {@code null} when it was unusable
-     * @return presence, or {@code null} when still unknown
+     * A LoadingModList hit proves presence; only a ready ModList can prove absence.
+     * Null means detection is still inconclusive.
      */
     @Nullable
     static Boolean resolvePresence(@Nullable Boolean loadingHasGtl, @Nullable Boolean modListHasGtl) {
-        if (Boolean.TRUE.equals(loadingHasGtl)) {
-            return true;
-        }
-        if (modListHasGtl != null) {
-            return modListHasGtl;
-        }
-        return null;
+        return Boolean.TRUE.equals(loadingHasGtl) ? Boolean.TRUE : modListHasGtl;
     }
 
     /**
-     * Probes GTLCore the same way the Mixin config plugin does: {@code LoadingModList} first,
-     * then {@code ModList}. Returns {@code null} when neither list can answer yet.
+     * Probes both Forge mod lists; returns null while neither can determine presence.
      */
     @Nullable
     private static Boolean detectGtlPresent() {
@@ -235,33 +154,22 @@ public final class GtlCompat {
     }
 
     /**
-     * Reports whether Thunderbolt's CPU-dispatch hooks are handed over to GTLCore.
-     *
-     * <p>Planning is independent of this flag: {@code CraftingCalculationMixin} stays applied and
-     * wraps {@code computePlan()}. Scheduler selection uses {@link #usesGtlCalculationScheduler()}
-     * independently, because GTLCore's {@code simulateFor} remains a no-op in every handover mode.
-     *
-     * @return true when the GTL CPU-dispatch stand-down is in effect for this run
+     * CPU-dispatch handover state. Planning and scheduler selection are independent.
      */
     public static boolean isCraftingHandoverActive() {
         return standDown(handoverMode(), isGtlPresent());
     }
 
     /**
-     * Whether calculations use GTLCore's scheduler rather than AE2's per-tick monitor.
-     *
-     * <p>The CPU handover override cannot restore AE2's scheduler: GTLCore still overwrites
-     * {@code simulateFor()} when the mode is {@code never}. Forced {@code always} keeps the
-     * polling path available for standalone compatibility tests.
+     * GTLCore's no-op {@code simulateFor} needs polling even in never mode. Always mode enables
+     * that scheduler without GTLCore for compatibility tests.
      */
     public static boolean usesGtlCalculationScheduler() {
         return isGtlPresent() || handoverMode() == Handover.ALWAYS;
     }
 
     /**
-     * Emits the one-time startup notice describing the decision.
-     *
-     * @param logger logger of the calling mod class
+     * Logs the startup handover decision.
      */
     public static void logStartupDecision(Logger logger) {
         var mode = handoverMode();

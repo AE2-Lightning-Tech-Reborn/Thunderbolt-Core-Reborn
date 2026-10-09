@@ -33,16 +33,8 @@ import com.moakiee.thunderbolt.core.crafting.batch.DefaultBatchJobView;
 import com.moakiee.thunderbolt.core.crafting.batch.TickProviderDispatchSchedule;
 
 /**
- * Batches identical pattern firings on the vanilla crafting CPU within a tick.
- *
- * <p><b>TODO (fuzzy substitution reconciliation — execution side).</b> The fast planner
- * ({@code FastCraftingPlanner}) commits to a concrete substitute for each hard-fuzzy input slot and
- * charges that exact key as "used", but AE2's fuzzy matcher resolves the slot at extraction time and may
- * pull a different acceptable variant (different NBT/damage, or another tag member). That is an
- * execution-time issue, not a planning one (the plan is still mass-balanced for the key it charged), so
- * the fix belongs here on the executing CPU, which sees the real extraction: when a fuzzy slot resolves
- * to a stack other than the one the plan charged, reconcile against what was actually consumed rather than
- * trusting the planned key. See {@code FastCraftingPlanner}'s "Execution-time contract" note.
+ * Batches identical native pattern firings within a tick. Fuzzy extraction resolves against the
+ * live CPU inventory through {@code ParallelBatchCpuHelper}; planned keys do not fix substitutes.
  */
 @Mixin(value = CraftingCpuLogic.class, remap = false)
 public abstract class CraftingCpuLogicBatchMixin {

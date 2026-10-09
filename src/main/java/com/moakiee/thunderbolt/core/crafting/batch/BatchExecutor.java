@@ -2,6 +2,7 @@ package com.moakiee.thunderbolt.core.crafting.batch;
 
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -254,16 +255,7 @@ public final class BatchExecutor {
                     }
                     continue;
                 }
-                // Capacity has a three-state meaning:
-                //   0: unavailable/busy (the ordinary path independently observes isBusy());
-                //   1: ordinary single-copy provider, let the CPU's bulk-extract/single-push
-                //      path handle it without paying BatchExecutor's per-copy bookkeeping;
-                //  >1: a real batch candidate.
-                //
-                // In particular, providers with a disabled batch feature commonly report 1.
-                // Treating that as a one-copy batch would bypass pushBulkForTask and repeat batch
-                // extraction, template cloning, power simulation and output registration for
-                // every physical dispatch.
+                // Capacity 0 is unavailable; 1 stays on the CPU's ordinary bulk-extract path.
                 if (!usesBatchPath(capacity)) continue;
                 if (dispatchMode == null) {
                     dispatchMode = BatchDispatchMode.NORMAL;
@@ -276,11 +268,7 @@ public final class BatchExecutor {
             if (eligible == null) continue;
 
             if (hasSharedInputs && eligible.size() > 1) {
-                // One reusable seed cannot be in multiple executing providers simultaneously.
-                eligible.sort(java.util.Comparator
-                        .comparing((EligibleProvider provider) -> provider.mode() != BatchDispatchMode.UNBOUNDED)
-                        .thenComparing(EligibleProvider::capacity, java.util.Comparator.reverseOrder()));
-                eligible.subList(1, eligible.size()).clear();
+                keepSharedInputProvider(eligible);
             }
 
             boolean hasUnboundedProvider = false;
@@ -351,10 +339,7 @@ public final class BatchExecutor {
                     continue;
                 }
                 if (eligible.size() > 1) {
-                    eligible.sort(java.util.Comparator
-                            .comparing((EligibleProvider provider) -> provider.mode() != BatchDispatchMode.UNBOUNDED)
-                            .thenComparing(EligibleProvider::capacity, java.util.Comparator.reverseOrder()));
-                    eligible.subList(1, eligible.size()).clear();
+                    keepSharedInputProvider(eligible);
                 }
             }
             if (!sharedBatchSemanticsMatch(details, executionDetails, result)) {
@@ -535,6 +520,14 @@ public final class BatchExecutor {
             if (taskShared != executionShared) return false;
         }
         return true;
+    }
+
+    /** A reusable seed goes to one provider: unbounded first, then greatest capacity. */
+    private static void keepSharedInputProvider(List<EligibleProvider> providers) {
+        providers.sort(java.util.Comparator
+                .comparing((EligibleProvider provider) -> provider.mode() != BatchDispatchMode.UNBOUNDED)
+                .thenComparing(EligibleProvider::capacity, java.util.Comparator.reverseOrder()));
+        providers.subList(1, providers.size()).clear();
     }
 
     private static Map<AEKey, Long> outputAmounts(IPatternDetails details) {

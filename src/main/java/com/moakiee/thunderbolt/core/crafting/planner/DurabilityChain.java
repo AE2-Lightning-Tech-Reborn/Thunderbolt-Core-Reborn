@@ -9,23 +9,11 @@ import java.util.function.Function;
 import java.util.function.ObjLongConsumer;
 
 /**
- * A durability tool's degradation chain {@code A(n) → A(n-1) → … → broken}, built once by stepping a
- * "remaining" function (AE2's {@code getRemainingKey}) from the full tool until it breaks.
+ * Degradation chain built from a caller-supplied remainder rule. A full tool's lifetime is the
+ * chain length; stock contributes lifetime-weighted uses, and withdrawal consumes degraded tools
+ * first. The AE2 adapter supplies keys and stock while this class handles quantity arithmetic.
  *
- * <p>The per-use rule {@code 1·A(d) + 1·B → 1·C + A(d-1)} can only be matched one durability point at a
- * time, but once the chain is known it reduces to the closed form a planner can batch:
- * <ul>
- *   <li>a full tool survives {@code n} uses (= chain length),</li>
- *   <li>stock contributes {@code Σ (remaining durability) × count} uses (链长×数量, partial tools
- *       included),</li>
- *   <li>consuming {@code k} uses translates back to concrete tools drained <b>most-degraded first</b>.</li>
- * </ul>
- *
- * <p>This is pure: the AE2 adapter supplies the {@code remaining} and {@code stock} lambdas; everything
- * here (building the chain, deriving {@code n}, aggregating uses, degraded-first withdrawal) is engine
- * logic and unit-tested with plain keys.
- *
- * @param <K> item key type (AE2's AEKey, or String in tests)
+ * @param <K> item key type
  */
 public final class DurabilityChain<K> {
 
@@ -81,18 +69,13 @@ public final class DurabilityChain<K> {
     }
 
     /**
-     * Build the chain by stepping {@code remaining} from {@code full} until it breaks, reading each
-     * level's stock via {@code stock}.
+     * Walks the remainder chain and reads stock once per key. Returns null for non-degrading,
+     * single-use or over-budget chains. The adapter then handles the input conservatively.
      *
-     * <p>{@code remaining} must return {@code null} when the tool breaks <em>or</em> when it would step
-     * out of the tool's own item group (e.g. a bucket degrading into a different item) — so a container
-     * is naturally rejected here. Returns {@code null} when this is not a reducible durability tool:
-     * not degrading at all, single-use / container-like, or a chain longer than {@code maxSteps}.
-     *
-     * @param full      the full (or template) tool key
-     * @param remaining next-more-degraded key, or {@code null} at the end of the chain / out of group
-     * @param stock     available count of a given exact key
-     * @param maxSteps  chain-length budget (e.g. 8192); longer chains decline to the host's slow path
+     * @param full full or template tool key
+     * @param remaining next key, or null when broken or outside the tool's item group
+     * @param stock available count for an exact key
+     * @param maxSteps chain-length budget
      */
     public static <K> DurabilityChain<K> build(K full, Function<K, K> remaining,
                                                Function<K, Long> stock, long maxSteps) {

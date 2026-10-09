@@ -94,10 +94,6 @@ public final class IndexedStorage {
         return taken;
     }
 
-    private void setAmountExact(AEKey key, java.math.BigInteger amount) {
-        setAmountExact(key, amount, getAmountExact(key));
-    }
-
     private void setAmountExact(AEKey key, java.math.BigInteger amount, java.math.BigInteger before) {
         if (amount.equals(before)) return;
         int id = keyToId.getInt(key);
