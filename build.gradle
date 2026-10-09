@@ -272,6 +272,7 @@ sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
 
 test {
     useJUnitPlatform()
+    exclude 'com/moakiee/thunderbolt/core/crafting/planner/ExternalPlannerBoundaryCompatibilityTest.class'
     dependsOn 'prepareOptionalModShapeArtifacts'
     systemProperty 'thunderbolt.optionalModShapeDir',
             layout.buildDirectory.dir('optional-mod-shapes').get().asFile.absolutePath
@@ -284,6 +285,22 @@ test {
         events "passed", "skipped", "failed"
     }
 }
+
+// Keep the imported one-second boundary cases in a fresh JVM, independent of
+// earlier Minecraft/native planner tests. Both test and build must still run them.
+def externalPlannerBoundaryTest = tasks.register('externalPlannerBoundaryTest', Test) {
+    group = 'verification'
+    description = 'Runs the 37 imported planner boundary cases with their original one-second limits in a fresh JVM.'
+    dependsOn 'testClasses'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerBoundaryCompatibilityTest'
+    }
+    testLogging { events 'passed', 'failed' }
+}
+tasks.named('test') { dependsOn externalPlannerBoundaryTest }
 
 tasks.register("referenceCapabilityTest", Test) {
     description = "Runs the planner capability reference kit and prints its auditable result rows."

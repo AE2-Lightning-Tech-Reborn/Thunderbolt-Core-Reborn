@@ -1,0 +1,699 @@
+{
+  "date": "2026-10-09",
+  "outcome": "PASS",
+  "base_commit": "a06887e09d28f3ba096cad0d12ba76dc7bebf250",
+  "tested_state": "Base commit with the build.gradle test partition identified below by normalized SHA-256; test and production sources unchanged.",
+  "environment": {
+    "java": 17,
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10"
+  },
+  "production_changed": false,
+  "production_budgets_changed": false,
+  "test_sources_changed": false,
+  "build_changed": true,
+  "production_source_tree": "48f901cc658c35d9b903809a8e1906f83d08d0e3",
+  "test_timeout_ms": 1000,
+  "build_gradle_sha256": "09b2af95f5222a43d33476c1fe9774199385f50afdd5477a267a25d6491d58a4",
+  "boundary_source_sha256": "ef022ea46f0d9e1764387fd78d180d44c64ee88ce2dd1a9aa40c7af56cf8e6ad",
+  "change": {
+    "task": "externalPlannerBoundaryTest",
+    "cases": 37,
+    "summary_tests": 1,
+    "required_by": "test; build via check -> test",
+    "default_test_partition": "1364 ordinary tests + 38 isolated boundary tests = identical 1402-case multiset",
+    "case_subset_changed": false,
+    "assertions_changed": false,
+    "timeout_changed": false
+  },
+  "historical_first_failure": {
+    "path": "docs/benchmarks/gtl-global-pressure-20261009.json",
+    "sha256_normalized": "628842f36bc223c616c12f0c9e3659c43b37bf00e52d3f690cb6230cc20f030f",
+    "full_test": {
+      "total": 1402,
+      "passed": 1398,
+      "failed": 3,
+      "errors": 0,
+      "skipped": 1,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "test": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+          "status": "skipped",
+          "message": "Assumption failed: Optional EAEP artifact not supplied"
+        },
+        {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerBoundaryCompatibilityTest",
+          "test": "quantity/craftable-primary-no-variant-stock/1",
+          "status": "failed",
+          "message": "org.opentest4j.AssertionFailedError: execution timed out after 1000 ms"
+        },
+        {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerBoundaryCompatibilityTest",
+          "test": "quantity/fuzzy-leaf-white-stock/1",
+          "status": "failed",
+          "message": "org.opentest4j.AssertionFailedError: execution timed out after 1000 ms"
+        },
+        {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerBoundaryCompatibilityTest",
+          "test": "boundary-summary",
+          "status": "failed",
+          "message": "org.opentest4j.AssertionFailedError: every imported case must execute ==> expected: <37> but was: <35>"
+        }
+      ]
+    },
+    "failure_details": [
+      {
+        "test": "quantity/craftable-primary-no-variant-stock/1",
+        "seconds": 1.147,
+        "message": "org.opentest4j.AssertionFailedError: execution timed out after 1000 ms",
+        "sampled_timeout_frames": [
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.buildDagRoot(CraftPlannerV2.java:2765)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.buildDag(CraftPlannerV2.java:2635)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.run(CraftPlannerV2.java:1363)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planCore(CraftPlannerV2.java:592)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.OptionalPlanningStages.planDetailed(OptionalPlanningStages.java:22)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planDetailed(CraftPlannerV2.java:529)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.plan(CraftPlannerV2.java:433)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerBoundaryCompatibilityTest.lambda$ae2VmBoundaryCases$0(ExternalPlannerBoundaryCompatibilityTest.java:48)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerBoundaryCompatibilityTest$$Lambda$4614/0x000001e4b7abb6f0.get(Unknown Source)",
+          "at java.base@17.0.20/java.util.concurrent.FutureTask.run(FutureTask.java:264)",
+          "at java.base@17.0.20/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)",
+          "at java.base@17.0.20/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)"
+        ]
+      },
+      {
+        "test": "quantity/fuzzy-leaf-white-stock/1",
+        "seconds": 1.237,
+        "message": "org.opentest4j.AssertionFailedError: execution timed out after 1000 ms",
+        "sampled_timeout_frames": [
+          "at java.base@17.0.20/java.util.Map.copyOf(Map.java:1734)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2$PlanningSession.compileReachableGraph(CraftPlannerV2.java:197)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.plan(CraftPlannerV2.java:432)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerBoundaryCompatibilityTest.lambda$ae2VmBoundaryCases$0(ExternalPlannerBoundaryCompatibilityTest.java:48)",
+          "at app//com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerBoundaryCompatibilityTest$$Lambda$4614/0x000001e4b7abb6f0.get(Unknown Source)",
+          "at java.base@17.0.20/java.util.concurrent.FutureTask.run(FutureTask.java:264)",
+          "at java.base@17.0.20/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)",
+          "at java.base@17.0.20/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)",
+          "at java.base@17.0.20/java.lang.Thread.run(Thread.java:840)"
+        ]
+      },
+      {
+        "test": "boundary-summary",
+        "seconds": 0.001,
+        "message": "org.opentest4j.AssertionFailedError: every imported case must execute ==> expected: <37> but was: <35>",
+        "sampled_timeout_frames": []
+      }
+    ],
+    "five_independent_replays_passed": true
+  },
+  "unchanged_shared_jvm_baseline": {
+    "label": "baseline-shared",
+    "exit_code": 0,
+    "seconds": 141.586,
+    "test": {
+      "total": 1402,
+      "passed": 1401,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 1,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "test": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+          "status": "skipped",
+          "message": "Assumption failed: Optional EAEP artifact not supplied"
+        }
+      ]
+    },
+    "externalPlannerBoundaryTest": {
+      "executed": false
+    }
+  },
+  "fixed_full_build": {
+    "label": "fixed-full-build",
+    "exit_code": 0,
+    "seconds": 139.702,
+    "test": {
+      "total": 1364,
+      "passed": 1363,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 1,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "test": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+          "status": "skipped",
+          "message": "Assumption failed: Optional EAEP artifact not supplied"
+        }
+      ]
+    },
+    "externalPlannerBoundaryTest": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "cpSatColdRefinementTest": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "materialDagColdReplayTest": {
+      "total": 20,
+      "passed": 20,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    }
+  },
+  "combined_default_test": {
+    "total": 1402,
+    "passed": 1401,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "coverage": {
+    "baseline_unique_cases": 1378,
+    "multiset_identical": true,
+    "partitions_disjoint": true,
+    "boundary_cases": 37,
+    "boundary_summary_tests": 1,
+    "ordinary_cases": 1364
+  },
+  "independent_repeats": {
+    "label": "repeat-boundary",
+    "exit_code": 0,
+    "seconds": 20.827,
+    "boundaryIsolationRepeat0": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "boundaryIsolationRepeat1": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "boundaryIsolationRepeat2": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "boundaryIsolationRepeat3": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "boundaryIsolationRepeat4": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "boundaryIsolationRepeat5": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "boundaryIsolationRepeat6": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "boundaryIsolationRepeat7": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "boundaryIsolationRepeat8": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "boundaryIsolationRepeat9": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    }
+  },
+  "independent_repeat_totals": {
+    "jvms": 10,
+    "tests": 380,
+    "passed": 380,
+    "failed": 0
+  },
+  "test_dependency": {
+    "exit_code": 0,
+    "boundary_required": true,
+    "checked_via": "test --dry-run"
+  },
+  "profiling": {
+    "baseline-shared": {
+      "label": "baseline-shared",
+      "recording_bytes": 17857219,
+      "event_counts": {
+        "jdk.SafepointBegin": 409,
+        "jdk.GCPhasePause": 342,
+        "jdk.GarbageCollection": 326,
+        "jdk.ThreadCPULoad": 464,
+        "jdk.CPULoad": 117
+      },
+      "gc_pause_count": 342,
+      "gc_pause_total_ms": 762.9759,
+      "largest_gc_pauses": [
+        {
+          "start_utc": "2026-10-09T12:38:03.494712400+08:00",
+          "duration_ms": 12.4856,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:38:05.262803100+08:00",
+          "duration_ms": 12.0405,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T12:38:04.177599800+08:00",
+          "duration_ms": 11.6898,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:36:42.027322600+08:00",
+          "duration_ms": 9.138,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:38:05.766514700+08:00",
+          "duration_ms": 8.7507,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:37:23.862736800+08:00",
+          "duration_ms": 8.6469,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T12:37:34.454550300+08:00",
+          "duration_ms": 8.5257,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:37:27.761008+08:00",
+          "duration_ms": 7.9891,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:36:33.442210800+08:00",
+          "duration_ms": 7.8024,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T12:37:21.431677200+08:00",
+          "duration_ms": 7.576,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T12:38:31.025859700+08:00",
+          "duration_ms": 7.2979,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T12:37:23.213810700+08:00",
+          "duration_ms": 7.1521,
+          "name": "GC Pause"
+        }
+      ],
+      "safepoint_count": 415,
+      "safepoint_total_ms": 972.9754,
+      "largest_safepoints": [
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 41.9977,
+          "timestamp": "2026-10-09T12:38:04.189+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 22.7955,
+          "timestamp": "2026-10-09T12:36:38.333+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 21.8362,
+          "timestamp": "2026-10-09T12:37:58.606+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 16.3724,
+          "timestamp": "2026-10-09T12:36:37.772+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 13.6217,
+          "timestamp": "2026-10-09T12:36:27.581+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 12.6447,
+          "timestamp": "2026-10-09T12:38:03.508+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 12.2729,
+          "timestamp": "2026-10-09T12:38:05.275+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 11.3944,
+          "timestamp": "2026-10-09T12:38:05.775+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 10.6086,
+          "timestamp": "2026-10-09T12:38:28.151+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 9.3346,
+          "timestamp": "2026-10-09T12:36:42.037+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 8.8541,
+          "timestamp": "2026-10-09T12:37:23.871+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 8.7491,
+          "timestamp": "2026-10-09T12:37:34.463+0800"
+        }
+      ],
+      "cpu_load": {
+        "samples": 117,
+        "max_machine_total": 1.0,
+        "max_jvm_user": 0.52202296
+      }
+    },
+    "fixed-test": {
+      "label": "fixed-test",
+      "recording_bytes": 16345211,
+      "event_counts": {
+        "jdk.SafepointBegin": 411,
+        "jdk.GCPhasePause": 353,
+        "jdk.GarbageCollection": 332,
+        "jdk.ThreadCPULoad": 421,
+        "jdk.CPULoad": 102
+      },
+      "gc_pause_count": 353,
+      "gc_pause_total_ms": 795.8554,
+      "largest_gc_pauses": [
+        {
+          "start_utc": "2026-10-09T12:41:47.340115100+08:00",
+          "duration_ms": 12.8831,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:42:09.353840400+08:00",
+          "duration_ms": 12.0763,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T12:40:38.023082800+08:00",
+          "duration_ms": 11.6305,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:41:47.773791100+08:00",
+          "duration_ms": 11.5423,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:41:48.407346400+08:00",
+          "duration_ms": 10.9599,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T12:41:25.374081300+08:00",
+          "duration_ms": 10.5845,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:42:08.869953900+08:00",
+          "duration_ms": 10.3293,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T12:41:48.173396400+08:00",
+          "duration_ms": 10.1366,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:41:29.619494900+08:00",
+          "duration_ms": 9.9632,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:41:26.758903300+08:00",
+          "duration_ms": 9.7844,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:41:22.529161600+08:00",
+          "duration_ms": 9.462,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T12:41:15.058825+08:00",
+          "duration_ms": 9.113,
+          "name": "GC Pause"
+        }
+      ],
+      "safepoint_count": 417,
+      "safepoint_total_ms": 928.8748,
+      "largest_safepoints": [
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 13.0343,
+          "timestamp": "2026-10-09T12:41:47.353+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 12.2576,
+          "timestamp": "2026-10-09T12:42:09.366+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 11.7847,
+          "timestamp": "2026-10-09T12:40:38.034+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 11.7077,
+          "timestamp": "2026-10-09T12:41:47.785+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 11.1209,
+          "timestamp": "2026-10-09T12:41:48.418+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 10.7579,
+          "timestamp": "2026-10-09T12:41:25.384+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 10.4935,
+          "timestamp": "2026-10-09T12:42:08.880+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 10.3495,
+          "timestamp": "2026-10-09T12:41:48.183+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 10.2275,
+          "timestamp": "2026-10-09T12:41:29.628+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 9.9293,
+          "timestamp": "2026-10-09T12:41:26.768+0800"
+        },
+        {
+          "name": "G1PauseRemark",
+          "duration_ms": 9.6346,
+          "timestamp": "2026-10-09T12:41:22.538+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 9.2588,
+          "timestamp": "2026-10-09T12:41:15.067+0800"
+        }
+      ],
+      "cpu_load": {
+        "samples": 102,
+        "max_machine_total": 0.9794222,
+        "max_jvm_user": 0.4909225
+      }
+    },
+    "fixed-externalPlannerBoundaryTest": {
+      "label": "fixed-externalPlannerBoundaryTest",
+      "recording_bytes": 525164,
+      "event_counts": {
+        "jdk.SafepointBegin": 7,
+        "jdk.GCPhasePause": 1,
+        "jdk.GarbageCollection": 1,
+        "jdk.ThreadCPULoad": 6
+      },
+      "gc_pause_count": 1,
+      "gc_pause_total_ms": 2.7374,
+      "largest_gc_pauses": [
+        {
+          "start_utc": "2026-10-09T12:40:21.936044400+08:00",
+          "duration_ms": 2.7374,
+          "name": "GC Pause"
+        }
+      ],
+      "safepoint_count": 13,
+      "safepoint_total_ms": 15.0983,
+      "largest_safepoints": [
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 5.4137,
+          "timestamp": "2026-10-09T12:40:21.056+0800"
+        },
+        {
+          "name": "RedefineClasses",
+          "duration_ms": 4.4143,
+          "timestamp": "2026-10-09T12:40:21.088+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 2.9009,
+          "timestamp": "2026-10-09T12:40:21.938+0800"
+        },
+        {
+          "name": "ClassLoaderStatsOperation",
+          "duration_ms": 0.9713,
+          "timestamp": "2026-10-09T12:40:21.191+0800"
+        },
+        {
+          "name": "JFROldObject",
+          "duration_ms": 0.3315,
+          "timestamp": "2026-10-09T12:40:21.183+0800"
+        },
+        {
+          "name": "ClassLoaderStatsOperation",
+          "duration_ms": 0.3168,
+          "timestamp": "2026-10-09T12:40:22.397+0800"
+        },
+        {
+          "name": "ICBufferFull",
+          "duration_ms": 0.2242,
+          "timestamp": "2026-10-09T12:40:21.879+0800"
+        },
+        {
+          "name": "ICBufferFull",
+          "duration_ms": 0.1472,
+          "timestamp": "2026-10-09T12:40:21.130+0800"
+        },
+        {
+          "name": "ICBufferFull",
+          "duration_ms": 0.12,
+          "timestamp": "2026-10-09T12:40:22.270+0800"
+        },
+        {
+          "name": "ICBufferFull",
+          "duration_ms": 0.098,
+          "timestamp": "2026-10-09T12:40:20.959+0800"
+        },
+        {
+          "name": "JFROldObject",
+          "duration_ms": 0.0742,
+          "timestamp": "2026-10-09T12:40:22.405+0800"
+        },
+        {
+          "name": "JFRCheckpoint",
+          "duration_ms": 0.0586,
+          "timestamp": "2026-10-09T12:40:21.176+0800"
+        }
+      ],
+      "cpu_load": {
+        "samples": 0,
+        "max_machine_total": 0,
+        "max_jvm_user": 0
+      }
+    }
+  },
+  "release_script": {
+    "tests": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "release_jar": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "version": "2.0.0",
+    "bytes": 5364076,
+    "sha256": "2d9819c4716895d24c51e9f53d0bb1636ef2a4474b5c38aaeef34b4e808a0223",
+    "refmap_verified": true,
+    "entrypoint_and_metadata_verified": true
+  },
+  "fixture_hash_normalization": "SHA-256 of source bytes with CRLF normalized to LF.",
+  "fixture_sha256": {
+    "build/gtl-boundary-timeout-fix-20261009/diagnostic.init.gradle": "dd37da16d43da74ef0207316ad73220fb1ec62879a7481dbdbb2e2ee9b720cc6",
+    "build/gtl-boundary-timeout-fix-20261009/export-fix.py": "3d4dad2c7bfb7b0dd287e0ff9469ad329a2ec06fe55852bb4facf8ba9805e027",
+    "build/gtl-boundary-timeout-fix-20261009/finish-fix.py": "1fd2f4616731d2fa262af5dfeac76c534905ce69333a326c02dba03e401b2901",
+    "build/gtl-boundary-timeout-fix-20261009/fixed-diagnostic.init.gradle": "77b4996f339c2a73a1997110d830c8be24677a7b531e1b1623e94b402c4b1086",
+    "build/gtl-boundary-timeout-fix-20261009/repeat.init.gradle": "4c56a6c0d7ace5a0a25c2af1d3219f8c73c81760daef952ad28202f9af829e0d",
+    "build/gtl-boundary-timeout-fix-20261009/run-gradle.py": "7f5db3106f2dc4c6a2856a7d2253249e7b5aa518da34da36ffa7fd0c24ec5e2a",
+    "build/gtl-boundary-timeout-fix-20261009/summarize-jfr.py": "2434a5e20941fbf6677f68bf7a5288a69eac3d4dd32b34a9898008a4a4589d4a",
+    "build/gtl-boundary-timeout-fix-20261009/verification.init.gradle": "4a74b35779b06567148d03d17e3244f75ace6c22a847198e0818b98687f11564"
+  },
+  "interpretation": "The patch removes shared test-JVM history from the timed boundary suite while preserving the exact original checks and required task dependency. The unchanged instrumented baseline also passed, so this is test isolation hardening; the first timeout was not reproduced and its precise GC/JIT/scheduler trigger is not established.",
+  "limitations": [
+    "One optional real EAEP test remains skipped because its artifact was unavailable.",
+    "A fresh JVM prevents sharing heap/native/class state with earlier tests; external CPU scheduling can still affect a one-second wall-clock limit.",
+    "The new recording belongs to a passing replay, not the historical failing process; it cannot establish that historical failure cause.",
+    "No production or Forge runtime behavior changed; the prior complete pressure report is retained, and heavy module pressure and game tests were not repeated for this build-only patch.",
+    "JFR, original logs and XML remain local in ignored build output; summaries omit local environment paths and logs."
+  ]
+}
