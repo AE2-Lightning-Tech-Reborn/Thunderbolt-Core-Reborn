@@ -1,0 +1,4510 @@
+{
+  "date": "2026-10-09",
+  "tested_commit": "70a138d02de91dbcd44876fc730c2c2666c3cf9d",
+  "tested_tree": "69342a6993957c94d50760088c30685e378cae17",
+  "production_source_tree": "48f901cc658c35d9b903809a8e1906f83d08d0e3",
+  "environment": {
+    "java": 17,
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10"
+  },
+  "outcome": "PASS",
+  "production_changed": false,
+  "production_budgets_changed": false,
+  "tracked_tests_changed": false,
+  "first_full_build": {
+    "label": "full-build",
+    "exit_code": 0,
+    "seconds": 213.112,
+    "test": {
+      "total": 1364,
+      "passed": 1363,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 1,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "test": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+          "status": "skipped",
+          "message": "Assumption failed: Optional EAEP artifact not supplied"
+        }
+      ]
+    },
+    "externalPlannerBoundaryTest": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "cpSatColdRefinementTest": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "materialDagColdReplayTest": {
+      "total": 20,
+      "passed": 20,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    }
+  },
+  "combined_test": {
+    "total": 1402,
+    "passed": 1401,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "first_failure_details": [],
+  "coverage": {
+    "ordinary_tests": 1364,
+    "boundary_tests": 38,
+    "default_total": 1402,
+    "partitions_disjoint": true,
+    "identical_to_repaired_test_manifest": true,
+    "boundary_repeat_manifests": [
+      true,
+      true,
+      true
+    ]
+  },
+  "checks": [
+    {
+      "kind": "pressure",
+      "mode": "compile",
+      "exit_code": 0,
+      "seconds": 4.567
+    },
+    {
+      "kind": "pressure",
+      "mode": "ordinary",
+      "exit_code": 0,
+      "seconds": 67.93
+    },
+    {
+      "kind": "pressure",
+      "mode": "allocation",
+      "exit_code": 0,
+      "seconds": 17.765
+    },
+    {
+      "kind": "pressure",
+      "mode": "batch",
+      "exit_code": 0,
+      "seconds": 5.174
+    },
+    {
+      "kind": "pressure",
+      "mode": "channel",
+      "exit_code": 0,
+      "seconds": 327.221
+    },
+    {
+      "kind": "pressure",
+      "mode": "storage",
+      "exit_code": 0,
+      "seconds": 33.681
+    },
+    {
+      "kind": "pressure",
+      "mode": "cpsat",
+      "exit_code": 0,
+      "seconds": 171.665
+    },
+    {
+      "kind": "pressure",
+      "mode": "soak",
+      "exit_code": 0,
+      "seconds": 66.536
+    },
+    {
+      "kind": "pressure",
+      "mode": "isolated",
+      "exit_code": 0,
+      "seconds": 61.313
+    },
+    {
+      "kind": "pressure",
+      "mode": "boundary",
+      "exit_code": 0,
+      "seconds": 5.748
+    },
+    {
+      "kind": "release_script",
+      "exit_code": 0,
+      "tests": 12,
+      "passed": true
+    },
+    {
+      "kind": "awr_adapter",
+      "exit_code": 0,
+      "tests": 4,
+      "skipped": 1,
+      "passed": true
+    },
+    {
+      "kind": "forge_game",
+      "mode": "auto",
+      "exit_code": 0,
+      "required_passed": 10,
+      "v2_selection_records": 9,
+      "mixin_failures": 0,
+      "forced_stand_down_observed": false,
+      "real_gtlcore_installed": false
+    },
+    {
+      "kind": "forge_game",
+      "mode": "always",
+      "exit_code": 0,
+      "required_passed": 10,
+      "v2_selection_records": 9,
+      "mixin_failures": 0,
+      "forced_stand_down_observed": true,
+      "real_gtlcore_installed": false
+    }
+  ],
+  "pressure_passed": true,
+  "counts": {
+    "pressure_jvms": 81,
+    "ordinary_measured_queries": 864,
+    "allocation_cases": 2952,
+    "batch_stock_cases": 60000,
+    "batch_provider_cases": 6000,
+    "channel_measured_samples": 288,
+    "channel_oracle_cases": 20000,
+    "storage_measured_operations": 720000,
+    "cycle_measured_samples": 432,
+    "cycle_warmup_samples": 108,
+    "concurrent_measured_queries": 4800,
+    "concurrent_warmup_queries": 960,
+    "isolated_tests": 30,
+    "boundary_repeat_tests": 114
+  },
+  "batch_seeds": [
+    20261012,
+    20261013,
+    20261014
+  ],
+  "cutoffs": {
+    "admission_wide_18000": 36,
+    "cycle_measured_budget_exits": 432,
+    "cycle_measured_incomplete": 0,
+    "cycle_warmup_budget_exits": 108,
+    "concurrent_measured_budget_exits": 2400
+  },
+  "cycle_replenishment_replans": {
+    "replans": 216,
+    "warmup_replans": 54,
+    "successful_replans": 216,
+    "successful_warmup_replans": 54
+  },
+  "pressure": {
+    "ordinary": [
+      {
+        "label": "plannerstress-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 3.515,
+        "peak_working_set_mib": 295.531,
+        "sampled_peak_private_mib": 417.953,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "chain-10000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 15.176,
+              "p95_ms": 26.851,
+              "max_ms": 26.851,
+              "alloc_mib": 6.773,
+              "gc_ms": 16,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "wide-16000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 27.835,
+              "p95_ms": 37.477,
+              "max_ms": 37.477,
+              "alloc_mib": 14.824,
+              "gc_ms": 10,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "session-wide-4096-8probes",
+              "samples": 12,
+              "probes_per_sample": 8,
+              "queries": 96,
+              "p50_ms": 11.374,
+              "p95_ms": 18.111,
+              "max_ms": 18.111,
+              "alloc_mib": 12.769,
+              "gc_ms": 6,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "session-chain-2000-8probes",
+              "samples": 12,
+              "probes_per_sample": 8,
+              "queries": 96,
+              "p50_ms": 4.66,
+              "p95_ms": 6.109,
+              "max_ms": 6.109,
+              "alloc_mib": 5.713,
+              "gc_ms": 1,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "wide-256-unrelated-100000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 0.252,
+              "p95_ms": 0.314,
+              "max_ms": 0.314,
+              "alloc_mib": 0.24,
+              "gc_ms": 0,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "admission-wide-18000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 2.028,
+              "p95_ms": 2.214,
+              "max_ms": 2.214,
+              "alloc_mib": 1.529,
+              "gc_ms": 0,
+              "budget_exits": 12,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "sidestress-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 12.613,
+        "peak_working_set_mib": 441.57,
+        "sampled_peak_private_mib": 537.141,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "side-4096-quantity-1",
+              "samples": 12,
+              "warmup": 1,
+              "p50_ms": 326.545,
+              "p95_ms": 408.081,
+              "alloc_mib": 157.38,
+              "budget_exits": 0,
+              "incomplete": 0,
+              "status": "PASS",
+              "incomplete_records": []
+            },
+            {
+              "scenario": "side-4096-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 1,
+              "p50_ms": 362.615,
+              "p95_ms": 511.981,
+              "alloc_mib": 164.885,
+              "budget_exits": 0,
+              "incomplete": 0,
+              "status": "PASS",
+              "incomplete_records": []
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "certificatestress-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 12.694,
+        "peak_working_set_mib": 307.09,
+        "sampled_peak_private_mib": 439.047,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "certificate-4096-quantity-1",
+              "samples": 12,
+              "warmup": 3,
+              "p50_ms": 21.856,
+              "p95_ms": 35.982,
+              "alloc_mib": 9.145,
+              "status": "PASS"
+            },
+            {
+              "scenario": "certificate-4096-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "p50_ms": 22.914,
+              "p95_ms": 38.948,
+              "alloc_mib": 13.083,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "plannerstress-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.388,
+        "peak_working_set_mib": 252.422,
+        "sampled_peak_private_mib": 374.535,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "chain-10000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 14.682,
+              "p95_ms": 24.027,
+              "max_ms": 24.027,
+              "alloc_mib": 7.023,
+              "gc_ms": 10,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "wide-16000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 25.625,
+              "p95_ms": 36.7,
+              "max_ms": 36.7,
+              "alloc_mib": 15.313,
+              "gc_ms": 11,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "session-wide-4096-8probes",
+              "samples": 12,
+              "probes_per_sample": 8,
+              "queries": 96,
+              "p50_ms": 13.12,
+              "p95_ms": 18.479,
+              "max_ms": 18.479,
+              "alloc_mib": 12.769,
+              "gc_ms": 8,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "session-chain-2000-8probes",
+              "samples": 12,
+              "probes_per_sample": 8,
+              "queries": 96,
+              "p50_ms": 4.664,
+              "p95_ms": 6.152,
+              "max_ms": 6.152,
+              "alloc_mib": 5.713,
+              "gc_ms": 1,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "wide-256-unrelated-100000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 0.389,
+              "p95_ms": 0.862,
+              "max_ms": 0.862,
+              "alloc_mib": 0.24,
+              "gc_ms": 0,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "admission-wide-18000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 2.368,
+              "p95_ms": 3.044,
+              "max_ms": 3.044,
+              "alloc_mib": 1.529,
+              "gc_ms": 0,
+              "budget_exits": 12,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "sidestress-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 11.841,
+        "peak_working_set_mib": 568.906,
+        "sampled_peak_private_mib": 662.961,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "side-4096-quantity-1",
+              "samples": 12,
+              "warmup": 1,
+              "p50_ms": 339.9,
+              "p95_ms": 461.178,
+              "alloc_mib": 158.229,
+              "budget_exits": 0,
+              "incomplete": 0,
+              "status": "PASS",
+              "incomplete_records": []
+            },
+            {
+              "scenario": "side-4096-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 1,
+              "p50_ms": 396.685,
+              "p95_ms": 706.162,
+              "alloc_mib": 164.134,
+              "budget_exits": 0,
+              "incomplete": 0,
+              "status": "PASS",
+              "incomplete_records": []
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "certificatestress-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.586,
+        "peak_working_set_mib": 319.199,
+        "sampled_peak_private_mib": 474.777,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "certificate-4096-quantity-1",
+              "samples": 12,
+              "warmup": 3,
+              "p50_ms": 24.521,
+              "p95_ms": 53.123,
+              "alloc_mib": 9.145,
+              "status": "PASS"
+            },
+            {
+              "scenario": "certificate-4096-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "p50_ms": 42.593,
+              "p95_ms": 77.963,
+              "alloc_mib": 13.083,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "plannerstress-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.905,
+        "peak_working_set_mib": 296.848,
+        "sampled_peak_private_mib": 418.68,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "chain-10000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 14.148,
+              "p95_ms": 22.014,
+              "max_ms": 22.014,
+              "alloc_mib": 6.94,
+              "gc_ms": 12,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "wide-16000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 29.738,
+              "p95_ms": 44.896,
+              "max_ms": 44.896,
+              "alloc_mib": 14.824,
+              "gc_ms": 9,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "session-wide-4096-8probes",
+              "samples": 12,
+              "probes_per_sample": 8,
+              "queries": 96,
+              "p50_ms": 11.462,
+              "p95_ms": 15.74,
+              "max_ms": 15.74,
+              "alloc_mib": 12.769,
+              "gc_ms": 5,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "session-chain-2000-8probes",
+              "samples": 12,
+              "probes_per_sample": 8,
+              "queries": 96,
+              "p50_ms": 4.755,
+              "p95_ms": 6.197,
+              "max_ms": 6.197,
+              "alloc_mib": 5.713,
+              "gc_ms": 2,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "wide-256-unrelated-100000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 0.269,
+              "p95_ms": 0.348,
+              "max_ms": 0.348,
+              "alloc_mib": 0.24,
+              "gc_ms": 0,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "admission-wide-18000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 2.291,
+              "p95_ms": 2.506,
+              "max_ms": 2.506,
+              "alloc_mib": 1.529,
+              "gc_ms": 0,
+              "budget_exits": 12,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "sidestress-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 15.04,
+        "peak_working_set_mib": 463.906,
+        "sampled_peak_private_mib": 560.504,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "side-4096-quantity-1",
+              "samples": 12,
+              "warmup": 1,
+              "p50_ms": 435.23,
+              "p95_ms": 639.538,
+              "alloc_mib": 157.755,
+              "budget_exits": 0,
+              "incomplete": 0,
+              "status": "PASS",
+              "incomplete_records": []
+            },
+            {
+              "scenario": "side-4096-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 1,
+              "p50_ms": 383.312,
+              "p95_ms": 572.369,
+              "alloc_mib": 164.635,
+              "budget_exits": 0,
+              "incomplete": 0,
+              "status": "PASS",
+              "incomplete_records": []
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "certificatestress-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 3.952,
+        "peak_working_set_mib": 326.66,
+        "sampled_peak_private_mib": 456.367,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "certificate-4096-quantity-1",
+              "samples": 12,
+              "warmup": 3,
+              "p50_ms": 26.038,
+              "p95_ms": 34.261,
+              "alloc_mib": 9.145,
+              "status": "PASS"
+            },
+            {
+              "scenario": "certificate-4096-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "p50_ms": 41.438,
+              "p95_ms": 56.954,
+              "alloc_mib": 13.083,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      }
+    ],
+    "allocation": [
+      {
+        "label": "allocation-v2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.006,
+        "peak_working_set_mib": 285.539,
+        "sampled_peak_private_mib": 416.309,
+        "result": {
+          "solver": "v2",
+          "cases": 1476,
+          "feasible": 898,
+          "incomplete": 0,
+          "replenishments": 578,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "allocation-cpsat",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 15.569,
+        "peak_working_set_mib": 396.461,
+        "sampled_peak_private_mib": 506.531,
+        "result": {
+          "solver": "cp_sat",
+          "cases": 1476,
+          "feasible": 898,
+          "incomplete": 0,
+          "replenishments": 578,
+          "failures": []
+        },
+        "validation_errors": []
+      }
+    ],
+    "batch": [
+      {
+        "label": "batch-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.562,
+        "peak_working_set_mib": 248.863,
+        "sampled_peak_private_mib": 380.801,
+        "result": {
+          "seed": 20261012,
+          "provider_cases": 2000,
+          "preparation_exceptions": 752,
+          "trillion_quantity_cases": 2858,
+          "status": "PASS",
+          "rejected_or_unavailable": 17767,
+          "limiter_calls": 4531,
+          "cases": 20000,
+          "elapsed_ms": 412.2216
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "batch-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.718,
+        "peak_working_set_mib": 250.738,
+        "sampled_peak_private_mib": 382.062,
+        "result": {
+          "limiter_calls": 4412,
+          "cases": 20000,
+          "elapsed_ms": 392.529,
+          "seed": 20261013,
+          "provider_cases": 2000,
+          "preparation_exceptions": 716,
+          "trillion_quantity_cases": 2858,
+          "status": "PASS",
+          "rejected_or_unavailable": 17851
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "batch-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.766,
+        "peak_working_set_mib": 244.785,
+        "sampled_peak_private_mib": 373.777,
+        "result": {
+          "seed": 20261014,
+          "elapsed_ms": 404.3348,
+          "cases": 20000,
+          "limiter_calls": 4503,
+          "rejected_or_unavailable": 17743,
+          "status": "PASS",
+          "trillion_quantity_cases": 2858,
+          "preparation_exceptions": 749,
+          "provider_cases": 2000
+        },
+        "validation_errors": []
+      }
+    ],
+    "channel": [
+      {
+        "label": "channel-tree-136192-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 10.331,
+        "peak_working_set_mib": 704.371,
+        "sampled_peak_private_mib": 1028.273,
+        "result": {
+          "rows": [
+            {
+              "scenario": "high-tree",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 643.353,
+              "p50_ms": 219.751,
+              "p95_ms": 254.861,
+              "max_ms": 254.861,
+              "alloc_mib": 73.728,
+              "graph_heap_mib": 159.41,
+              "heap_peak_pools_mib": 434.106,
+              "gc_ms": 28,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-dense-136192-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 10.973,
+        "peak_working_set_mib": 685.324,
+        "sampled_peak_private_mib": 753.102,
+        "result": {
+          "rows": [
+            {
+              "scenario": "dense-tree",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 575.657,
+              "p50_ms": 238.22,
+              "p95_ms": 272.417,
+              "max_ms": 272.417,
+              "alloc_mib": 73.728,
+              "graph_heap_mib": 158.932,
+              "heap_peak_pools_mib": 322.4,
+              "gc_ms": 35,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-mesh-136192-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 14.679,
+        "peak_working_set_mib": 635.074,
+        "sampled_peak_private_mib": 681.164,
+        "result": {
+          "rows": [
+            {
+              "scenario": "mesh",
+              "nodes": 272650,
+              "edges": 408368,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 880.371,
+              "p50_ms": 395.839,
+              "p95_ms": 429.906,
+              "max_ms": 429.906,
+              "alloc_mib": 99.09,
+              "graph_heap_mib": 185.539,
+              "heap_peak_pools_mib": 441.647,
+              "gc_ms": 25,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-weighted-512-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 4.794,
+        "peak_working_set_mib": 467.93,
+        "sampled_peak_private_mib": 688.508,
+        "result": {
+          "rows": [
+            {
+              "scenario": "weighted",
+              "nodes": 532,
+              "edges": 531,
+              "max_degree": 3,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 266,
+              "cold_ms": 39.022,
+              "p50_ms": 2.14,
+              "p95_ms": 3.472,
+              "max_ms": 3.472,
+              "alloc_mib": 0.183,
+              "graph_heap_mib": 90.635,
+              "heap_peak_pools_mib": 92.635,
+              "gc_ms": 0,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-chain-50000-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 6.98,
+        "peak_working_set_mib": 545.574,
+        "sampled_peak_private_mib": 848.832,
+        "result": {
+          "rows": [
+            {
+              "scenario": "chain",
+              "nodes": 50267,
+              "edges": 50266,
+              "max_degree": 2,
+              "sources": 266,
+              "demand": 1,
+              "flow": 1,
+              "winners": 1,
+              "cold_ms": 136.99,
+              "p50_ms": 38.67,
+              "p95_ms": 45.554,
+              "max_ms": 45.554,
+              "alloc_mib": 16.332,
+              "graph_heap_mib": 105.664,
+              "heap_peak_pools_mib": 250.239,
+              "gc_ms": 8,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-comb-100000-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 9.721,
+        "peak_working_set_mib": 735.945,
+        "sampled_peak_private_mib": 1095.219,
+        "result": {
+          "rows": [
+            {
+              "scenario": "comb",
+              "nodes": 200266,
+              "edges": 200265,
+              "max_degree": 3,
+              "sources": 266,
+              "demand": 100000,
+              "flow": 100000,
+              "winners": 100000,
+              "cold_ms": 566.356,
+              "p50_ms": 146.458,
+              "p95_ms": 173.107,
+              "max_ms": 173.107,
+              "alloc_mib": 66.742,
+              "graph_heap_mib": 151.058,
+              "heap_peak_pools_mib": 483.343,
+              "gc_ms": 22,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-vanilla-136192-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 11.384,
+        "peak_working_set_mib": 646.645,
+        "sampled_peak_private_mib": 924.055,
+        "result": {
+          "rows": [
+            {
+              "scenario": "vanilla-faces",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 0,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 577.222,
+              "p50_ms": 242.284,
+              "p95_ms": 283.457,
+              "max_ms": 283.457,
+              "alloc_mib": 74.025,
+              "graph_heap_mib": 159.12,
+              "heap_peak_pools_mib": 381.086,
+              "gc_ms": 28,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-tree-200000-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 11.83,
+        "peak_working_set_mib": 713.324,
+        "sampled_peak_private_mib": 810.434,
+        "result": {
+          "rows": [
+            {
+              "scenario": "high-tree",
+              "nodes": 290706,
+              "edges": 290705,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 200000,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 651.615,
+              "p50_ms": 243.967,
+              "p95_ms": 541.931,
+              "max_ms": 541.931,
+              "alloc_mib": 90.463,
+              "graph_heap_mib": 179.919,
+              "heap_peak_pools_mib": 399.353,
+              "gc_ms": 32,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-tree-136192-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 34.834,
+        "peak_working_set_mib": 743.328,
+        "sampled_peak_private_mib": 1217.77,
+        "result": {
+          "rows": [
+            {
+              "scenario": "high-tree",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 684.105,
+              "p50_ms": 219.644,
+              "p95_ms": 235.134,
+              "max_ms": 235.134,
+              "alloc_mib": 73.728,
+              "graph_heap_mib": 159.576,
+              "heap_peak_pools_mib": 554.589,
+              "gc_ms": 14,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-dense-136192-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 11.76,
+        "peak_working_set_mib": 682.18,
+        "sampled_peak_private_mib": 1094.191,
+        "result": {
+          "rows": [
+            {
+              "scenario": "dense-tree",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 586.458,
+              "p50_ms": 228.566,
+              "p95_ms": 539.314,
+              "max_ms": 539.314,
+              "alloc_mib": 73.728,
+              "graph_heap_mib": 158.967,
+              "heap_peak_pools_mib": 511.932,
+              "gc_ms": 24,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-mesh-136192-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 14.914,
+        "peak_working_set_mib": 674.043,
+        "sampled_peak_private_mib": 837.195,
+        "result": {
+          "rows": [
+            {
+              "scenario": "mesh",
+              "nodes": 272650,
+              "edges": 408368,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 804.019,
+              "p50_ms": 401.685,
+              "p95_ms": 410.128,
+              "max_ms": 410.128,
+              "alloc_mib": 99.09,
+              "graph_heap_mib": 185.577,
+              "heap_peak_pools_mib": 360.409,
+              "gc_ms": 62,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-weighted-512-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 4.923,
+        "peak_working_set_mib": 469.641,
+        "sampled_peak_private_mib": 663.828,
+        "result": {
+          "rows": [
+            {
+              "scenario": "weighted",
+              "nodes": 532,
+              "edges": 531,
+              "max_degree": 3,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 266,
+              "cold_ms": 25.004,
+              "p50_ms": 2.229,
+              "p95_ms": 2.442,
+              "max_ms": 2.442,
+              "alloc_mib": 0.183,
+              "graph_heap_mib": 90.613,
+              "heap_peak_pools_mib": 92.613,
+              "gc_ms": 0,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-chain-50000-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 6.073,
+        "peak_working_set_mib": 522.047,
+        "sampled_peak_private_mib": 824.773,
+        "result": {
+          "rows": [
+            {
+              "scenario": "chain",
+              "nodes": 50267,
+              "edges": 50266,
+              "max_degree": 2,
+              "sources": 266,
+              "demand": 1,
+              "flow": 1,
+              "winners": 1,
+              "cold_ms": 139.114,
+              "p50_ms": 31.304,
+              "p95_ms": 35.069,
+              "max_ms": 35.069,
+              "alloc_mib": 16.332,
+              "graph_heap_mib": 105.616,
+              "heap_peak_pools_mib": 250.137,
+              "gc_ms": 7,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-comb-100000-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 19.27,
+        "peak_working_set_mib": 676.188,
+        "sampled_peak_private_mib": 834.594,
+        "result": {
+          "rows": [
+            {
+              "scenario": "comb",
+              "nodes": 200266,
+              "edges": 200265,
+              "max_degree": 3,
+              "sources": 266,
+              "demand": 100000,
+              "flow": 100000,
+              "winners": 100000,
+              "cold_ms": 513.794,
+              "p50_ms": 145.769,
+              "p95_ms": 163.238,
+              "max_ms": 163.238,
+              "alloc_mib": 66.742,
+              "graph_heap_mib": 151.081,
+              "heap_peak_pools_mib": 386.364,
+              "gc_ms": 21,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-vanilla-136192-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 12.901,
+        "peak_working_set_mib": 646.363,
+        "sampled_peak_private_mib": 922.109,
+        "result": {
+          "rows": [
+            {
+              "scenario": "vanilla-faces",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 0,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 554.88,
+              "p50_ms": 242.299,
+              "p95_ms": 401.221,
+              "max_ms": 401.221,
+              "alloc_mib": 74.025,
+              "graph_heap_mib": 159.057,
+              "heap_peak_pools_mib": 375.754,
+              "gc_ms": 27,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-tree-200000-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 12.212,
+        "peak_working_set_mib": 710.895,
+        "sampled_peak_private_mib": 812.621,
+        "result": {
+          "rows": [
+            {
+              "scenario": "high-tree",
+              "nodes": 290706,
+              "edges": 290705,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 200000,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 696.873,
+              "p50_ms": 235.771,
+              "p95_ms": 397.87,
+              "max_ms": 397.87,
+              "alloc_mib": 90.463,
+              "graph_heap_mib": 179.913,
+              "heap_peak_pools_mib": 449.879,
+              "gc_ms": 15,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-tree-136192-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 25.946,
+        "peak_working_set_mib": 648.227,
+        "sampled_peak_private_mib": 897.445,
+        "result": {
+          "rows": [
+            {
+              "scenario": "high-tree",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 640.891,
+              "p50_ms": 224.839,
+              "p95_ms": 267.833,
+              "max_ms": 267.833,
+              "alloc_mib": 73.728,
+              "graph_heap_mib": 159.354,
+              "heap_peak_pools_mib": 369.331,
+              "gc_ms": 36,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-dense-136192-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 22.508,
+        "peak_working_set_mib": 664.891,
+        "sampled_peak_private_mib": 893.363,
+        "result": {
+          "rows": [
+            {
+              "scenario": "dense-tree",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 620.71,
+              "p50_ms": 221.724,
+              "p95_ms": 234.331,
+              "max_ms": 234.331,
+              "alloc_mib": 73.728,
+              "graph_heap_mib": 159.051,
+              "heap_peak_pools_mib": 362.031,
+              "gc_ms": 39,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-mesh-136192-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 15.943,
+        "peak_working_set_mib": 684.453,
+        "sampled_peak_private_mib": 892.379,
+        "result": {
+          "rows": [
+            {
+              "scenario": "mesh",
+              "nodes": 272650,
+              "edges": 408368,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 741.389,
+              "p50_ms": 401.187,
+              "p95_ms": 415.199,
+              "max_ms": 415.199,
+              "alloc_mib": 99.09,
+              "graph_heap_mib": 185.646,
+              "heap_peak_pools_mib": 387.975,
+              "gc_ms": 57,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-weighted-512-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 5.069,
+        "peak_working_set_mib": 466.457,
+        "sampled_peak_private_mib": 661.211,
+        "result": {
+          "rows": [
+            {
+              "scenario": "weighted",
+              "nodes": 532,
+              "edges": 531,
+              "max_degree": 3,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 266,
+              "cold_ms": 31.828,
+              "p50_ms": 2.48,
+              "p95_ms": 3.56,
+              "max_ms": 3.56,
+              "alloc_mib": 0.183,
+              "graph_heap_mib": 90.449,
+              "heap_peak_pools_mib": 92.449,
+              "gc_ms": 0,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-chain-50000-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 7.13,
+        "peak_working_set_mib": 521.992,
+        "sampled_peak_private_mib": 906.418,
+        "result": {
+          "rows": [
+            {
+              "scenario": "chain",
+              "nodes": 50267,
+              "edges": 50266,
+              "max_degree": 2,
+              "sources": 266,
+              "demand": 1,
+              "flow": 1,
+              "winners": 1,
+              "cold_ms": 134.575,
+              "p50_ms": 31.364,
+              "p95_ms": 37.402,
+              "max_ms": 37.402,
+              "alloc_mib": 16.332,
+              "graph_heap_mib": 105.675,
+              "heap_peak_pools_mib": 232.059,
+              "gc_ms": 9,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-comb-100000-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 13.712,
+        "peak_working_set_mib": 685.316,
+        "sampled_peak_private_mib": 1028.082,
+        "result": {
+          "rows": [
+            {
+              "scenario": "comb",
+              "nodes": 200266,
+              "edges": 200265,
+              "max_degree": 3,
+              "sources": 266,
+              "demand": 100000,
+              "flow": 100000,
+              "winners": 100000,
+              "cold_ms": 603.472,
+              "p50_ms": 146.379,
+              "p95_ms": 158.133,
+              "max_ms": 158.133,
+              "alloc_mib": 66.742,
+              "graph_heap_mib": 151.227,
+              "heap_peak_pools_mib": 475.014,
+              "gc_ms": 24,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-vanilla-136192-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 14.601,
+        "peak_working_set_mib": 670.66,
+        "sampled_peak_private_mib": 1061.027,
+        "result": {
+          "rows": [
+            {
+              "scenario": "vanilla-faces",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 0,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 553.592,
+              "p50_ms": 246.247,
+              "p95_ms": 272.852,
+              "max_ms": 272.852,
+              "alloc_mib": 74.025,
+              "graph_heap_mib": 158.964,
+              "heap_peak_pools_mib": 445.934,
+              "gc_ms": 30,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-tree-200000-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 12.829,
+        "peak_working_set_mib": 759.156,
+        "sampled_peak_private_mib": 1189.766,
+        "result": {
+          "rows": [
+            {
+              "scenario": "high-tree",
+              "nodes": 290706,
+              "edges": 290705,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 200000,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 582.708,
+              "p50_ms": 247.08,
+              "p95_ms": 287.755,
+              "max_ms": 287.755,
+              "alloc_mib": 90.463,
+              "graph_heap_mib": 180.002,
+              "heap_peak_pools_mib": 543.696,
+              "gc_ms": 23,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "channel-oracle-20000",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 11.055,
+        "peak_working_set_mib": 490.859,
+        "sampled_peak_private_mib": 526.754,
+        "result": {
+          "rows": []
+        },
+        "oracle_pass": 20000,
+        "validation_errors": []
+      }
+    ],
+    "storage": [
+      {
+        "label": "storage-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 10.119,
+        "peak_working_set_mib": 985.562,
+        "sampled_peak_private_mib": 1097.867,
+        "result": {
+          "rows": [
+            {
+              "scenario": "legacy-long",
+              "keys": 10000,
+              "measured_operations": 120000,
+              "operation_p50_ns": 288.0,
+              "operation_p95_ns": 747.0,
+              "bytes_per_operation_with_oracle": 127.0,
+              "persist_p50_ms": 0.285,
+              "persist_p95_ms": 6.034,
+              "load_p50_ms": 21.539,
+              "load_p95_ms": 81.536,
+              "compaction_reinsertion": "PASS",
+              "status": "PASS"
+            },
+            {
+              "scenario": "exact-150digits",
+              "keys": 10000,
+              "measured_operations": 120000,
+              "operation_p50_ns": 1938.6,
+              "operation_p95_ns": 2596.8,
+              "bytes_per_operation_with_oracle": 1922.0,
+              "persist_p50_ms": 4.809,
+              "persist_p95_ms": 6.483,
+              "load_p50_ms": 27.211,
+              "load_p95_ms": 36.8,
+              "compaction_reinsertion": "PASS",
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "storage-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 14.873,
+        "peak_working_set_mib": 792.902,
+        "sampled_peak_private_mib": 831.629,
+        "result": {
+          "rows": [
+            {
+              "scenario": "legacy-long",
+              "keys": 10000,
+              "measured_operations": 120000,
+              "operation_p50_ns": 303.9,
+              "operation_p95_ns": 626.9,
+              "bytes_per_operation_with_oracle": 127.0,
+              "persist_p50_ms": 0.279,
+              "persist_p95_ms": 0.504,
+              "load_p50_ms": 22.843,
+              "load_p95_ms": 76.456,
+              "compaction_reinsertion": "PASS",
+              "status": "PASS"
+            },
+            {
+              "scenario": "exact-150digits",
+              "keys": 10000,
+              "measured_operations": 120000,
+              "operation_p50_ns": 1637.1,
+              "operation_p95_ns": 2425.6,
+              "bytes_per_operation_with_oracle": 1922.0,
+              "persist_p50_ms": 4.509,
+              "persist_p95_ms": 6.876,
+              "load_p50_ms": 27.588,
+              "load_p95_ms": 32.251,
+              "compaction_reinsertion": "PASS",
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "storage-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 8.256,
+        "peak_working_set_mib": 723.039,
+        "sampled_peak_private_mib": 746.582,
+        "result": {
+          "rows": [
+            {
+              "scenario": "legacy-long",
+              "keys": 10000,
+              "measured_operations": 120000,
+              "operation_p50_ns": 268.5,
+              "operation_p95_ns": 877.6,
+              "bytes_per_operation_with_oracle": 127.0,
+              "persist_p50_ms": 0.279,
+              "persist_p95_ms": 1.247,
+              "load_p50_ms": 17.673,
+              "load_p95_ms": 61.959,
+              "compaction_reinsertion": "PASS",
+              "status": "PASS"
+            },
+            {
+              "scenario": "exact-150digits",
+              "keys": 10000,
+              "measured_operations": 120000,
+              "operation_p50_ns": 1462.0,
+              "operation_p95_ns": 2780.1,
+              "bytes_per_operation_with_oracle": 1922.0,
+              "persist_p50_ms": 4.325,
+              "persist_p95_ms": 6.525,
+              "load_p50_ms": 28.953,
+              "load_p95_ms": 45.71,
+              "compaction_reinsertion": "PASS",
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      }
+    ],
+    "cpsat": [
+      {
+        "label": "cpsat-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 35.736,
+        "peak_working_set_mib": 386.867,
+        "sampled_peak_private_mib": 493.867,
+        "result": {
+          "rows": [
+            {
+              "scenario": "cycles-2-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 193.8405,
+              "p50_ms": 13.9514,
+              "p95_ms": 30.0436,
+              "max_ms": 30.0436,
+              "alloc_mib": 0.5409774780273438,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-2-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 262.4335,
+              "p50_ms": 241.13,
+              "p95_ms": 259.4362,
+              "max_ms": 259.4362,
+              "alloc_mib": 5.1836090087890625,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-2-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 8.467,
+              "p50_ms": 7.1859,
+              "p95_ms": 10.0057,
+              "max_ms": 10.0057,
+              "alloc_mib": 0.53656005859375,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-2-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 238.5183,
+              "p50_ms": 231.5987,
+              "p95_ms": 250.483,
+              "max_ms": 250.483,
+              "alloc_mib": 5.890830993652344,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 9.8551,
+              "p50_ms": 9.1244,
+              "p95_ms": 11.4871,
+              "max_ms": 11.4871,
+              "alloc_mib": 1.0946884155273438,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 263.287,
+              "p50_ms": 258.9689,
+              "p95_ms": 264.3352,
+              "max_ms": 264.3352,
+              "alloc_mib": 8.620948791503906,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 9.5344,
+              "p50_ms": 10.6036,
+              "p95_ms": 12.3311,
+              "max_ms": 12.3311,
+              "alloc_mib": 1.0999755859375,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 258.8616,
+              "p50_ms": 258.4771,
+              "p95_ms": 260.4274,
+              "max_ms": 260.4274,
+              "alloc_mib": 7.5860748291015625,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 16.8675,
+              "p50_ms": 16.9302,
+              "p95_ms": 21.3606,
+              "max_ms": 21.3606,
+              "alloc_mib": 2.586944580078125,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 265.969,
+              "p50_ms": 264.3149,
+              "p95_ms": 277.812,
+              "max_ms": 277.812,
+              "alloc_mib": 17.6051025390625,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 18.3729,
+              "p50_ms": 16.6551,
+              "p95_ms": 21.7991,
+              "max_ms": 21.7991,
+              "alloc_mib": 2.634613037109375,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 266.9099,
+              "p50_ms": 261.944,
+              "p95_ms": 264.9511,
+              "max_ms": 264.9511,
+              "alloc_mib": 16.916641235351562,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "cpsat-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 39.895,
+        "peak_working_set_mib": 388.168,
+        "sampled_peak_private_mib": 493.422,
+        "result": {
+          "rows": [
+            {
+              "scenario": "cycles-2-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 190.9816,
+              "p50_ms": 13.8612,
+              "p95_ms": 16.6039,
+              "max_ms": 16.6039,
+              "alloc_mib": 0.5410995483398438,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-2-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 263.4219,
+              "p50_ms": 235.3016,
+              "p95_ms": 240.5045,
+              "max_ms": 240.5045,
+              "alloc_mib": 5.202789306640625,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-2-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 10.8717,
+              "p50_ms": 7.9947,
+              "p95_ms": 10.0928,
+              "max_ms": 10.0928,
+              "alloc_mib": 0.53656005859375,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-2-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 238.0187,
+              "p50_ms": 242.0708,
+              "p95_ms": 265.9271,
+              "max_ms": 265.9271,
+              "alloc_mib": 5.877410888671875,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 11.5687,
+              "p50_ms": 10.7352,
+              "p95_ms": 11.6324,
+              "max_ms": 11.6324,
+              "alloc_mib": 1.1267318725585938,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 259.4628,
+              "p50_ms": 258.3889,
+              "p95_ms": 279.4481,
+              "max_ms": 279.4481,
+              "alloc_mib": 8.791481018066406,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 8.5305,
+              "p50_ms": 8.5283,
+              "p95_ms": 10.5606,
+              "max_ms": 10.5606,
+              "alloc_mib": 1.0960693359375,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 258.2843,
+              "p50_ms": 258.7526,
+              "p95_ms": 260.3329,
+              "max_ms": 260.3329,
+              "alloc_mib": 7.516426086425781,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 16.5834,
+              "p50_ms": 16.8714,
+              "p95_ms": 24.5237,
+              "max_ms": 24.5237,
+              "alloc_mib": 2.5784912109375,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 263.9055,
+              "p50_ms": 266.9054,
+              "p95_ms": 275.0011,
+              "max_ms": 275.0011,
+              "alloc_mib": 17.578079223632812,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 17.4787,
+              "p50_ms": 17.7843,
+              "p95_ms": 20.2775,
+              "max_ms": 20.2775,
+              "alloc_mib": 2.6273574829101562,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 2103.7706,
+              "p50_ms": 265.0675,
+              "p95_ms": 269.9163,
+              "max_ms": 269.9163,
+              "alloc_mib": 16.89532470703125,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "cpsat-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 92.884,
+        "peak_working_set_mib": 393.719,
+        "sampled_peak_private_mib": 502.074,
+        "result": {
+          "rows": [
+            {
+              "scenario": "cycles-2-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 175.9194,
+              "p50_ms": 11.8552,
+              "p95_ms": 16.4531,
+              "max_ms": 16.4531,
+              "alloc_mib": 0.5410079956054688,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-2-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 262.2423,
+              "p50_ms": 241.0019,
+              "p95_ms": 250.4306,
+              "max_ms": 250.4306,
+              "alloc_mib": 5.219245910644531,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-2-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 8.6238,
+              "p50_ms": 7.1252,
+              "p95_ms": 10.2373,
+              "max_ms": 10.2373,
+              "alloc_mib": 0.53753662109375,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-2-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 238.6051,
+              "p50_ms": 233.035,
+              "p95_ms": 237.7715,
+              "max_ms": 237.7715,
+              "alloc_mib": 5.899955749511719,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 11.9223,
+              "p50_ms": 11.0269,
+              "p95_ms": 19.1729,
+              "max_ms": 19.1729,
+              "alloc_mib": 1.1267318725585938,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 260.8632,
+              "p50_ms": 259.0147,
+              "p95_ms": 260.5759,
+              "max_ms": 260.5759,
+              "alloc_mib": 8.773956298828125,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 9.5886,
+              "p50_ms": 8.9058,
+              "p95_ms": 11.0096,
+              "max_ms": 11.0096,
+              "alloc_mib": 1.0968017578125,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-4-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 258.5473,
+              "p50_ms": 258.6423,
+              "p95_ms": 264.192,
+              "max_ms": 264.192,
+              "alloc_mib": 7.592689514160156,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 16.9495,
+              "p50_ms": 16.7825,
+              "p95_ms": 17.7557,
+              "max_ms": 17.7557,
+              "alloc_mib": 2.585418701171875,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 265.0372,
+              "p50_ms": 264.9518,
+              "p95_ms": 268.4294,
+              "max_ms": 268.4294,
+              "alloc_mib": 17.58130645751953,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 16.4667,
+              "p50_ms": 18.0583,
+              "p95_ms": 37.059,
+              "max_ms": 37.059,
+              "alloc_mib": 2.6329421997070312,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 0,
+              "warmup_replans": 0,
+              "successful_replans": 0,
+              "successful_warmup_replans": 0,
+              "observed_missing_vectors": [
+                {
+                  "missing": {},
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            },
+            {
+              "scenario": "cycles-8-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 265.193,
+              "p50_ms": 263.654,
+              "p95_ms": 267.7097,
+              "max_ms": 267.7097,
+              "alloc_mib": 16.912132263183594,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "replans": 12,
+              "warmup_replans": 3,
+              "successful_replans": 12,
+              "successful_warmup_replans": 3,
+              "observed_missing_vectors": [
+                {
+                  "missing": {
+                    "S": 1
+                  },
+                  "count": 15
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ],
+              "anomaly_count": 15,
+              "failure_anomalies": []
+            }
+          ]
+        },
+        "validation_errors": []
+      }
+    ],
+    "soak": [
+      {
+        "label": "soak-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 40.244,
+        "peak_working_set_mib": 369.969,
+        "sampled_peak_private_mib": 458.848,
+        "result": {
+          "rows": [
+            {
+              "scenario": "four-workers-independent-session-soak",
+              "workers": 4,
+              "queries": 1600,
+              "warmup_queries": 320,
+              "rounds": [
+                {
+                  "round": 0,
+                  "completed_queries": 320,
+                  "heap_after_gc_mib": 12.993118286132812
+                },
+                {
+                  "round": 1,
+                  "completed_queries": 640,
+                  "heap_after_gc_mib": 13.055351257324219
+                },
+                {
+                  "round": 2,
+                  "completed_queries": 960,
+                  "heap_after_gc_mib": 13.046463012695312
+                },
+                {
+                  "round": 3,
+                  "completed_queries": 1280,
+                  "heap_after_gc_mib": 13.063522338867188
+                },
+                {
+                  "round": 4,
+                  "completed_queries": 1600,
+                  "heap_after_gc_mib": 13.077789306640625
+                }
+              ],
+              "budget_exits": 800,
+              "incomplete": 0,
+              "anomalies": [],
+              "p50_ms": 10.9542,
+              "p95_ms": 19.8527,
+              "max_ms": 40.9081,
+              "v2_p50_ms": 8.865,
+              "v2_p95_ms": 15.9805,
+              "cp_sat_p50_ms": 12.8298,
+              "cp_sat_p95_ms": 22.419,
+              "elapsed_ms_with_warmup_gc_validation": 7785.1663,
+              "heap_after_gc_mib": [
+                12.965538024902344,
+                12.993118286132812,
+                13.055351257324219,
+                13.046463012695312,
+                13.063522338867188,
+                13.077789306640625
+              ],
+              "heap_growth_mib": 0.11225128173828125,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "soak-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 13.005,
+        "peak_working_set_mib": 583.945,
+        "sampled_peak_private_mib": 686.367,
+        "result": {
+          "rows": [
+            {
+              "scenario": "four-workers-independent-session-soak",
+              "workers": 4,
+              "queries": 1600,
+              "warmup_queries": 320,
+              "rounds": [
+                {
+                  "heap_after_gc_mib": 13.025604248046875,
+                  "round": 0,
+                  "completed_queries": 320
+                },
+                {
+                  "heap_after_gc_mib": 13.08221435546875,
+                  "round": 1,
+                  "completed_queries": 640
+                },
+                {
+                  "heap_after_gc_mib": 13.081100463867188,
+                  "round": 2,
+                  "completed_queries": 960
+                },
+                {
+                  "heap_after_gc_mib": 13.128982543945312,
+                  "round": 3,
+                  "completed_queries": 1280
+                },
+                {
+                  "heap_after_gc_mib": 13.108932495117188,
+                  "round": 4,
+                  "completed_queries": 1600
+                }
+              ],
+              "budget_exits": 800,
+              "incomplete": 0,
+              "anomalies": [],
+              "p50_ms": 10.9311,
+              "p95_ms": 18.8265,
+              "max_ms": 32.6739,
+              "v2_p50_ms": 8.9717,
+              "v2_p95_ms": 15.7161,
+              "cp_sat_p50_ms": 12.4937,
+              "cp_sat_p95_ms": 20.7416,
+              "elapsed_ms_with_warmup_gc_validation": 7399.5407,
+              "heap_after_gc_mib": [
+                12.99505615234375,
+                13.025604248046875,
+                13.08221435546875,
+                13.081100463867188,
+                13.128982543945312,
+                13.108932495117188
+              ],
+              "heap_growth_mib": 0.1138763427734375,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "soak-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 12.681,
+        "peak_working_set_mib": 349.969,
+        "sampled_peak_private_mib": 454.812,
+        "result": {
+          "rows": [
+            {
+              "scenario": "four-workers-independent-session-soak",
+              "workers": 4,
+              "queries": 1600,
+              "warmup_queries": 320,
+              "rounds": [
+                {
+                  "heap_after_gc_mib": 13.164688110351562,
+                  "completed_queries": 320,
+                  "round": 0
+                },
+                {
+                  "heap_after_gc_mib": 13.230751037597656,
+                  "completed_queries": 640,
+                  "round": 1
+                },
+                {
+                  "heap_after_gc_mib": 13.23236083984375,
+                  "completed_queries": 960,
+                  "round": 2
+                },
+                {
+                  "heap_after_gc_mib": 13.234466552734375,
+                  "completed_queries": 1280,
+                  "round": 3
+                },
+                {
+                  "heap_after_gc_mib": 13.243362426757812,
+                  "completed_queries": 1600,
+                  "round": 4
+                }
+              ],
+              "budget_exits": 800,
+              "incomplete": 0,
+              "anomalies": [],
+              "p50_ms": 10.9536,
+              "p95_ms": 19.6316,
+              "max_ms": 32.3207,
+              "v2_p50_ms": 9.0016,
+              "v2_p95_ms": 15.371,
+              "cp_sat_p50_ms": 12.7904,
+              "cp_sat_p95_ms": 21.7768,
+              "elapsed_ms_with_warmup_gc_validation": 7532.7334,
+              "heap_after_gc_mib": [
+                13.156097412109375,
+                13.164688110351562,
+                13.230751037597656,
+                13.23236083984375,
+                13.234466552734375,
+                13.243362426757812
+              ],
+              "heap_growth_mib": 0.0872650146484375,
+              "status": "PASS"
+            }
+          ]
+        },
+        "validation_errors": []
+      }
+    ],
+    "isolated": [
+      {
+        "label": "isolated-feedback-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.204,
+        "peak_working_set_mib": 88.633,
+        "sampled_peak_private_mib": 360.57,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+          "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 160,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-portfolio-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.378,
+        "peak_working_set_mib": 82.16,
+        "sampled_peak_private_mib": 354.641,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 96,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-quality-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.072,
+        "peak_working_set_mib": 112.848,
+        "sampled_peak_private_mib": 376.449,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "refinementKeepsTheSmallerSupplementAndItStillReplansWithMinimalSearch",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 375,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-default-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.386,
+        "peak_working_set_mib": 123.578,
+        "sampled_peak_private_mib": 382.773,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "boundedSharedCycleKeepsAnExecutableSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 352,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-expiry-initial-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.328,
+        "peak_working_set_mib": 96.023,
+        "sampled_peak_private_mib": 363.906,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "anExpiredRefinementDeadlineKeepsTheLastExecutableSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 288,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-expiry-improved-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.942,
+        "peak_working_set_mib": 107.895,
+        "sampled_peak_private_mib": 372.91,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "anExpiredRefinementAfterAnImprovementKeepsItsCertifiedSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 236,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-feedback-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.541,
+        "peak_working_set_mib": 92.547,
+        "sampled_peak_private_mib": 362.273,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+          "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 181,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-portfolio-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.027,
+        "peak_working_set_mib": 81.027,
+        "sampled_peak_private_mib": 353.344,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 98,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-quality-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.614,
+        "peak_working_set_mib": 137.391,
+        "sampled_peak_private_mib": 378.754,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "refinementKeepsTheSmallerSupplementAndItStillReplansWithMinimalSearch",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 330,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-default-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.933,
+        "peak_working_set_mib": 126.559,
+        "sampled_peak_private_mib": 385.988,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "boundedSharedCycleKeepsAnExecutableSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 360,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-expiry-initial-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.221,
+        "peak_working_set_mib": 108.469,
+        "sampled_peak_private_mib": 377.621,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "anExpiredRefinementDeadlineKeepsTheLastExecutableSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 327,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-expiry-improved-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.412,
+        "peak_working_set_mib": 98.82,
+        "sampled_peak_private_mib": 369.047,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "anExpiredRefinementAfterAnImprovementKeepsItsCertifiedSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 291,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-feedback-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.109,
+        "peak_working_set_mib": 92.613,
+        "sampled_peak_private_mib": 363.195,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+          "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 201,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-portfolio-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.527,
+        "peak_working_set_mib": 79.621,
+        "sampled_peak_private_mib": 351.598,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 115,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-quality-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.349,
+        "peak_working_set_mib": 132.652,
+        "sampled_peak_private_mib": 376.824,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "refinementKeepsTheSmallerSupplementAndItStillReplansWithMinimalSearch",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 449,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-default-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.248,
+        "peak_working_set_mib": 127.25,
+        "sampled_peak_private_mib": 380.359,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "boundedSharedCycleKeepsAnExecutableSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 368,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-expiry-initial-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.069,
+        "peak_working_set_mib": 102.875,
+        "sampled_peak_private_mib": 371.352,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "anExpiredRefinementDeadlineKeepsTheLastExecutableSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 278,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-expiry-improved-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 5.726,
+        "peak_working_set_mib": 109.207,
+        "sampled_peak_private_mib": 376.719,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "anExpiredRefinementAfterAnImprovementKeepsItsCertifiedSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 242,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-feedback-3",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.998,
+        "peak_working_set_mib": 93.531,
+        "sampled_peak_private_mib": 363.68,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+          "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 170,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-portfolio-3",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.94,
+        "peak_working_set_mib": 99.332,
+        "sampled_peak_private_mib": 369.059,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 103,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-quality-3",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.246,
+        "peak_working_set_mib": 108.621,
+        "sampled_peak_private_mib": 375.352,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "refinementKeepsTheSmallerSupplementAndItStillReplansWithMinimalSearch",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 375,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-default-3",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.534,
+        "peak_working_set_mib": 119.109,
+        "sampled_peak_private_mib": 376.016,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "boundedSharedCycleKeepsAnExecutableSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 360,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-expiry-initial-3",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.476,
+        "peak_working_set_mib": 108.973,
+        "sampled_peak_private_mib": 377.801,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "anExpiredRefinementDeadlineKeepsTheLastExecutableSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 263,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-expiry-improved-3",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.099,
+        "peak_working_set_mib": 105.824,
+        "sampled_peak_private_mib": 374.633,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "anExpiredRefinementAfterAnImprovementKeepsItsCertifiedSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 249,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-feedback-4",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.842,
+        "peak_working_set_mib": 95.027,
+        "sampled_peak_private_mib": 367.102,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+          "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 167,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-portfolio-4",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.081,
+        "peak_working_set_mib": 92.617,
+        "sampled_peak_private_mib": 361.16,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 98,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-quality-4",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.737,
+        "peak_working_set_mib": 106.066,
+        "sampled_peak_private_mib": 370.043,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "refinementKeepsTheSmallerSupplementAndItStillReplansWithMinimalSearch",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 369,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-default-4",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.204,
+        "peak_working_set_mib": 130.848,
+        "sampled_peak_private_mib": 389.254,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "boundedSharedCycleKeepsAnExecutableSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 355,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-expiry-initial-4",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.674,
+        "peak_working_set_mib": 104.18,
+        "sampled_peak_private_mib": 375.691,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "anExpiredRefinementDeadlineKeepsTheLastExecutableSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 273,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "isolated-expiry-improved-4",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.608,
+        "peak_working_set_mib": 94.93,
+        "sampled_peak_private_mib": 365.238,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "anExpiredRefinementAfterAnImprovementKeepsItsCertifiedSupplement",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 221,
+          "failures": []
+        },
+        "validation_errors": []
+      }
+    ],
+    "boundary": [
+      {
+        "label": "boundary-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.894,
+        "peak_working_set_mib": 90.797,
+        "sampled_peak_private_mib": 360.863,
+        "result": {
+          "found": 38,
+          "passed": 38,
+          "failed": 0,
+          "elapsed_ms": 328,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "boundary-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 1.621,
+        "peak_working_set_mib": 108.379,
+        "sampled_peak_private_mib": 373.602,
+        "result": {
+          "found": 38,
+          "passed": 38,
+          "failed": 0,
+          "elapsed_ms": 546,
+          "failures": []
+        },
+        "validation_errors": []
+      },
+      {
+        "label": "boundary-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.056,
+        "peak_working_set_mib": 108.461,
+        "sampled_peak_private_mib": 371.051,
+        "result": {
+          "found": 38,
+          "passed": 38,
+          "failed": 0,
+          "elapsed_ms": 558,
+          "failures": []
+        },
+        "validation_errors": []
+      }
+    ]
+  },
+  "pooled_latency_metrics": [
+    {
+      "mode": "ordinary",
+      "scenario": "chain-10000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 14.744,
+      "p95_ms": 24.027,
+      "max_ms": 26.851,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "ordinary",
+      "scenario": "wide-16000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 27.584,
+      "p95_ms": 44.081,
+      "max_ms": 44.896,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "ordinary",
+      "scenario": "session-wide-4096-8probes",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 12.026,
+      "p95_ms": 18.111,
+      "max_ms": 18.479,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "ordinary",
+      "scenario": "session-chain-2000-8probes",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 4.727,
+      "p95_ms": 6.152,
+      "max_ms": 6.197,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "ordinary",
+      "scenario": "wide-256-unrelated-100000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 0.29,
+      "p95_ms": 0.85,
+      "max_ms": 0.862,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "ordinary",
+      "scenario": "admission-wide-18000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 2.275,
+      "p95_ms": 2.628,
+      "max_ms": 3.044,
+      "budget_exits": 36,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "ordinary",
+      "scenario": "side-4096-quantity-1",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 348.953,
+      "p95_ms": 614.725,
+      "max_ms": 639.538,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "ordinary",
+      "scenario": "side-4096-quantity-1000000000000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 379.106,
+      "p95_ms": 572.369,
+      "max_ms": 706.162,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "ordinary",
+      "scenario": "certificate-4096-quantity-1",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 24.855,
+      "p95_ms": 40.415,
+      "max_ms": 53.123,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "ordinary",
+      "scenario": "certificate-4096-quantity-1000000000000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 38.582,
+      "p95_ms": 64.412,
+      "max_ms": 77.963,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "channel",
+      "scenario": "high-tree-demand-136192",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 222.737,
+      "p95_ms": 254.861,
+      "max_ms": 267.833,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "channel",
+      "scenario": "dense-tree-demand-136192",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 227.957,
+      "p95_ms": 272.416,
+      "max_ms": 539.314,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "channel",
+      "scenario": "mesh-demand-136192",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 401.685,
+      "p95_ms": 426.114,
+      "max_ms": 429.906,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "channel",
+      "scenario": "weighted-demand-136192",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 2.252,
+      "p95_ms": 3.472,
+      "max_ms": 3.56,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "channel",
+      "scenario": "chain-demand-1",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 33.37,
+      "p95_ms": 43.107,
+      "max_ms": 45.554,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "channel",
+      "scenario": "comb-demand-100000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 146.458,
+      "p95_ms": 163.238,
+      "max_ms": 173.107,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "channel",
+      "scenario": "vanilla-faces-demand-136192",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 243.738,
+      "p95_ms": 283.457,
+      "max_ms": 401.221,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "channel",
+      "scenario": "high-tree-demand-200000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 238.958,
+      "p95_ms": 397.87,
+      "max_ms": 541.931,
+      "budget_exits": 0,
+      "statuses": {
+        "PASS": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-2-quantity-3",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 13.732,
+      "p95_ms": 23.629,
+      "max_ms": 30.044,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-2-quantity-3-short-seed",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 238.706,
+      "p95_ms": 251.73,
+      "max_ms": 259.436,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-2-quantity-1000000000000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 7.204,
+      "p95_ms": 10.093,
+      "max_ms": 10.237,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-2-quantity-1000000000000-short-seed",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 235.421,
+      "p95_ms": 263.098,
+      "max_ms": 265.927,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-4-quantity-3",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 10.735,
+      "p95_ms": 13.624,
+      "max_ms": 19.173,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-4-quantity-3-short-seed",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 258.915,
+      "p95_ms": 264.335,
+      "max_ms": 279.448,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-4-quantity-1000000000000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 8.995,
+      "p95_ms": 11.611,
+      "max_ms": 12.331,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-4-quantity-1000000000000-short-seed",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 258.713,
+      "p95_ms": 260.427,
+      "max_ms": 264.192,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-8-quantity-3",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 16.919,
+      "p95_ms": 21.361,
+      "max_ms": 24.524,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-8-quantity-3-short-seed",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 265.505,
+      "p95_ms": 275.001,
+      "max_ms": 277.812,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-8-quantity-1000000000000",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 17.765,
+      "p95_ms": 23.743,
+      "max_ms": 37.059,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "cpsat",
+      "scenario": "cycles-8-quantity-1000000000000-short-seed",
+      "jvms": 3,
+      "samples": 36,
+      "p50_ms": 263.617,
+      "p95_ms": 267.806,
+      "max_ms": 269.916,
+      "budget_exits": 36,
+      "statuses": {
+        "CUTOFF": 3
+      }
+    },
+    {
+      "mode": "soak",
+      "scenario": "four-workers-independent-session-soak",
+      "jvms": 3,
+      "samples": 4800,
+      "p50_ms": 10.942,
+      "p95_ms": 19.453,
+      "max_ms": 40.908,
+      "budget_exits": 2400,
+      "statuses": {
+        "PASS": 3
+      }
+    }
+  ],
+  "profiling": {
+    "test": {
+      "label": "test",
+      "recording_bytes": 19254321,
+      "event_counts": {
+        "jdk.SafepointBegin": 463,
+        "jdk.GCPhasePause": 372,
+        "jdk.GarbageCollection": 361,
+        "jdk.CPULoad": 160,
+        "jdk.ThreadCPULoad": 513
+      },
+      "gc_pause_count": 372,
+      "gc_pause_total_ms": 1020.7165,
+      "largest_gc_pauses": [
+        {
+          "start_utc": "2026-10-09T14:23:45.969210100+08:00",
+          "duration_ms": 27.6084,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T14:21:34.062985700+08:00",
+          "duration_ms": 25.9584,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T14:21:36.516138500+08:00",
+          "duration_ms": 24.9075,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T14:22:31.082239200+08:00",
+          "duration_ms": 20.3366,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T14:21:33.082750500+08:00",
+          "duration_ms": 18.2786,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T14:21:36.876137200+08:00",
+          "duration_ms": 14.7916,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T14:22:28.646478100+08:00",
+          "duration_ms": 13.9134,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T14:23:34.233674300+08:00",
+          "duration_ms": 13.687,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T14:23:47.096418400+08:00",
+          "duration_ms": 13.5151,
+          "name": "Pause Remark"
+        },
+        {
+          "start_utc": "2026-10-09T14:23:46.624617100+08:00",
+          "duration_ms": 13.3889,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T14:22:31.971108900+08:00",
+          "duration_ms": 12.1164,
+          "name": "GC Pause"
+        },
+        {
+          "start_utc": "2026-10-09T14:24:21.927124900+08:00",
+          "duration_ms": 12.1041,
+          "name": "GC Pause"
+        }
+      ],
+      "safepoint_count": 469,
+      "safepoint_total_ms": 2912.2438,
+      "largest_safepoints": [
+        {
+          "name": "Cleanup",
+          "duration_ms": 918.3832,
+          "timestamp": "2026-10-09T14:23:28.415+0800"
+        },
+        {
+          "name": "Cleanup",
+          "duration_ms": 233.335,
+          "timestamp": "2026-10-09T14:24:24.173+0800"
+        },
+        {
+          "name": "Cleanup",
+          "duration_ms": 201.929,
+          "timestamp": "2026-10-09T14:22:35.155+0800"
+        },
+        {
+          "name": "PrintThreads",
+          "duration_ms": 152.2708,
+          "timestamp": "2026-10-09T14:23:29.243+0800"
+        },
+        {
+          "name": "FindDeadlocks",
+          "duration_ms": 110.9726,
+          "timestamp": "2026-10-09T14:23:29.395+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 48.6317,
+          "timestamp": "2026-10-09T14:22:42.417+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 29.106,
+          "timestamp": "2026-10-09T14:23:45.997+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 26.262,
+          "timestamp": "2026-10-09T14:21:34.089+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 25.1236,
+          "timestamp": "2026-10-09T14:21:36.541+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 20.5252,
+          "timestamp": "2026-10-09T14:22:31.102+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 19.6771,
+          "timestamp": "2026-10-09T14:23:00.326+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 19.4167,
+          "timestamp": "2026-10-09T14:21:33.101+0800"
+        }
+      ],
+      "cpu_load": {
+        "samples": 160,
+        "max_machine_total": 0.70303315,
+        "max_jvm_user": 0.2298942
+      },
+      "jfr_sha256": "4227c0c8e4bb3c3ce9772da5b9f9f3cd6417c276dac889940e93c844ee52f2a8"
+    },
+    "externalPlannerBoundaryTest": {
+      "label": "externalPlannerBoundaryTest",
+      "recording_bytes": 533560,
+      "event_counts": {
+        "jdk.SafepointBegin": 7,
+        "jdk.GCPhasePause": 1,
+        "jdk.GarbageCollection": 1,
+        "jdk.ThreadCPULoad": 5
+      },
+      "gc_pause_count": 1,
+      "gc_pause_total_ms": 3.0698000000000003,
+      "largest_gc_pauses": [
+        {
+          "start_utc": "2026-10-09T14:21:26.766510500+08:00",
+          "duration_ms": 3.0698,
+          "name": "GC Pause"
+        }
+      ],
+      "safepoint_count": 13,
+      "safepoint_total_ms": 11.6061,
+      "largest_safepoints": [
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 3.9141,
+          "timestamp": "2026-10-09T14:21:26.151+0800"
+        },
+        {
+          "name": "G1CollectForAllocation",
+          "duration_ms": 3.2207,
+          "timestamp": "2026-10-09T14:21:26.770+0800"
+        },
+        {
+          "name": "RedefineClasses",
+          "duration_ms": 3.1333,
+          "timestamp": "2026-10-09T14:21:26.171+0800"
+        },
+        {
+          "name": "ClassLoaderStatsOperation",
+          "duration_ms": 0.3486,
+          "timestamp": "2026-10-09T14:21:26.240+0800"
+        },
+        {
+          "name": "ClassLoaderStatsOperation",
+          "duration_ms": 0.3075,
+          "timestamp": "2026-10-09T14:21:27.163+0800"
+        },
+        {
+          "name": "ICBufferFull",
+          "duration_ms": 0.1738,
+          "timestamp": "2026-10-09T14:21:26.200+0800"
+        },
+        {
+          "name": "ICBufferFull",
+          "duration_ms": 0.1367,
+          "timestamp": "2026-10-09T14:21:26.731+0800"
+        },
+        {
+          "name": "ICBufferFull",
+          "duration_ms": 0.0815,
+          "timestamp": "2026-10-09T14:21:27.045+0800"
+        },
+        {
+          "name": "JFRCheckpoint",
+          "duration_ms": 0.0753,
+          "timestamp": "2026-10-09T14:21:26.230+0800"
+        },
+        {
+          "name": "JFROldObject",
+          "duration_ms": 0.075,
+          "timestamp": "2026-10-09T14:21:27.170+0800"
+        },
+        {
+          "name": "ICBufferFull",
+          "duration_ms": 0.0731,
+          "timestamp": "2026-10-09T14:21:26.085+0800"
+        },
+        {
+          "name": "JFRCheckpoint",
+          "duration_ms": 0.0411,
+          "timestamp": "2026-10-09T14:21:27.166+0800"
+        }
+      ],
+      "cpu_load": {
+        "samples": 0,
+        "max_machine_total": 0,
+        "max_jvm_user": 0
+      },
+      "jfr_sha256": "74f3d4642e96143065979708081de9674758e1fc688489bd5fcc9b24d5aaf3a3"
+    }
+  },
+  "previous_failed_global_run": {
+    "path": "docs/benchmarks/gtl-global-pressure-20261009.json",
+    "sha256_normalized": "628842f36bc223c616c12f0c9e3659c43b37bf00e52d3f690cb6230cc20f030f"
+  },
+  "boundary_isolation_fix": {
+    "path": "docs/benchmarks/gtl-boundary-timeout-fix-20261009.json",
+    "sha256_normalized": "5823daf70c74bc5f50c590765d6ac7bf72222df90eb20a08b0972850b938037b"
+  },
+  "measurement_notes": [
+    "This entire run measured commit 70a138d in a new output directory; prior reports were not overwritten.",
+    "Full build reran the 1364 ordinary tests and 38 isolated boundary tests, with the boundary task required by the default test task.",
+    "Heavy Java validations executed sequentially; unrelated processes were not stopped.",
+    "Ordinary/channel/storage/cycle/soak families repeat in three fresh JVMs; boundary class repeats in three further fresh JVMs with its unchanged 1 s case limits.",
+    "Java pressure settings: Java 17, G1, Xms=256 MiB, Xmx=2 GiB, Xss=1 MiB, ActiveProcessorCount=4; only runner-owned Java processes use AboveNormal priority.",
+    "Large DAG fixtures have a 15 s outer deadline while internal production budgets remain unchanged.",
+    "JFR profile and GC/safepoint logs are enabled only for the full-build ordinary and boundary tasks. Heavy independent pressure uses separate GC logs.",
+    "Pooled nearest-rank latency excludes warmups; session latency covers eight probes. Cycle timing/allocation excludes supplement replanning and independent validation.",
+    "Channel uses one cold and four warmup calls per graph; storage/cycle/ordinary planner/certificate use three warmups per shape; side output uses one.",
+    "Every short-seed cycle result is supplemented, replanned and independently replayed, including all budget cutoffs."
+  ],
+  "release_jar_verification_passed": true,
+  "release_metadata_entrypoint_validation_passed": true,
+  "release_jar": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "version": "2.0.0",
+    "bytes": 5364076,
+    "sha256": "e809ca8f2b40e436a588c10d218006f205b7b88665de60c2d17c4a8446527bf1"
+  },
+  "fixture_hash_normalization": "SHA-256 of source bytes with CRLF normalized to LF.",
+  "fixture_sha256": {
+    "build/gtl-global-pressure-postfix-20261009/export-evidence.py": "496b8d0f5e856ae428b090eb516e6695016f658952a328613e93d9920b019100",
+    "build/gtl-global-pressure-postfix-20261009/finish-report.py": "be0aee5882e1d88e4b11f79678aff9b602fe25f072d0f4a9cd30ff73a2d1ed0e",
+    "build/gtl-global-pressure-postfix-20261009/finish-validation.py": "479740917b63c082d8008a7891ff02d2760bd8a7cef8a2628eca166a4f403b5a",
+    "build/gtl-global-pressure-postfix-20261009/fixtures/BoundaryChecks.java": "d67692cf77e9557a8d97d678c95b229588ab2ea0b4919e8fd9ca3edf7c992e7a",
+    "build/gtl-global-pressure-postfix-20261009/fixtures/CertificateStress.java": "1ce253ecab56db13d82b35ea73f8ea9ed9e27dac39a182a20086764f7afd6f40",
+    "build/gtl-global-pressure-postfix-20261009/fixtures/ChannelStress.java": "fe7f415e244c85a6a98552af3410aacd43e96bda565708b344243666526b9d68",
+    "build/gtl-global-pressure-postfix-20261009/fixtures/ConcurrentSoak.java": "3d3e84547d863b525ab9d71d1249e3624f721999a88a9c49647a14e8acbcc994",
+    "build/gtl-global-pressure-postfix-20261009/fixtures/CyclePressure.java": "1c6890e32a56a4d527af4ed8f19bd712b0267cdfd49a3f77b8ffb94cf3192ad9",
+    "build/gtl-global-pressure-postfix-20261009/fixtures/IdOnlyStockAudit.java": "b68a47fc761dfce33f3667541c70821e9f61e134245a48f2a1b899a9f1699727",
+    "build/gtl-global-pressure-postfix-20261009/fixtures/IsolatedChecks.java": "c42c20014eaf29b5ee9deb37f2f53a35e77a4b4333c1c56607fd1bb9dbdf765d",
+    "build/gtl-global-pressure-postfix-20261009/fixtures/PlannerStress.java": "f255de78c04537cd274c1a12d1aefa88098ab36637ea1dc2678e83f0beb5ae80",
+    "build/gtl-global-pressure-postfix-20261009/fixtures/SideStress.java": "5be70f3392b12b8f0648619364e4b5d065fff6c2d86ce9c3a39927bdc7b30c6f",
+    "build/gtl-global-pressure-postfix-20261009/fixtures/StorageStress.java": "a789680e3d06333c1eaed829482fc9124caab2a5513f3efe7cf2854f51ffd792",
+    "build/gtl-global-pressure-postfix-20261009/game/game.init.gradle": "baa2e24d9668f17b5fa71dafeb2911452438ea618223ee3789852fe330c12a25",
+    "build/gtl-global-pressure-postfix-20261009/game/java/ThunderboltInWorldTests.java": "7c8c122c8733fdaf1e2a7370c24bec4a0e186ca4334d8f070305b56d566442ee",
+    "build/gtl-global-pressure-postfix-20261009/game/resources/data/thunderbolt/structures/runtime_empty.nbt": "f1e96bb2349398b8165977f584fd2132d70e90fc39284a74d465aa1a0b04e2c0",
+    "build/gtl-global-pressure-postfix-20261009/recording.init.gradle": "30b8baaaa976544fe11a42cab327b69a07b54826a4c505cee7eefd58dad40bd2",
+    "build/gtl-global-pressure-postfix-20261009/run-gradle.py": "7f5db3106f2dc4c6a2856a7d2253249e7b5aa518da34da36ffa7fd0c24ec5e2a",
+    "build/gtl-global-pressure-postfix-20261009/run-pressure.py": "350e51f76cfc635a14f8bd849f473f962f5d6d1f920ada751b7ae5ddf1440b45",
+    "build/gtl-global-pressure-postfix-20261009/summarize-jfr.py": "2434a5e20941fbf6677f68bf7a5288a69eac3d4dd32b34a9898008a4a4589d4a",
+    "build/gtl-global-pressure-postfix-20261009/verification.init.gradle": "cfa42888be07fa9e5d7f2df5832383adf7ac552730bb533f93ecbb4c1918d470",
+    "build/gtl-global-pressure-postfix-20261009/write-report.py": "01faf2b11fec3cec9a02fc8352b99012a2a22ad7e6067d61f8058fcfc341510d",
+    "scripts/batch-benchmark/BatchStockPressure.java": "0d1b8192dfd42ec54def77cae27ca3e3dd66f89e4a30202da99ef8388e3dd523"
+  },
+  "test_archive_sha256": {
+    "full-build/cpSatColdRefinementTest/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatPetriRefinementTest.xml": "f6e8c3bd90ebbec2a0c56161e38167b144f16f9975c2c344fc00a6956403c381",
+    "full-build/externalPlannerBoundaryTest/TEST-com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerBoundaryCompatibilityTest.xml": "b02d0219a1674a7b7dbe0e6260c6a4f2848a42305822331e1fcde7a9d4d4ed91",
+    "full-build/materialDagColdReplayTest/TEST-com.moakiee.thunderbolt.core.crafting.planner.MixedRouteQuantityRegressionTest.xml": "8b4225f9088630c90dbd6b72227881f2ee882b56bbd10400bc6861cfc0445354",
+    "full-build/test/TEST-com.moakiee.thunderbolt.ae2.crafting.Ae2CraftingTreeSummaryBridgeTest.xml": "d8b404cc1ae514e821755bddd3a7be62448b07e0b42e828878c5e24609fe2e8d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.ae2.crafting.CraftConfirmPlanningCompositionContractTest.xml": "482498306064cefb595f65b7060253930691226afdc8f2125b029d2eca93ee00",
+    "full-build/test/TEST-com.moakiee.thunderbolt.ae2.crafting.CraftingPlanSummaryAdapterTest.xml": "8ddf894c4b944692fe5bb8924e90040ed2cdab4e78b738ab785c395eae0d7b0b",
+    "full-build/test/TEST-com.moakiee.thunderbolt.ae2.crafting.ExactAmountCodecTest.xml": "804464851cd739394da857c13a2dbd7071adb65526b586fef2c10faf8f9e1513",
+    "full-build/test/TEST-com.moakiee.thunderbolt.ae2.crafting.ExactCraftConfirmPacketMixinContractTest.xml": "dc771981a6f0c53106bd2ed058fb0d7f02fc0b56f05f52730b04304e57ba0bcf",
+    "full-build/test/TEST-com.moakiee.thunderbolt.ae2.crafting.ExtendedCraftingCpuServiceMixinContractTest.xml": "d3b99d064ba0adbd5b6f84e45c4ce66ba7b90e7dcbd8605958c47ba4cd0653ee",
+    "full-build/test/TEST-com.moakiee.thunderbolt.ae2.crafting.ThunderboltCraftingPlanSummaryTest.xml": "8f1613a7e1ef35d5b5ae15f4c075f7d2f0ee582eb81778143249a179d41afd87",
+    "full-build/test/TEST-com.moakiee.thunderbolt.ae2.mixin.CraftingServiceStorageBinaryShapeTest.xml": "123e1956d83b0866e766b812851f0161716d1e909ac35b2cd22bd087bbf22536",
+    "full-build/test/TEST-com.moakiee.thunderbolt.ae2.mixin.OptionalIntegrationBinaryShapeTest.xml": "b02b3e44b8c88772376c66339942f3d1876ffac05055e99c9a24db0a473edf83",
+    "full-build/test/TEST-com.moakiee.thunderbolt.api.channel.ChannelSourceRegistryContractTest.xml": "fcfcf0609d461c852781fdaf6de8044855827ab5f33eed0e83fa029af5eb2b56",
+    "full-build/test/TEST-com.moakiee.thunderbolt.api.crafting.batch.BatchCraftingProviderContractTest.xml": "6f74728080ef52d0c0cda8da6c5ee3c8cda4d07a79d8d60347bf204237764210",
+    "full-build/test/TEST-com.moakiee.thunderbolt.api.crafting.cpu.ExtendedCraftingCpuClusterCompatibilityTest.xml": "1302017b92970689b6f41adba914b678bbcec89afa7d0d54d8272af89a0ec6af",
+    "full-build/test/TEST-com.moakiee.thunderbolt.api.crafting.CraftingAlgorithmResolverTest.xml": "76486912eb5501350770e877f9825d9b964b18cf90356d14810ba51898a9a90c",
+    "full-build/test/TEST-com.moakiee.thunderbolt.api.crafting.CraftingPlanningEngineCaptureTest.xml": "b849f025a8b084235ad10ce128fd9f75a03ce27b408c86d4abc88e7a066c7152",
+    "full-build/test/TEST-com.moakiee.thunderbolt.api.crafting.PlanningEngineSessionContextTest.xml": "b6ddfa1e85a1a8ceabf517524a46a1f44249aeb8ead17c1c13c45828d144b0d6",
+    "full-build/test/TEST-com.moakiee.thunderbolt.api.eject.EjectCapabilityRegistryContractTest.xml": "7cca9d57b8ca47c21a8cb11282ea3237f9a1596ffa668a43f42c23438fc72995",
+    "full-build/test/TEST-com.moakiee.thunderbolt.assets.PortMetadataContractTest.xml": "6f673423dca9aab80b2de8a1f3198a90154256679b0b8a8b69e4ee1ac142e03d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.compat.appliede.AppliedEModuleBatchSupportTest.xml": "4baf11fd7e27e69f6c6c1c35d3d2f1c02f4d189b90b27b7727b479b888649cc1",
+    "full-build/test/TEST-com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest.xml": "d7971c164e4056e863b6c10398e1d9143bea6aa4453da9670ce90699915bd52c",
+    "full-build/test/TEST-com.moakiee.thunderbolt.compat.gtl.GtlCompatTest.xml": "09b3ef0406827cbe968158ba55690b316f58c708e5d63d8a9bf8d2f6ffa34b12",
+    "full-build/test/TEST-com.moakiee.thunderbolt.compat.neoeco.NeoEcoFastPathBatchAdapterTest.xml": "67c0b6fa3321c66c25c10751a2920f3c03378fd127f7e10a50d5dafc9cab58cc",
+    "full-build/test/TEST-com.moakiee.thunderbolt.compat.neoeco.NeoEcoFastPathCompatTest.xml": "1a7155496708d34db1bf92e664f413083a21c96c3b1635460f668ae2b490aded",
+    "full-build/test/TEST-com.moakiee.thunderbolt.compat.neoeco.NeoEcoProviderResolutionTest.xml": "c25bef4e5d2bebcf3b506541c0ecc24868fe2f46160ed14ec3f89d72d0d301a2",
+    "full-build/test/TEST-com.moakiee.thunderbolt.compat.OptionalBatchProvidersGtlTest.xml": "87d757530f6c1d6d449fefe72fec7085d023fd0e6b4f2cb755a1a93ad4b589bd",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.channel.BorrowedCapacityCalculatorAssignChannelsTest.xml": "eb75800bff0fad4cf613e2cf340f8aaa9f97f1926ea61155c859f4e5cefcc837",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.channel.ChannelFlowNetworkTest.xml": "aef17593b94db6d92ceb1b86250afe5dfa048c695c2532f43c79f8587200a9e5",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.algorithm.CraftingAlgorithmCalculationStatusTest.xml": "634bdc0134589ba0a52eafb108cf5c276c7f89af7a3f064b424071bdf1270746",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.algorithm.PlanningAttemptMonitorTest.xml": "4d19fe1b59122facc8afa31e19b2b309d0b0de3c069f3c50567d03a81bc9d724",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.algorithm.PlanningCandidateExecutorTest.xml": "db728b8bdaa0ad478752c8525a08c5004b55eca765f793e0256554216e45185c",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.algorithm.PlanningFailurePlansTest.xml": "da9097e99249be907f91478b06c18f260ed6e99ac2172299904da9a8c6833d01",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.algorithm.RegisteredPlanningEngineCancellationContractTest.xml": "e257b96a38810d2e4ed2175d7a085bf593f6be4e4659f48b20c0d647d3bd441d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.BatchAdmissionScopeTest.xml": "70fe2923134dc5b9531f9376fc120274d145e473c683c5c58b4f94199fc37872",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.BatchCpuAccountingTest.xml": "b6a9ca0b19b52663ad88e3d408d052b41b27a2469741490412e033e637dfd669",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.BatchExecutorCapacityTest.xml": "b1ce9eec492b829c5eb52d62e7ecc5d705a564e2bf2b7cd55bafc6f744cf4ab0",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.BatchExecutorRuleRegistrationTest.xml": "665ab96c50e112ca61ef6bdbd4e2d454e725cd56aef740c214a1a897b71d168d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.BatchExecutorSharedSemanticsTest.xml": "d098f57f850ddf29b35c5871374e25cd2b4e7a4c830aebfdf15473a63e905d1b",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.BatchProviderFilterIterableTest.xml": "2326c54f19ec56cd9d28ea058e689e71a7a6722061aa8c3cb9c9c4dc63311911",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.BatchProviderResolutionCacheTest.xml": "a9afc45e74c11e94af90b5cc3e61f9ba9b74b0bd6fa2f301f65cd298cba6174d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.GlobalBatchProviderAdaptersTest.xml": "090f334b86727cf8d7f2ce7da0f0581ccf961f43f0761090eefd3d9a5b1ca517",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.IdentityCandidateQueueTest.xml": "f7febadfd8775570543e0246a69499a230b8b9d1eb7f9b7dc2bd078e008020a8",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.PlannedInputDispatchTest.xml": "429ba86f3830254d3ecc0c34f8113a89db1f7403964259798859dcdac453f4ed",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.batch.ProviderCacheLifecycleTest.xml": "62f8ff8c6e95a07682e96c8332dfe8fba563ca1e5a12b1cbceb6f482dc5cefbf",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.big.BigExecutionProgramTest.xml": "1b207bc9fa9775c8cfd9752b5da28e7dda1ca74425915e4dcb01286d4c211c83",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.cpu.CraftingCpuSelectionOrderTest.xml": "9a7191a84de56ae05be8d7cae984b5eb08182e13d2e80c2f30b88732cd2e8f1e",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.cpu.DynamicCraftingCpuClusterIndexTest.xml": "5ac14cfb0fe521e48a55527fff5383c8d9b5f92e68cfb1eee93b0bc9f8636e0c",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.plan.LoopCraftingPlanTest.xml": "0ae031915e2d5c1e5f1de3f8e7b8fb7b80111311b7bfc6b49a01701b70e2675d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.BatchCertificationCancellationTest.xml": "b7f5190bb2bd192ba68632741bc74657acefe0d84a1cdca13f82cf730f19fdf5",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.BoundedCombinationsTest.xml": "9269f95be9f384377afd3ba3c9f1f28f8f2e261263df950b807794bdee66faa3",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.BoundedIntegerLinearSolverTest.xml": "35dcd92741474e0a4462deb7782bbfc53f05c08c7e7fb9d30e374d3cf70a7156",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ByproductReplaySafetyTest.xml": "5ed53ccf868af71c098da4fe9ab4265c6327710c717dc4428dc86797ecc4a6be",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ByproductScheduleMetadataTest.xml": "6754e613e5069561d2fa18e255b68b107bd763a959c95e0ee87f676f5c92db1e",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CapacityGroupOrderTest.xml": "ff3364771d53d92c48df10caa178e729f221ad406b15a30e5843027df2f31b4f",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ClosedLoopBootstrapReproTest.xml": "5d54bef94ae0c6728e419842fb01ec3fbed26036e94a6048e4e6ba586baae23a",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CombinedCycleOrientationTest.xml": "016108286f82f73a62c465285411a66ed507b3c2d89153efd817a2c074d884eb",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CommonInputFlowTest.xml": "94ad2ad7dd5db870c155570c79f9f9dfa30bd8883210b00ad021a5ad160e3414",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackPressureTest.xml": "fb1729d95528d2200809df5e407058e08d51552d24cdf55e3d2e00dbe9fbb1cd",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatBalanceCutsTest.xml": "42097b42203edb375a5e8640993c45139678be154ab3bc74474b0ae8f9ebd108",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatBlockScheduleHintTest.xml": "902c06790a351dd7f78fcc76acd716351151f84821aebf9d7eee172eb489284d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatDeadlineTest.xml": "705e7e24a7250ca35c7f6db198c938885e44d6dc0251d913d035231517468b4d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.SparseLongMatrixTest.xml": "ce5951bcc706f7e050ef6ab14ee7a50ace5ec12da03e6c7c0c8ba2fb94d08794",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatComplexCycleAdversarialTest.xml": "b6c497c641cdda57d1c0d1d2873fbb9695305bfe6419782319adbd543ca95be5",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatExecutionBlocksTest.xml": "30ea62ec847be0ff000e9493ff1b12e8d6091cd8cd319e1a6ab65f6f811ea311",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatIntegerLinearSolverTest.xml": "1706ba5282edb790a4d6cba25b992eddc6c53d432125b5391cba28d00e154699",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatPetriRefinementTest.xml": "764fb467705e95142fb23aadec7ac2215772130ded2436846fa5cce3cd6e671c",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatQuantityPropagationTest.xml": "88fde705c8458f1920cdd4e49e09b2eb5d67b8e0aa4793a45cf39e45c2a42e84",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatRankedFlowSolverTest.xml": "49569ecbeddae6da13b8a2fb1a08b7e74e0757e9bf9d6462cb0b80793cfe24e0",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatRuntimeInitializationTest.xml": "563a44e7d29365c1b31be9bb79e8a61840e8cdbda7b3b4428ef3dc80574403a5",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatSeedPortfolioRegressionTest.xml": "ac3d6e16b51693e81632a7977930cff8bbaa48791bd3ac32dfbc119e81377e1b",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatSparseDagTest.xml": "d190d8aca49edd90721e86906efb02705b43669799b5f3de1037dba975b92a18",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatSparseRankedTest.xml": "4d585af6c17b9c5e5b3e932df376f97504a04e910d49d69b1f47d80b782f0591",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatTagConversionTest.xml": "4dc93c5e521f13385bc8adfa884a56e85879f3fa80be70139ee2e02bbcea7f4a",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CpSatWeightedExecutionCostTest.xml": "3c9b3dd18b4249271f6c86f6af5351c3501afc0f30595dfc95490d3a5240e8da",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerNpHardAdversarialTest.xml": "60b8ff16e349229c55ae76fcee44cad2c169abed31495a6edf53d7f3cdc24ca9",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test.xml": "cab492c58af31e33836561b8a361e71171776316e63f487c35ce6cbf73e85556",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CutPolicyRegressionTest.xml": "3fa1be744a276d1a412c36d0dcc8c25a54a762af9f9448933625e891eb1155ef",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CycleAnalysisTest.xml": "085da8eb62054e3d95efc18b001f2e072a974849a897106df0cd1e599d456f93",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.CycleCutReorientationTest.xml": "29cba5d1b16fddd8948df6c29cf91857ad7bb39ddb3bcc0fa1d9f87f6c695e6b",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.DiagnosticUnitCostsLazyTest.xml": "aed921737185ca05bb601b7702cd4a218ea9ef12fa842775033603a0b7ff0575",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.DirectRawConsumablesIndexTest.xml": "bc43071ab77081b0a29f87d2a74715c0c61325c5dd4b7f328fa2bd337a0b5347",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.DurabilityChainTest.xml": "a3921eb84f06162089e49842dbe08da15874a285cafc93cd616b8ec93869ff1d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.DurabilityConflictFallbackTest.xml": "93d1a4956fcb66d26b47de38654d72ac727c153a7c5c45e5b5d430b265cee410",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ExactDiagnosticPlannerTest.xml": "f0a097623b5a0450004cff904d0af23ff54bb975a6d80ff01786ad64f6a02645",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerRecursionComparisonTest.xml": "8c4eea0ed292db9acf0510ab46aa3ecd69f102d9bf9ebc3843de3d0e57539eef",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlannerDurabilityEligibilityTest.xml": "bf4f76cc469f287ef6cbcea6fc10aaef99ced8577cb6ff407be0df54ecb2f8c4",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlannerIdOnlyCraftableVariantTest.xml": "50f75a78158607fa874d0f768196fafc16b083782442990d8cf13c6b4504cf73",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlannerOverloadMatchingTest.xml": "98df8400a6717a9feec2d36c980e34df2a707dbdc93b8b66d431dce681d44c04",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.FastPlannerEngineSessionTest.xml": "f361666e53f68cbc2215790d722fb825cb150544816e9ac1b6ea57916d8a7ef0",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.FeasibleConsumptionOptimizerTest.xml": "3497bf67a3f5fa4eb84ebe4254d774c946efbe232992f92211ee0af5ce2c2738",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.FeasibleCostPropagationTest.xml": "de3801a6a7f1b2bef09252330a1416f1420513bff1b7e6d1240c420b3d2e89d7",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.FeasiblePolicyAlternativesTest.xml": "4faa581b8c826531c9eaf93093f3f4a5f9efeba2b323f83e14bd74a0d0b5c228",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.FeasiblePolicyReuseTest.xml": "95948d4a9dad798593f8f28cda60f6c33b3e3007cab342495e6c3f15c488d4fd",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.FeedbackPreprocessingTest.xml": "5e6c3d439e4289fd82afd8b099b7f3f3e7d2f3a67a7e618354d9b78d3c67497b",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.FrameConstructionReuseTest.xml": "c1d6b7eb9a4440548ca24a263cb7e1e94e074aaef7b98c5359bfd3056d08b0d8",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.GenericLowWidthConflictSolverTest.xml": "a75efe40ee8ceae75c8f632b49c6f3ba674a679ca982e99f0f1e7f04aaafc4fc",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.HostFeedbackMetadataTest.xml": "216870be674a5bbfd57dede2303ef1d1385359189c52e65c3a6daa7b52de8371",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.IntegerResourceCutsTest.xml": "01fed98dff84d0575d4498073a9da0d00efb948d598b52c4f48e80f8e277462e",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest.xml": "38150790fdcd8bfe6ba52dc6b546f395dd2683d1dcd427b2e828a4bb11bdea10",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MaterialDagMaskTest.xml": "5366aa328fec041fc0a2445a9ed79e3a4275d137552cb33cca1d173f9fcc2a0d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MaterialDagPortfolioCutoffTest.xml": "312b28bf8ed61f92eeb1c377f6ec0b114da01b9e260fb1b76928d2d05d2442de",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MaterialDagProjectionCertificateTest.xml": "511f627fb86867b944b39ef0b7789cea42b3ff9aa9149169fd391e10677c3d82",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MaterialDagReplayCancellationTest.xml": "b6617b8a1c71cee1d5357ffd8fd80c16adc972dfaa6153a43954f4ab24573b15",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MaterialDagReplayTest.xml": "7d8633fb916a6911e9003b84b37f518af7d40a2513f3540d1d9a4857a0adbe6a",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MaterialDagSupplyTest.xml": "53f2f4603d1080e47f2219109aa8093db654ee8d44728a24422b55eebc44ba71",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintCancellationTest.xml": "8d5a9095447fd1042aacedc1c67d3cda713166f22f85c4f1a2a03b475a3e344c",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintCanonicalizationTest.xml": "dccb3510f2734c1891de2adbdbffc81eed1ce49f86a377f8c32255763e926dd8",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintIndexTest.xml": "0fcb8dfd77f3b8bfaf6df7484b17c6c7d558f8e6beb0ecc8b2deb3f62e87e060",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MissingRefinementTest.xml": "68a8e0eae11e01ffd640023e0c057b812161baeda3e1fa1c1af4e8dcdf2eb679",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MixedRouteQuantityRegressionTest.xml": "fb7ac24f889bc02e81a6871c6d5002cb16dad8204b5840d64aed8f54a19d6064",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.MultiRouteBatchOptimizerTest.xml": "f98c29370f0f0896ac94ca5580ee9e9cdae5a3b3edfa7d88d3fb3844752b5fbf",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.NonGrowingCycleReachabilityTest.xml": "41235d8599b441bc049b4a70d66381eaac0cdbf491e05d846ff3dfe7d1d10cec",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.OrdinaryBatchOptimizerTest.xml": "60746a682dd13a6a81179f5da6fd4066c02a4f7a8bf5f1738b4b8207b7facf02",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.PairBatchAllocationTest.xml": "adf7468ddb686d301f5c02cee2bdbf713197e250e6c5ceae4add11bc265f23c2",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.PartialBatchExecutionTest.xml": "dfdcb50d7c3eb6ce1b447b8d3e14ca3a98c4f85f3e6bd22af29cd39f3e9228df",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.PatternInputMatchPolicyTest.xml": "b4f9ff0d92bd2a4b2e01fb84f48569d4648ce4513fc89dc304cc55823a66ea4f",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.PetriBlockCatalogPrefixTest.xml": "1b01ca4eb03268d657d080e592c8e0094dae09cac14397a3ab255916b0129bec",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.PetriBlockSchedulerTest.xml": "8fe60217b8d6f121b52b6eb484480fab3bd9d0515bc5443a8e7485ef96e5acd2",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.PetriExecutionVerifierTest.xml": "fd04d877cfc6145a39044426aa8e4638e72f2ca3186af66df53eb36b81dc71fe",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.PetriReplenishmentSearchTest.xml": "324b99e44d88f0d1245605a4ebf8dc719d2790bdc640c5d7d7920286369e0d86",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.PositiveIntegerLinearSolverTest.xml": "d019824c91b1cce9b9c31a851ca6b2e5013ad7615b28fc7272a4b329cb69b173",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.PreparedGraphTableReuseTest.xml": "324dd02ace65b098cff4e16e2b1cad9d734363b769efb3ea7bf8106e1777821d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.PrimaryInputIndexTest.xml": "7879e7cc030b8c83eaa500ff2005b0928e68c50773e8f1d3924e33a54d750872",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ProducibilityRankedOrientationTest.xml": "ef3fadd3a49fd4ad45fa510024b72856fcfaffb960e9130d11a5bd71c544c63f",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ProducibleRouteOrderTest.xml": "7881fedc242635c274dc1efae4de7b1776d49f6160f3ea566535f230a08431e3",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.RationalArithmeticTest.xml": "015a2814ae7dc50167a90c2a0cec5090440040b7cd08fcb19630f99c603372cf",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.RawResourcePotentialTest.xml": "03c447bbbf3d4ae70e8840f66aedff27c6f4b4b4ee5442c556136ea44ae9218f",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ReachableGraphReuseTest.xml": "96e411be829cd464e93c2aa3ae1634758da7067c8dde734aff3edad42928042a",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest.xml": "98a878324dee6628aefd9293ce7f0db9271ee643adeacd4d9bb8d09e175d29a9",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.reference.ReferenceCapabilityRunnerTest.xml": "768784e2042d9d17323e21e60fc3ef004b5ae9210d3fb1e0d94bd8df5f94db72",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.reference.ThunderboltReferenceCapabilitySuiteTest.xml": "c92f3e898c448071e200cdaed7dca684cefe82e974a701efb0e685cbab4eb04e",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.reference.ThunderboltReferenceScenariosTest.xml": "991a2bf17390cea970a1b4607ff7b09271680c70dc2b18c351715054e241e2cd",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ReplenishmentCertificateTest.xml": "ed73a00624fdeea4a0d38884ae08bf8a315d1093ace42fa99ff9ac878704af42",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ReplenishmentContractTest.xml": "d493d5afcf95c3b99896423218874b181cd5fa77cfb6d21751a11642ef0c54fd",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ReusableStockFallbackTest.xml": "222f7d09791cc42f2aa6e943721edd279da2afb9b90f82cc65c5d0ab80f89556",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.ReusableStockMatcherTest.xml": "7fea9349ea3df8720c65558d7fc41488b3997314333f83bce17dbe70400b26aa",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.SelfSeedReservationTest.xml": "dc7a8e2220c7a9fd22438c978b7720c04d2d212100d70e0dcb4a8092f9e1ad3b",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.SmallConservativeSearchTest.xml": "97b7d4c987b17ee8f809577a09ff5f10cf9fd18ffb6e9b858e99d04351ad4f7d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.SmallDagPoliciesTest.xml": "dad4270851d97bc5ebff18b886ab8e2f46b40c4a315c361a0bdc85c52e5048de",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.SmallGraphRegressionTest.xml": "1a935e3aedc044a0db96b87908aa98b88afd97e7d5b221a2d64ba670ca242957",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.SmallRecoveryBudgetStatusTest.xml": "e1e34f5863e4923a61f563b213f01d3afbaed01f1291856dd162826ca87f6c03",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.SparseResourceFlowTest.xml": "2a56c386a714a5e92e8b58d541d24bc49546c220946cd00491632f5ddcec8802",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.StockCoveredCyclePlanningTest.xml": "6b2d6402402364bffdd6635a0ac9e1810ba7ded7b2ce6f59aaec677c87a12d43",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.TagConversionCostTest.xml": "3de3e9afe3b3afd94209d0cb5cc4c7ece678d951ff7cd0f7fcf1a7bf474602c2",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.TerminalBatchOptimizerTest.xml": "487af70cd8e9120eb1084fe10b59cf53f1009aaceb3ea6007e4ec1b3ebe8ee8d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.TerminalBatchRecoveryTest.xml": "5aa63cd26d5cf12441cc8baf06d661b863da32432396720fcbc060e4db99c918",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.TerminalFixedDepthOptimizerTest.xml": "56c83af5fe756f0f6ddc24fce64bc6f5e233c5b6ada62c467a94e66748af5251",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.TripleBatchAllocationTest.xml": "5288cd15a0a4ea3c85c485299083e20a245f736ec70d465caa9fc4624c485d7e",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.TwoRouteBatchOptimizerTest.xml": "fad85736709ab691a1bfbd64e4eee344fb01fa142a4b24ae87c98df74db028e7",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.UnitMaterialFlowTest.xml": "b889f55c77e660d12a2799227307c9b05bc36583d1a9c194d04641d25ed60f3f",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.UpstreamBatchOptimizerAdditionalTest.xml": "0c539287241163f512ad11451edd1a73b3b4455c3b40586e454dc6d543fa617e",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.UpstreamBatchOptimizerBoundaryTest.xml": "b7f0b293ed1cd294d4905adb9c3bb4ae76db0a1d4ccb563e646e6d0398f8c1e4",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.UpstreamBatchOptimizerBranchTest.xml": "9b153ba709a03008cda5aebd9e81cbd4113c7f15adafc8f0f39efc15b07ccfbf",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.UpstreamBatchOptimizerTest.xml": "04984286ca8d2c58b8125dc6e4b29bb390622735f0fd499d7a6c8737e8675eac",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.UpstreamDefaultExpansionPruningTest.xml": "c0171a2caf1c4df88adf4e00f142ad70e63d4c77a2eb49bf3ecce8da538fd348",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.UpstreamPairGeometryReuseTest.xml": "7721c85969e51d5abf48b95e827352028d02a0694c0a7a1d4c1d3bfef021e892",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.UpstreamPrefixReuseTest.xml": "d5b7024e6a01e36fddf2ca82e55aabf48213df15d5f8fb1eaa9d1b94d09bc8dc",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.UpstreamSingleRouteTest.xml": "70f8c2569bb76bef2dfa2332ba23f25ae594d0e90abef4ec1ce49ea85f414ec2",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.WeightedExecutionCostTest.xml": "9e3e01dc9e0304daa6608e63bebe00fddc7d0ff2a25577be540c4d81d983d17d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.WholeBatchAllocationTest.xml": "7e2759f97c802cbd79685de2e8c987ad860f382de8c568421d59c893a45f2591",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.WideOrdinaryAllocationTest.xml": "2fabd479caf592ab68495d39996a4861cf5456d7db11dffeed921df6916d966b",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.X169ChainedContentionReproTest.xml": "0c710eced204d74d401af7a5e945fe5470d265a503e9bde2e18af3637b580431",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.X169FibonacciChainReproTest.xml": "1687e14bc951794ee5c570e9c8933e1a52e3229fb8ec2562825d324c815c37bb",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.planner.X169TwoRouteNetworkReproTest.xml": "5c9be4c410225a21a63b337419b46af26053be521832fb843b92a0dc8ae0904b",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.PlannerPackageBoundaryTest.xml": "02dfd06bbbd5dc67d477a6f1bf1ae2438fd8d36d1c021e57d5d325db2528b193",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegatesTest.xml": "27829e1b4e352bac0c2b8b2e1c3201c617a20255100ee8b7756c12f67f967ccf",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.support.CraftingProviderChangeTrackerTest.xml": "62a935933b97bad7f9e8f8d7b48f26c40df89b3a0cec7fc91b1f43c823ec89e9",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.crafting.support.FinalOutputProgressTest.xml": "59a38b136ef58c990f4df5130e04c404636b2475f5f497f684e3b3fb6e793485",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.eject.EjectRegistrationSavedDataTest.xml": "250e1c7f1a24fb9146b05f3b50cb908b82e9b7a3963fa7702f4e7123b4dd4be9",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.storage.cell.BigIndexedStorageTest.xml": "ede3025cd84b40583e2c5cc34d32f065b1aabfa6dd613207b87093207449b4b7",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.storage.cell.ByteTrackerTest.xml": "6e0a2ba3714253dda0865ee3444a6c5fa51097c1c8fcd46cac2b8e5a7df00b70",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.storage.cell.IndexedCellStorageSavedDataMigrationTest.xml": "a9c23eb0411a15996107cde38b3283173ef51220bebe6dae8d180e404820121e",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.storage.cell.IndexedStoragePersistenceTest.xml": "9a701d60efa89e5a3e962c37aff5a446a9a255fed8c6a0cff0a0910f6a5d0946",
+    "full-build/test/TEST-com.moakiee.thunderbolt.core.util.FastWildcardMatcherTest.xml": "71078bcb4fd9e15d8cfba2c7b60162f74e5f91dad59ec7bbc88c2d0241e3939d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.mixin.ae2.crafting.GtlCalculationSchedulerTest.xml": "6cf152ee800085d3b3e4c5b444558ca5a52773dc86599055503a32ce9a81e02a",
+    "full-build/test/TEST-com.moakiee.thunderbolt.mixin.ae2.crafting.support.FastCraftingPlannerPlanConversionTest.xml": "f3835a49e48d76a1a17c892329a4ba5f414112f29cece65b1bbbc39e12f23591",
+    "full-build/test/TEST-com.moakiee.thunderbolt.mixin.CraftingCalculationMixinContractTest.xml": "ea1930bb60a33fe9abea7e58f0d94814905177a0e92ce763ab92db2dac8b122d",
+    "full-build/test/TEST-com.moakiee.thunderbolt.mixin.GtlStandDownSelectionTest.xml": "762d1a22d3e1a03f3b4847e9e5d7bd0135ae9e8079548b831b0353e9d28fc964",
+    "full-build/test/TEST-com.moakiee.thunderbolt.mixin.MixinConfigurationClassPresenceTest.xml": "510a6231f81c504b3b0f35c868e9af167b2775be9d016d90a20b06ebdde521da",
+    "full-build/test/TEST-com.moakiee.thunderbolt.mixin.OptionalMixinSelectorTest.xml": "c4f2f0d9030b7d751d11e6567549b1b6a44523a2d529a978db1459b498dc7535",
+    "full-build/test/TEST-com.moakiee.thunderbolt.mixin.platform.eject.EjectCapabilityMixinPriorityContractTest.xml": "7f878e5d519b974a9e4b4607179763762522877319d3716f6ac4608cae84fe43",
+    "full-build/test/TEST-com.moakiee.thunderbolt.mixin.ThunderboltAccessorNamespaceTest.xml": "bcebc139871320d9f480ffbf53f768b1fa40ea50008b607e0b9c9aa2b39c56ac"
+  },
+  "limitations": [
+    "The optional real EAEP artifact is unavailable; one corresponding JUnit test is skipped.",
+    "External awrlib is unavailable; one Python reader test is skipped.",
+    "Forge auto/always use fresh verification worlds and no real GTLCore installation; this is not a full modpack TPS test.",
+    "Budget/quality cutoffs do not establish global optimality; short soak cannot prove absence of long-term leaks.",
+    "JFR is from this run and cannot establish the cause of the earlier unrecorded timeout. Fresh JVMs do not eliminate external scheduling pauses.",
+    "Logs, classpaths, JFR and raw fixtures remain local under ignored build output."
+  ]
+}
