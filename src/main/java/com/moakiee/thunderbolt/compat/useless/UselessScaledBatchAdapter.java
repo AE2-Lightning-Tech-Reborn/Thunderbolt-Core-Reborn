@@ -34,7 +34,7 @@ public final class UselessScaledBatchAdapter implements BatchProviderResolver {
         }
     }
 
-    static @Nullable BatchProviderResolver loadAdapter(ClassLoader loader) {
+    static @Nullable UselessScaledBatchAdapter loadAdapter(ClassLoader loader) {
         try {
             return new UselessScaledBatchAdapter(
                     Class.forName("com.sorrowmist.useless.api.crafting.SmartDoublingCraftingProvider", false, loader),
@@ -47,6 +47,11 @@ public final class UselessScaledBatchAdapter implements BatchProviderResolver {
     @Override public boolean cacheResolutionAcrossTicks() { return true; }
     @Override public @Nullable IBatchCraftingProvider resolve(ICraftingProvider provider) {
         return providerType.isInstance(provider) ? new Endpoint(provider) : null;
+    }
+
+    /** Smart-doubling operations per push; {@code 1} for raw (unwrapped) patterns. */
+    long operationsPerPush(IPatternDetails details) {
+        return (long) UselessBatchApi.invoke(operations, null, details);
     }
 
     private final class Endpoint implements IBatchCraftingProvider {

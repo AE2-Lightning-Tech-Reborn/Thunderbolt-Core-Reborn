@@ -5,14 +5,7 @@ plugins {
 }
 
 def releaseTag = System.getenv('TAG')?.trim()
-if (releaseTag) {
-    if (!releaseTag.startsWith('v')) {
-        throw new GradleException("Release tags must start with v: ${releaseTag}")
-    }
-    version = releaseTag.substring(1)
-} else {
-    version = mod_version
-}
+version = releaseTag ?: mod_version
 def resolvedProjectVersion = project.version.toString()
 group = mod_group_id
 
@@ -191,7 +184,7 @@ publishing {
     publications {
         register('mavenJava', MavenPublication) {
             from components.java
-            artifactId = mod_id
+            artifactId = maven_artifact_id
         }
     }
     repositories {
@@ -201,7 +194,7 @@ publishing {
         if (githubPackagesUser && githubPackagesToken) {
             maven {
                 name = 'GitHubPackages'
-                url = uri('https://maven.pkg.github.com/ae2lt/Thunderbolt-Core')
+                url = uri("https://maven.pkg.github.com/${(System.getenv('GITHUB_REPOSITORY') ?: 'AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn').toLowerCase(Locale.ROOT)}")
                 credentials {
                     username = githubPackagesUser
                     password = githubPackagesToken

@@ -24,6 +24,8 @@ import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
 import com.moakiee.thunderbolt.core.crafting.pattern.PlannedInputPattern;
 
 public final class ParallelBatchCpuHelper {
+    private static final ThreadLocal<CapacityScope> CAPACITY_LIMITER = new ThreadLocal<>();
+
     private ParallelBatchCpuHelper() {
     }
 
@@ -133,6 +135,57 @@ public final class ParallelBatchCpuHelper {
     public static BulkResult bulkExtract(IPatternDetails details, ListCraftingInventory inv, long maxCraft,
                                          boolean allowSharedInputs, Map<AEKey, Long> reservedStock,
                                          Level level) {
+        return bulkExtract(details, inv, maxCraft, allowSharedInputs, reservedStock, level,
+                currentBatchCapacityLimiter(details, inv));
+    }
+
+    @FunctionalInterface
+    public interface BatchCapacityLimiter {
+        long limit(KeyCounter[] oneCopy, long availableCopies);
+    }
+
+    /** Preserves the established extraction call site used by host-mod allocation Mixins. */
+    public static <T> T withBatchCapacityLimiter(IPatternDetails details, ListCraftingInventory inv,
+                                                BatchCapacityLimiter limiter,
+                                                java.util.function.Supplier<T> extraction) {
+        try (var scope = limitBatchCapacity(details, inv, limiter)) {
+            return extraction.get();
+        }
+    }
+
+    public static BatchCapacityScope limitBatchCapacity(IPatternDetails details, ListCraftingInventory inv,
+                                                         BatchCapacityLimiter limiter) {
+        return new BatchCapacityScope(new CapacityScope(details, inv, limiter));
+    }
+
+    public static final class BatchCapacityScope implements AutoCloseable {
+        private final CapacityScope previous;
+        private boolean closed;
+        private BatchCapacityScope(CapacityScope current) {
+            previous = CAPACITY_LIMITER.get();
+            CAPACITY_LIMITER.set(current);
+        }
+        @Override public void close() {
+            if (closed) return;
+            closed = true;
+            if (previous == null) CAPACITY_LIMITER.remove();
+            else CAPACITY_LIMITER.set(previous);
+        }
+    }
+
+    @Nullable
+    public static BatchCapacityLimiter currentBatchCapacityLimiter(IPatternDetails details, ListCraftingInventory inv) {
+        var scope = CAPACITY_LIMITER.get();
+        return scope != null && scope.pattern == details && scope.inventory == inv ? scope.limiter : null;
+    }
+
+    private record CapacityScope(IPatternDetails pattern, ListCraftingInventory inventory,
+                                 BatchCapacityLimiter limiter) { }
+
+    @Nullable
+    public static BulkResult bulkExtract(IPatternDetails details, ListCraftingInventory inv, long maxCraft,
+                                         boolean allowSharedInputs, Map<AEKey, Long> reservedStock,
+                                         Level level, @Nullable BatchCapacityLimiter capacityLimiter) {
         if (maxCraft <= 0) return null;
 
         var guardedInventory = new ReservedInventory(inv, reservedStock);
@@ -162,6 +215,22 @@ public final class ParallelBatchCpuHelper {
         for (var entry : scalableDemand.entrySet()) {
             long available = guardedInventory.extract(entry.getKey(), Long.MAX_VALUE, Actionable.SIMULATE);
             additionalCopies = Math.min(additionalCopies, available / entry.getValue());
+        }
+
+        if (capacityLimiter != null) {
+            long limitedCopies;
+            try {
+                limitedCopies = Math.min(additionalCopies + 1,
+                        capacityLimiter.limit(resolved.inputs, additionalCopies + 1));
+            } catch (RuntimeException | Error failure) {
+                CraftingCpuHelper.reinjectPatternInputs(guardedInventory, resolved.inputs);
+                throw failure;
+            }
+            if (limitedCopies <= 0) {
+                CraftingCpuHelper.reinjectPatternInputs(guardedInventory, resolved.inputs);
+                return null;
+            }
+            additionalCopies = limitedCopies - 1;
         }
 
         var additionalExtracted = new HashMap<AEKey, Long>(scalableDemand.size() * 2);

@@ -1,0 +1,194 @@
+"""Exercise the release contract without uploading or needing platform tokens."""
+
+import hashlib
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+from unittest.mock import patch
+import xml.etree.ElementTree as ET
+from zipfile import ZipFile
+
+import release
+
+
+def jar_fixture(path, mod_id, version, forge=False):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with ZipFile(path, "w") as jar:
+        jar.writestr(release.PROJECTS[mod_id][1], b"fixture")
+        jar.writestr("META-INF/mods.toml" if forge else "META-INF/neoforge.mods.toml",
+                     f'[[mods]]\nmodId="{mod_id}"\nversion="{version}"\n')
+
+
+class ReleaseContractTest(unittest.TestCase):
+    def test_release_types_and_loader_targets(self):
+        cases = (
+            ("2.1.2", False, "release"),
+            ("2.1.2", True, "beta"),
+            ("2.1.2-beta", False, "beta"),
+            ("2.1.2-beta.1", True, "beta"),
+            ("2.1.2-BETA2", False, "beta"),
+            ("2.1.2-alpha.1", True, "alpha"),
+            ("2.1.2-alpha1", False, "alpha"),
+            ("2.1.2-alphabet", False, "release"),
+            ("2.1.2-rc.1", True, "beta"),
+        )
+        for game, loader, java in (("1.21.1", "neoforge", "21"),
+                                  ("1.20.1", "forge", "17")):
+            for version, prerelease, expected_type in cases:
+                with self.subTest(game=game, version=version, prerelease=prerelease):
+                    result = release.metadata({"minecraft_version": game}, version, prerelease)
+                    self.assertEqual((result["version"], result["release_type"], result["mod_loader"], result["java_version"]),
+                                     (version, expected_type, loader, java))
+                    self.assertEqual(result["platform_version"], version + ("-forge.1.20.1" if loader == "forge" else ""))
+
+    def test_preserves_tags_without_imposing_a_naming_format(self):
+        for game in ("1.21.1", "1.20.1"):
+            for tag in ("2.0.2-beta", "2.0.2", "2.0.3", "1.0.0-alpha", "2.0", "nightly-2026.10", "v2.0.2"):
+                with self.subTest(game=game, tag=tag):
+                    self.assertEqual(release.metadata({"minecraft_version": game}, tag, False)["version"], tag)
+
+    def test_rejects_unsupported_build_target(self):
+        with self.assertRaises(ValueError):
+            release.metadata({"minecraft_version": "1.19.2"}, "2.0.2-beta", False)
+
+    def test_maven_identity_is_separate_from_distributable_identity(self):
+        for game, artifact, jar_base in (("1.21.1", "thunderbolt-reborn", "thunderbolt"),
+                                         ("1.20.1", "thunderbolt-reborn-forge-1.20.1", "thunderbolt-forge-1.20.1")):
+            with self.subTest(game=game), tempfile.TemporaryDirectory() as directory:
+                props = {"minecraft_version": game, "mod_id": "thunderbolt", "artifact_name": "thunderbolt",
+                         "maven_artifact_id": artifact, "mod_group_id": "com.moakiee.thunderbolt"}
+                result = release.metadata(props, "2.0.2-beta", True)
+                self.assertEqual(result["artifact_id"], artifact)
+                self.assertEqual(result["jar_file"], f"{jar_base}-2.0.2-beta.jar")
+                root = Path(directory)
+                jar = root / "build/libs" / result["jar_file"]
+                jar_fixture(jar, "thunderbolt", result["version"], game == "1.20.1")
+                release.prepare_artifacts(root, props, result)
+                self.assertTrue((root / "release-artifacts" / result["jar_file"]).is_file())
+                pom = root / "build/publications/mavenJava/pom-default.xml"
+                pom.parent.mkdir(parents=True)
+                pom.write_text(f'<project xmlns="http://maven.apache.org/POM/4.0.0"><groupId>com.moakiee.thunderbolt</groupId>'
+                               f'<artifactId>{artifact}</artifactId><version>2.0.2-beta</version></project>')
+                release.validate_publication(root, props, result)
+                pom.write_text(pom.read_text().replace(artifact, jar_base))
+                with self.assertRaisesRegex(ValueError, "artifactId"):
+                    release.validate_publication(root, props, result)
+
+    def test_downloaded_release_can_use_an_explicit_maven_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            props = {"minecraft_version": "1.21.1", "mod_id": "ae2lt", "thunderbolt_version": "2.0.2-beta",
+                     "thunderbolt_artifact_id": "thunderbolt-reborn-custom"}
+
+            def download(command, check):
+                self.assertEqual(command[7], "thunderbolt-2.0.2-beta.jar")
+                jar_fixture(Path(command[9]) / command[7], "thunderbolt", "2.0.2-beta")
+
+            with patch.object(release.subprocess, "run", side_effect=download):
+                outputs = release.download_dependencies(root, props, "AE2-Lightning-Tech-Reborn")
+            self.assertEqual(outputs["thunderbolt_maven_notation"], "com.moakiee.thunderbolt:thunderbolt-reborn-custom:2.0.2-beta")
+
+    def test_provider_versions_come_from_current_build_configuration(self):
+        props = {"mod_id": "ae2ltpp", "ae2lt_jar": "../AE2-Lightning-Tech/build/libs/ae2lt-2.1.0-beta.1.jar",
+                 "thunderbolt_maven_notation": "com.moakiee.thunderbolt:thunderbolt:2.0.0"}
+        self.assertEqual(release.dependency_versions(props), {"ae2lt": "2.1.0-beta.1", "thunderbolt": "2.0.0"})
+        props.update(ae2lt_version="2.1.1", thunderbolt_version="2.0.1")
+        self.assertEqual(release.dependency_versions(props), {"ae2lt": "2.1.1", "thunderbolt": "2.0.1"})
+        props["thunderbolt_version"] = "../other"
+        with self.assertRaises(ValueError):
+            release.dependency_versions(props)
+
+    def test_downloads_correct_release_and_stages_forge_and_neoforge_coordinates(self):
+        for game in ("1.21.1", "1.20.1"):
+            for mod_id in ("ae2lt", "ae2ltpp"):
+                with self.subTest(game=game, mod_id=mod_id), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    forge = game == "1.20.1"
+                    props = {"minecraft_version": game, "mod_id": mod_id,
+                             "ae2lt_version": "2.1.0-beta.1", "thunderbolt_version": "2.0.1"}
+                    if forge and mod_id == "ae2lt":
+                        props["thunderbolt_artifact_id"] = "thunderbolt-reborn-forge-1.20.1"
+                    requests = []
+
+                    def download(command, check):
+                        requests.append(command)
+                        upstream = "ae2lt" if "AE2-Lightning-Tech-Reborn/AE2-Lightning-Tech-Reborn" in command else "thunderbolt"
+                        version = props[f"{upstream}_version"]
+                        self.assertEqual(command[3], version)
+                        self.assertEqual(command[6], "--pattern")
+                        name = f'{upstream}{"-forge-1.20.1" if forge else ""}-{version}.jar'
+                        self.assertEqual(command[7], name)
+                        self.assertTrue(check)
+                        jar_fixture(Path(command[9]) / name, upstream, version, forge)
+
+                    with patch.object(release.subprocess, "run", side_effect=download):
+                        outputs = release.download_dependencies(root, props, "AE2-Lightning-Tech-Reborn")
+                    self.assertEqual(len(requests), 2 if mod_id == "ae2ltpp" else 1)
+                    artifact = "thunderbolt-reborn-forge-1.20.1" if forge else "thunderbolt-reborn"
+                    self.assertEqual(outputs["thunderbolt_maven_notation"], f"com.moakiee.thunderbolt:{artifact}:2.0.1")
+                    for notation in outputs.values():
+                        group, artifact, version = notation.split(":")
+                        folder = root / "release-dependencies/maven" / group.replace(".", "/") / artifact / version
+                        self.assertTrue((folder / f"{artifact}-{version}.jar").is_file())
+                        pom = ET.parse(folder / f"{artifact}-{version}.pom")
+                        self.assertEqual(pom.findtext("{*}artifactId"), artifact)
+                        self.assertEqual(pom.findtext("{*}version"), version)
+
+    def test_falls_back_to_legacy_dependency_tags(self):
+        for game in ("1.21.1", "1.20.1"):
+            with self.subTest(game=game), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                forge = game == "1.20.1"
+                requests = []
+                props = {"minecraft_version": game, "mod_id": "ae2lt", "thunderbolt_version": "2.0.1"}
+
+                def download(command, check):
+                    requests.append(command[3])
+                    if command[3] == "2.0.1":
+                        raise subprocess.CalledProcessError(1, command)
+                    jar_fixture(Path(command[9]) / command[7], "thunderbolt", "2.0.1", forge)
+
+                with patch.object(release.subprocess, "run", side_effect=download):
+                    outputs = release.download_dependencies(root, props, "AE2-Lightning-Tech-Reborn")
+                self.assertEqual(requests, ["2.0.1", ("forge-1.20.1-v" if forge else "v") + "2.0.1"])
+                artifact = "thunderbolt-reborn-forge-1.20.1" if forge else "thunderbolt-reborn"
+                self.assertEqual(outputs["thunderbolt_maven_notation"], f"com.moakiee.thunderbolt:{artifact}:2.0.1")
+
+    def test_missing_dependency_releases_still_fail(self):
+        with tempfile.TemporaryDirectory() as directory:
+            props = {"minecraft_version": "1.21.1", "mod_id": "ae2lt", "thunderbolt_version": "2.0.1"}
+            with patch.object(release.subprocess, "run", side_effect=subprocess.CalledProcessError(1, "gh")) as download:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    release.download_dependencies(Path(directory), props, "AE2-Lightning-Tech-Reborn")
+                self.assertEqual([call.args[0][3] for call in download.call_args_list], ["2.0.1", "v2.0.1"])
+
+    def test_rejects_dependency_with_wrong_version_or_loader(self):
+        with tempfile.TemporaryDirectory() as directory:
+            jar = Path(directory) / "dependency.jar"
+            jar_fixture(jar, "thunderbolt", "2.0.0")
+            with self.assertRaises(ValueError):
+                release.validate_jar(jar, "thunderbolt", "2.0.1", "META-INF/neoforge.mods.toml")
+            with self.assertRaises(KeyError):
+                release.validate_jar(jar, "thunderbolt", "2.0.0", "META-INF/mods.toml")
+
+    def test_packages_only_distributable_and_records_its_digest(self):
+        for game in ("1.21.1", "1.20.1"):
+            for mod_id in release.PROJECTS:
+                with self.subTest(game=game, mod_id=mod_id), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    result = release.metadata({"minecraft_version": game}, "2.0.1-beta", True)
+                    jar = root / "build/libs/distributable.jar"
+                    jar_fixture(jar, mod_id, result["version"], game == "1.20.1")
+                    (jar.parent / "mod-slim.jar").write_bytes(b"excluded")
+                    (jar.parent / "mod-sources.jar").write_bytes(b"excluded")
+                    release.prepare_artifacts(root, {"mod_id": mod_id}, result)
+                    checksum = (root / "release-artifacts/SHA256SUMS").read_text()
+                    self.assertEqual(checksum, hashlib.sha256(jar.read_bytes()).hexdigest() + "  distributable.jar\n")
+                    (jar.parent / "extra.jar").write_bytes(b"unexpected")
+                    with self.assertRaises(ValueError):
+                        release.prepare_artifacts(root, {"mod_id": mod_id}, result)
+
+
+if __name__ == "__main__":
+    unittest.main()
