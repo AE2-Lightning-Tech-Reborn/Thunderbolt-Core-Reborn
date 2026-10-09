@@ -28,10 +28,40 @@ class MaterialDagBudgetTest {
     @Test
     void refinementKeepsTheSmallerSupplementAndItStillReplansWithMinimalSearch() {
         var graph = sharedCycle();
+        var initial = sharedReplenishment(graph);
+        var work = BoundedIntegerLinearSolver.WorkBudget.bounded(65_536, 1_000_000, Long.MAX_VALUE);
+        // Compile the bounded topology portfolio outside optional discovery. This tests real
+        // refinement and certified recipes without requiring its 100 ms wrapper to finish.
+        var templates = MaterialDagOrders.compile(graph, "M6", work);
+        assertFalse(templates.isEmpty());
+        var probes = new ArrayList<Map<String, Long>>();
+        long[] improvements = {0};
+        var refined = MissingRefinement.refine(graph, initial, List.of("M2"), plan -> false,
+                supplied -> {
+                    probes.add(supplied);
+                    assertTrue(probes.size() <= CraftPlannerV2.MAX_MISSING_REFINEMENT_PROBES);
+                    return certifiedSharedReplenishment(graph, initial, templates, supplied, work);
+                }, count -> improvements[0] += count);
+        assertEquals(Map.of("M2", 2L), refined.missing());
+        assertTrue(improvements[0] > 0);
+        ReplenishmentContractTest.assertExactBalance(graph, "M6", 2, refined);
+        var supplied = graph.withAdditionalStock(refined.missing());
+        var ready = CraftPlannerV2.planDetailed(supplied, "M6", 2, 1, 1);
+        assertTrue(ready.plan().feasible());
+        assertBalance(supplied, ready.plan());
+        assertDoesNotThrow(PlanningCancellation::check);
+    }
+
+    @Test
+    void boundedSharedCycleKeepsAnExecutableSupplement() {
+        var graph = sharedCycle();
         var result = CraftPlannerV2.planDetailed(graph, "M6", 2);
         assertTrue(result.plan().missing().keySet().stream().allMatch("M2"::equals));
-        assertTrue(result.plan().missing().getOrDefault("M2", 0L) < 6,
+        // Optional quality may stop before its first improvement; validity remains mandatory.
+        assertTrue(result.plan().missing().getOrDefault("M2", 0L) <= 6,
                 () -> result.plan().missing().toString());
+        assertTrue(result.diagnostics().missingRefinementProbes() <= CraftPlannerV2.MAX_MISSING_REFINEMENT_PROBES);
+        ReplenishmentContractTest.assertExactBalance(graph, "M6", 2, result.plan());
         var supplied = graph.withAdditionalStock(result.plan().missing());
         var ready = CraftPlannerV2.planDetailed(supplied, "M6", 2, 1, 1);
         assertTrue(ready.plan().feasible());
@@ -122,6 +152,31 @@ class MaterialDagBudgetTest {
         }
         assertTrue(context.expiredRefinement);
         assertEquals(Map.of("M2", 6L), result.missing());
+        var supplied = graph.withAdditionalStock(result.missing());
+        var ready = CraftPlannerV2.plan(supplied, "M6", 2, 1, 1);
+        assertTrue(ready.feasible());
+        assertBalance(supplied, ready);
+        assertDoesNotThrow(PlanningCancellation::check);
+    }
+
+    @Test
+    void anExpiredRefinementAfterAnImprovementKeepsItsCertifiedSupplement() {
+        var graph = sharedCycle();
+        var initial = sharedReplenishment(graph);
+        var work = BoundedIntegerLinearSolver.WorkBudget.bounded(65_536, 1_000_000, Long.MAX_VALUE);
+        var templates = MaterialDagOrders.compile(graph, "M6", work);
+        long[] improvements = {0};
+        var result = MissingRefinement.refine(graph, initial, List.of("M2"), plan -> false,
+                supplied -> certifiedSharedReplenishment(graph, initial, templates, supplied, work),
+                count -> {
+                    improvements[0] += count;
+                    try (var ignored = PlanningCancellation.limitOptionalWork(0L)) {
+                        PlanningCancellation.check();
+                    }
+                });
+        assertEquals(1L, improvements[0]);
+        assertEquals(Map.of("M2", 5L), result.missing());
+        ReplenishmentContractTest.assertExactBalance(graph, "M6", 2, result);
         var supplied = graph.withAdditionalStock(result.missing());
         var ready = CraftPlannerV2.plan(supplied, "M6", 2, 1, 1);
         assertTrue(ready.feasible());
@@ -264,6 +319,38 @@ class MaterialDagBudgetTest {
                 optionalDeadline.set(System.nanoTime() - 1L);
             }
         }
+    }
+
+    /** The existing conservative M2=6 vector, certified against its exact supplement. */
+    private static CraftPlan<String> sharedReplenishment(CraftGraph<String> graph) {
+        var baseline = MaterialDagReplay.tryPlan(graph.withAdditionalStock(Map.of("M2", 6L)),
+                Map.of(graph.patternsFor("M5").get(0), 3L,
+                        graph.patternsFor("M3").get(0), 1L, graph.patternsFor("M6").get(0), 2L), "M6", 2);
+        assertNotNull(baseline);
+        var used = new HashMap<>(baseline.usedStock());
+        assertEquals(6L, used.remove("M2"));
+        var initial = new CraftPlan<>(true, false, baseline.firings(), Map.copyOf(used), Map.of(),
+                Map.of("M2", 6L), baseline.grossDemand(), baseline.itemsProcessed(), false);
+        ReplenishmentContractTest.assertExactBalance(graph, "M6", 2, initial);
+        return initial;
+    }
+
+    /** Real stock refresh, minimal DAG planning and restoration to the original recipe identities. */
+    private static CraftPlan<String> certifiedSharedReplenishment(CraftGraph<String> graph,
+            CraftPlan<String> rejected, List<MaterialDagOrders.Candidate<String>> templates,
+            Map<String, Long> supplied, BoundedIntegerLinearSolver.WorkBudget work) {
+        var replenished = graph.withAdditionalStock(supplied);
+        for (var order : MaterialDagOrders.withAdditionalStock(templates, supplied, "M6", work)) {
+            if (!order.maySupply(2)) continue;
+            var ready = CraftPlannerV2.plan(order.graph(), "M6", 2, 1, 1);
+            if (!ready.feasible()) continue;
+            ready = order.restore(ready, replenished, "M6", 2);
+            if (!MaterialDagReplay.hasCertificate(replenished, ready, "M6", 2)) continue;
+            assertBalance(replenished, ready);
+            ByproductReplaySafetyTest.assertEveryOrderFinishes(ready, "M6", 2);
+            return ready;
+        }
+        return rejected;
     }
 
     private static CraftGraph<String> batchCycle() {

@@ -1,0 +1,241 @@
+{
+  "base_commit": "078cfb727dfa7d235e27b936b35b566736399e58",
+  "tested_state": "Base production code with the revised MaterialDagBudgetTest identified by source SHA-256.",
+  "environment": {
+    "java": 17,
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10"
+  },
+  "date": "2026-10-09",
+  "outcome": "PASS",
+  "production_changed": false,
+  "production_budgets_changed": false,
+  "production_source_tree": "48f901cc658c35d9b903809a8e1906f83d08d0e3",
+  "changes": {
+    "quality": "Real MissingRefinement over completely compiled DAG supports must retain exact M2=2.",
+    "quality_work_budget": {
+      "max_tableau_cells": 65536,
+      "cell_work": 1000000,
+      "max_nanos": "Long.MAX_VALUE; only the test component harness."
+    },
+    "bounded_integration": "Default production entry must return an executable supplement <= M2=6.",
+    "cutoff_before_improvement": "Forced existing scope expiration must retain exact M2=6.",
+    "cutoff_after_improvement": "Expire immediately after acceptance; retain exact M2=5.",
+    "validation": "Each accepted DAG is restored to original recipes, certified and independently checked for all enabled firing orders; results replan with minimal search."
+  },
+  "historical_global_failure": {
+    "path": "docs/benchmarks/gtl-global-test-20261009.json",
+    "sha256": "3fb6401ec1d5dd08fd2858227cf50f7d245ee9a64a91b5f35925d14e53e31355",
+    "sha256_normalization": "CRLF normalized to LF.",
+    "full_test": {
+      "total": 1400,
+      "passed": 1398,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 1,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "test": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+          "status": "skipped",
+          "message": "Assumption failed: Optional EAEP artifact not supplied"
+        },
+        {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "test": "refinementKeepsTheSmallerSupplementAndItStillReplansWithMinimalSearch()",
+          "status": "failed",
+          "message": "org.opentest4j.AssertionFailedError: {M2=6} ==> expected: <true> but was: <false>"
+        }
+      ]
+    },
+    "independent_original_method_repetitions": {
+      "label": "failed-method-repeat-100",
+      "exit_code": 0,
+      "found": 100,
+      "passed": 100,
+      "failed": 0,
+      "failing_iterations": []
+    }
+  },
+  "targeted": {
+    "label": "targeted",
+    "exit_code": 0,
+    "seconds": 21.15,
+    "test": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    }
+  },
+  "full_build": {
+    "label": "full-build",
+    "exit_code": 0,
+    "seconds": 121.35,
+    "test": {
+      "total": 1402,
+      "passed": 1401,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 1,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "test": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+          "status": "skipped",
+          "message": "Assumption failed: Optional EAEP artifact not supplied"
+        }
+      ]
+    },
+    "cpSatColdRefinementTest": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "materialDagColdReplayTest": {
+      "total": 20,
+      "passed": 20,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    }
+  },
+  "independent_tests": [
+    {
+      "label": "quality-pause-before",
+      "exit_code": 0,
+      "found": 5,
+      "passed": 0,
+      "failed": 5,
+      "failures": [
+        "org.opentest4j.AssertionFailedError: {M2=6} ==> expected: <true> but was: <false>",
+        "org.opentest4j.AssertionFailedError: {M2=6} ==> expected: <true> but was: <false>",
+        "org.opentest4j.AssertionFailedError: {M2=6} ==> expected: <true> but was: <false>",
+        "org.opentest4j.AssertionFailedError: {M2=6} ==> expected: <true> but was: <false>",
+        "org.opentest4j.AssertionFailedError: {M2=6} ==> expected: <true> but was: <false>"
+      ],
+      "pause_ms": 110,
+      "pause_triggered": 5
+    },
+    {
+      "label": "quality-pause-after",
+      "exit_code": 0,
+      "found": 5,
+      "passed": 5,
+      "failed": 0,
+      "failures": [],
+      "pause_ms": 110,
+      "pause_triggered": 5
+    },
+    {
+      "label": "refinementKeepsTheSmallerSupplementAndItStillReplansWithMinimalSearch",
+      "exit_code": 0,
+      "found": 100,
+      "passed": 100,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "label": "boundedSharedCycleKeepsAnExecutableSupplement",
+      "exit_code": 0,
+      "found": 50,
+      "passed": 50,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "label": "anExpiredRefinementAfterAnImprovementKeepsItsCertifiedSupplement",
+      "exit_code": 0,
+      "found": 50,
+      "passed": 50,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "label": "anExpiredRefinementDeadlineKeepsTheLastExecutableSupplement",
+      "exit_code": 0,
+      "found": 50,
+      "passed": 50,
+      "failed": 0,
+      "failures": []
+    }
+  ],
+  "repair_repeated_tests": {
+    "found": 250,
+    "passed": 250,
+    "failed": 0,
+    "process_model": "One independent JVM per method, repeated invocations within each JVM."
+  },
+  "controlled_pause": {
+    "pause_ms": 110,
+    "before": {
+      "found": 5,
+      "failed": 5,
+      "pause_triggered": 5
+    },
+    "after": {
+      "found": 5,
+      "passed": 5,
+      "failed": 0,
+      "pause_triggered": 5
+    },
+    "observation": "Same checkpoint observer and entry pause for the original and revised JUnit method.",
+    "limitation": "Instrumentation also has overhead; it does not identify the original full-suite trigger."
+  },
+  "previous_runtime_verification": {
+    "tested_commit": "078cfb727dfa7d235e27b936b35b566736399e58",
+    "rerun_for_test_only_repair": false,
+    "reference": "docs/benchmarks/gtl-global-test-20261009.json",
+    "forge_game_checks": [
+      {
+        "kind": "forge_game",
+        "mode": "auto",
+        "exit_code": 0,
+        "required_passed": 10,
+        "v2_selection_records": 9,
+        "mixin_failures": 0,
+        "forced_stand_down_observed": false,
+        "real_gtlcore_installed": false
+      },
+      {
+        "kind": "forge_game",
+        "mode": "always",
+        "exit_code": 0,
+        "required_passed": 10,
+        "v2_selection_records": 9,
+        "mixin_failures": 0,
+        "forced_stand_down_observed": true,
+        "real_gtlcore_installed": false
+      }
+    ],
+    "production_changed": false
+  },
+  "release_jar": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "version": "2.0.0",
+    "bytes": 5364076,
+    "sha256": "e2ed595cec17171f9ec5edfd5bfef96e4b3f06a6cdea490e59d005267b20dbc1",
+    "verify_release_jar_passed": true
+  },
+  "source_hash_normalization": "SHA-256 of source bytes with CRLF normalized to LF.",
+  "source_sha256": {
+    "src/test/java/com/moakiee/thunderbolt/core/planner/MaterialDagBudgetTest.java": "7308bea6a9c31cd67492593fb213cf1cb9933ba9bb89883c3cff9ad7385ef8d6",
+    "build/gtl-refinement-quality-fix-20261009/before-source/MaterialDagBudgetTest.java": "46b15c2a2d6b473e7f88f77db74fce2033ba06c9cd90273fabbca2f99bcdc2cd",
+    "build/gtl-refinement-quality-fix-20261009/QualityPauseProbe.java": "d6246cd1cd9f5e0968edb67d977f14b111b5d6aee8e27649181182e529a21576"
+  },
+  "limitations": [
+    "One real EAEP artifact test remains skipped because its optional artifact was not supplied.",
+    "The production shared-cycle result may still be M2=6 when optional refinement stops; this repair fixes the test contract and does not guarantee wall-clock optimization quality.",
+    "The actual original GC/JIT/scheduling trigger remains unknown.",
+    "The preceding runtime pressure and Forge results are referenced, not reported as rerun after this test-only repair.",
+    "No full GTLCore modpack TPS measurement; all original cutoff records remain preserved.",
+    "Raw environment logs, classpaths and local diagnostic harnesses remain ignored under build."
+  ]
+}

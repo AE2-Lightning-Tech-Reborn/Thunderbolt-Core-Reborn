@@ -1,0 +1,3158 @@
+{
+  "tested_commit": "078cfb727dfa7d235e27b936b35b566736399e58",
+  "tested_tree": "3d30085ef9fa27de314e7a3e8961ad76dbdbffee",
+  "date": "2026-10-09",
+  "environment": {
+    "java": 17,
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10"
+  },
+  "outcome": "FAIL: retain the first full-suite failure despite any subsequent passing repetitions.",
+  "production_changed": false,
+  "tests_or_budgets_changed": false,
+  "full_build": {
+    "label": "full-build",
+    "exit_code": 1,
+    "seconds": 286.772,
+    "test": {
+      "total": 1400,
+      "passed": 1398,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 1,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "test": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+          "status": "skipped",
+          "message": "Assumption failed: Optional EAEP artifact not supplied"
+        },
+        {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "test": "refinementKeepsTheSmallerSupplementAndItStillReplansWithMinimalSearch()",
+          "status": "failed",
+          "message": "org.opentest4j.AssertionFailedError: {M2=6} ==> expected: <true> but was: <false>"
+        }
+      ]
+    },
+    "cpSatColdRefinementTest": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "materialDagColdReplayTest": {
+      "total": 20,
+      "passed": 20,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    }
+  },
+  "release_jar_verification_passed": true,
+  "checks": [
+    {
+      "kind": "pressure",
+      "mode": "compile",
+      "exit_code": 0,
+      "seconds": 15.06
+    },
+    {
+      "kind": "pressure",
+      "mode": "ordinary",
+      "exit_code": 0,
+      "seconds": 18.449
+    },
+    {
+      "kind": "pressure",
+      "mode": "allocation",
+      "exit_code": 0,
+      "seconds": 31.862
+    },
+    {
+      "kind": "pressure",
+      "mode": "batch",
+      "exit_code": 0,
+      "seconds": 50.434
+    },
+    {
+      "kind": "pressure",
+      "mode": "channel",
+      "exit_code": 0,
+      "seconds": 171.013
+    },
+    {
+      "kind": "pressure",
+      "mode": "storage",
+      "exit_code": 0,
+      "seconds": 19.27
+    },
+    {
+      "kind": "pressure",
+      "mode": "cpsat",
+      "exit_code": 0,
+      "seconds": 60.891
+    },
+    {
+      "kind": "pressure",
+      "mode": "soak",
+      "exit_code": 0,
+      "seconds": 17.781
+    },
+    {
+      "kind": "pressure",
+      "mode": "isolated",
+      "exit_code": 0,
+      "seconds": 83.18
+    },
+    {
+      "kind": "release_script",
+      "exit_code": 0,
+      "tests": 12,
+      "passed": true
+    },
+    {
+      "kind": "forge_game",
+      "mode": "auto",
+      "exit_code": 0,
+      "required_passed": 10,
+      "v2_selection_records": 9,
+      "mixin_failures": 0,
+      "forced_stand_down_observed": false,
+      "real_gtlcore_installed": false
+    },
+    {
+      "kind": "forge_game",
+      "mode": "always",
+      "exit_code": 0,
+      "required_passed": 10,
+      "v2_selection_records": 9,
+      "mixin_failures": 0,
+      "forced_stand_down_observed": true,
+      "real_gtlcore_installed": false
+    }
+  ],
+  "awr_adapter": {
+    "tests": 4,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 1,
+    "exit_code": 0
+  },
+  "pressure": {
+    "ordinary": [
+      {
+        "label": "plannerstress-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 3.157,
+        "peak_working_set_mib": 294.773,
+        "sampled_peak_private_mib": 420.754,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "chain-10000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 13.56,
+              "p95_ms": 28.14,
+              "max_ms": 28.14,
+              "alloc_mib": 6.856,
+              "gc_ms": 23,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "wide-16000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 24.776,
+              "p95_ms": 53.125,
+              "max_ms": 53.125,
+              "alloc_mib": 14.824,
+              "gc_ms": 10,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "session-wide-4096-8probes",
+              "samples": 12,
+              "probes_per_sample": 8,
+              "queries": 96,
+              "p50_ms": 11.316,
+              "p95_ms": 14.77,
+              "max_ms": 14.77,
+              "alloc_mib": 12.769,
+              "gc_ms": 6,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "session-chain-2000-8probes",
+              "samples": 12,
+              "probes_per_sample": 8,
+              "queries": 96,
+              "p50_ms": 4.639,
+              "p95_ms": 5.98,
+              "max_ms": 5.98,
+              "alloc_mib": 5.713,
+              "gc_ms": 2,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "wide-256-unrelated-100000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 0.228,
+              "p95_ms": 0.242,
+              "max_ms": 0.242,
+              "alloc_mib": 0.24,
+              "gc_ms": 0,
+              "budget_exits": 0,
+              "status": "PASS"
+            },
+            {
+              "scenario": "admission-wide-18000",
+              "samples": 12,
+              "probes_per_sample": 1,
+              "queries": 12,
+              "p50_ms": 2.363,
+              "p95_ms": 3.561,
+              "max_ms": 3.561,
+              "alloc_mib": 1.529,
+              "gc_ms": 0,
+              "budget_exits": 12,
+              "status": "PASS"
+            }
+          ]
+        }
+      },
+      {
+        "label": "sidestress-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 12.166,
+        "peak_working_set_mib": 463.359,
+        "sampled_peak_private_mib": 618.551,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "side-4096-quantity-1",
+              "samples": 12,
+              "warmup": 1,
+              "p50_ms": 347.081,
+              "p95_ms": 400.045,
+              "alloc_mib": 157.405,
+              "budget_exits": 0,
+              "incomplete": 0,
+              "status": "PASS",
+              "incomplete_records": []
+            },
+            {
+              "scenario": "side-4096-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 1,
+              "p50_ms": 368.052,
+              "p95_ms": 640.209,
+              "alloc_mib": 164.009,
+              "budget_exits": 0,
+              "incomplete": 0,
+              "status": "PASS",
+              "incomplete_records": []
+            }
+          ]
+        }
+      },
+      {
+        "label": "certificatestress-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.836,
+        "peak_working_set_mib": 479.398,
+        "sampled_peak_private_mib": 642.586,
+        "result": {
+          "java": "17.0.20",
+          "rows": [
+            {
+              "scenario": "certificate-4096-quantity-1",
+              "samples": 12,
+              "warmup": 3,
+              "p50_ms": 19.308,
+              "p95_ms": 27.258,
+              "alloc_mib": 9.145,
+              "status": "PASS"
+            },
+            {
+              "scenario": "certificate-4096-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "p50_ms": 23.881,
+              "p95_ms": 50.546,
+              "alloc_mib": 13.083,
+              "status": "PASS"
+            }
+          ]
+        }
+      }
+    ],
+    "allocation": [
+      {
+        "label": "allocation-v2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 14.943,
+        "peak_working_set_mib": 289.863,
+        "sampled_peak_private_mib": 421.531,
+        "result": {
+          "solver": "v2",
+          "cases": 1476,
+          "feasible": 898,
+          "incomplete": 0,
+          "replenishments": 578,
+          "failures": []
+        }
+      },
+      {
+        "label": "allocation-cpsat",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 16.667,
+        "peak_working_set_mib": 435.676,
+        "sampled_peak_private_mib": 549.418,
+        "result": {
+          "solver": "cp_sat",
+          "cases": 1476,
+          "feasible": 898,
+          "incomplete": 0,
+          "replenishments": 578,
+          "failures": []
+        }
+      }
+    ],
+    "batch": [
+      {
+        "label": "batch-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 11.558,
+        "peak_working_set_mib": 273.062,
+        "sampled_peak_private_mib": 402.566,
+        "result": {
+          "provider_cases": 2000,
+          "seed": 20261009,
+          "elapsed_ms": 494.3519,
+          "cases": 20000,
+          "limiter_calls": 4529,
+          "rejected_or_unavailable": 17680,
+          "status": "PASS",
+          "trillion_quantity_cases": 2858,
+          "preparation_exceptions": 738
+        }
+      },
+      {
+        "label": "batch-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 34.364,
+        "peak_working_set_mib": 272.941,
+        "sampled_peak_private_mib": 403.387,
+        "result": {
+          "seed": 20261010,
+          "provider_cases": 2000,
+          "preparation_exceptions": 735,
+          "trillion_quantity_cases": 2858,
+          "status": "PASS",
+          "rejected_or_unavailable": 17756,
+          "limiter_calls": 4444,
+          "cases": 20000,
+          "elapsed_ms": 494.9831
+        }
+      },
+      {
+        "label": "batch-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 4.157,
+        "peak_working_set_mib": 255.008,
+        "sampled_peak_private_mib": 386.816,
+        "result": {
+          "trillion_quantity_cases": 2858,
+          "status": "PASS",
+          "rejected_or_unavailable": 17799,
+          "limiter_calls": 4437,
+          "cases": 20000,
+          "elapsed_ms": 388.3681,
+          "seed": 20261011,
+          "provider_cases": 2000,
+          "preparation_exceptions": 759
+        }
+      }
+    ],
+    "channel": [
+      {
+        "label": "channel-tree-136192-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 14.008,
+        "peak_working_set_mib": 627.84,
+        "sampled_peak_private_mib": 822.0,
+        "result": {
+          "rows": [
+            {
+              "scenario": "high-tree",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 599.298,
+              "p50_ms": 217.843,
+              "p95_ms": 256.869,
+              "max_ms": 256.869,
+              "alloc_mib": 73.728,
+              "graph_heap_mib": 159.359,
+              "heap_peak_pools_mib": 363.064,
+              "gc_ms": 39,
+              "status": "PASS"
+            }
+          ]
+        }
+      },
+      {
+        "label": "channel-dense-136192-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 23.529,
+        "peak_working_set_mib": 636.859,
+        "sampled_peak_private_mib": 797.012,
+        "result": {
+          "rows": [
+            {
+              "scenario": "dense-tree",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 557.874,
+              "p50_ms": 212.384,
+              "p95_ms": 561.769,
+              "max_ms": 561.769,
+              "alloc_mib": 73.728,
+              "graph_heap_mib": 159.014,
+              "heap_peak_pools_mib": 329.28,
+              "gc_ms": 39,
+              "status": "PASS"
+            }
+          ]
+        }
+      },
+      {
+        "label": "channel-mesh-136192-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 15.056,
+        "peak_working_set_mib": 713.602,
+        "sampled_peak_private_mib": 836.805,
+        "result": {
+          "rows": [
+            {
+              "scenario": "mesh",
+              "nodes": 272650,
+              "edges": 408368,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 726.28,
+              "p50_ms": 380.549,
+              "p95_ms": 405.936,
+              "max_ms": 405.936,
+              "alloc_mib": 99.09,
+              "graph_heap_mib": 185.605,
+              "heap_peak_pools_mib": 389.925,
+              "gc_ms": 51,
+              "status": "PASS"
+            }
+          ]
+        }
+      },
+      {
+        "label": "channel-weighted-512-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 7.936,
+        "peak_working_set_mib": 471.355,
+        "sampled_peak_private_mib": 683.445,
+        "result": {
+          "rows": [
+            {
+              "scenario": "weighted",
+              "nodes": 532,
+              "edges": 531,
+              "max_degree": 3,
+              "sources": 266,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 266,
+              "cold_ms": 32.697,
+              "p50_ms": 2.116,
+              "p95_ms": 3.853,
+              "max_ms": 3.853,
+              "alloc_mib": 0.183,
+              "graph_heap_mib": 90.443,
+              "heap_peak_pools_mib": 92.443,
+              "gc_ms": 0,
+              "status": "PASS"
+            }
+          ]
+        }
+      },
+      {
+        "label": "channel-chain-50000-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 43.438,
+        "peak_working_set_mib": 515.16,
+        "sampled_peak_private_mib": 812.016,
+        "result": {
+          "rows": [
+            {
+              "scenario": "chain",
+              "nodes": 50267,
+              "edges": 50266,
+              "max_degree": 2,
+              "sources": 266,
+              "demand": 1,
+              "flow": 1,
+              "winners": 1,
+              "cold_ms": 122.552,
+              "p50_ms": 29.111,
+              "p95_ms": 43.718,
+              "max_ms": 43.718,
+              "alloc_mib": 16.332,
+              "graph_heap_mib": 105.52,
+              "heap_peak_pools_mib": 227.175,
+              "gc_ms": 9,
+              "status": "PASS"
+            }
+          ]
+        }
+      },
+      {
+        "label": "channel-comb-100000-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 10.243,
+        "peak_working_set_mib": 660.016,
+        "sampled_peak_private_mib": 960.23,
+        "result": {
+          "rows": [
+            {
+              "scenario": "comb",
+              "nodes": 200266,
+              "edges": 200265,
+              "max_degree": 3,
+              "sources": 266,
+              "demand": 100000,
+              "flow": 100000,
+              "winners": 100000,
+              "cold_ms": 523.955,
+              "p50_ms": 139.177,
+              "p95_ms": 171.619,
+              "max_ms": 171.619,
+              "alloc_mib": 66.742,
+              "graph_heap_mib": 151.095,
+              "heap_peak_pools_mib": 419.38,
+              "gc_ms": 24,
+              "status": "PASS"
+            }
+          ]
+        }
+      },
+      {
+        "label": "channel-vanilla-136192-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 23.806,
+        "peak_working_set_mib": 647.926,
+        "sampled_peak_private_mib": 846.605,
+        "result": {
+          "rows": [
+            {
+              "scenario": "vanilla-faces",
+              "nodes": 226898,
+              "edges": 226897,
+              "max_degree": 6,
+              "sources": 0,
+              "demand": 136192,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 603.264,
+              "p50_ms": 216.268,
+              "p95_ms": 382.764,
+              "max_ms": 382.764,
+              "alloc_mib": 74.025,
+              "graph_heap_mib": 159.019,
+              "heap_peak_pools_mib": 335.988,
+              "gc_ms": 33,
+              "status": "PASS"
+            }
+          ]
+        }
+      },
+      {
+        "label": "channel-tree-200000-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 20.896,
+        "peak_working_set_mib": 858.863,
+        "sampled_peak_private_mib": 1390.938,
+        "result": {
+          "rows": [
+            {
+              "scenario": "high-tree",
+              "nodes": 290706,
+              "edges": 290705,
+              "max_degree": 6,
+              "sources": 266,
+              "demand": 200000,
+              "flow": 136192,
+              "winners": 136192,
+              "cold_ms": 664.194,
+              "p50_ms": 219.603,
+              "p95_ms": 381.232,
+              "max_ms": 381.232,
+              "alloc_mib": 90.463,
+              "graph_heap_mib": 179.972,
+              "heap_peak_pools_mib": 656.668,
+              "gc_ms": 14,
+              "status": "PASS"
+            }
+          ]
+        }
+      },
+      {
+        "label": "channel-oracle-20000",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 11.439,
+        "peak_working_set_mib": 474.172,
+        "sampled_peak_private_mib": 671.25,
+        "result": {
+          "rows": []
+        },
+        "oracle_pass": 20000
+      }
+    ],
+    "storage": [
+      {
+        "label": "storage-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 18.952,
+        "peak_working_set_mib": 736.742,
+        "sampled_peak_private_mib": 767.965,
+        "result": {
+          "rows": [
+            {
+              "scenario": "legacy-long",
+              "keys": 10000,
+              "measured_operations": 120000,
+              "operation_p50_ns": 260.3,
+              "operation_p95_ns": 1272.8,
+              "bytes_per_operation_with_oracle": 127.0,
+              "persist_p50_ms": 0.272,
+              "persist_p95_ms": 0.948,
+              "load_p50_ms": 18.87,
+              "load_p95_ms": 92.916,
+              "compaction_reinsertion": "PASS",
+              "status": "PASS"
+            },
+            {
+              "scenario": "exact-150digits",
+              "keys": 10000,
+              "measured_operations": 120000,
+              "operation_p50_ns": 1226.6,
+              "operation_p95_ns": 1636.3,
+              "bytes_per_operation_with_oracle": 1922.0,
+              "persist_p50_ms": 3.873,
+              "persist_p95_ms": 4.218,
+              "load_p50_ms": 21.791,
+              "load_p95_ms": 35.633,
+              "compaction_reinsertion": "PASS",
+              "status": "PASS"
+            }
+          ]
+        }
+      }
+    ],
+    "cpsat": [
+      {
+        "label": "cpsat-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 60.077,
+        "peak_working_set_mib": 396.539,
+        "sampled_peak_private_mib": 503.316,
+        "result": {
+          "rows": [
+            {
+              "scenario": "cycles-2-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 199.1602,
+              "p50_ms": 12.0583,
+              "p95_ms": 25.992,
+              "max_ms": 25.992,
+              "alloc_mib": 0.5409774780273438,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {}
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-2-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 264.0994,
+              "p50_ms": 240.1324,
+              "p95_ms": 263.3755,
+              "max_ms": 263.3755,
+              "alloc_mib": 5.222869873046875,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {
+                  "S": 1
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-2-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 10.4934,
+              "p50_ms": 6.8266,
+              "p95_ms": 10.6067,
+              "max_ms": 10.6067,
+              "alloc_mib": 0.53753662109375,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {}
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-2-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 234.347,
+              "p50_ms": 227.8047,
+              "p95_ms": 244.333,
+              "max_ms": 244.333,
+              "alloc_mib": 5.890876770019531,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {
+                  "S": 1
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-4-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 9.4889,
+              "p50_ms": 9.9498,
+              "p95_ms": 13.7378,
+              "max_ms": 13.7378,
+              "alloc_mib": 1.0939559936523438,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {}
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-4-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 259.0218,
+              "p50_ms": 258.2819,
+              "p95_ms": 261.2622,
+              "max_ms": 261.2622,
+              "alloc_mib": 8.803581237792969,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {
+                  "S": 1
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-4-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 8.3078,
+              "p50_ms": 8.1752,
+              "p95_ms": 9.7844,
+              "max_ms": 9.7844,
+              "alloc_mib": 1.101104736328125,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {}
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-4-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 258.589,
+              "p50_ms": 258.3074,
+              "p95_ms": 259.1266,
+              "max_ms": 259.1266,
+              "alloc_mib": 7.5906524658203125,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {
+                  "S": 1
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-8-quantity-3",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 26.1246,
+              "p50_ms": 16.2278,
+              "p95_ms": 32.2474,
+              "max_ms": 32.2474,
+              "alloc_mib": 2.582855224609375,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {}
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-8-quantity-3-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 263.2744,
+              "p50_ms": 262.8155,
+              "p95_ms": 267.5948,
+              "max_ms": 267.5948,
+              "alloc_mib": 17.589263916015625,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {
+                  "S": 1
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-8-quantity-1000000000000",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 16.5808,
+              "p50_ms": 15.522,
+              "p95_ms": 16.252,
+              "max_ms": 16.252,
+              "alloc_mib": 2.6383514404296875,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {}
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            },
+            {
+              "scenario": "cycles-8-quantity-1000000000000-short-seed",
+              "samples": 12,
+              "warmup": 3,
+              "cold_ms": 262.7017,
+              "p50_ms": 263.3685,
+              "p95_ms": 274.472,
+              "max_ms": 274.472,
+              "alloc_mib": 16.920005798339844,
+              "budget_exits": 12,
+              "incomplete": 0,
+              "failures": 0,
+              "status": "CUTOFF",
+              "observed_missing_vectors": [
+                {
+                  "S": 1
+                }
+              ],
+              "observed_result_statuses": [
+                "SOLVED"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "soak": [
+      {
+        "label": "soak-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 17.182,
+        "peak_working_set_mib": 355.566,
+        "sampled_peak_private_mib": 443.398,
+        "result": {
+          "rows": [
+            {
+              "scenario": "four-workers-independent-session-soak",
+              "workers": 4,
+              "queries": 1600,
+              "warmup_queries": 320,
+              "rounds": [
+                {
+                  "completed_queries": 320,
+                  "heap_after_gc_mib": 13.080032348632812,
+                  "round": 0
+                },
+                {
+                  "completed_queries": 640,
+                  "heap_after_gc_mib": 13.150238037109375,
+                  "round": 1
+                },
+                {
+                  "completed_queries": 960,
+                  "heap_after_gc_mib": 13.127510070800781,
+                  "round": 2
+                },
+                {
+                  "completed_queries": 1280,
+                  "heap_after_gc_mib": 13.149642944335938,
+                  "round": 3
+                },
+                {
+                  "completed_queries": 1600,
+                  "heap_after_gc_mib": 13.145965576171875,
+                  "round": 4
+                }
+              ],
+              "budget_exits": 800,
+              "incomplete": 0,
+              "anomalies": [],
+              "p50_ms": 10.4624,
+              "p95_ms": 18.1285,
+              "max_ms": 41.3237,
+              "v2_p50_ms": 8.6694,
+              "v2_p95_ms": 15.7382,
+              "cp_sat_p50_ms": 12.2073,
+              "cp_sat_p95_ms": 20.4692,
+              "elapsed_ms_with_warmup_gc_validation": 7259.1815,
+              "heap_after_gc_mib": [
+                13.059913635253906,
+                13.080032348632812,
+                13.150238037109375,
+                13.127510070800781,
+                13.149642944335938,
+                13.145965576171875
+              ],
+              "heap_growth_mib": 0.08605194091796875,
+              "status": "PASS"
+            }
+          ]
+        }
+      }
+    ],
+    "isolated": [
+      {
+        "label": "isolated-feedback-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.537,
+        "peak_working_set_mib": 92.27,
+        "sampled_peak_private_mib": 360.078,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+          "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 150,
+          "failures": []
+        }
+      },
+      {
+        "label": "isolated-portfolio-0",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 3.523,
+        "peak_working_set_mib": 86.465,
+        "sampled_peak_private_mib": 357.266,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 78,
+          "failures": []
+        }
+      },
+      {
+        "label": "isolated-feedback-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 9.832,
+        "peak_working_set_mib": 101.336,
+        "sampled_peak_private_mib": 370.375,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+          "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 174,
+          "failures": []
+        }
+      },
+      {
+        "label": "isolated-portfolio-1",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 2.271,
+        "peak_working_set_mib": 84.461,
+        "sampled_peak_private_mib": 356.168,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 102,
+          "failures": []
+        }
+      },
+      {
+        "label": "isolated-feedback-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 3.149,
+        "peak_working_set_mib": 92.59,
+        "sampled_peak_private_mib": 360.695,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+          "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 168,
+          "failures": []
+        }
+      },
+      {
+        "label": "isolated-portfolio-2",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 3.328,
+        "peak_working_set_mib": 93.844,
+        "sampled_peak_private_mib": 361.117,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 89,
+          "failures": []
+        }
+      },
+      {
+        "label": "isolated-feedback-3",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 7.387,
+        "peak_working_set_mib": 94.816,
+        "sampled_peak_private_mib": 363.43,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+          "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 150,
+          "failures": []
+        }
+      },
+      {
+        "label": "isolated-portfolio-3",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 26.534,
+        "peak_working_set_mib": 94.867,
+        "sampled_peak_private_mib": 361.957,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 83,
+          "failures": []
+        }
+      },
+      {
+        "label": "isolated-feedback-4",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 12.692,
+        "peak_working_set_mib": 89.219,
+        "sampled_peak_private_mib": 359.309,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+          "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 307,
+          "failures": []
+        }
+      },
+      {
+        "label": "isolated-portfolio-4",
+        "exit_code": 0,
+        "timed_out": false,
+        "elapsed_seconds": 9.964,
+        "peak_working_set_mib": 85.867,
+        "sampled_peak_private_mib": 356.172,
+        "result": {
+          "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+          "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+          "found": 1,
+          "passed": 1,
+          "failed": 0,
+          "elapsed_ms": 163,
+          "failures": []
+        }
+      }
+    ]
+  },
+  "pressure_process_model": "One JVM per large graph/storage/cycle/soak scenario family; three fixed seeds for batch; independent JVMs for the isolated methods.",
+  "failed_method_repeat": {
+    "label": "failed-method-repeat-100",
+    "exit_code": 0,
+    "found": 100,
+    "passed": 100,
+    "failed": 0,
+    "failing_iterations": []
+  },
+  "controlled_refinement": [
+    {
+      "label": "shared-normal-5",
+      "exit_code": 0,
+      "invocations": 5,
+      "delay_triggered": 0,
+      "injected_delay_ms": 0.0,
+      "missing_vectors": [
+        {
+          "missing": {
+            "M2": 2
+          },
+          "count": 5
+        }
+      ],
+      "replenishment_feasible": 5,
+      "rows": [
+        {
+          "iteration": 0,
+          "mode": "shared",
+          "injected_delay_ms": 0.0,
+          "delay_method": "refine",
+          "delay_triggered": false,
+          "missing": {
+            "M2": 2
+          },
+          "used_stock": {
+            "M1": 5,
+            "M0": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "diagnostics": {
+            "reachableWorkEstimate": 47,
+            "reachableItems": 7,
+            "reachablePatterns": 8,
+            "inputEdges": 13,
+            "contendedOutputs": 3,
+            "cycleCuts": 5,
+            "seedOrdered": true,
+            "configuredSearchBudget": 4096,
+            "consumedSearchBudget": 3902,
+            "configuredResolutionBudget": 3008,
+            "consumedResolutionBudget": 37,
+            "configuredFallbackBudget": 3008,
+            "consumedFallbackBudget": 0,
+            "planRuns": 57,
+            "compiledOrientations": 57,
+            "reusedCompilations": 0,
+            "hotNodeVisits": 0,
+            "dynamicCapacityEvaluations": 7,
+            "equivalentRoutesPruned": 50,
+            "failureMemoHits": 0,
+            "frontierPeak": 21,
+            "searchCutoff": true,
+            "resolutionCutoff": false,
+            "fallbackCutoff": false,
+            "graphCompileNanos": 120249300,
+            "linearPassNanos": 14603100,
+            "searchNanos": 20186000,
+            "totalNanos": 443029500,
+            "separatorWidthPeak": 4,
+            "lowWidthAttempts": 37,
+            "lowWidthSolved": 0,
+            "lowWidthInfeasible": 40,
+            "lowWidthCutoffs": 0,
+            "lowWidthIntegerNodes": 36,
+            "missingRefinementProbes": 4,
+            "missingRefinementImprovements": 3,
+            "missingRefinementNanos": 101838000,
+            "consumptionOptimizationProbes": 0,
+            "consumptionOptimizationImprovements": 0,
+            "consumptionOptimizationNanos": 0
+          },
+          "session": {
+            "missingRefinementProbes": 4,
+            "missingRefinementNanos": 101838000,
+            "materialDagOrderNanos": 100778600,
+            "materialDagOrderAttempts": 38
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "phase_event_count": 16,
+          "phase_events": [
+            {
+              "wall_ms": 138.5914,
+              "thread_cpu_ms": 140.625,
+              "optional_remaining_ms": 93.9069,
+              "checkpoint": 397,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 232.9819,
+              "thread_cpu_ms": 218.75,
+              "optional_remaining_ms": -0.4588,
+              "checkpoint": 67164,
+              "callers": [
+                "CraftPlannerV2.analyzeLowWidthComponents",
+                "CraftPlannerV2.analyzeLowWidthComponents"
+              ]
+            },
+            {
+              "wall_ms": 233.4249,
+              "thread_cpu_ms": 218.75,
+              "checkpoint": 67165,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 341.3385,
+              "thread_cpu_ms": 312.5,
+              "optional_remaining_ms": 87.8942,
+              "checkpoint": 72331,
+              "callers": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            },
+            {
+              "wall_ms": 346.029,
+              "thread_cpu_ms": 312.5,
+              "optional_remaining_ms": 83.2269,
+              "checkpoint": 72726,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 390.1804,
+              "thread_cpu_ms": 343.75,
+              "optional_remaining_ms": 39.0773,
+              "checkpoint": 80542,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 393.1209,
+              "thread_cpu_ms": 343.75,
+              "optional_remaining_ms": 36.1382,
+              "checkpoint": 80936,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 400.9318,
+              "thread_cpu_ms": 359.375,
+              "optional_remaining_ms": 28.3264,
+              "checkpoint": 88752,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 403.8013,
+              "thread_cpu_ms": 359.375,
+              "optional_remaining_ms": 25.4462,
+              "checkpoint": 89146,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 409.4319,
+              "thread_cpu_ms": 359.375,
+              "optional_remaining_ms": 19.8264,
+              "checkpoint": 96965,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 411.4597,
+              "thread_cpu_ms": 359.375,
+              "optional_remaining_ms": 17.8006,
+              "checkpoint": 97359,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 429.4562,
+              "thread_cpu_ms": 375.0,
+              "optional_remaining_ms": -1.4027,
+              "checkpoint": 107520,
+              "callers": [
+                "CraftPlannerV2.analyzeLowWidthComponents",
+                "CraftPlannerV2.analyzeLowWidthComponents"
+              ]
+            },
+            {
+              "wall_ms": 430.9837,
+              "thread_cpu_ms": 390.625,
+              "optional_remaining_ms": -1.7236,
+              "checkpoint": 107521,
+              "callers": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders"
+              ]
+            },
+            {
+              "wall_ms": 431.1968,
+              "thread_cpu_ms": 390.625,
+              "checkpoint": 107522,
+              "callers": [
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 434.2634,
+              "thread_cpu_ms": 390.625,
+              "optional_remaining_ms": 17.0003,
+              "checkpoint": 107524,
+              "callers": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 452.4457,
+              "thread_cpu_ms": 390.625,
+              "optional_remaining_ms": -1.1827,
+              "checkpoint": 111851,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "OptionalPlanningStages.lambda$planDetailed$0"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 1,
+          "mode": "shared",
+          "injected_delay_ms": 0.0,
+          "delay_method": "refine",
+          "delay_triggered": false,
+          "missing": {
+            "M2": 2
+          },
+          "used_stock": {
+            "M1": 5,
+            "M0": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "diagnostics": {
+            "reachableWorkEstimate": 47,
+            "reachableItems": 7,
+            "reachablePatterns": 8,
+            "inputEdges": 13,
+            "contendedOutputs": 3,
+            "cycleCuts": 5,
+            "seedOrdered": true,
+            "configuredSearchBudget": 4096,
+            "consumedSearchBudget": 4096,
+            "configuredResolutionBudget": 3008,
+            "consumedResolutionBudget": 37,
+            "configuredFallbackBudget": 3008,
+            "consumedFallbackBudget": 0,
+            "planRuns": 66,
+            "compiledOrientations": 66,
+            "reusedCompilations": 0,
+            "hotNodeVisits": 0,
+            "dynamicCapacityEvaluations": 7,
+            "equivalentRoutesPruned": 60,
+            "failureMemoHits": 0,
+            "frontierPeak": 21,
+            "searchCutoff": true,
+            "resolutionCutoff": false,
+            "fallbackCutoff": false,
+            "graphCompileNanos": 23784800,
+            "linearPassNanos": 3360000,
+            "searchNanos": 6065400,
+            "totalNanos": 213686000,
+            "separatorWidthPeak": 4,
+            "lowWidthAttempts": 41,
+            "lowWidthSolved": 0,
+            "lowWidthInfeasible": 44,
+            "lowWidthCutoffs": 0,
+            "lowWidthIntegerNodes": 40,
+            "missingRefinementProbes": 4,
+            "missingRefinementImprovements": 3,
+            "missingRefinementNanos": 100656600,
+            "consumptionOptimizationProbes": 0,
+            "consumptionOptimizationImprovements": 0,
+            "consumptionOptimizationNanos": 0
+          },
+          "session": {
+            "missingRefinementProbes": 4,
+            "missingRefinementNanos": 100656600,
+            "materialDagOrderNanos": 70702100,
+            "materialDagOrderAttempts": 47
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "phase_event_count": 16,
+          "phase_events": [
+            {
+              "wall_ms": 5.6838,
+              "thread_cpu_ms": 15.625,
+              "optional_remaining_ms": 99.8395,
+              "checkpoint": 397,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 77.0215,
+              "thread_cpu_ms": 46.875,
+              "checkpoint": 81552,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 109.698,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": 99.8723,
+              "checkpoint": 86718,
+              "callers": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            },
+            {
+              "wall_ms": 111.1791,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": 98.395,
+              "checkpoint": 87113,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 116.6216,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": 92.949,
+              "checkpoint": 95675,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 118.1189,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": 91.455,
+              "checkpoint": 96069,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 124.2139,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": 85.3574,
+              "checkpoint": 104631,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 126.3856,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 83.1869,
+              "checkpoint": 105025,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 131.6666,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 77.9049,
+              "checkpoint": 113590,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 133.2916,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 76.2819,
+              "checkpoint": 113984,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 165.4721,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 44.0987,
+              "checkpoint": 128677,
+              "callers": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders"
+              ]
+            },
+            {
+              "wall_ms": 165.6419,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 43.9331,
+              "checkpoint": 128679,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 209.6586,
+              "thread_cpu_ms": 156.25,
+              "optional_remaining_ms": -0.0874,
+              "checkpoint": 186077,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 210.0933,
+              "thread_cpu_ms": 156.25,
+              "optional_remaining_ms": -0.5193,
+              "checkpoint": 186078,
+              "callers": [
+                "CraftPlannerV2.enqueueOrientations",
+                "CraftPlannerV2.planCore"
+              ]
+            },
+            {
+              "wall_ms": 210.288,
+              "thread_cpu_ms": 156.25,
+              "checkpoint": 186079,
+              "callers": [
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 210.3776,
+              "thread_cpu_ms": 156.25,
+              "optional_remaining_ms": 19.9644,
+              "checkpoint": 186081,
+              "callers": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "mode": "shared",
+          "injected_delay_ms": 0.0,
+          "delay_method": "refine",
+          "delay_triggered": false,
+          "missing": {
+            "M2": 2
+          },
+          "used_stock": {
+            "M1": 5,
+            "M0": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "diagnostics": {
+            "reachableWorkEstimate": 47,
+            "reachableItems": 7,
+            "reachablePatterns": 8,
+            "inputEdges": 13,
+            "contendedOutputs": 3,
+            "cycleCuts": 5,
+            "seedOrdered": true,
+            "configuredSearchBudget": 4096,
+            "consumedSearchBudget": 4096,
+            "configuredResolutionBudget": 3008,
+            "consumedResolutionBudget": 37,
+            "configuredFallbackBudget": 3008,
+            "consumedFallbackBudget": 0,
+            "planRuns": 66,
+            "compiledOrientations": 66,
+            "reusedCompilations": 0,
+            "hotNodeVisits": 0,
+            "dynamicCapacityEvaluations": 7,
+            "equivalentRoutesPruned": 60,
+            "failureMemoHits": 0,
+            "frontierPeak": 21,
+            "searchCutoff": true,
+            "resolutionCutoff": false,
+            "fallbackCutoff": false,
+            "graphCompileNanos": 16478300,
+            "linearPassNanos": 5814000,
+            "searchNanos": 4171600,
+            "totalNanos": 188474600,
+            "separatorWidthPeak": 4,
+            "lowWidthAttempts": 41,
+            "lowWidthSolved": 0,
+            "lowWidthInfeasible": 44,
+            "lowWidthCutoffs": 0,
+            "lowWidthIntegerNodes": 40,
+            "missingRefinementProbes": 5,
+            "missingRefinementImprovements": 3,
+            "missingRefinementNanos": 100294000,
+            "consumptionOptimizationProbes": 0,
+            "consumptionOptimizationImprovements": 0,
+            "consumptionOptimizationNanos": 0
+          },
+          "session": {
+            "missingRefinementProbes": 5,
+            "missingRefinementNanos": 100294000,
+            "materialDagOrderNanos": 58401200,
+            "materialDagOrderAttempts": 47
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "phase_event_count": 19,
+          "phase_events": [
+            {
+              "wall_ms": 1.3797,
+              "thread_cpu_ms": 0.0,
+              "optional_remaining_ms": 99.7652,
+              "checkpoint": 397,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 59.6197,
+              "thread_cpu_ms": 46.875,
+              "checkpoint": 81552,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 87.1284,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 97.3089,
+              "checkpoint": 86718,
+              "callers": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            },
+            {
+              "wall_ms": 88.3347,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 96.1071,
+              "checkpoint": 87113,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 97.905,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 86.5329,
+              "checkpoint": 95675,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 101.2204,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 83.2179,
+              "checkpoint": 96069,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 105.7033,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 78.7345,
+              "checkpoint": 104631,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 106.9313,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 77.5098,
+              "checkpoint": 105025,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 111.3613,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 73.0771,
+              "checkpoint": 113590,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 112.4874,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 71.9541,
+              "checkpoint": 113984,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 132.5466,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": 51.8913,
+              "checkpoint": 128677,
+              "callers": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders"
+              ]
+            },
+            {
+              "wall_ms": 132.643,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": 51.8,
+              "checkpoint": 128679,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 180.7846,
+              "thread_cpu_ms": 125.0,
+              "optional_remaining_ms": 3.6533,
+              "checkpoint": 209834,
+              "callers": [
+                "CraftPlannerV2.enqueueOrientations",
+                "CraftPlannerV2.planCore"
+              ]
+            },
+            {
+              "wall_ms": 183.0109,
+              "thread_cpu_ms": 125.0,
+              "optional_remaining_ms": 1.4299,
+              "checkpoint": 210234,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 184.517,
+              "thread_cpu_ms": 125.0,
+              "optional_remaining_ms": -0.0775,
+              "checkpoint": 212647,
+              "callers": [
+                "MaterialDagOrders.optimisticCapacity",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 184.6401,
+              "thread_cpu_ms": 125.0,
+              "optional_remaining_ms": -0.1973,
+              "checkpoint": 212648,
+              "callers": [
+                "CraftPlannerV2.reachableWorkEstimate",
+                "CraftPlannerV2.reachableWorkEstimate"
+              ]
+            },
+            {
+              "wall_ms": 184.7091,
+              "thread_cpu_ms": 125.0,
+              "optional_remaining_ms": -0.2663,
+              "checkpoint": 212649,
+              "callers": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders"
+              ]
+            },
+            {
+              "wall_ms": 184.7808,
+              "thread_cpu_ms": 125.0,
+              "checkpoint": 212650,
+              "callers": [
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 184.8502,
+              "thread_cpu_ms": 125.0,
+              "optional_remaining_ms": 19.9488,
+              "checkpoint": 212652,
+              "callers": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 3,
+          "mode": "shared",
+          "injected_delay_ms": 0.0,
+          "delay_method": "refine",
+          "delay_triggered": false,
+          "missing": {
+            "M2": 2
+          },
+          "used_stock": {
+            "M1": 5,
+            "M0": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "diagnostics": {
+            "reachableWorkEstimate": 47,
+            "reachableItems": 7,
+            "reachablePatterns": 8,
+            "inputEdges": 13,
+            "contendedOutputs": 3,
+            "cycleCuts": 5,
+            "seedOrdered": true,
+            "configuredSearchBudget": 4096,
+            "consumedSearchBudget": 4096,
+            "configuredResolutionBudget": 3008,
+            "consumedResolutionBudget": 37,
+            "configuredFallbackBudget": 3008,
+            "consumedFallbackBudget": 0,
+            "planRuns": 66,
+            "compiledOrientations": 66,
+            "reusedCompilations": 0,
+            "hotNodeVisits": 0,
+            "dynamicCapacityEvaluations": 7,
+            "equivalentRoutesPruned": 60,
+            "failureMemoHits": 0,
+            "frontierPeak": 21,
+            "searchCutoff": true,
+            "resolutionCutoff": false,
+            "fallbackCutoff": false,
+            "graphCompileNanos": 12425200,
+            "linearPassNanos": 2830300,
+            "searchNanos": 2152100,
+            "totalNanos": 171899300,
+            "separatorWidthPeak": 4,
+            "lowWidthAttempts": 41,
+            "lowWidthSolved": 0,
+            "lowWidthInfeasible": 44,
+            "lowWidthCutoffs": 0,
+            "lowWidthIntegerNodes": 40,
+            "missingRefinementProbes": 5,
+            "missingRefinementImprovements": 3,
+            "missingRefinementNanos": 101297300,
+            "consumptionOptimizationProbes": 0,
+            "consumptionOptimizationImprovements": 0,
+            "consumptionOptimizationNanos": 0
+          },
+          "session": {
+            "missingRefinementProbes": 5,
+            "missingRefinementNanos": 101297300,
+            "materialDagOrderNanos": 42775600,
+            "materialDagOrderAttempts": 47
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "phase_event_count": 21,
+          "phase_events": [
+            {
+              "wall_ms": 2.0538,
+              "thread_cpu_ms": 0.0,
+              "optional_remaining_ms": 99.9113,
+              "checkpoint": 397,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 44.8254,
+              "thread_cpu_ms": 31.25,
+              "checkpoint": 81552,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 64.7488,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 99.907,
+              "checkpoint": 86718,
+              "callers": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            },
+            {
+              "wall_ms": 66.2769,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 98.3813,
+              "checkpoint": 87113,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 69.9321,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 94.7251,
+              "checkpoint": 95675,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 71.2456,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 93.4128,
+              "checkpoint": 96069,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 74.7131,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 89.9429,
+              "checkpoint": 104631,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 76.4172,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 88.241,
+              "checkpoint": 105025,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 79.8408,
+              "thread_cpu_ms": 78.125,
+              "optional_remaining_ms": 84.8151,
+              "checkpoint": 113590,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 81.2478,
+              "thread_cpu_ms": 78.125,
+              "optional_remaining_ms": 83.4092,
+              "checkpoint": 113984,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 93.7394,
+              "thread_cpu_ms": 78.125,
+              "optional_remaining_ms": 70.9167,
+              "checkpoint": 128677,
+              "callers": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders"
+              ]
+            },
+            {
+              "wall_ms": 93.848,
+              "thread_cpu_ms": 78.125,
+              "optional_remaining_ms": 70.8117,
+              "checkpoint": 128679,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 137.2342,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": 27.4214,
+              "checkpoint": 209834,
+              "callers": [
+                "CraftPlannerV2.enqueueOrientations",
+                "CraftPlannerV2.planCore"
+              ]
+            },
+            {
+              "wall_ms": 138.5065,
+              "thread_cpu_ms": 93.75,
+              "optional_remaining_ms": 26.1523,
+              "checkpoint": 210234,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 148.2471,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 16.4091,
+              "checkpoint": 225003,
+              "callers": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders"
+              ]
+            },
+            {
+              "wall_ms": 148.3379,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 16.3226,
+              "checkpoint": 225005,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 165.3778,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.7219,
+              "checkpoint": 246414,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 165.4686,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.8088,
+              "checkpoint": 246415,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 165.917,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -1.2591,
+              "checkpoint": 246416,
+              "callers": [
+                "CraftPlannerV2.enqueueOrientations",
+                "CraftPlannerV2.planCore"
+              ]
+            },
+            {
+              "wall_ms": 166.0058,
+              "thread_cpu_ms": 109.375,
+              "checkpoint": 246417,
+              "callers": [
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 166.0547,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 19.9723,
+              "checkpoint": 246419,
+              "callers": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 4,
+          "mode": "shared",
+          "injected_delay_ms": 0.0,
+          "delay_method": "refine",
+          "delay_triggered": false,
+          "missing": {
+            "M2": 2
+          },
+          "used_stock": {
+            "M1": 5,
+            "M0": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "diagnostics": {
+            "reachableWorkEstimate": 47,
+            "reachableItems": 7,
+            "reachablePatterns": 8,
+            "inputEdges": 13,
+            "contendedOutputs": 3,
+            "cycleCuts": 5,
+            "seedOrdered": true,
+            "configuredSearchBudget": 4096,
+            "consumedSearchBudget": 4096,
+            "configuredResolutionBudget": 3008,
+            "consumedResolutionBudget": 37,
+            "configuredFallbackBudget": 3008,
+            "consumedFallbackBudget": 0,
+            "planRuns": 66,
+            "compiledOrientations": 66,
+            "reusedCompilations": 0,
+            "hotNodeVisits": 0,
+            "dynamicCapacityEvaluations": 7,
+            "equivalentRoutesPruned": 60,
+            "failureMemoHits": 0,
+            "frontierPeak": 21,
+            "searchCutoff": true,
+            "resolutionCutoff": false,
+            "fallbackCutoff": false,
+            "graphCompileNanos": 11693800,
+            "linearPassNanos": 1312000,
+            "searchNanos": 1814300,
+            "totalNanos": 163982600,
+            "separatorWidthPeak": 4,
+            "lowWidthAttempts": 41,
+            "lowWidthSolved": 0,
+            "lowWidthInfeasible": 44,
+            "lowWidthCutoffs": 0,
+            "lowWidthIntegerNodes": 40,
+            "missingRefinementProbes": 5,
+            "missingRefinementImprovements": 3,
+            "missingRefinementNanos": 100515800,
+            "consumptionOptimizationProbes": 0,
+            "consumptionOptimizationImprovements": 0,
+            "consumptionOptimizationNanos": 0
+          },
+          "session": {
+            "missingRefinementProbes": 5,
+            "missingRefinementNanos": 100515800,
+            "materialDagOrderNanos": 43491200,
+            "materialDagOrderAttempts": 47
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "phase_event_count": 21,
+          "phase_events": [
+            {
+              "wall_ms": 1.9991,
+              "thread_cpu_ms": 0.0,
+              "optional_remaining_ms": 99.92,
+              "checkpoint": 397,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 45.4771,
+              "thread_cpu_ms": 31.25,
+              "checkpoint": 81552,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 61.4531,
+              "thread_cpu_ms": 46.875,
+              "optional_remaining_ms": 99.9085,
+              "checkpoint": 86718,
+              "callers": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            },
+            {
+              "wall_ms": 63.2591,
+              "thread_cpu_ms": 46.875,
+              "optional_remaining_ms": 98.1059,
+              "checkpoint": 87113,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 67.0542,
+              "thread_cpu_ms": 46.875,
+              "optional_remaining_ms": 94.3073,
+              "checkpoint": 95675,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 68.525,
+              "thread_cpu_ms": 46.875,
+              "optional_remaining_ms": 92.839,
+              "checkpoint": 96069,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 71.8691,
+              "thread_cpu_ms": 46.875,
+              "optional_remaining_ms": 89.4944,
+              "checkpoint": 104631,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 73.4703,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 87.8929,
+              "checkpoint": 105025,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 76.3426,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 85.0214,
+              "checkpoint": 113590,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 77.937,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 83.4263,
+              "checkpoint": 113984,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 88.5923,
+              "thread_cpu_ms": 78.125,
+              "optional_remaining_ms": 72.7694,
+              "checkpoint": 128677,
+              "callers": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders"
+              ]
+            },
+            {
+              "wall_ms": 88.8069,
+              "thread_cpu_ms": 78.125,
+              "optional_remaining_ms": 72.5578,
+              "checkpoint": 128679,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 124.7789,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 36.5823,
+              "checkpoint": 209834,
+              "callers": [
+                "CraftPlannerV2.enqueueOrientations",
+                "CraftPlannerV2.planCore"
+              ]
+            },
+            {
+              "wall_ms": 126.6322,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 34.7316,
+              "checkpoint": 210234,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.withAdditionalStock"
+              ]
+            },
+            {
+              "wall_ms": 139.9353,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 21.4254,
+              "checkpoint": 225003,
+              "callers": [
+                "CraftPlannerV2.tryMaterialDagOrders",
+                "CraftPlannerV2.tryMaterialDagOrders"
+              ]
+            },
+            {
+              "wall_ms": 140.0874,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 21.277,
+              "checkpoint": 225005,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 161.4508,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.0905,
+              "checkpoint": 275189,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.permute"
+              ]
+            },
+            {
+              "wall_ms": 161.5487,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.1825,
+              "checkpoint": 275190,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 161.8431,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": -0.4782,
+              "checkpoint": 275191,
+              "callers": [
+                "CraftPlannerV2.enqueueOrientations",
+                "CraftPlannerV2.planCore"
+              ]
+            },
+            {
+              "wall_ms": 161.9957,
+              "thread_cpu_ms": 109.375,
+              "checkpoint": 275192,
+              "callers": [
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 162.0483,
+              "thread_cpu_ms": 109.375,
+              "optional_remaining_ms": 19.973,
+              "checkpoint": 275194,
+              "callers": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "shared-expired-5",
+      "exit_code": 0,
+      "invocations": 5,
+      "delay_triggered": 5,
+      "injected_delay_ms": 110.0,
+      "missing_vectors": [
+        {
+          "missing": {
+            "M2": 6
+          },
+          "count": 5
+        }
+      ],
+      "replenishment_feasible": 5,
+      "rows": [
+        {
+          "iteration": 0,
+          "mode": "shared",
+          "injected_delay_ms": 110.0,
+          "delay_method": "refine",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "diagnostics": {
+            "reachableWorkEstimate": 47,
+            "reachableItems": 7,
+            "reachablePatterns": 8,
+            "inputEdges": 13,
+            "contendedOutputs": 3,
+            "cycleCuts": 5,
+            "seedOrdered": true,
+            "configuredSearchBudget": 4096,
+            "consumedSearchBudget": 1487,
+            "configuredResolutionBudget": 3008,
+            "consumedResolutionBudget": 37,
+            "configuredFallbackBudget": 3008,
+            "consumedFallbackBudget": 0,
+            "planRuns": 66,
+            "compiledOrientations": 66,
+            "reusedCompilations": 0,
+            "hotNodeVisits": 0,
+            "dynamicCapacityEvaluations": 7,
+            "equivalentRoutesPruned": 60,
+            "failureMemoHits": 0,
+            "frontierPeak": 21,
+            "searchCutoff": true,
+            "resolutionCutoff": false,
+            "fallbackCutoff": false,
+            "graphCompileNanos": 65248000,
+            "linearPassNanos": 7289000,
+            "searchNanos": 11339200,
+            "totalNanos": 316517300,
+            "separatorWidthPeak": 4,
+            "lowWidthAttempts": 41,
+            "lowWidthSolved": 0,
+            "lowWidthInfeasible": 44,
+            "lowWidthCutoffs": 0,
+            "lowWidthIntegerNodes": 40,
+            "missingRefinementProbes": 0,
+            "missingRefinementImprovements": 0,
+            "missingRefinementNanos": 115218500,
+            "consumptionOptimizationProbes": 0,
+            "consumptionOptimizationImprovements": 0,
+            "consumptionOptimizationNanos": 0
+          },
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 115218500,
+            "materialDagOrderNanos": 59466900,
+            "materialDagOrderAttempts": 47
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "phase_event_count": 6,
+          "phase_events": [
+            {
+              "wall_ms": 80.5152,
+              "thread_cpu_ms": 78.125,
+              "optional_remaining_ms": 96.251,
+              "checkpoint": 397,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 136.4533,
+              "thread_cpu_ms": 125.0,
+              "checkpoint": 81552,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 299.4997,
+              "thread_cpu_ms": 171.875,
+              "optional_remaining_ms": -14.9684,
+              "checkpoint": 86718,
+              "callers": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            },
+            {
+              "wall_ms": 301.1495,
+              "thread_cpu_ms": 171.875,
+              "checkpoint": 86719,
+              "callers": [
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 303.1423,
+              "thread_cpu_ms": 171.875,
+              "optional_remaining_ms": 18.081,
+              "checkpoint": 86721,
+              "callers": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 322.4947,
+              "thread_cpu_ms": 171.875,
+              "optional_remaining_ms": -1.2728,
+              "checkpoint": 87652,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "OptionalPlanningStages.lambda$planDetailed$0"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 1,
+          "mode": "shared",
+          "injected_delay_ms": 110.0,
+          "delay_method": "refine",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "diagnostics": {
+            "reachableWorkEstimate": 47,
+            "reachableItems": 7,
+            "reachablePatterns": 8,
+            "inputEdges": 13,
+            "contendedOutputs": 3,
+            "cycleCuts": 5,
+            "seedOrdered": true,
+            "configuredSearchBudget": 4096,
+            "consumedSearchBudget": 4096,
+            "configuredResolutionBudget": 3008,
+            "consumedResolutionBudget": 37,
+            "configuredFallbackBudget": 3008,
+            "consumedFallbackBudget": 0,
+            "planRuns": 66,
+            "compiledOrientations": 66,
+            "reusedCompilations": 0,
+            "hotNodeVisits": 0,
+            "dynamicCapacityEvaluations": 7,
+            "equivalentRoutesPruned": 60,
+            "failureMemoHits": 0,
+            "frontierPeak": 21,
+            "searchCutoff": true,
+            "resolutionCutoff": false,
+            "fallbackCutoff": false,
+            "graphCompileNanos": 11333700,
+            "linearPassNanos": 2471900,
+            "searchNanos": 2742700,
+            "totalNanos": 168100300,
+            "separatorWidthPeak": 4,
+            "lowWidthAttempts": 41,
+            "lowWidthSolved": 0,
+            "lowWidthInfeasible": 44,
+            "lowWidthCutoffs": 0,
+            "lowWidthIntegerNodes": 40,
+            "missingRefinementProbes": 0,
+            "missingRefinementImprovements": 0,
+            "missingRefinementNanos": 110466000,
+            "consumptionOptimizationProbes": 0,
+            "consumptionOptimizationImprovements": 0,
+            "consumptionOptimizationNanos": 0
+          },
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 110466000,
+            "materialDagOrderNanos": 34243900,
+            "materialDagOrderAttempts": 47
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "phase_event_count": 5,
+          "phase_events": [
+            {
+              "wall_ms": 1.2155,
+              "thread_cpu_ms": 0.0,
+              "optional_remaining_ms": 99.9111,
+              "checkpoint": 397,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 35.4551,
+              "thread_cpu_ms": 46.875,
+              "checkpoint": 81552,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 161.1343,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": -10.329,
+              "checkpoint": 86718,
+              "callers": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            },
+            {
+              "wall_ms": 161.3616,
+              "thread_cpu_ms": 62.5,
+              "checkpoint": 86719,
+              "callers": [
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 161.4235,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 19.9752,
+              "checkpoint": 86721,
+              "callers": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "mode": "shared",
+          "injected_delay_ms": 110.0,
+          "delay_method": "refine",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "diagnostics": {
+            "reachableWorkEstimate": 47,
+            "reachableItems": 7,
+            "reachablePatterns": 8,
+            "inputEdges": 13,
+            "contendedOutputs": 3,
+            "cycleCuts": 5,
+            "seedOrdered": true,
+            "configuredSearchBudget": 4096,
+            "consumedSearchBudget": 4096,
+            "configuredResolutionBudget": 3008,
+            "consumedResolutionBudget": 37,
+            "configuredFallbackBudget": 3008,
+            "consumedFallbackBudget": 0,
+            "planRuns": 66,
+            "compiledOrientations": 66,
+            "reusedCompilations": 0,
+            "hotNodeVisits": 0,
+            "dynamicCapacityEvaluations": 7,
+            "equivalentRoutesPruned": 60,
+            "failureMemoHits": 0,
+            "frontierPeak": 21,
+            "searchCutoff": true,
+            "resolutionCutoff": false,
+            "fallbackCutoff": false,
+            "graphCompileNanos": 9802200,
+            "linearPassNanos": 1751900,
+            "searchNanos": 2097400,
+            "totalNanos": 163037800,
+            "separatorWidthPeak": 4,
+            "lowWidthAttempts": 41,
+            "lowWidthSolved": 0,
+            "lowWidthInfeasible": 44,
+            "lowWidthCutoffs": 0,
+            "lowWidthIntegerNodes": 40,
+            "missingRefinementProbes": 0,
+            "missingRefinementImprovements": 0,
+            "missingRefinementNanos": 111491800,
+            "consumptionOptimizationProbes": 0,
+            "consumptionOptimizationImprovements": 0,
+            "consumptionOptimizationNanos": 0
+          },
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 111491800,
+            "materialDagOrderNanos": 33760200,
+            "materialDagOrderAttempts": 47
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "phase_event_count": 5,
+          "phase_events": [
+            {
+              "wall_ms": 1.9905,
+              "thread_cpu_ms": 15.625,
+              "optional_remaining_ms": 99.9426,
+              "checkpoint": 397,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 35.778,
+              "thread_cpu_ms": 46.875,
+              "checkpoint": 81552,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 160.1274,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": -11.3334,
+              "checkpoint": 86718,
+              "callers": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            },
+            {
+              "wall_ms": 160.3746,
+              "thread_cpu_ms": 62.5,
+              "checkpoint": 86719,
+              "callers": [
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 160.4836,
+              "thread_cpu_ms": 62.5,
+              "optional_remaining_ms": 19.9199,
+              "checkpoint": 86721,
+              "callers": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 3,
+          "mode": "shared",
+          "injected_delay_ms": 110.0,
+          "delay_method": "refine",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "diagnostics": {
+            "reachableWorkEstimate": 47,
+            "reachableItems": 7,
+            "reachablePatterns": 8,
+            "inputEdges": 13,
+            "contendedOutputs": 3,
+            "cycleCuts": 5,
+            "seedOrdered": true,
+            "configuredSearchBudget": 4096,
+            "consumedSearchBudget": 4096,
+            "configuredResolutionBudget": 3008,
+            "consumedResolutionBudget": 37,
+            "configuredFallbackBudget": 3008,
+            "consumedFallbackBudget": 0,
+            "planRuns": 66,
+            "compiledOrientations": 66,
+            "reusedCompilations": 0,
+            "hotNodeVisits": 0,
+            "dynamicCapacityEvaluations": 7,
+            "equivalentRoutesPruned": 60,
+            "failureMemoHits": 0,
+            "frontierPeak": 21,
+            "searchCutoff": true,
+            "resolutionCutoff": false,
+            "fallbackCutoff": false,
+            "graphCompileNanos": 8875300,
+            "linearPassNanos": 1403900,
+            "searchNanos": 1874700,
+            "totalNanos": 154095100,
+            "separatorWidthPeak": 4,
+            "lowWidthAttempts": 41,
+            "lowWidthSolved": 0,
+            "lowWidthInfeasible": 44,
+            "lowWidthCutoffs": 0,
+            "lowWidthIntegerNodes": 40,
+            "missingRefinementProbes": 0,
+            "missingRefinementImprovements": 0,
+            "missingRefinementNanos": 111315300,
+            "consumptionOptimizationProbes": 0,
+            "consumptionOptimizationImprovements": 0,
+            "consumptionOptimizationNanos": 0
+          },
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 111315300,
+            "materialDagOrderNanos": 27127100,
+            "materialDagOrderAttempts": 47
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "phase_event_count": 5,
+          "phase_events": [
+            {
+              "wall_ms": 1.2337,
+              "thread_cpu_ms": 0.0,
+              "optional_remaining_ms": 99.8354,
+              "checkpoint": 397,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 28.305,
+              "thread_cpu_ms": 31.25,
+              "checkpoint": 81552,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 151.6831,
+              "thread_cpu_ms": 46.875,
+              "optional_remaining_ms": -11.1236,
+              "checkpoint": 86718,
+              "callers": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            },
+            {
+              "wall_ms": 151.9466,
+              "thread_cpu_ms": 46.875,
+              "checkpoint": 86719,
+              "callers": [
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 151.9979,
+              "thread_cpu_ms": 46.875,
+              "optional_remaining_ms": 19.9795,
+              "checkpoint": 86721,
+              "callers": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed"
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 4,
+          "mode": "shared",
+          "injected_delay_ms": 110.0,
+          "delay_method": "refine",
+          "delay_triggered": true,
+          "missing": {
+            "M2": 6
+          },
+          "used_stock": {
+            "M0": 1,
+            "M1": 4,
+            "M3": 1
+          },
+          "budget_exhausted": true,
+          "diagnostics": {
+            "reachableWorkEstimate": 47,
+            "reachableItems": 7,
+            "reachablePatterns": 8,
+            "inputEdges": 13,
+            "contendedOutputs": 3,
+            "cycleCuts": 5,
+            "seedOrdered": true,
+            "configuredSearchBudget": 4096,
+            "consumedSearchBudget": 4096,
+            "configuredResolutionBudget": 3008,
+            "consumedResolutionBudget": 37,
+            "configuredFallbackBudget": 3008,
+            "consumedFallbackBudget": 0,
+            "planRuns": 66,
+            "compiledOrientations": 66,
+            "reusedCompilations": 0,
+            "hotNodeVisits": 0,
+            "dynamicCapacityEvaluations": 7,
+            "equivalentRoutesPruned": 60,
+            "failureMemoHits": 0,
+            "frontierPeak": 21,
+            "searchCutoff": true,
+            "resolutionCutoff": false,
+            "fallbackCutoff": false,
+            "graphCompileNanos": 5921700,
+            "linearPassNanos": 859400,
+            "searchNanos": 1114500,
+            "totalNanos": 143276700,
+            "separatorWidthPeak": 4,
+            "lowWidthAttempts": 41,
+            "lowWidthSolved": 0,
+            "lowWidthInfeasible": 44,
+            "lowWidthCutoffs": 0,
+            "lowWidthIntegerNodes": 40,
+            "missingRefinementProbes": 0,
+            "missingRefinementImprovements": 0,
+            "missingRefinementNanos": 110749400,
+            "consumptionOptimizationProbes": 0,
+            "consumptionOptimizationImprovements": 0,
+            "consumptionOptimizationNanos": 0
+          },
+          "session": {
+            "missingRefinementProbes": 0,
+            "missingRefinementNanos": 110749400,
+            "materialDagOrderNanos": 20656300,
+            "materialDagOrderAttempts": 47
+          },
+          "portfolio_observed": false,
+          "replenishment_feasible": true,
+          "phase_event_count": 5,
+          "phase_events": [
+            {
+              "wall_ms": 0.8797,
+              "thread_cpu_ms": 0.0,
+              "optional_remaining_ms": 99.9452,
+              "checkpoint": 397,
+              "callers": [
+                "MaterialDagOrders.charge",
+                "MaterialDagOrders.compile"
+              ]
+            },
+            {
+              "wall_ms": 21.5312,
+              "thread_cpu_ms": 31.25,
+              "checkpoint": 81552,
+              "callers": [
+                "CraftPlannerV2$SharedCounterBudget.tryConsume",
+                "CraftPlannerV2$SearchBudget.tryConsume"
+              ]
+            },
+            {
+              "wall_ms": 139.8444,
+              "thread_cpu_ms": 31.25,
+              "optional_remaining_ms": -10.5847,
+              "checkpoint": 86718,
+              "callers": [
+                "MissingRefinement.refine",
+                "CraftPlannerV2.refineMissing"
+              ]
+            },
+            {
+              "wall_ms": 140.0963,
+              "thread_cpu_ms": 31.25,
+              "checkpoint": 86719,
+              "callers": [
+                "OptionalPlanningStages.planDetailed",
+                "CraftPlannerV2.planDetailed"
+              ]
+            },
+            {
+              "wall_ms": 140.1755,
+              "thread_cpu_ms": 31.25,
+              "optional_remaining_ms": 19.948,
+              "checkpoint": 86721,
+              "callers": [
+                "SmallConservativeSearch.tryPlan",
+                "OptionalPlanningStages.planDetailed"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "diagnostic_interpretation": "The shared-cycle integration test demands M2 < 6 from optional refinement. Expiring that existing scope also returns M2=6, which still replans executably. This establishes a matching mechanism, not the precise pause or GC/JIT/scheduler trigger of the full-suite failure.",
+  "known_cutoffs": {
+    "admission_wide_18000": 12,
+    "cycle_measured_budget_exits": 144,
+    "concurrent_measured_budget_exits": 800,
+    "cycle_cutoff_replenishment_replan_skips": 72,
+    "cycle_validation": "Independent resource replay includes the returned supplement; the reused harness skips extra replanning when marked cutoff."
+  },
+  "release_jar": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "version": "2.0.0",
+    "bytes": 5364076,
+    "sha256": "bb8ea33aa3d7f82a0d58a4fe572686a3b92d90a8b21a7ba8914e40a9da8ad2a8"
+  },
+  "fixture_hash_normalization": "SHA-256 of source bytes with CRLF normalized to LF.",
+  "fixture_sha256": {
+    "build/gtl-global-test-20261009/fixtures/CertificateStress.java": "1ce253ecab56db13d82b35ea73f8ea9ed9e27dac39a182a20086764f7afd6f40",
+    "build/gtl-global-test-20261009/fixtures/ChannelStress.java": "fe7f415e244c85a6a98552af3410aacd43e96bda565708b344243666526b9d68",
+    "build/gtl-global-test-20261009/fixtures/ConcurrentSoak.java": "3d3e84547d863b525ab9d71d1249e3624f721999a88a9c49647a14e8acbcc994",
+    "build/gtl-global-test-20261009/fixtures/CyclePressure.java": "50f7fe335dd955742f767cdf5c0aa79e1abee5e62a31d0ee82249d4b46eaa8e8",
+    "build/gtl-global-test-20261009/fixtures/IdOnlyStockAudit.java": "b68a47fc761dfce33f3667541c70821e9f61e134245a48f2a1b899a9f1699727",
+    "build/gtl-global-test-20261009/fixtures/IsolatedChecks.java": "c42c20014eaf29b5ee9deb37f2f53a35e77a4b4333c1c56607fd1bb9dbdf765d",
+    "build/gtl-global-test-20261009/fixtures/PlannerStress.java": "f255de78c04537cd274c1a12d1aefa88098ab36637ea1dc2678e83f0beb5ae80",
+    "build/gtl-global-test-20261009/fixtures/SideStress.java": "5be70f3392b12b8f0648619364e4b5d065fff6c2d86ce9c3a39927bdc7b30c6f",
+    "build/gtl-global-test-20261009/fixtures/StorageStress.java": "a789680e3d06333c1eaed829482fc9124caab2a5513f3efe7cf2854f51ffd792",
+    "scripts/batch-benchmark/BatchStockPressure.java": "0d1b8192dfd42ec54def77cae27ca3e3dd66f89e4a30202da99ef8388e3dd523",
+    "build/gtl-failure-diagnosis-20261008/JunitFailureProbe.java": "59c3e426c3496d26fb6877679663f6f2e01c94e39dc95cdf9b03d86562e56285",
+    "build/gtl-failure-diagnosis-20261008/RefinementFailureProbe.java": "772acc46a3278ee211bff6d820d4f8809dd92cc39a41587293d70e16a888f617",
+    "build/gtl-upstream-port-20261005/game/game.init.gradle": "1674300d6c982ed7f67758dc9d8689d3ac9881fb140ef31ff7e8f5c782f14ede",
+    "build/gtl-upstream-port-20261005/game/java/ThunderboltInWorldTests.java": "7c8c122c8733fdaf1e2a7370c24bec4a0e186ca4334d8f070305b56d566442ee"
+  },
+  "limitations": [
+    "One real EAEP protocol test skipped because its optional artifact was not supplied.",
+    "One AWR reader test skipped because no external awrlib was supplied.",
+    "Forge tests cover auto and forced always stand-down; no complete GTLCore modpack or TPS measurement.",
+    "Quality cutoffs are retained and do not establish global optimality.",
+    "Short soak and heap samples cannot prove absence of long-term leaks.",
+    "Raw environment logs, classpaths and local harnesses remain under ignored build directories."
+  ]
+}
