@@ -1126,14 +1126,10 @@ public final class CraftPlannerV2<K> {
     }
 
     static <K> int reachableWorkEstimate(CraftGraph<K> graph, K target) {
-        return reachableWorkEstimate(graph, target, null);
+        return reachableWorkEstimate(graph, target, null, null);
     }
 
     /** The admission BFS can also supply the objective's shortest primary-input distances. */
-    private static <K> int reachableWorkEstimate(CraftGraph<K> graph, K target, Map<K, Integer> distances) {
-        return reachableWorkEstimate(graph, target, distances, null);
-    }
-
     private static <K> int reachableWorkEstimate(CraftGraph<K> graph, K target,
             Map<K, Integer> distances, int[] sizes) {
         PlanningCancellation.check();
@@ -6431,12 +6427,8 @@ public final class CraftPlannerV2<K> {
             int integerNodes) {
 
         private static <K> LowWidthSolve<K> unsupported() {
-            return unsupported(0);
-        }
-
-        private static <K> LowWidthSolve<K> unsupported(int nodes) {
             return new LowWidthSolve<>(
-                    BoundedIntegerLinearSolver.Status.INVALID_INPUT, null, Set.of(), nodes);
+                    BoundedIntegerLinearSolver.Status.INVALID_INPUT, null, Set.of(), 0);
         }
     }
 

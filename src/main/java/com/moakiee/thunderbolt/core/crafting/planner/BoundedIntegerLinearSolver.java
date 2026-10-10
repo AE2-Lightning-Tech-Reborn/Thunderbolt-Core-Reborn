@@ -305,7 +305,7 @@ final class BoundedIntegerLinearSolver {
                     return new Result(Status.SOLVED, expanded, visited);
                 }
 
-                Rational value = relaxation.values[fractional];
+                ExactRational value = relaxation.values[fractional];
                 BigInteger floor = value.floor();
                 BigInteger ceil = floor.add(BigInteger.ONE);
                 BigInteger max = BigInteger.valueOf(maxValue);
@@ -356,7 +356,7 @@ final class BoundedIntegerLinearSolver {
         return values;
     }
 
-    private static int firstFractional(Rational[] values) {
+    private static int firstFractional(ExactRational[] values) {
         for (int i = 0; i < values.length; i++) {
             if (!values[i].isInteger()) {
                 return i;
@@ -382,15 +382,15 @@ final class BoundedIntegerLinearSolver {
         int artificialOffset = variableCount + rowCount;
         int totalVariables = artificialOffset + artificialCount;
         if (!workBudget.tryStartTableau(rowCount, (long) totalVariables + 1L)) {
-            return new Relaxation(RelaxationStatus.BUDGET_EXHAUSTED, new Rational[0]);
+            return new Relaxation(RelaxationStatus.BUDGET_EXHAUSTED, new ExactRational[0]);
         }
-        Rational[][] tableau = new Rational[rowCount][totalVariables + 1];
-        for (Rational[] row : tableau) {
-            Arrays.fill(row, Rational.ZERO);
+        ExactRational[][] tableau = new ExactRational[rowCount][totalVariables + 1];
+        for (ExactRational[] row : tableau) {
+            Arrays.fill(row, ExactRational.ZERO);
         }
         int[] basis = new int[rowCount];
-        Rational[] costs = new Rational[totalVariables];
-        Arrays.fill(costs, Rational.ZERO);
+        ExactRational[] costs = new ExactRational[totalVariables];
+        Arrays.fill(costs, ExactRational.ZERO);
 
         int nextArtificial = artificialOffset;
         for (int row = 0; row < rowCount; row++) {
@@ -398,16 +398,16 @@ final class BoundedIntegerLinearSolver {
             boolean needsArtificial = constraint.minimum.signum() > 0;
             BigInteger sign = needsArtificial ? BigInteger.ONE : BigInteger.ONE.negate();
             for (int column = 0; column < variableCount; column++) {
-                tableau[row][column] = Rational.of(
+                tableau[row][column] = ExactRational.of(
                         constraint.coefficients[column].multiply(sign));
             }
             tableau[row][auxiliaryOffset + row] = needsArtificial
-                    ? Rational.NEGATIVE_ONE : Rational.ONE;
-            tableau[row][totalVariables] = Rational.of(constraint.minimum.multiply(sign));
+                    ? ExactRational.NEGATIVE_ONE : ExactRational.ONE;
+            tableau[row][totalVariables] = ExactRational.of(constraint.minimum.multiply(sign));
             if (needsArtificial) {
-                tableau[row][nextArtificial] = Rational.ONE;
+                tableau[row][nextArtificial] = ExactRational.ONE;
                 basis[row] = nextArtificial;
-                costs[nextArtificial] = Rational.NEGATIVE_ONE;
+                costs[nextArtificial] = ExactRational.NEGATIVE_ONE;
                 nextArtificial++;
             } else {
                 basis[row] = auxiliaryOffset + row;
@@ -417,24 +417,24 @@ final class BoundedIntegerLinearSolver {
         SimplexStatus simplex = maximize(
                 tableau, basis, costs, totalVariables, pivotBudget, workBudget);
         if (simplex == SimplexStatus.BUDGET_EXHAUSTED) {
-            return new Relaxation(RelaxationStatus.BUDGET_EXHAUSTED, new Rational[0]);
+            return new Relaxation(RelaxationStatus.BUDGET_EXHAUSTED, new ExactRational[0]);
         }
         if (simplex != SimplexStatus.OPTIMAL) {
-            return new Relaxation(RelaxationStatus.ERROR, new Rational[0]);
+            return new Relaxation(RelaxationStatus.ERROR, new ExactRational[0]);
         }
-        Rational objective = Rational.ZERO;
+        ExactRational objective = ExactRational.ZERO;
         for (int row = 0; row < rowCount; row++) {
             objective = objective.add(costs[basis[row]].multiply(tableau[row][totalVariables]));
         }
         if (objective.signum() < 0) {
-            return new Relaxation(RelaxationStatus.INFEASIBLE, new Rational[0]);
+            return new Relaxation(RelaxationStatus.INFEASIBLE, new ExactRational[0]);
         }
         if (objective.signum() > 0) {
-            return new Relaxation(RelaxationStatus.ERROR, new Rational[0]);
+            return new Relaxation(RelaxationStatus.ERROR, new ExactRational[0]);
         }
 
-        Rational[] values = new Rational[variableCount];
-        Arrays.fill(values, Rational.ZERO);
+        ExactRational[] values = new ExactRational[variableCount];
+        Arrays.fill(values, ExactRational.ZERO);
         for (int row = 0; row < rowCount; row++) {
             int basic = basis[row];
             if (basic < variableCount) {
@@ -445,16 +445,16 @@ final class BoundedIntegerLinearSolver {
     }
 
     private static SimplexStatus maximize(
-            Rational[][] tableau,
+            ExactRational[][] tableau,
             int[] basis,
-            Rational[] costs,
+            ExactRational[] costs,
             int variableCount,
             PivotBudget pivotBudget,
             WorkBudget workBudget) {
         while (true) {
             int entering = -1;
             for (int column = 0; column < variableCount; column++) {
-                Rational reduced = costs[column];
+                ExactRational reduced = costs[column];
                 for (int row = 0; row < tableau.length; row++) {
                     if (!workBudget.tryConsume(1L)) {
                         return SimplexStatus.BUDGET_EXHAUSTED;
@@ -471,16 +471,16 @@ final class BoundedIntegerLinearSolver {
             }
 
             int leaving = -1;
-            Rational bestRatio = null;
+            ExactRational bestRatio = null;
             for (int row = 0; row < tableau.length; row++) {
                 if (!workBudget.tryConsume(1L)) {
                     return SimplexStatus.BUDGET_EXHAUSTED;
                 }
-                Rational direction = tableau[row][entering];
+                ExactRational direction = tableau[row][entering];
                 if (direction.signum() <= 0) {
                     continue;
                 }
-                Rational ratio = tableau[row][variableCount].divide(direction);
+                ExactRational ratio = tableau[row][variableCount].divide(direction);
                 if (leaving < 0 || ratio.compareTo(bestRatio) < 0
                         || (ratio.equals(bestRatio) && basis[row] < basis[leaving])) {
                     leaving = row;
@@ -501,13 +501,13 @@ final class BoundedIntegerLinearSolver {
     }
 
     private static boolean pivot(
-            Rational[][] tableau,
+            ExactRational[][] tableau,
             int[] basis,
             int pivotRow,
             int pivotColumn,
             int variableCount,
             WorkBudget workBudget) {
-        Rational pivot = tableau[pivotRow][pivotColumn];
+        ExactRational pivot = tableau[pivotRow][pivotColumn];
         for (int column = 0; column <= variableCount; column++) {
             if (!workBudget.tryConsume(1L)) {
                 return false;
@@ -518,7 +518,7 @@ final class BoundedIntegerLinearSolver {
             if (row == pivotRow) {
                 continue;
             }
-            Rational factor = tableau[row][pivotColumn];
+            ExactRational factor = tableau[row][pivotColumn];
             if (factor.signum() == 0) {
                 continue;
             }
@@ -619,7 +619,7 @@ final class BoundedIntegerLinearSolver {
     private record ExactConstraint(BigInteger[] coefficients, BigInteger minimum) {
     }
 
-    private record Relaxation(RelaxationStatus status, Rational[] values) {
+    private record Relaxation(RelaxationStatus status, ExactRational[] values) {
     }
 
     private enum RelaxationStatus {
@@ -793,131 +793,4 @@ final class BoundedIntegerLinearSolver {
         }
     }
 
-    private static final class Rational implements Comparable<Rational> {
-        private static final Rational ZERO = new Rational(BigInteger.ZERO, BigInteger.ONE);
-        private static final Rational ONE = new Rational(BigInteger.ONE, BigInteger.ONE);
-        private static final Rational NEGATIVE_ONE = new Rational(BigInteger.ONE.negate(), BigInteger.ONE);
-
-        private final BigInteger numerator;
-        private final BigInteger denominator;
-
-        private Rational(BigInteger numerator, BigInteger denominator) {
-            if (denominator.signum() == 0) {
-                throw new ArithmeticException("zero denominator");
-            }
-            // Sparse simplex rows contain mostly zero and integer cells.
-            if (numerator.signum() == 0) {
-                this.numerator = BigInteger.ZERO;
-                this.denominator = BigInteger.ONE;
-                return;
-            }
-            if (denominator.signum() < 0) {
-                numerator = numerator.negate();
-                denominator = denominator.negate();
-            }
-            if (denominator.equals(BigInteger.ONE)) {
-                this.numerator = numerator;
-                this.denominator = BigInteger.ONE;
-                return;
-            }
-            BigInteger gcd = numerator.gcd(denominator);
-            this.numerator = gcd.equals(BigInteger.ONE) ? numerator : numerator.divide(gcd);
-            this.denominator = gcd.equals(BigInteger.ONE) ? denominator : denominator.divide(gcd);
-        }
-
-        static Rational of(BigInteger value) {
-            if (value.signum() == 0) {
-                return ZERO;
-            }
-            if (value.equals(BigInteger.ONE)) {
-                return ONE;
-            }
-            if (value.equals(NEGATIVE_ONE.numerator)) {
-                return NEGATIVE_ONE;
-            }
-            return new Rational(value, BigInteger.ONE);
-        }
-
-        Rational add(Rational other) {
-            if (other.signum() == 0) return this;
-            if (signum() == 0) return other;
-            if (denominator.equals(other.denominator)) {
-                return new Rational(numerator.add(other.numerator), denominator);
-            }
-            return new Rational(
-                    numerator.multiply(other.denominator).add(other.numerator.multiply(denominator)),
-                    denominator.multiply(other.denominator));
-        }
-
-        Rational subtract(Rational other) {
-            if (other.signum() == 0) return this;
-            if (equals(other)) return ZERO;
-            if (denominator.equals(other.denominator)) {
-                return new Rational(numerator.subtract(other.numerator), denominator);
-            }
-            return new Rational(
-                    numerator.multiply(other.denominator).subtract(other.numerator.multiply(denominator)),
-                    denominator.multiply(other.denominator));
-        }
-
-        Rational multiply(Rational other) {
-            if (signum() == 0 || other.signum() == 0) return ZERO;
-            if (equals(ONE)) return other;
-            if (other.equals(ONE)) return this;
-            return new Rational(
-                    numerator.multiply(other.numerator), denominator.multiply(other.denominator));
-        }
-
-        Rational divide(Rational other) {
-            if (other.signum() == 0) throw new ArithmeticException("zero denominator");
-            if (signum() == 0) return ZERO;
-            if (other.equals(ONE)) return this;
-            if (equals(other)) return ONE;
-            return new Rational(
-                    numerator.multiply(other.denominator), denominator.multiply(other.numerator));
-        }
-
-        int signum() {
-            return numerator.signum();
-        }
-
-        boolean isInteger() {
-            return denominator.equals(BigInteger.ONE);
-        }
-
-        BigInteger toBigIntegerExact() {
-            if (!isInteger()) {
-                throw new ArithmeticException("fractional value");
-            }
-            return numerator;
-        }
-
-        BigInteger floor() {
-            if (isInteger()) return numerator;
-            BigInteger[] divided = numerator.divideAndRemainder(denominator);
-            if (numerator.signum() < 0 && divided[1].signum() != 0) {
-                return divided[0].subtract(BigInteger.ONE);
-            }
-            return divided[0];
-        }
-
-        @Override
-        public int compareTo(Rational other) {
-            if (denominator.equals(other.denominator)) return numerator.compareTo(other.numerator);
-            return numerator.multiply(other.denominator)
-                    .compareTo(other.numerator.multiply(denominator));
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof Rational rational
-                    && numerator.equals(rational.numerator)
-                    && denominator.equals(rational.denominator);
-        }
-
-        @Override
-        public int hashCode() {
-            return 31 * numerator.hashCode() + denominator.hashCode();
-        }
-    }
 }

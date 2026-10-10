@@ -1,0 +1,196 @@
+{
+  "date": "2026-10-10",
+  "outcome": "PASS",
+  "base_commit": "b39f4f216497275cdfbc4e83014bdc89f321e0bc",
+  "environment": {
+    "java": 17,
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10"
+  },
+  "scope": {
+    "files": 9,
+    "added": 224,
+    "deleted": 329,
+    "net_lines_removed": 105,
+    "changes": {
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/BoundedIntegerLinearSolver.java": {
+        "added": 30,
+        "deleted": 157
+      },
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.java": {
+        "added": 2,
+        "deleted": 10
+      },
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/ExactDiagnosticPlanner.java": {
+        "added": 4,
+        "deleted": 5
+      },
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/PositiveIntegerLinearSolver.java": {
+        "added": 20,
+        "deleted": 95
+      },
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/Sat.java": {
+        "added": 2,
+        "deleted": 8
+      },
+      "src/main/java/com/moakiee/thunderbolt/core/eject/EjectEndpointIndex.java": {
+        "added": 3,
+        "deleted": 3
+      },
+      "src/main/java/com/moakiee/thunderbolt/core/util/MixinReflectionSupport.java": {
+        "added": 3,
+        "deleted": 8
+      },
+      "src/test/java/com/moakiee/thunderbolt/core/planner/RationalArithmeticTest.java": {
+        "added": 25,
+        "deleted": 43
+      },
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/ExactRational.java": {
+        "added": 135,
+        "deleted": 0
+      }
+    },
+    "shared_rational_matches_previous_optimized_body": true,
+    "public_api_changed": false
+  },
+  "source_sha256_normalized": {
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/BoundedIntegerLinearSolver.java": "1b54c8913ab07ec53c2670150024b08f9c1ee4158fc0d31a4c4c1a20935de497",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.java": "6bda7f7a60e633f61fc62178abf0869032bbed14ce581489b2b91b3b8d5e67f8",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/ExactDiagnosticPlanner.java": "97d8ef8c0ba2cceb7787ff8016c19f84e98895d9611376e11a6274d63ac53a89",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/PositiveIntegerLinearSolver.java": "fc59b80e3e730b07a4ce00f12e09ec166aa3c0130615fabf6c3fb55e28de29e9",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/Sat.java": "daf0f10a5eb44bd97912d41882f7d4c0166fde22d11bd2c46cd3064096d4b736",
+    "src/main/java/com/moakiee/thunderbolt/core/eject/EjectEndpointIndex.java": "515363a8e17713c24530ef6628856587fc8232ebfde6e5e98e55940791e3acd8",
+    "src/main/java/com/moakiee/thunderbolt/core/util/MixinReflectionSupport.java": "278bed9df7e507b5c47a0f1be7bda8a0a798981455134d760a8c86cd11c3f4fb",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/RationalArithmeticTest.java": "ccf9dc1fff5bd3227c2731090c24b94afc3bf310723b04f786d66a09e83ee031",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/ExactRational.java": "3772ecbaf16f588f3290ae6208ed4716037d1f897b1a5d3e97e6cb8717f5b558"
+  },
+  "full_build": {
+    "label": "full-build",
+    "exit_code": 0,
+    "seconds": 169.356,
+    "test": {
+      "total": 1365,
+      "passed": 1364,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 1,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "test": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+          "status": "skipped",
+          "message": "Assumption failed: Optional EAEP artifact not supplied"
+        }
+      ]
+    },
+    "externalPlannerBoundaryTest": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "cpSatColdRefinementTest": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "materialDagColdReplayTest": {
+      "total": 20,
+      "passed": 20,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    }
+  },
+  "combined_test": {
+    "total": 1403,
+    "passed": 1402,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "checks": [
+    {
+      "kind": "solver_differential",
+      "exit_code": 0,
+      "random_comparisons": 3000,
+      "boundary_comparisons": 10,
+      "cancellation": true,
+      "remaining_work": true,
+      "seconds": 1.578
+    },
+    {
+      "kind": "forge_game",
+      "mode": "auto",
+      "exit_code": 0,
+      "required_passed": 11,
+      "v2_selection_records": 9,
+      "mixin_failures": 0,
+      "forced_stand_down_observed": false,
+      "eject_close_test_passed": true
+    },
+    {
+      "kind": "forge_game",
+      "mode": "always",
+      "exit_code": 0,
+      "required_passed": 11,
+      "v2_selection_records": 9,
+      "mixin_failures": 0,
+      "forced_stand_down_observed": true,
+      "eject_close_test_passed": true
+    }
+  ],
+  "coverage": {
+    "test": {
+      "cases": 1365,
+      "prior_cases_retained": true,
+      "new_cases": 1
+    },
+    "externalPlannerBoundaryTest": {
+      "cases": 38,
+      "prior_cases_retained": true,
+      "new_cases": 0
+    },
+    "cpSatColdRefinementTest": {
+      "cases": 1,
+      "prior_cases_retained": true,
+      "new_cases": 0
+    },
+    "materialDagColdReplayTest": {
+      "cases": 20,
+      "prior_cases_retained": true,
+      "new_cases": 0
+    }
+  },
+  "release": {
+    "passed": true,
+    "shared_class_packaged": true,
+    "duplicate_classes_removed": true,
+    "baseline_fixture_not_packaged": true,
+    "refmap_jarjar_manifest": true,
+    "entrypoint_version_pom": true,
+    "bytes": 5359638,
+    "sha256": "1b5fafd693b26cbad903ec3d22ab0c75843755dae494bda4b64c7e7b63262a81"
+  },
+  "differential_baseline_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/BoundedIntegerLinearSolver.java": "8c194f306f13d478bbc829a324b7375bf69842821dfccd3472359cd78504ae49",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/PositiveIntegerLinearSolver.java": "8689725ba20978cf8b824bcbc8238ed330d9f126f2fa9b1ad753b4f4053d8c30",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/SparseIntegerBounds.java": "314d3782f76b5b3f55d582a5312e77cbb7541e07df20a98efaaa9986df954da1"
+  },
+  "local_verification_fixture_sha256": {
+    "differential/java/SolverEquivalence.java": "24fbf00cac231d492937e8be776045b336f03f50f1d71674db1ded2ad23d9af5",
+    "game/java/ThunderboltInWorldTests.java": "958e1aa776bad87cd497ee9679796bca6b27d234f3e34d32350400d7dc86b039"
+  },
+  "limitations": [
+    "One optional EAEP integration test skipped because its real artifact was not supplied.",
+    "Forge tests use fresh worlds without a real GTLCore installation; no full-modpack or long-duration TPS claim.",
+    "Prior pressure counts are not reused as measurements from this change."
+  ]
+}

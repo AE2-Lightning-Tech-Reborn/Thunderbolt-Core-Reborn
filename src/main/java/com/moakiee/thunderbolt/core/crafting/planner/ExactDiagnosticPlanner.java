@@ -67,10 +67,10 @@ final class ExactDiagnosticPlanner<K> {
                 continue;
             }
             BigInteger demand = remaining;
-            candidates.sort((a, b) -> supported(b, demand, true).compareTo(supported(a, demand, true)));
+            candidates.sort((a, b) -> supported(b, demand).compareTo(supported(a, demand)));
             for (CraftPattern<K> pattern : candidates) {
                 if (remaining.signum() == 0) break;
-                BigInteger times = supported(pattern, remaining, true);
+                BigInteger times = supported(pattern, remaining);
                 if (times.signum() == 0) continue;
                 BigInteger allocated = times.multiply(pattern.exactOutputAmount()).min(remaining);
                 fire(pattern, times, allocated);
@@ -139,13 +139,12 @@ final class ExactDiagnosticPlanner<K> {
         }
     }
 
-    private BigInteger supported(CraftPattern<K> pattern, BigInteger demand, boolean reserved) {
+    private BigInteger supported(CraftPattern<K> pattern, BigInteger demand) {
         BigInteger limit = ceilDiv(demand, pattern.exactOutputAmount());
         Map<K, BigInteger> perFiring = new HashMap<>();
         for (CraftInput<K> input : pattern.inputs()) {
             if (unlimited.contains(input.key())) continue;
-            BigInteger available = get(capacity, input.key());
-            if (reserved) available = available.subtract(get(need, input.key())).max(ZERO);
+            BigInteger available = get(capacity, input.key()).subtract(get(need, input.key())).max(ZERO);
             if (input.reusableStockSource() != null) {
                 for (K actual : graph.reusableStockCandidates(input.reusableStockSource(), input.key())) {
                     available = available.add(privateLeft.getOrDefault(new ReusableStockKey<>(

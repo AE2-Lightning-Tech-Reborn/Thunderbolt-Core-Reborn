@@ -7,13 +7,9 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Exact feasibility solver for positive-integer linear inequalities.
- *
- * <p>The public problem is {@code A*x >= b, x >= 1, b >= 0}. Phase I of the simplex method is evaluated
- * with arbitrary-precision rational arithmetic, so a feasible system is never rejected because of
- * a coefficient search bound or floating-point rounding. A rational solution can always be scaled
- * to a positive-integer solution because every coefficient and bound is integral. The scaled result
- * is then reduced without violating any constraint.
+ * Exact feasibility for {@code A*x >= b, x >= 1, b >= 0} using rational Phase-I simplex.
+ * Integral coefficients and non-negative bounds allow scaling a rational solution to integers.
+ * Coordinate reduction preserves every constraint; no coefficient search bound is imposed.
  */
 public final class PositiveIntegerLinearSolver {
 
@@ -102,11 +98,11 @@ public final class PositiveIntegerLinearSolver {
         int auxiliaryOffset = variableCount;
         int artificialOffset = variableCount + rowCount;
         int totalVariables = artificialOffset + artificialCount;
-        var tableau = new Rational[rowCount][totalVariables + 1];
-        for (var row : tableau) Arrays.fill(row, Rational.ZERO);
+        var tableau = new ExactRational[rowCount][totalVariables + 1];
+        for (var row : tableau) Arrays.fill(row, ExactRational.ZERO);
         var basis = new int[rowCount];
-        var costs = new Rational[totalVariables];
-        Arrays.fill(costs, Rational.ZERO);
+        var costs = new ExactRational[totalVariables];
+        Arrays.fill(costs, ExactRational.ZERO);
 
         int nextArtificial = artificialOffset;
         for (int row = 0; row < rowCount; row++) {
@@ -114,17 +110,17 @@ public final class PositiveIntegerLinearSolver {
             boolean needsArtificial = shiftedMinimums[row].signum() > 0;
             BigInteger sign = needsArtificial ? BigInteger.ONE : BigInteger.ONE.negate();
             for (int column = 0; column < variableCount; column++) {
-                tableau[row][column] = Rational.of(
+                tableau[row][column] = ExactRational.of(
                         constraint.coefficients()[column].multiply(sign));
             }
             tableau[row][auxiliaryOffset + row] = needsArtificial
-                    ? Rational.NEGATIVE_ONE : Rational.ONE;
-            tableau[row][totalVariables] = Rational.of(
+                    ? ExactRational.NEGATIVE_ONE : ExactRational.ONE;
+            tableau[row][totalVariables] = ExactRational.of(
                     shiftedMinimums[row].multiply(sign));
             if (needsArtificial) {
-                tableau[row][nextArtificial] = Rational.ONE;
+                tableau[row][nextArtificial] = ExactRational.ONE;
                 basis[row] = nextArtificial;
-                costs[nextArtificial] = Rational.NEGATIVE_ONE;
+                costs[nextArtificial] = ExactRational.NEGATIVE_ONE;
                 nextArtificial++;
             } else {
                 basis[row] = auxiliaryOffset + row;
@@ -134,19 +130,19 @@ public final class PositiveIntegerLinearSolver {
         var simplexStatus = maximize(tableau, basis, costs, totalVariables);
         if (simplexStatus != SimplexStatus.OPTIMAL) return result(Status.INTERNAL_ERROR);
 
-        Rational objective = Rational.ZERO;
+        ExactRational objective = ExactRational.ZERO;
         for (int row = 0; row < rowCount; row++) {
             objective = objective.add(costs[basis[row]].multiply(tableau[row][totalVariables]));
         }
         if (objective.signum() < 0) return result(Status.INFEASIBLE);
         if (objective.signum() > 0) return result(Status.INTERNAL_ERROR);
 
-        var positiveRational = new Rational[variableCount];
-        Arrays.fill(positiveRational, Rational.ONE);
+        var positiveRational = new ExactRational[variableCount];
+        Arrays.fill(positiveRational, ExactRational.ONE);
         for (int row = 0; row < rowCount; row++) {
             int basic = basis[row];
             if (basic < variableCount) {
-                positiveRational[basic] = tableau[row][totalVariables].add(Rational.ONE);
+                positiveRational[basic] = tableau[row][totalVariables].add(ExactRational.ONE);
             }
         }
 
@@ -173,12 +169,12 @@ public final class PositiveIntegerLinearSolver {
     }
 
     private static SimplexStatus maximize(
-            Rational[][] tableau, int[] basis, Rational[] costs, int variableCount) {
+            ExactRational[][] tableau, int[] basis, ExactRational[] costs, int variableCount) {
         int rowCount = tableau.length;
         while (true) {
             int entering = -1;
             for (int column = 0; column < variableCount; column++) {
-                Rational reduced = costs[column];
+                ExactRational reduced = costs[column];
                 for (int row = 0; row < rowCount; row++) {
                     reduced = reduced.subtract(costs[basis[row]].multiply(tableau[row][column]));
                 }
@@ -190,7 +186,7 @@ public final class PositiveIntegerLinearSolver {
             if (entering < 0) return SimplexStatus.OPTIMAL;
 
             int leaving = -1;
-            Rational bestRatio = null;
+            ExactRational bestRatio = null;
             for (int row = 0; row < rowCount; row++) {
                 var direction = tableau[row][entering];
                 if (direction.signum() <= 0) continue;
@@ -207,7 +203,7 @@ public final class PositiveIntegerLinearSolver {
     }
 
     private static void pivot(
-            Rational[][] tableau, int[] basis, int pivotRow, int pivotColumn, int variableCount) {
+            ExactRational[][] tableau, int[] basis, int pivotRow, int pivotColumn, int variableCount) {
         var pivot = tableau[pivotRow][pivotColumn];
         for (int column = 0; column <= variableCount; column++) {
             tableau[pivotRow][column] = tableau[pivotRow][column].divide(pivot);
@@ -283,77 +279,6 @@ public final class PositiveIntegerLinearSolver {
     private record ExactConstraint(BigInteger[] coefficients, BigInteger minimum) { }
 
     private enum SimplexStatus { OPTIMAL, UNBOUNDED }
-
-    private static final class Rational implements Comparable<Rational> {
-        private static final Rational ZERO = new Rational(BigInteger.ZERO, BigInteger.ONE);
-        private static final Rational ONE = new Rational(BigInteger.ONE, BigInteger.ONE);
-        private static final Rational NEGATIVE_ONE = new Rational(BigInteger.ONE.negate(), BigInteger.ONE);
-
-        private final BigInteger numerator;
-        private final BigInteger denominator;
-
-        private Rational(BigInteger numerator, BigInteger denominator) {
-            if (denominator.signum() == 0) throw new ArithmeticException("zero denominator");
-            if (denominator.signum() < 0) {
-                numerator = numerator.negate();
-                denominator = denominator.negate();
-            }
-            var gcd = numerator.gcd(denominator);
-            this.numerator = numerator.divide(gcd);
-            this.denominator = denominator.divide(gcd);
-        }
-
-        static Rational of(BigInteger value) {
-            if (value.signum() == 0) return ZERO;
-            if (value.equals(BigInteger.ONE)) return ONE;
-            if (value.equals(BigInteger.ONE.negate())) return NEGATIVE_ONE;
-            return new Rational(value, BigInteger.ONE);
-        }
-
-        Rational add(Rational other) {
-            return new Rational(numerator.multiply(other.denominator)
-                    .add(other.numerator.multiply(denominator)),
-                    denominator.multiply(other.denominator));
-        }
-
-        Rational subtract(Rational other) {
-            return new Rational(numerator.multiply(other.denominator)
-                    .subtract(other.numerator.multiply(denominator)),
-                    denominator.multiply(other.denominator));
-        }
-
-        Rational multiply(Rational other) {
-            return new Rational(numerator.multiply(other.numerator),
-                    denominator.multiply(other.denominator));
-        }
-
-        Rational divide(Rational other) {
-            return new Rational(numerator.multiply(other.denominator),
-                    denominator.multiply(other.numerator));
-        }
-
-        int signum() { return numerator.signum(); }
-        BigInteger numerator() { return numerator; }
-        BigInteger denominator() { return denominator; }
-
-        @Override
-        public int compareTo(Rational other) {
-            return numerator.multiply(other.denominator)
-                    .compareTo(other.numerator.multiply(denominator));
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return obj instanceof Rational other
-                    && numerator.equals(other.numerator)
-                    && denominator.equals(other.denominator);
-        }
-
-        @Override
-        public int hashCode() {
-            return 31 * numerator.hashCode() + denominator.hashCode();
-        }
-    }
 
     private PositiveIntegerLinearSolver() { }
 }

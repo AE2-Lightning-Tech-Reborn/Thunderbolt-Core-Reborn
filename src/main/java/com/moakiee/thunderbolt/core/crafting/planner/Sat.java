@@ -1,12 +1,7 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
 /**
- * Saturating non-negative {@code long} arithmetic.
- *
- * <p>Crafting amounts can grow geometrically (≈ q·m^depth) and overflow 64 bits long before any
- * realistic inventory could satisfy them. Instead of wrapping (which would silently corrupt a plan),
- * all amounts clamp to {@link #SAT}. Anything at {@code SAT} is treated as "more than any storage can
- * provide" downstream, so it surfaces as a missing/infeasible result rather than a wrong plan.
+ * Non-negative {@code long} arithmetic clamped to {@link #SAT} to prevent amount overflow.
  */
 public final class Sat {
 
@@ -44,8 +39,7 @@ public final class Sat {
         if (value == 0) {
             return 0;
         }
-        // (value - 1) / div + 1 == ceil(value / div) without the "+ div" that could overflow for a
-        // huge divisor (value - 1 < SAT, so no addition ever wraps).
+        // Avoid adding the divisor to a near-limit amount.
         return (value - 1) / div + 1;
     }
 }

@@ -70,7 +70,7 @@ public final class EjectEndpointIndex implements EjectCapabilityRegistry.Runtime
         var open = new AtomicBoolean(true);
         return () -> {
             if (open.compareAndSet(true, false)) {
-                removeEntry(entry, true);
+                removeEntry(entry);
             }
         };
     }
@@ -192,7 +192,7 @@ public final class EjectEndpointIndex implements EjectCapabilityRegistry.Runtime
         return entry;
     }
 
-    private void removeEntry(Entry target, boolean persist) {
+    private void removeEntry(Entry target) {
         var endpoint = target.endpoint;
         var dimensionMap = registrations.get(endpoint.interceptDimension());
         if (dimensionMap == null) return;
@@ -203,7 +203,7 @@ public final class EjectEndpointIndex implements EjectCapabilityRegistry.Runtime
         if (entries != null && entries.isEmpty()) faceMap.remove(endpoint.interceptFace());
         if (faceMap.isEmpty()) dimensionMap.remove(endpoint.interceptPos().asLong());
         if (dimensionMap.isEmpty()) registrations.remove(endpoint.interceptDimension());
-        if (persist && savedData != null) {
+        if (savedData != null) {
             savedData.removeByIntercept(
                     endpoint.interceptDimension(), endpoint.interceptPos(), endpoint.interceptFace());
         }
