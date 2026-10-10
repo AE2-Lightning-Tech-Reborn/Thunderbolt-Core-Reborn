@@ -1,23 +1,11 @@
-import re, os, sys
+import sys
+
+from mixin_scan import mixin_sources, priority, target_classes
 
 def targets(root):
     out = {}
-    for dirpath, _, files in os.walk(root):
-        parts = dirpath.replace(os.sep, '/').split('/')
-        if 'mixin' not in parts:
-            continue
-        for f in files:
-            if not f.endswith('.java'):
-                continue
-            p = os.path.join(dirpath, f)
-            s = open(p, encoding='utf-8', errors='ignore').read()
-            m = re.search(r'@Mixin\s*\(([^)]*)\)', s, re.S)
-            if not m:
-                continue
-            body = m.group(1)
-            t = re.findall(r'(?:value\s*=\s*)?\{?\s*([A-Za-z0-9_.$]+)\.class', body)
-            prio = re.search(r'priority\s*=\s*(\d+)', body)
-            out[f] = (t, prio.group(1) if prio else '1000', p)
+    for name, body, _ in mixin_sources(root):
+        out[name] = (target_classes(body), priority(body))
     return out
 
 tb = targets(sys.argv[1])
@@ -30,7 +18,6 @@ tbm = {k: simple(v[0]) for k, v in tb.items()}
 gtm = {k: simple(v[0]) for k, v in gt.items()}
 
 print("=== overlapping TARGET CLASSES ===")
-seen = set()
 for mk, t in sorted(tbm.items()):
     for gk, g in sorted(gtm.items()):
         ov = t & g

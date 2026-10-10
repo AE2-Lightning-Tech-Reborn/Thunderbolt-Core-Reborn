@@ -10,11 +10,7 @@ import org.slf4j.Logger;
 public final class CoreConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /**
-     * Channel capacity granted per registered high-capacity controller by the channel grid mixins.
-     * Defaults to 128; the host mod (AE2 Lightning Tech Reborn) overwrites it from its own config during
-     * setup via {@link #setChannelsPerController(int)} so the value stays user-configurable.
-     */
+    /** Default controller capacity; the host may override it through {@link #setChannelsPerController}. */
     private static volatile int channelsPerController = 128;
     private static volatile boolean channelMaxFlowRequired;
     private static volatile BatchCopyLimitRules batchCopyLimitRules =
@@ -25,8 +21,7 @@ public final class CoreConfig {
     }
 
     public static void setChannelsPerController(int value) {
-        // 该值作为每个控制器的渠道容量注入最大流计算，
-        // 0 或负数会导致全网渠道瘫痪或未定义行为，必须钳制到至少 1。
+        // Non-positive source capacity would disable channel allocation.
         int clamped = Math.max(1, value);
         if (value != clamped) {
             LOGGER.warn("非法的 channelsPerController 配置值: {}，已钳制为 {}", value, clamped);

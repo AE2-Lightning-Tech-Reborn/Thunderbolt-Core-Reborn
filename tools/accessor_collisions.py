@@ -1,15 +1,11 @@
-import re, os, sys
+import re
+import sys
 
-MIXIN_RE = re.compile(r'@Mixin\s*\(([^)]*)\)', re.S)
+from mixin_scan import mixin_sources, named_targets, simple_names, target_classes
 
 
 def gen_names(s):
-    """Java method names generated onto the target class by @Accessor/@Invoker.
-
-    The collision-relevant fact is the method the mixin adds to the target class, which is the
-    interface method's own name regardless of whether the annotation names the target field/method
-    explicitly (`@Accessor("tasks")`) or infers it (`@Invoker(remap = false)`).
-    """
+    """Generated members use the Java declaration name, not the annotation's target name."""
     names = set()
     for ann in re.finditer(r'@(?:Accessor|Invoker)\s*(?:\([^)]*\))?', s):
         # The declaration ends at the first ';'; inside it the identifier before '(' is the method.
@@ -20,21 +16,14 @@ def gen_names(s):
     return names
 
 
-def parse(path):
-    s = open(path, encoding='utf-8', errors='ignore').read()
-    m = MIXIN_RE.search(s)
-    if not m:
-        return None
-    body = m.group(1)
-    targets = re.findall(r'(?:value\s*=\s*)?\{?\s*([A-Za-z0-9_.$]+)\.class', body)
-    targets += re.findall(r'targets\s*=\s*\{?\s*"([^"]+)"', body)
+def parse(body, s):
+    targets = target_classes(body) + named_targets(body)
     if not targets:
         return None
     imports = {}
     for im in re.findall(r'^\s*import\s+(?!static\s)([A-Za-z0-9_.]+)\s*;', s, re.M):
         imports[im.split('.')[-1]] = im
-    # Same simple name in a different package is not a collision: AdvancedAE ships its own
-    # ExecutingCraftingJob/TaskProgress next to AE2's, and Thunderbolt mixes into both.
+    # Resolve imports so AE2 and AdvancedAE's equally named classes remain distinct.
     resolved = []
     for t in targets:
         head, _, tail = t.partition('$')
@@ -44,23 +33,15 @@ def parse(path):
 
 def collect(root):
     out = {}
-    for dirpath, _, files in os.walk(root):
-        if 'mixin' not in dirpath.replace(os.sep, '/').split('/'):
-            continue
-        for f in files:
-            if f.endswith('.java'):
-                r = parse(os.path.join(dirpath, f))
-                if r:
-                    out[f] = r
+    for name, body, source in mixin_sources(root):
+        parsed = parse(body, source)
+        if parsed:
+            out[name] = parsed
     return out
 
 
 tb = collect(sys.argv[1])
 gt = collect(sys.argv[2])
-
-
-def simple(ts):
-    return set(x.split('.')[-1].split('$')[-1] for x in ts)
 
 
 print("Definitive generated-method collisions (same target class, same generated method name):")
@@ -74,6 +55,6 @@ for tf, (tt, tm) in sorted(tb.items()):
         if coll:
             found = True
             print("  %-34s %-40s <-> %-40s  %s"
-                  % (sorted(simple(shared)), tf, gf, sorted(coll)))
+                  % (sorted(simple_names(shared)), tf, gf, sorted(coll)))
 if not found:
     print("  (none)")

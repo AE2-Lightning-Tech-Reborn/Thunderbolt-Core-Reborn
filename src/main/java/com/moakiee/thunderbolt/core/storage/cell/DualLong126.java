@@ -1,28 +1,14 @@
 package com.moakiee.thunderbolt.core.storage.cell;
 
 /**
- * 126-bit unsigned arithmetic using two non-negative Java longs (63 + 63 bits).
- * <p>
- * Representation: {@code value = hi * 2^63 + lo} where both {@code hi} and {@code lo}
- * are in {@code [0, Long.MAX_VALUE]}.
- * <p>
- * By sacrificing 2 bits compared to full 128-bit unsigned arithmetic, all comparisons
- * and divisions use plain Java signed operators — zero {@code Long.xxxUnsigned} calls.
+ * Unsigned {@code hi * 2^63 + lo} arithmetic with two non-negative longs.
+ * The 63+63-bit representation keeps comparisons and divisions within signed Java arithmetic.
  */
 public final class DualLong126 {
 
     private DualLong126() {}
 
-    /*
-     * add / sub are intentionally NOT provided as methods.
-     * Callers inline the 63-bit pattern directly for zero-overhead:
-     *
-     *   lo += amount;                          // or lo -= amount
-     *   if (lo < 0) { lo &= Long.MAX_VALUE; hi++; }   // carry / borrow
-     *
-     * Java overflow past Long.MAX_VALUE sets bit 63 (sign bit),
-     * so (lo < 0) detects carry; (& Long.MAX_VALUE) extracts the lower 63 bits.
-     */
+    // Callers inline limb carry/borrow handling on hot insert/extract paths.
 
     /** {@code (hi, lo) >= amount}?  (amount is a positive long) */
     public static boolean geq(long hi, long lo, long amount) {
@@ -33,11 +19,7 @@ public final class DualLong126 {
     public static long cap(long hi, long lo) {
         return hi > 0 ? Long.MAX_VALUE : lo;
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     //  Cold-path helpers  (load / rebuild only)
-    // ══════════════════════════════════════════════════════════════════════
-
     /**
      * {@code (hi × 2^63 + lo) mod d}.
      * <p>
@@ -73,11 +55,7 @@ public final class DualLong126 {
             return;
         }
 
-        // Represent the 126-bit value (hi*2^63 + lo) as four 32-bit digits:
-        //   bit 125..96 → c3  (≤ 30 bits)
-        //   bit 95..64  → c2  (32 bits)
-        //   bit 63..32  → c1  (32 bits)
-        //   bit 31..0   → c0  (32 bits)
+        // Split into four 32-bit digits; the highest digit uses at most 30 bits.
         long mask32 = 0xFFFFFFFFL;
         long c3 = hi >>> 33;
         long c2 = (hi >>> 1) & mask32;

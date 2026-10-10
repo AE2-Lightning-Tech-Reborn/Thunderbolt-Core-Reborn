@@ -21,15 +21,9 @@ import net.minecraftforge.items.IItemHandler;
 import com.moakiee.thunderbolt.api.eject.EjectOfflinePolicy;
 import com.moakiee.thunderbolt.core.eject.EjectEndpointIndex;
 
-// Forge 1.20.1 port: intercept BlockEntity#getCapability(Capability, Direction) directly.
-// Runs before third-party capability interceptors. Once a registered Thunderbolt EJECT endpoint
-// supplies a result, the cancellable HEAD injection returns from getCapability immediately and
-// lower-priority interceptors cannot replace ownership of that endpoint.
-//
-// 注意：getCapability 实际声明于 Forge 的父类 CapabilityProvider，而非 BlockEntity 自身；
-// Mixin 只能注入目标类自身声明的方法，因此这里必须注入 CapabilityProvider，
-// 并在 handler 内先用 instanceof 守卫收窄到 BlockEntity，再调用其 getLevel()/getBlockPos()。
-// 该方法为 Forge 自身声明（无 SRG 混淆映射），故保留 remap = false 跳过 APT 映射查找。
+// getCapability is declared on CapabilityProvider; the handler narrows to BlockEntity.
+// Cancellable priority-2000 HEAD injection gives registered EJECT endpoints ownership.
+// Forge's own method has no SRG mapping.
 @Mixin(value = CapabilityProvider.class, priority = 2000, remap = false)
 public abstract class EjectCapabilityMixin {
     @Unique

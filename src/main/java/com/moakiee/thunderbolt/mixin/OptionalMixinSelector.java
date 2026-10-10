@@ -8,9 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.moakiee.thunderbolt.compat.gtl.GtlCompat;
 
-/**
- * Early Mixin selection: require an addon's presence and suppress GTL-owned batch hooks.
- */
+/** Early selection by addon presence and GTL batch ownership. */
 public final class OptionalMixinSelector {
     private static final Map<String, String> REQUIRED_MODS = Map.ofEntries(
             Map.entry("AdvCraftingCpuLogicBatchMixin", "advanced_ae"),
@@ -33,9 +31,7 @@ public final class OptionalMixinSelector {
     private OptionalMixinSelector() {
     }
 
-    /**
-     * Accepts a fully qualified or simple Mixin name and an early mod-presence predicate.
-     */
+    /** Accepts a qualified or simple Mixin name and an early mod-presence predicate. */
     public static boolean shouldApply(String mixinClassName, Predicate<String> modLoaded) {
         String simpleName = simpleName(mixinClassName);
         if (isGtlOwned(simpleName) && GtlCompat.standDown(modLoaded)) {
@@ -45,24 +41,18 @@ public final class OptionalMixinSelector {
         return requiredMod == null || modLoaded.test(requiredMod);
     }
 
-    /**
-     * Whether GTLCore supersedes this Mixin's dispatch or accounting.
-     */
+    /** Whether GTLCore supersedes this Mixin's dispatch or accounting. */
     public static boolean isGtlOwned(String mixinClassName) {
         return GTL_OWNED_MIXINS.contains(simpleName(mixinClassName));
     }
 
-    /**
-     * Owning mod id for diagnostics, or null when the Mixin is not GTL-owned.
-     */
+    /** Owning mod id for diagnostics, or null when the Mixin is not GTL-owned. */
     @Nullable
     public static String gtlOwner(String mixinClassName) {
         return isGtlOwned(mixinClassName) ? GtlCompat.GTL_MOD_ID : null;
     }
 
-    /**
-     * Required addon id for diagnostics, or null for an unconditional Mixin.
-     */
+    /** Required addon id for diagnostics, or null for an unconditional Mixin. */
     @Nullable
     public static String requiredMod(String mixinClassName) {
         return REQUIRED_MODS.get(simpleName(mixinClassName));

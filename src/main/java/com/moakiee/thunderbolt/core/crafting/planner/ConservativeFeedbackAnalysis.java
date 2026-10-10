@@ -15,18 +15,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Finds ordinary, non-growing feedback state machines before any aggregate planning pass runs.
- *
- * <p>The exact tier recognizes marked cycles: every state has one internal producer and consumer,
- * while every transition moves one weighted state to the next. Arbitrary arc weights are compiled
- * into primitive non-growing firing ratios; actual plans are decomposed into repeated weighted rounds
- * plus a bounded residual. This covers balanced raw catalysts such as
- * {@code A -> 2B; 2B + C -> E + D; D -> A} and lossy feedback such as
- * {@code 3A -> 2B; 2B -> D + 2A}, without admitting gain loops such as {@code A -> 2A}.
- * More complicated SCCs are admitted only after finding a positive integer place potential
- * {@code w} for which {@code w * C_t <= 0} for every internal transition. They use a bounded
- * canonical replay that extracts repeatable seed/loss prefixes in closed form; it may overstate the
- * initial marking but never reports an unexecutable firing multiset as ready.
+ * Certifies non-growing feedback before aggregate planning. Weighted marked cycles use
+ * primitive firing rounds and bounded residual replay. Other SCCs require a positive
+ * place potential {@code w * C_t <= 0} and bounded canonical replay.
+ * Seed estimates may be conservative; every ready firing multiset must be executable.
  */
 final class ConservativeFeedbackAnalysis<K> {
 

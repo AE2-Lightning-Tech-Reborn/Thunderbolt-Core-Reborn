@@ -44,11 +44,7 @@ public abstract class GridGetMachineNodesMixin {
             return;
         }
 
-        // Compatibility shim only:
-        // AE2 stores nodes by exact owner class, so a query for
-        // ControllerBlockEntity.class would miss our subclasses otherwise.
-        // This only affects controller-class queries and appends AE2LT's
-        // high-capacity controller family, leaving vanilla lookups intact.
+        // AE2 indexes exact owner classes; include registered controller subclasses.
         cir.setReturnValue(ControllerMachineNodeLookup.controllerNodes(machineMap));
     }
 }

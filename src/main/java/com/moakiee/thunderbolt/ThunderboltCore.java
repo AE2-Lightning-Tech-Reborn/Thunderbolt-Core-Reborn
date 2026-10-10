@@ -39,9 +39,7 @@ public final class ThunderboltCore {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ThunderboltCore() {
-        // No-arg @Mod constructor: the only style accepted by every 1.20.1 loader
-        // (Forge 47.2.x requires no-arg; NeoForge 47.1.x tries no-arg first;
-        // Forge 47.4.x falls back to it). Fetch the bus via the static context.
+        // Forge 1.20.1 requires a no-arg @Mod constructor.
         var modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         EjectCapabilityRegistry.installRuntime(EjectEndpointIndex.INSTANCE);
         ThunderboltBlockEntities.TYPES.register(modEventBus);

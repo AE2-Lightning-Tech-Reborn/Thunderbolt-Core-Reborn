@@ -19,12 +19,7 @@ public final class FinalOutputProgress {
      */
     public static long deferredRequesterAmount(
             boolean standalone, long offered, long requesterAccepted) {
-        if (standalone) {
-            return 0L;
-        }
-        long boundedOffered = Math.max(0L, offered);
-        long boundedAccepted = Math.min(boundedOffered, Math.max(0L, requesterAccepted));
-        return boundedOffered - boundedAccepted;
+        return Math.max(0L, offered) - completedAmount(standalone, offered, requesterAccepted);
     }
 
     /** Amount the current insertion chain must consider physically consumed. */

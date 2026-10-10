@@ -28,8 +28,7 @@ tasks.register('printProjectVersion') {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
-// Source files contain UTF-8 comments (incl. Chinese); on CJK Windows javac otherwise
-// defaults to GBK and reports unmappable-character errors while compiling.
+// Avoid platform-dependent source decoding on Windows.
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
@@ -44,38 +43,23 @@ minecraft {
 
     runs {
         client {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
             property 'thunderbolt.mixinAudit', 'true'
-            mods { "${mod_id}" { source sourceSets.main } }
         }
         server {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
             property 'thunderbolt.mixinAudit', 'true'
-            mods { "${mod_id}" { source sourceSets.main } }
         }
         gameTestServer {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
             property 'thunderbolt.mixinAudit', 'true'
             property 'forge.enabledGameTestNamespaces', mod_id
-            mods { "${mod_id}" { source sourceSets.main } }
         }
         data {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
             args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-            mods { "${mod_id}" { source sourceSets.main } }
         }
         configureEach {
-            if (!thunderboltDevGameDirectory.isEmpty()) {
-                workingDirectory project.file(thunderboltDevGameDirectory)
-            }
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods { "${mod_id}" { source sourceSets.main } }
+            workingDirectory project.file(thunderboltDevGameDirectory.isEmpty() ? 'run' : thunderboltDevGameDirectory)
         }
     }
 }
@@ -132,11 +116,7 @@ tasks.register('verifyReleaseJar') {
 
 tasks.named('build') { dependsOn 'verifyReleaseJar' }
 
-// Forge discovers Mixin configs from the mod manifest. Registering the config through
-// MixinGradle's `config` method also adds an early `--mixin.config` launch argument; on
-// ForgeGradle 6 userdev that argument is processed before exploded mod resources join the
-// transforming classloader, so runClient/runServer cannot read the otherwise valid JSON.
-// Keep the release-jar manifest explicit, while the source manifest covers exploded runs.
+// Use the manifest: MixinGradle's early --mixin.config argument precedes userdev resources.
 jar {
     archiveClassifier = 'slim'
 
@@ -218,15 +198,7 @@ dependencies {
     }
     testImplementation "com.google.ortools:ortools-java:${ortools_version}"
 
-    // MixinExtras (@WrapOperation/@Local) is built into NeoForge but NOT Forge — required explicitly.
-    // mixinextras-forge is a jar-in-jar shell (classes live in META-INF/jars/MixinExtras-0.4.1.jar),
-    // so javac cannot see the classes from the shell artifact. Compile against mixinextras-common
-    // (plain jar with all classes), keep the forge shell on the runtime classpath.
-    //
-    // implementation(jarJar(...)) is the official ForgeGradle 6 idiom: the shell is put on the dev
-    // runtime classpath AND embedded into META-INF/jarjar/ of the released jar, so players' modpacks
-    // get the MixinExtras classes automatically. Without it every @WrapOperation/@Local injection
-    // fails at load time with ClassNotFoundException.
+    // Forge needs the nested runtime shell; javac and JUnit need its unpacked common classes.
     compileOnly "io.github.llamalad7:mixinextras-common:0.4.1"
     // Plain JUnit does not unpack Forge's nested MixinExtras jar when exercising a mixin callback.
     testRuntimeOnly "io.github.llamalad7:mixinextras-common:0.4.1"
@@ -238,9 +210,7 @@ dependencies {
     // Mixin annotation processor — generates thunderbolt.refmap.json.
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
-    // AE2 is provided by the modpack in production, but ForgeGradle development runs still
-    // need it on their runtime classpath so client/server smoke tests exercise the real mod.
-    // `runtimeOnly` does not bundle AE2 into the published Thunderbolt jar.
+    // AE2 is supplied by the modpack; development runs use the deobfuscated runtime artifact.
     compileOnly "appeng:appliedenergistics2-forge:${ae2_version}"
     runtimeOnly fg.deobf("appeng:appliedenergistics2-forge:${ae2_version}")
     // The ModMaven AE2 artifact has no transitive POM metadata, so its mandatory
@@ -437,11 +407,9 @@ tasks.withType(PublishToMavenRepository).configureEach {
     dependsOn tasks.named('reobfJarJar')
 }
 
-if (plugins.hasPlugin('idea')) {
-    idea {
-        module {
-            downloadSources = true
-            downloadJavadoc = true
-        }
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
     }
 }

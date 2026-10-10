@@ -35,22 +35,8 @@ import appeng.me.pathfinding.IPathItem;
 import appeng.me.pathfinding.PathingCalculation;
 
 /**
- * Replaces AE2's BFS-based channel assignment with Thunderbolt max-flow
- * for all controller networks.
- * <p>
- * Any network containing at least one controller (vanilla or high-capacity)
- * uses max-flow for channel assignment. Only ad-hoc networks (no
- * controllers at all) fall through to vanilla AE2 logic.
- * <p>
- * Phase 1 (constructor TAIL): identify high-capacity controllers, unify them
- * into a single BFS root for correct DFS tree propagation.
- * <p>
- * Phase 2 (tryUseChannel HEAD): return false for ALL devices in the network
- * so AE2 builds the routing tree without assigning channels.
- * <p>
- * Phase 3 (compute, before propagateAssignments): run max-flow, inject
- * winning devices into {@code channelNodes}, and set {@code usedChannels}
- * on each cable/node from the flow decomposition.
+ * Builds AE2's controller routing tree without assigning channels, then applies max-flow results.
+ * Finite controller networks follow the configured policy; ad-hoc and infinite networks keep AE2 routing.
  */
 // AE2 classes have no obfuscation mappings in the Forge dev environment — remap must be off.
 @Mixin(value = PathingCalculation.class, remap = false)
@@ -68,8 +54,7 @@ public abstract class PathingCalculationCapMixin {
     // -1 = not applicable, fall through to vanilla channelsInUse
     @Unique private int thunderbolt$maxFlowChannelsInUse;
 
-    // ── Phase 1: constructor – identify & unify high-capacity controllers ──
-
+    // Phase 1: constructor – identify & unify high-capacity controllers
     @Inject(method = "<init>", at = @At("TAIL"))
     private void thunderbolt$unifyCapacitySources(IGrid grid, CallbackInfo ci) {
         thunderbolt$maxFlowChannelsInUse = -1;
@@ -88,11 +73,7 @@ public abstract class PathingCalculationCapMixin {
         thunderbolt$useMaxFlow = channelMode != ChannelMode.INFINITE
                 && ThunderboltCommonConfig.useMaxFlow(grid, hasControllers);
 
-        // Controller-root unification is part of our max-flow path. In infinite
-        // mode AE2's own allocator already has unbounded capacity, so it must
-        // keep its native multi-root routing tree intact. Applying only this
-        // preprocessing step while falling back to vanilla assignment can drop
-        // one of two adjacent devices from the final propagation tree.
+        // Keep AE2's multi-root tree intact whenever its allocator owns channel assignment.
         if (!thunderbolt$useMaxFlow || capacitySources.size() <= 1) {
             return;
         }
@@ -120,9 +101,7 @@ public abstract class PathingCalculationCapMixin {
         }
         q0.addAll(keep);
 
-        // BFS from source through ALL controllers (vanilla and high-capacity) to reach non-source capacity controllers.
-        // This handles cases where high-capacity controllers are separated by vanilla
-        // controllers in the multiblock (e.g. OC_A — Vanilla_B — OC_C).
+        // Traverse vanilla controllers too: they can connect separate capacity sources.
         Queue<IGridNode> bfs = new ArrayDeque<>();
         Set<IGridNode> bfsVisited = new ReferenceOpenHashSet<>();
         bfs.add(source);
@@ -146,8 +125,7 @@ public abstract class PathingCalculationCapMixin {
         }
     }
 
-    // ── Phase 2: skip AE2 channel assignment for ALL devices ──
-
+    // Phase 2: skip AE2 channel assignment for ALL devices
     @Inject(method = "tryUseChannel", at = @At("HEAD"), cancellable = true)
     private void thunderbolt$skipAllDevices(GridNode node, CallbackInfoReturnable<Boolean> cir) {
         if (thunderbolt$useMaxFlow) {
@@ -155,9 +133,7 @@ public abstract class PathingCalculationCapMixin {
         }
     }
 
-    // ── Phase 3: run max-flow between BFS and DFS ──
-    //   Sets static flow data so GridNode.propagateChannelsUpwards can read it
-    //   during the subsequent DFS pass.
+    // Publish flow data for GridNode.propagateChannelsUpwards during AE2 propagation.
 
     @Inject(method = "compute",
             at = @At(value = "INVOKE",
@@ -194,14 +170,7 @@ public abstract class PathingCalculationCapMixin {
         BorrowedCapacityCalculator.activeConnectionFlow = thunderbolt$flowResult.connectionFlow();
     }
 
-    // ── Phase 3.5: 异常路径的静态状态清理守护 ──
-    //   @Inject 的 TAIL 注入点在 compute() 抛异常时不会执行，静态活跃流
-    //   状态会残留。TAIL 注入本身无法包裹前段代码，因此用 WrapOperation
-    //   包裹 propagateAssignments() 调用——它是 Phase3 设置静态状态之后、
-    //   Phase4 TAIL 清理之前唯一执行的代码段（已通过字节码确认 compute()
-    //   仅有 processQueue 循环 + propagateAssignments + return），在 finally
-    //   中兜底调用 clearActiveData。正常路径上 Phase4 的 TAIL 清理仍会执行，
-    //   clearActiveData 幂等，重复调用无副作用；异常仍照常向上传播。
+    // TAIL does not run on exceptions; clear the published flow in finally as well.
 
     @WrapOperation(method = "compute",
             at = @At(value = "INVOKE",
@@ -214,16 +183,11 @@ public abstract class PathingCalculationCapMixin {
         }
     }
 
-    // ── Phase 4: force-apply max-flow results & cleanup after DFS ──
-
+    // Phase 4: force-apply max-flow results & cleanup after DFS
     @Inject(method = "compute", at = @At("TAIL"))
     private void thunderbolt$applyFlowAndCleanup(CallbackInfo ci) {
         if (thunderbolt$flowResult != null) {
-            // Reset ALL connections of network nodes to 0 first.
-            // AE2's DFS uses getMachineNodes(ControllerBlockEntity.class) which
-            // misses high-capacity controllers (exact class match). When no vanilla
-            // controllers exist, the DFS never runs and stale usedChannels from
-            // a previous pathing calculation are never cleared.
+            // Clear stale counts even when AE2 propagation misses registered controllers.
             Set<GridConnection> resetSeen = new ReferenceOpenHashSet<>();
             Set<IGridNode> networkNodes = thunderbolt$flowResult.networkNodes();
             for (var node : networkNodes) {
@@ -245,14 +209,7 @@ public abstract class PathingCalculationCapMixin {
                 }
             }
 
-            // Vanilla AE2 gives every non-winner multiblock sibling +1 via
-            // incrementChannelCount at the end of propagateAssignments, so that
-            // meetsChannelRequirements() is true for the entire cluster.
-            // We overwrote usedChannels above, so re-apply the bonus here for
-            // siblings we manage. Without this, the cluster's core block may
-            // end up with usedChannels=0 and the whole multiblock (e.g. a
-            // crafting CPU) reports isActive()=false even though the flow
-            // reservation succeeded.
+            // Restore AE2's sibling bonus so the whole reserved multiblock stays active.
             for (var sibling : multiblocksWithChannel) {
                 if (networkNodes.contains(sibling)) {
                     sibling.incrementChannelCount(1);
@@ -264,21 +221,14 @@ public abstract class PathingCalculationCapMixin {
                 entry.getKey().setAdHocChannels(entry.getIntValue());
             }
 
-            // Persist used-channel count for getChannelsInUse() override.
-            // Vanilla DFS in propagateAssignments() never sees our channelNodes
-            // for high-capacity-only networks (getMachineNodes(ControllerBlockEntity.class)
-            // misses subclasses at that call site), so channelsInUse stays 0.
-            // channelNodes here holds exactly the max-flow winners (one per
-            // device, one per multiblock cluster) — its size IS the answer.
+            // Count one winner per device or multiblock for PathingService reporting.
             thunderbolt$maxFlowChannelsInUse = thunderbolt$flowResult.channelNodes().size();
         }
         BorrowedCapacityCalculator.clearActiveData();
         thunderbolt$flowResult = null;
     }
 
-    // ── getChannelsInUse: report max-flow result for high-capacity networks ──
-    //   PathingService reads this immediately after compute() and stores it
-    //   in its own channelsInUse field, which feeds NetworkStatusMenu etc.
+    // PathingService reads this after compute() for network status.
 
     @Inject(method = "getChannelsInUse", at = @At("HEAD"), cancellable = true)
     private void thunderbolt$overrideChannelsInUse(CallbackInfoReturnable<Integer> cir) {

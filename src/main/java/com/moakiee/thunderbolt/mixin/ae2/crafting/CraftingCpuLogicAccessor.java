@@ -9,11 +9,7 @@ import appeng.api.stacks.AEKey;
 import appeng.crafting.execution.CraftingCpuLogic;
 import appeng.crafting.execution.ExecutingCraftingJob;
 
-// AE2 classes have no obfuscation mappings in the Forge dev environment — remap must be off.
-//
-// Namespaced `thunderbolt$` even though GTLCore currently shadows these members under
-// different names (`gtlcore$invokePostChange`, `@Shadow finishJob`). Mixin 0.8.5 merges
-// a later accessor of the same name+descriptor by replacing the earlier one silently.
+// AE2 members have no SRG mappings. Namespace generated methods to avoid addon collisions.
 @Mixin(value = CraftingCpuLogic.class, remap = false)
 public interface CraftingCpuLogicAccessor {
     @Accessor("job")

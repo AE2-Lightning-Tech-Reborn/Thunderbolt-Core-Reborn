@@ -10,8 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
-// Forge 1.20.1: ModList lives in fmlcore as net.minecraftforge.fml.ModList.
-// (The neoform-era package net.minecraftforge.fml.loading.moddiscovery.ModList does not exist here.)
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.loading.LoadingModList;
 
@@ -41,8 +39,7 @@ public final class ThunderboltMixinConfigPlugin implements IMixinConfigPlugin {
         boolean requiredPresent = requiredMod == null || isModLoaded(requiredMod);
         if (!apply && requiredPresent && OptionalMixinSelector.isGtlOwned(mixinClassName)
                 && GtlCompat.standDown(ThunderboltMixinConfigPlugin::isModLoaded)) {
-            // Only reported when the GTL hand-over is the deciding factor: an addon-specific mixin
-            // whose owning addon is absent stays at debug level like before.
+            // Report GTL handover only when the owning addon is present.
             reportGtlStandDown(mixinClassName, targetClassName);
         } else {
             LOGGER.debug("Mixin select: {} -> {} : {}", mixinClassName, targetClassName, apply);
@@ -61,8 +58,7 @@ public final class ThunderboltMixinConfigPlugin implements IMixinConfigPlugin {
     }
 
     private static boolean isModLoaded(String modId) {
-        // Mixin application runs before ModList.init() fills its mod-file index, so query the
-        // early loading list first: it is populated right after the mods folder is scanned.
+        // Mixin selection can precede ModList.init(); consult LoadingModList first.
         try {
             var loading = LoadingModList.get();
             if (loading != null && loading.getModFileById(modId) != null) {
@@ -75,9 +71,7 @@ public final class ThunderboltMixinConfigPlugin implements IMixinConfigPlugin {
             var modList = ModList.get();
             return modList != null && modList.getModFileById(modId) != null;
         } catch (RuntimeException ignored) {
-            // Neither list is usable (e.g. a non-standard loader invokes the plugin before mod
-            // discovery). Prefer skipping optional mixins over force-applying them: that keeps
-            // the game bootable when the target mod is absent.
+            // Skip optional mixins when discovery is unavailable.
             return false;
         }
     }

@@ -231,7 +231,6 @@ public final class CraftPlannerV2<K> {
     private Map<K, Long> flowLeafDiagnosis;
     private List<CraftPlan<K>> cutPolicyPlans = List.of();
     private PlanningSession<K> planningSession;
-    /** Active producer-before-byproduct-row order for linear and aggregate sweeps in this run. */
     /** Primary and credited side-output arcs are acyclic in a bounded material-order candidate. */
     private boolean materialDagProjection;
     private List<K> activeReplayOrder = List.of();
@@ -2510,8 +2509,7 @@ public final class CraftPlannerV2<K> {
         return false;
     }
 
-    // ---- graph construction ------------------------------------------------
-
+    // graph construction
     private static final int GRAY = 1; // on the current DFS path (an ancestor)
     private static final int BLACK = 2; // fully expanded
 
@@ -3207,8 +3205,7 @@ public final class CraftPlannerV2<K> {
         return foundSeed && availableOutput >= requiredOutput;
     }
 
-    // ---- linear backbone: one topological aggregation pass, each item resolved once -------------
-
+    // linear backbone: one topological aggregation pass, each item resolved once
     /**
      * Resolves the whole request in a single topological pass (target → leaves). Each item is visited
      * once, its full demand already aggregated, then split across recipes by current remaining
@@ -4956,8 +4953,7 @@ public final class CraftPlannerV2<K> {
         return v == null ? 0L : v;
     }
 
-    // ---- core: obtain d units of x, consuming from pool/stock, crafting the rest ----------------
-
+    // core: obtain d units of x, consuming from pool/stock, crafting the rest
     /**
      * @param commitFailure whether an exhausted route must commit its greedy partial plan and concrete
      *                      missing leaves. Speculative parents pass {@code false}: they only need a
@@ -6233,8 +6229,7 @@ public final class CraftPlannerV2<K> {
         return got;
     }
 
-    // ---- trail-logged mutation helpers -----------------------------------------------------------
-
+    // trail-logged mutation helpers
     private static <T> long get(Map<T, Long> m, T k) {
         Long v = m.get(k);
         return v == null ? 0L : v;

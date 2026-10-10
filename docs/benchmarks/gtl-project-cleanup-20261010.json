@@ -1,0 +1,464 @@
+{
+  "date": "2026-10-10",
+  "outcome": "PASS",
+  "base_commit": "df7e957fdd3800076e831fd5b53bb435880962da",
+  "environment": {
+    "java": 17,
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10"
+  },
+  "tested_revision": "Local cleanup worktree based on base_commit; normalized source hashes identify the tested changes.",
+  "source_sha256_normalized": {
+    "build.gradle": "4bd29a11f84fd6abc14225b254a566636475f9daf6ca16117360b792950320da",
+    "gradle.properties": "b4457dcc058e3df800e0dbdec05bf6a56dab64625ac847aa8b86137437f9e735",
+    "src/main/java/com/moakiee/thunderbolt/CoreConfig.java": "a68f4f9c6575c20b70c66695701ad95089380bf15892162d7c584c6226b13e2f",
+    "src/main/java/com/moakiee/thunderbolt/ThunderboltCore.java": "f63cd23be608a4c35885371e1e5dd1844b489ac590438ebdbb88919c13783e26",
+    "src/main/java/com/moakiee/thunderbolt/core/channel/BorrowedCapacityCalculator.java": "a7fb7aa6df54aae31e0bf97ae0de068ba4b3a4a2e0abc53275b86ef8903d7fa0",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/algorithm/PlanningAttemptMonitor.java": "cc35742fb507efecb31de9aa6f9253a758d9d34e8a956ed2d0e031f37ed9bed8",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/BoundedIntegerLinearSolver.java": "8c194f306f13d478bbc829a324b7375bf69842821dfccd3472359cd78504ae49",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/ConservativeFeedbackAnalysis.java": "642746ceed2840385bdc68df0378b590f5166e73c49ada6f8492132dc0348135",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CpSatRankedFlowSolver.java": "4b1cbc125a3113eb4596e26bcacd57d47a9f2eb608bd2ae7a1c8a482c1ba62f4",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftInput.java": "093063e844f90d4414c35f5b9b308752a9d134a4967c24ab1db784b6f1bc27db",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.java": "bf80220ae43a67512f742e4e71b6fd44519db3b87ae7ff0c12852ea82b9151bb",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/FastCraftingPlanner.java": "38b6a90a9b7526ff6777382e39524502002b3236295547c291c20078c102eee6",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/cpsatbridge/CpSatBridge.java": "f8881f373a2d37927a0d3ca6e63905a2fdf117a4992b6e1a285129855232ec77",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/support/FinalOutputProgress.java": "3b738469f95473257139da2dfdb80bbde029e287ac838631332dc94e2d8ebf67",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/ByteTracker.java": "0347a51de77ca0167e4276c6ccced0211796107e9ae1477e5f46a4d8b0664b20",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/DualLong126.java": "7cf9ec3f750a5eae43b2f919dea407a992077efd0216ce4c378779adf3c520b1",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IndexedStorage.java": "1f38ddfcbc0a257998bc393048251adb4985e4c9946eaacf00a85f0b331fcefe",
+    "src/main/java/com/moakiee/thunderbolt/mixin/OptionalMixinSelector.java": "39183919704c798af061f043c4bc06d97bf9dde6f707723591b654c8856642eb",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ThunderboltMixinConfigPlugin.java": "9c7c4166d77a5f607e53c739177038d3aff1379f88798a8cd0689ec0853dbd17",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/channel/GridGetMachineNodesMixin.java": "98bad74b7018ce67302152463b8db11066cb5a4322998656d876f2493877fa97",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/channel/PathingCalculationCapMixin.java": "3346229f2d4cff926790fd8555ec941f1f644f272fc9223788e844d2d5071218",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/CraftingCpuLogicAccessor.java": "73d6e2918f230c808885af626c63e2b8659dadf325b51e2bcacb377ee5e71c96",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/ElapsedTimeTrackerAccessor.java": "440d600f93ab3eb5d85a0493c6c96d81af140d10ee1f98f73c507ca651d761b0",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/ExecutingCraftingJobAccessor.java": "e1aeb46f26bc92f1a1d72896d0bdb4bb0ddbaf9f8bef1eae72550d3b8d511f90",
+    "src/main/java/com/moakiee/thunderbolt/mixin/platform/eject/EjectCapabilityMixin.java": "54d0b69ba4c1292e5da61c72c48be3058392c9007fc6197f1ad286742ed3fa08",
+    "src/test/java/com/moakiee/thunderbolt/core/crafting/planner/FastCraftingPlannerDurabilityEligibilityTest.java": "7df58c0529f963e6f289aa46407b74f2042806b4149536796018e0425e53e0c3",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/MaterialDagReplayTest.java": "5d5c502a058f5864a4bd76bc64b738757ca99ab698ab975f5888c6acb272bed2",
+    "tools/accessor_collisions.py": "652c4e779ca1c4826207f0e6955c8ba002255ac4540894b6165064bd5fb1921b",
+    "tools/method_overlap.py": "101909326a6c1f8d363edbdffbed981fbc023f8878ec5f1d01629abe1c9ff240",
+    "tools/mixin_overlap.py": "fb0d45b7de7e3bc099c6841573965bf982b5beff5dd7a6cf66aa117b0025964b",
+    "tools/mixin_scan.py": "89d7c5a42349e681fb892a7b2e5d712c8198441c95ff09314ac83e969b49f399"
+  },
+  "scope": {
+    "audited": {
+      "production_java": 253,
+      "test_java": 194,
+      "benchmark_sources": 13,
+      "existing_mixin_tools": 3,
+      "github_sources_and_workflows": 4
+    },
+    "changed_files": 31,
+    "added": 162,
+    "deleted": 494,
+    "java_comment_only_files": [
+      "src/main/java/com/moakiee/thunderbolt/CoreConfig.java",
+      "src/main/java/com/moakiee/thunderbolt/ThunderboltCore.java",
+      "src/main/java/com/moakiee/thunderbolt/core/channel/BorrowedCapacityCalculator.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/BoundedIntegerLinearSolver.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/ConservativeFeedbackAnalysis.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CpSatRankedFlowSolver.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftInput.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/FastCraftingPlanner.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/cpsatbridge/CpSatBridge.java",
+      "src/main/java/com/moakiee/thunderbolt/core/storage/cell/ByteTracker.java",
+      "src/main/java/com/moakiee/thunderbolt/core/storage/cell/DualLong126.java",
+      "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IndexedStorage.java",
+      "src/main/java/com/moakiee/thunderbolt/mixin/OptionalMixinSelector.java",
+      "src/main/java/com/moakiee/thunderbolt/mixin/ThunderboltMixinConfigPlugin.java",
+      "src/main/java/com/moakiee/thunderbolt/mixin/ae2/channel/GridGetMachineNodesMixin.java",
+      "src/main/java/com/moakiee/thunderbolt/mixin/ae2/channel/PathingCalculationCapMixin.java",
+      "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/CraftingCpuLogicAccessor.java",
+      "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/ElapsedTimeTrackerAccessor.java",
+      "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/ExecutingCraftingJobAccessor.java",
+      "src/main/java/com/moakiee/thunderbolt/mixin/platform/eject/EjectCapabilityMixin.java"
+    ],
+    "changes": [
+      {
+        "path": "build.gradle",
+        "added": 12,
+        "deleted": 44
+      },
+      {
+        "path": "gradle.properties",
+        "added": 3,
+        "deleted": 5
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/CoreConfig.java",
+        "added": 2,
+        "deleted": 7,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/ThunderboltCore.java",
+        "added": 1,
+        "deleted": 3,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/channel/BorrowedCapacityCalculator.java",
+        "added": 4,
+        "deleted": 13,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/algorithm/PlanningAttemptMonitor.java",
+        "added": 9,
+        "deleted": 17,
+        "comment_only": false
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/BoundedIntegerLinearSolver.java",
+        "added": 4,
+        "deleted": 11,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/ConservativeFeedbackAnalysis.java",
+        "added": 4,
+        "deleted": 12,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CpSatRankedFlowSolver.java",
+        "added": 5,
+        "deleted": 20,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftInput.java",
+        "added": 5,
+        "deleted": 25,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.java",
+        "added": 4,
+        "deleted": 9,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/FastCraftingPlanner.java",
+        "added": 4,
+        "deleted": 22,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/cpsatbridge/CpSatBridge.java",
+        "added": 2,
+        "deleted": 8,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/support/FinalOutputProgress.java",
+        "added": 1,
+        "deleted": 6,
+        "comment_only": false
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/storage/cell/ByteTracker.java",
+        "added": 0,
+        "deleted": 24,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/storage/cell/DualLong126.java",
+        "added": 4,
+        "deleted": 26,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IndexedStorage.java",
+        "added": 3,
+        "deleted": 43,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/mixin/OptionalMixinSelector.java",
+        "added": 5,
+        "deleted": 15,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/mixin/ThunderboltMixinConfigPlugin.java",
+        "added": 3,
+        "deleted": 9,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/mixin/ae2/channel/GridGetMachineNodesMixin.java",
+        "added": 1,
+        "deleted": 5,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/mixin/ae2/channel/PathingCalculationCapMixin.java",
+        "added": 13,
+        "deleted": 63,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/CraftingCpuLogicAccessor.java",
+        "added": 1,
+        "deleted": 5,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/ElapsedTimeTrackerAccessor.java",
+        "added": 1,
+        "deleted": 7,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/ExecutingCraftingJobAccessor.java",
+        "added": 1,
+        "deleted": 8,
+        "comment_only": true
+      },
+      {
+        "path": "src/main/java/com/moakiee/thunderbolt/mixin/platform/eject/EjectCapabilityMixin.java",
+        "added": 3,
+        "deleted": 9,
+        "comment_only": true
+      },
+      {
+        "path": "src/test/java/com/moakiee/thunderbolt/core/crafting/planner/FastCraftingPlannerDurabilityEligibilityTest.java",
+        "added": 0,
+        "deleted": 1,
+        "comment_only": false
+      },
+      {
+        "path": "src/test/java/com/moakiee/thunderbolt/core/planner/MaterialDagReplayTest.java",
+        "added": 0,
+        "deleted": 1,
+        "comment_only": false
+      },
+      {
+        "path": "tools/accessor_collisions.py",
+        "added": 12,
+        "deleted": 31
+      },
+      {
+        "path": "tools/method_overlap.py",
+        "added": 13,
+        "deleted": 27
+      },
+      {
+        "path": "tools/mixin_overlap.py",
+        "added": 5,
+        "deleted": 18
+      },
+      {
+        "path": "tools/mixin_scan.py",
+        "added": 37,
+        "deleted": 0
+      }
+    ],
+    "net_lines_removed": 332
+  },
+  "production_budgets_changed": false,
+  "public_api_signatures_changed": false,
+  "tracked_test_assertions_changed": false,
+  "first_full_build": {
+    "label": "full-build",
+    "exit_code": 0,
+    "seconds": 203.358,
+    "test": {
+      "total": 1364,
+      "passed": 1363,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 1,
+      "exceptional": [
+        {
+          "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "test": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+          "status": "skipped",
+          "message": "Assumption failed: Optional EAEP artifact not supplied"
+        }
+      ]
+    },
+    "externalPlannerBoundaryTest": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "cpSatColdRefinementTest": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    },
+    "materialDagColdReplayTest": {
+      "total": 20,
+      "passed": 20,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exceptional": []
+    }
+  },
+  "combined_test": {
+    "total": 1402,
+    "passed": 1401,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "coverage": {
+    "test": {
+      "cases": 1364,
+      "identical_to_previous_manifest": true
+    },
+    "externalPlannerBoundaryTest": {
+      "cases": 38,
+      "identical_to_previous_manifest": true
+    },
+    "cpSatColdRefinementTest": {
+      "cases": 1,
+      "identical_to_previous_manifest": true
+    },
+    "materialDagColdReplayTest": {
+      "cases": 20,
+      "identical_to_previous_manifest": true
+    }
+  },
+  "checks": [
+    {
+      "kind": "run_config_override",
+      "exit_code": 0
+    },
+    {
+      "kind": "forge_game",
+      "mode": "auto",
+      "exit_code": 0,
+      "required_passed": 10,
+      "v2_selection_records": 9,
+      "mixin_failures": 0,
+      "forced_stand_down_observed": false
+    },
+    {
+      "kind": "forge_game",
+      "mode": "always",
+      "exit_code": 0,
+      "required_passed": 10,
+      "v2_selection_records": 9,
+      "mixin_failures": 0,
+      "forced_stand_down_observed": true
+    }
+  ],
+  "tool_comparison": {
+    "passed": true,
+    "comparisons": [
+      {
+        "script": "accessor_collisions.py",
+        "dataset": "fixtures",
+        "identical_output": true
+      },
+      {
+        "script": "accessor_collisions.py",
+        "dataset": "production",
+        "identical_output": true
+      },
+      {
+        "script": "method_overlap.py",
+        "dataset": "fixtures",
+        "identical_output": true
+      },
+      {
+        "script": "method_overlap.py",
+        "dataset": "production",
+        "identical_output": true
+      },
+      {
+        "script": "mixin_overlap.py",
+        "dataset": "fixtures",
+        "identical_output": true
+      },
+      {
+        "script": "mixin_overlap.py",
+        "dataset": "production",
+        "identical_output": true
+      }
+    ]
+  },
+  "script_tests": [
+    {
+      "kind": "release",
+      "total": 12,
+      "passed": 12,
+      "skipped": 0,
+      "failed": 0
+    },
+    {
+      "kind": "awr",
+      "total": 4,
+      "passed": 3,
+      "skipped": 1,
+      "failed": 0
+    }
+  ],
+  "script_result_source": "Commands executed in this validation turn; stdout and exit status retained in the tool transcript.",
+  "run_configuration_checks": {
+    "default": {
+      "client": {
+        "sharedProperties": true,
+        "correctAuditMode": true,
+        "correctModSource": true,
+        "correctWorkingDirectory": true
+      },
+      "server": {
+        "sharedProperties": true,
+        "correctAuditMode": true,
+        "correctModSource": true,
+        "correctWorkingDirectory": true
+      },
+      "gameTestServer": {
+        "sharedProperties": true,
+        "correctAuditMode": true,
+        "correctModSource": true,
+        "correctWorkingDirectory": true
+      },
+      "data": {
+        "sharedProperties": true,
+        "correctAuditMode": true,
+        "correctModSource": true,
+        "correctWorkingDirectory": true
+      }
+    },
+    "override": {
+      "verified_configurations": 4,
+      "passed": true,
+      "exit_code": 0,
+      "seconds": 16.717,
+      "evidence": "All four configuration assertions passed, confirmed by the Gradle task log and runner exit status."
+    }
+  },
+  "release_verification": {
+    "refmap_jarjar_manifest": true,
+    "entrypoint_version_pom": true,
+    "bytes": 5361550,
+    "sha256": "b723ebd99d63dc48702a3a178a8cc4a377fd4be9308a7fef45d416871e2f5281"
+  },
+  "retained_contracts": [
+    "Mixin and event callbacks, including fields written for AE2 consumers.",
+    "Host addon extension interfaces even when no local implementation consumes them.",
+    "Cancellation, quarantine, work budgets, inventory conservation and save migrations.",
+    "Project license and required attribution."
+  ],
+  "limitations": [
+    "Optional real EAEP artifact unavailable: one JUnit test skipped.",
+    "External awrlib unavailable: one Python reader test skipped.",
+    "Forge validation uses fresh worlds without a real GTLCore installation; no full-modpack TPS claim.",
+    "This change reran the full suite and Forge integration; it does not reuse previous pressure counts as new measurements."
+  ]
+}

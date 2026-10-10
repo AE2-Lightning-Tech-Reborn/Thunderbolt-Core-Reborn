@@ -246,7 +246,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
         }
         runDiagnostic(() -> LOG.warn(
                 "[Thunderbolt Core Reborn] slow planning candidate: engine={} elapsedMs={} {}\n{}",
-                engineId, elapsedMillis(), label, diagnosticDump(true)));
+                engineId, elapsedMillis(), label, diagnosticDump()));
     }
 
     private void expireBudget() {
@@ -257,7 +257,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
         runDiagnostic(() -> LOG.warn(
                 "[Thunderbolt Core Reborn] planning candidate exhausted its computation budget; "
                         + "waiting for cooperative exit: engine={} elapsedMs={} {}\n{}",
-                engineId, elapsedMillis(), label, diagnosticDump(true)));
+                engineId, elapsedMillis(), label, diagnosticDump()));
     }
 
     private void interruptAfterGrace() {
@@ -267,7 +267,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
         runDiagnostic(() -> LOG.warn(
                 "[Thunderbolt Core Reborn] planning candidate did not exit after cooperative grace; "
                         + "interrupting without quarantine: engine={} elapsedMs={} {}\n{}",
-                engineId, elapsedMillis(), label, diagnosticDump(true)));
+                engineId, elapsedMillis(), label, diagnosticDump()));
     }
 
     private boolean interruptCandidate() {
@@ -299,7 +299,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
         runDiagnostic(() -> LOG.error(
                 "[Thunderbolt Core Reborn] planning candidate did not exit after interrupt grace; "
                         + "quarantining it now: engine={} elapsedMs={} {}\n{}",
-                engineId, elapsedMillis(), label, diagnosticDump(true)));
+                engineId, elapsedMillis(), label, diagnosticDump()));
     }
 
     private boolean isolateCandidate() {
@@ -323,19 +323,16 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
         }
     }
 
-    private String diagnosticDump(boolean includeStack) {
+    private String diagnosticDump() {
         var snapshot = latest;
         var out = new StringBuilder(256)
                 .append("    phase=").append(snapshot.phase());
         for (Map.Entry<String, Long> metric : snapshot.metrics().entrySet()) {
             out.append(' ').append(metric.getKey()).append('=').append(metric.getValue());
         }
-        if (includeStack) {
-            var stack = calculationThread.getStackTrace();
-            out.append("\n    thread '").append(calculationThread.getName()).append("' stack:");
-            for (StackTraceElement element : stack) {
-                out.append("\n\tat ").append(element);
-            }
+        out.append("\n    thread '").append(calculationThread.getName()).append("' stack:");
+        for (StackTraceElement element : calculationThread.getStackTrace()) {
+            out.append("\n\tat ").append(element);
         }
         return out.toString();
     }
@@ -354,12 +351,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
     }
 
     private void cancelScheduledTasks() {
-        if (warningTask != null) {
-            warningTask.cancel(false);
-        }
-        budgetExpiryTask.cancel(false);
-        interruptTask.cancel(false);
-        isolationTask.cancel(false);
+        cancelNormalDeadlineTasks();
         var externalIsolation = externalCancellationIsolationTask;
         if (externalIsolation != null) {
             externalIsolation.cancel(false);

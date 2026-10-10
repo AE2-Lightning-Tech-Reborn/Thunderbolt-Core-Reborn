@@ -24,17 +24,9 @@ import com.moakiee.thunderbolt.api.channel.ChannelRequestProvider;
 import com.moakiee.thunderbolt.api.channel.ConnectionChannelCapacityProvider;
 
 /**
- * Assigns channels to devices in the high-capacity network using a bidirectional tree seed followed by exact residual max-flow.
- * <p>
- * Flow network model:
- * <ul>
- *   <li><b>Sources</b>: high-capacity controllers (cap={@code channelsPerController}),
- *       vanilla controller faces (cap={@code 32×factor}).</li>
- *   <li><b>Relays</b> (node-split): high-capacity cables/controllers = ∞,
- *       dense cables = 32×f, normal cables = 8×f.</li>
- *   <li><b>Sinks</b>: {@code REQUIRE_CHANNEL} devices → super-sink T (cap=requested channels).</li>
- * </ul>
- * After max-flow, a device is active iff its device→T edge carries its full request.
+ * Channel assignment using a bidirectional tree seed and exact residual max-flow.
+ * Sources are registered controllers or vanilla faces; node-split relays enforce cable capacity.
+ * Each REQUIRE_CHANNEL device receives a channel only when its sink edge carries the full request.
  */
 public final class BorrowedCapacityCalculator {
 
@@ -183,8 +175,7 @@ public final class BorrowedCapacityCalculator {
         q.add(other);
     }
 
-    // ── flow-network construction & solve ────────────────────────────
-
+    // flow-network construction & solve
     private static Result solve(IGrid grid,
                                 List<IGridNode> capacitySources,
                                 DiscoveredNetwork discovered,

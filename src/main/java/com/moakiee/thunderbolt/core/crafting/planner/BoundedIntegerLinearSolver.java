@@ -12,17 +12,10 @@ import java.util.Objects;
 import java.util.concurrent.CancellationException;
 
 /**
- * Exact, node- and pivot-budgeted feasibility for
- * {@code A*x >= b, 0 <= x <= maxValue, x integral}.
- *
- * <p>The LP relaxation uses the same arbitrary-precision rational Phase-I simplex machinery as the
- * public positive-integer helper, but does not scale fractional coordinates: scaling would change a
- * fixed crafting request. Fractional coordinates are resolved with ordinary branch-and-bound. The
- * node and simplex-pivot budgets are independent of coefficient magnitude, so a {@code long}
- * request never becomes a loop over individual crafts. Production callers additionally supply a
- * tableau-shape, rational-cell-work, and elapsed-time budget because one BigInteger pivot can hide
- * far more work than one graph visit. Exhausting any budget returns a cutoff; it is never reported
- * as an infeasibility proof.
+ * Exact branch-and-bound feasibility for {@code A*x >= b, 0 <= x <= maxValue}.
+ * Rational Phase-I relaxations preserve the fixed request without scaling fractional solutions.
+ * Shape, node, pivot, cell-work and time limits bound work independently of request magnitude;
+ * exhausting a limit returns a cutoff, never an infeasibility proof.
  */
 final class BoundedIntegerLinearSolver {
 

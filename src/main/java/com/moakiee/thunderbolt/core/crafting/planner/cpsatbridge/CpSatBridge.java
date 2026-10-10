@@ -160,14 +160,8 @@ public final class CpSatBridge {
     }
 
     /**
-     * Selects an acyclic support for an ordinary material graph.
-     *
-     * <p>Every recipe has one long firing variable and one activation Boolean. If active, all of its
-     * input groups must have a smaller topological rank than its primary-output group. Items in one
-     * proven ratio-conservative conversion SCC share a rank and may therefore use both conversion
-     * directions; the caller supplies a separate executable-prefix certificate for those groups.
-     * Together with exact material balances and explicit unchanged-catalyst presence rows, no time
-     * horizon or per-firing expansion is present.</p>
+     * Selects active recipes by material balance and topological rank, without per-firing expansion.
+     * Conservative conversion SCCs share a rank and need the caller's executable-prefix certificate.
      *
      * @param cycleRecipes recipe indices in each proven strict conversion cycle, in cycle order
      * @param cycleInputItems internal input item aligned with every cycle recipe

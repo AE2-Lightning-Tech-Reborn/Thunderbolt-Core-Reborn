@@ -12,14 +12,7 @@ import appeng.crafting.execution.ElapsedTimeTracker;
 import appeng.crafting.execution.ExecutingCraftingJob;
 import appeng.crafting.inv.ListCraftingInventory;
 
-// AE2 classes have no obfuscation mappings in the Forge dev environment — remap must be off.
-//
-// Injected members are namespaced with `thunderbolt$`: other AE2 addons bind the same AE2 fields
-// (GTLCore's ExecutingCraftingJobAccessor and AE2LT's ae2lt$-prefixed accessor are both on this
-// class). Mixin 0.8.5 merges a second mixin's method with an identical name+descriptor by
-// *replacing* the first definition silently, so an unqualified name would make ownership depend on
-// mixin application order. The `@Accessor` value carries the field name; the method name is free
-// form (getter/setter is derived from the descriptor).
+// AE2 members have no SRG mappings. Namespace generated methods to avoid addon collisions.
 @Mixin(value = ExecutingCraftingJob.class, remap = false)
 public interface ExecutingCraftingJobAccessor {
     @Accessor("waitingFor")

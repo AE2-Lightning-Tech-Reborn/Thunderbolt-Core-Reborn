@@ -451,17 +451,8 @@ public final class FastCraftingPlanner {
         IdOnlyInputGroups idOnlyGroups = new IdOnlyInputGroups();
         RequirementModes requirementModes = new RequirementModes(root, forcedRequirementModes);
         Map<AEKey, Long> supplementalSelfSeedStock = new HashMap<>();
-        // Unit-system bookkeeping. A durability chain prices its links in USES (carrier pool); every
-        // other node is priced in whole ITEMS. The same physical stock must never be counted under
-        // both systems (or under two incompatible chains), so we track:
-        //   itemUnitKeys — keys stocked/consumed as whole items (BFS-polled nodes + plain inputs);
-        //   linkOwner    — every link of every registered chain -> that chain (uses-priced keys).
-        // linkOwner doubles as the merge index: a slot whose declared start key is a mid-chain link of
-        // an already-built chain reuses that chain when their step granularities line up ("相接"),
-        // instead of building a second, overlapping chain. Any overlap that ISN'T such a clean merge
-        // (a link priced as a whole item, or two chains stepping the same tool at different
-        // durability-per-craft granularities) is a genuine conflict. Such an item is rediscovered on
-        // a clean pass using conservative whole-item semantics; the rest of the graph stays optimized.
+        // Track item-priced stock separately from durability uses. Compatible chains share
+        // linkOwner; overlapping item/use prices or incompatible steps trigger whole-item rediscovery.
         Set<AEKey> itemUnitKeys = new HashSet<>();
         Map<AEKey, DurabilityChain<AEKey>> linkOwner = new HashMap<>();
         Set<Item> durabilityConflicts = new HashSet<>();
@@ -507,16 +498,8 @@ public final class FastCraftingPlanner {
 
             for (IPatternDetails details : patterns) {
                 exportBudget.consume();
-                // Primary-output restriction: a pattern becomes a craft node ONLY under its declared
-                // primary output. getCraftingFor(key) also returns patterns where `key` is merely a
-                // SECONDARY output; if we registered those as a second node producing `key`, the same
-                // real IPatternDetails would be fireable through two nodes and toAe2Plan (which merges
-                // firings by source) could schedule it twice -> double-craft (over-draws stock, piles up
-                // byproducts). So we skip non-primary views here: `key` is instead supplied from the
-                // byproduct pool when its real primary is crafted, never by a second firing of this
-                // source. Trade-off (accepted): an item that is ONLY ever a secondary output, with no
-                // pattern of its own, surfaces as missing (Policy A best-effort) rather than being
-                // made by deliberately over-producing the primary.
+                // Register each physical recipe under its primary output only, avoiding duplicate
+                // firings through secondary aliases. Side-only targets remain a best-effort shortage.
                 GenericStack primaryStack = details.getPrimaryOutput();
                 if (primaryStack == null || !catalogKey.equals(primaryStack.what())) {
                     continue;
@@ -529,7 +512,6 @@ public final class FastCraftingPlanner {
                 patternSources.computeIfAbsent(key,
                         ignored -> java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>()))
                         .add(details);
-                // AE2 1.20.1: getOutputs() returns GenericStack[] (not List).
                 GenericStack[] outputs = details.getOutputs();
                 GenericStack primary = null;
                 List<CraftOutput<AEKey>> byproducts = new ArrayList<>(Math.max(0, outputs.length - 1));

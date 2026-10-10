@@ -19,20 +19,9 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import com.moakiee.thunderbolt.core.storage.cell.DualLong126;
 
 /**
- * Array-indexed storage engine for the infinite cell.
- * <p>
- * Each {@link AEKey} is assigned a stable integer id. The id doubles as
- * the position in the persisted {@link ListTag} / {@link LongArrayTag},
- * so incremental persist only touches changed positions.
- * <p>
- * A dirty queue ({@code dirtyQueue}) records which ids changed since the
- * last persist, giving O(changed) persist with no bitset scanning.
- * A per-id boolean {@code isStructDirty} distinguishes key add/remove
- * (needs key-tag write) from amount-only changes (just long[] writes).
- * <p>
- * When the number of free (hole) slots exceeds {@code totalTypes * COMPACT_THRESHOLD},
- * a deferred compaction is scheduled and executed at the next {@link #persist},
- * reassigning contiguous ids and forcing a full rewrite.
+ * Array-indexed infinite-cell storage with stable key IDs matching persisted NBT positions.
+ * Quantities use 63+63-bit limbs, with BigInteger overrides beyond the legacy encoding.
+ * Dirty IDs drive incremental persistence; removed IDs are recycled and compacted on full writes.
  */
 public final class IndexedStorage {
     private static final java.math.BigInteger MASK_63 = java.math.BigInteger.valueOf(Long.MAX_VALUE);
@@ -211,11 +200,7 @@ public final class IndexedStorage {
             dirtyQueue[dirtyCount++] = id;
         }
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     //  insert
-    // ══════════════════════════════════════════════════════════════════════
-
     public long insert(AEKey key, long amount, Actionable mode) {
         if (arbitraryPrecision && amount > 0) return insertExact(key, java.math.BigInteger.valueOf(amount), mode).longValueExact();
         if (amount <= 0) return 0;
@@ -253,11 +238,7 @@ public final class IndexedStorage {
         modCount++;
         return amount;
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     //  extract
-    // ══════════════════════════════════════════════════════════════════════
-
     public long extract(AEKey key, long amount, Actionable mode) {
         if (arbitraryPrecision && amount > 0) return extractExact(key, java.math.BigInteger.valueOf(amount), mode).longValueExact();
         if (amount <= 0) return 0;
@@ -329,12 +310,7 @@ public final class IndexedStorage {
         typeAmountLo.put(type, updatedLow);
         typeAmountHi.put(type, high);
     }
-
-
-    // ══════════════════════════════════════════════════════════════════════
     //  Queries
-    // ══════════════════════════════════════════════════════════════════════
-
     @FunctionalInterface
     interface CappedAmountConsumer {
         void accept(AEKey key, long amount);
@@ -365,12 +341,8 @@ public final class IndexedStorage {
         if (id == -1) return 0;
         return DualLong126.cap(hi[id], lo[id]);
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     //  Persist — queue-driven, O(changed). Split layout:
     //  ListTag<CompoundTag> for keys, LongArrayTag for lo/hi.
-    // ══════════════════════════════════════════════════════════════════════
-
     public CompoundTag persist(@Nullable CompoundTag lastRoot, HolderLookup.Provider registries) {
         return persist(lastRoot, (key, reg) -> key.toTagGeneric(), registries);
     }
@@ -514,11 +486,7 @@ public final class IndexedStorage {
     public interface KeyDeserializer {
         @Nullable AEKey fromTag(CompoundTag tag, HolderLookup.Provider registries);
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     //  Load
-    // ══════════════════════════════════════════════════════════════════════
-
     public void load(CompoundTag root, HolderLookup.Provider registries) {
         load(root, (tag, reg) -> AEKey.fromTagGeneric(tag), registries);
     }
@@ -737,11 +705,7 @@ public final class IndexedStorage {
         }
         exactTypeTotals.forEach(this::projectTypeTotal);
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     //  ID lifecycle — stable: id = ListTag position
-    // ══════════════════════════════════════════════════════════════════════
-
     private int allocateId(AEKey key) {
         int id;
         if (freeCount > 0) {
@@ -777,11 +741,7 @@ public final class IndexedStorage {
         }
         freeIds[freeCount++] = id;
     }
-
-    // ══════════════════════════════════════════════════════════════════════
     //  Capacity
-    // ══════════════════════════════════════════════════════════════════════
-
     private void ensureCapacity(int required) {
         if (required < lo.length) return;
         int newCap = Math.max(INITIAL_CAPACITY, Integer.highestOneBit(required) << 1);

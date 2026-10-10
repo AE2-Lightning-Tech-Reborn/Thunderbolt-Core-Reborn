@@ -20,26 +20,11 @@ import com.moakiee.thunderbolt.core.crafting.pattern.ReusableStockSource;
 
 /**
  * Ranked material planning with independently checked, compressed execution witnesses.
- *
- * <p>Each pattern has one long firing variable and one activation Boolean in the bridge. Active
- * dependencies must point from a lower item rank to a higher output rank, so the selected support
- * is a DAG after every proven ratio-conservative strict conversion SCC is contracted. Such an SCC
- * shares one rank and gets an explicit, amount-independent family of grouped startup-prefix
- * certificates. Aggregate balances plus the selected prefix therefore have a concrete replay.
- * Ordinary non-growing cyclic graphs additionally refine false startup shortages with an exact,
- * bounded Petri search and proof-derived cuts. Repeated blocks retain compressed firing counts;
- * there is no request-sized time horizon or per-firing Boolean expansion.</p>
- *
- * <p>Unchanged infinite-use catalysts are admitted as presence conditions. Finite-use tools use an
- * exact {@code ceil(firings / lifetime)} integer variable, and independent host-private fuzzy seed
- * routes are represented without exposing their inventory to ordinary demands. Proven non-growing
- * byproduct feedback SCCs are contracted into Petri-net macros. When aggregate optimization needs
- * additional startup material, a bounded block model jointly chooses recipes, seeds and repetitions;
- * backward prefix search and proven master refinements cover further fixed-count schedules. Container
- * remainders are canonical ordinary byproduct post-arcs; durability degradation is normalized by the
- * production adapter into a finite carrier chain. Host-private reusable inputs use an exact sparse
- * route-to-physical-variant allocation matrix, so fuzzy routes may overlap without double-spending
- * one physical stack.</p>
+ * Proven conservative SCCs share a rank and require executable startup-prefix certificates;
+ * bounded Petri search and block models refine cyclic startup shortages without per-firing expansion.
+ * Catalysts use presence constraints, finite-use tools use {@code ceil(firings / lifetime)},
+ * and private reusable routes allocate against physical variant capacities without double-spending.
+ * Container remainders are byproducts; the AE2 adapter normalizes durability into carrier chains.
  */
 public final class CpSatRankedFlowSolver<K> {
     public enum Status {
