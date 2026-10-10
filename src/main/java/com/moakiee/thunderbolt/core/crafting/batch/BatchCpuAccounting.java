@@ -15,7 +15,7 @@ public final class BatchCpuAccounting {
         if (cpuOps <= 0) return 0;
         if (mode == Mode.LINEAR) return cpuOps;
         if (mode == Mode.SUCCESSFUL_DISPATCH) return Long.MAX_VALUE;
-        return (long) cpuOps * cpuOps;
+        return maxCopiesForCpuOps(cpuOps);
     }
 
     public static long maxCopiesForBatch(

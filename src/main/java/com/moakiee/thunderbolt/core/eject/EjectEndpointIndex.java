@@ -23,8 +23,6 @@ import com.moakiee.thunderbolt.api.eject.EjectEndpoint;
 import com.moakiee.thunderbolt.api.eject.EjectHostResolver;
 import com.moakiee.thunderbolt.api.eject.EjectOfflinePolicy;
 import com.moakiee.thunderbolt.api.eject.EjectRegistration;
-import com.moakiee.thunderbolt.core.eject.EjectRegistrationSavedData;
-import com.moakiee.thunderbolt.core.eject.ThunderboltGhostOutputBlockEntity;
 
 /** Runtime endpoint index and persistence-backed default implementation. */
 public final class EjectEndpointIndex implements EjectCapabilityRegistry.Runtime {

@@ -16,8 +16,6 @@ import net.minecraft.nbt.Tag;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
-import com.moakiee.thunderbolt.core.storage.cell.DualLong126;
-
 /**
  * Array-indexed infinite-cell storage with stable key IDs matching persisted NBT positions.
  * Quantities use 63+63-bit limbs, with BigInteger overrides beyond the legacy encoding.

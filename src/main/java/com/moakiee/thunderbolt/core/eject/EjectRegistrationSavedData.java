@@ -57,16 +57,13 @@ public final class EjectRegistrationSavedData extends SavedData {
      */
     public void migrateLegacyIfNeeded(MinecraftServer server) {
         if (legacyMigrationComplete) return;
-        // Forge 1.20.1 has no 2-arg computeIfAbsent; the loader always yields an instance, so
-        // guard by contents instead of nullability.
+        // Forge's factory yields an empty instance when the legacy file is absent.
         var legacy = server.overworld().getDataStorage().computeIfAbsent(
                 EjectRegistrationSavedData::load,
                 EjectRegistrationSavedData::new,
                 LEGACY_DATA_NAME);
-        if (!legacy.entries.isEmpty()) {
-            for (var registration : legacy.entries) {
-                if (!entries.contains(registration)) entries.add(registration);
-            }
+        for (var registration : legacy.entries) {
+            if (!entries.contains(registration)) entries.add(registration);
         }
         legacyMigrationComplete = true;
         setDirty();

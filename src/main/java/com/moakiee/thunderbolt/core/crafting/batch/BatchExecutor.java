@@ -25,7 +25,6 @@ import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapter;
 import com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider;
 import com.moakiee.thunderbolt.api.crafting.batch.PreparedBatch;
-import com.moakiee.thunderbolt.core.crafting.batch.BatchCopyLimitPattern;
 import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
 
 public final class BatchExecutor {
@@ -35,11 +34,7 @@ public final class BatchExecutor {
     private BatchExecutor() {
     }
 
-    /**
-     * Patterns matching this rule are skipped by the batch dispatcher (they are handled by another
-     * path). Decoupled from content: the host mod installs the rule during setup (e.g. to exclude
-     * its host-specific pattern type). Defaults to "skip nothing" so the lib works standalone.
-     */
+    /** Patterns matching this host-registered rule are skipped by the batch dispatcher. */
     private static volatile Predicate<IPatternDetails> skipRule = details -> false;
     private static volatile Predicate<IPatternDetails> batchEligibleRule = details -> true;
 

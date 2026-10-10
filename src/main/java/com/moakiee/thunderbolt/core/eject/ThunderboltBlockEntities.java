@@ -7,7 +7,6 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
 import com.moakiee.thunderbolt.ThunderboltCore;
-import com.moakiee.thunderbolt.core.eject.ThunderboltGhostOutputBlockEntity;
 
 public final class ThunderboltBlockEntities {
     public static final DeferredRegister<BlockEntityType<?>> TYPES =

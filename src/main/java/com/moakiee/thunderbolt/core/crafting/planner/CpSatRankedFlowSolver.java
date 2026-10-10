@@ -1516,7 +1516,6 @@ public final class CpSatRankedFlowSolver<K> {
             long[] reservedCatalystMissing,
             long[] replayMissing,
             long[] gross) {
-        int itemCount = c.items.size();
         for (int item : c.catalysts.rowKeys(recipe)) {
             long required = c.catalysts.get(recipe, item);
             if (required <= 0L) continue;
@@ -1668,7 +1667,6 @@ public final class CpSatRankedFlowSolver<K> {
             long[] reservedCatalystMissing,
             long[] gross,
             Map<CraftPattern<K>, Long> firingMap) {
-        int itemCount = c.items.size();
         for (int item : c.catalysts.rowKeys(recipe)) {
             long required = c.catalysts.get(recipe, item);
             if (required > 0L

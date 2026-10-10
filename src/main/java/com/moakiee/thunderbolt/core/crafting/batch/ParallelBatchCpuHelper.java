@@ -1,7 +1,5 @@
 package com.moakiee.thunderbolt.core.crafting.batch;
 
-import com.moakiee.thunderbolt.core.crafting.batch.SharedBatchInputPattern;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;

@@ -13,8 +13,7 @@ public final class OptionalBatchProviders {
     private OptionalBatchProviders() {}
 
     public static void register() {
-        // Global adapters replace the old optional batch mixins. Keep their GTL handover:
-        // GTL expands catalyst/inflated patterns with different material accounting.
+        // GTL owns catalyst/inflated-pattern accounting through its handover.
         if (GtlCompat.isCraftingHandoverActive()) return;
         register("neoeco", NeoEcoFastPathCompat.createAdapter());
         var mods = ModList.get();

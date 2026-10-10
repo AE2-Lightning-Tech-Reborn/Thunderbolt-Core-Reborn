@@ -88,7 +88,6 @@ public abstract class EjectCapabilityMixin {
 
         var hostLevel = host.getLevel();
         if (hostLevel == null) return;
-        var hostPos = host.getBlockPos();
         THUNDERBOLT_PROXYING.set(true);
         try {
             var result = host.getCapability((Capability) capability, side);

@@ -1,7 +1,5 @@
 package com.moakiee.thunderbolt.core.crafting.batch;
 
-import com.moakiee.thunderbolt.core.crafting.batch.SharedBatchInputPattern;
-
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEKey;
 
@@ -30,7 +28,7 @@ public final class SharedBatchInputs {
     /**
      * Explicit marker declarations remain authoritative. Ordinary recipe inputs are inferred as
      * shared only when AE2 reports that the exact concrete key comes back unchanged. Equality of
-     * {@link AEKey} includes item components, so damaged or otherwise transformed catalysts keep
+     * {@link AEKey} includes item NBT, so damaged or otherwise transformed catalysts keep
      * their normal per-copy accounting.
      */
     public static boolean isSharedInput(IPatternDetails details, int slot, AEKey concreteKey) {
