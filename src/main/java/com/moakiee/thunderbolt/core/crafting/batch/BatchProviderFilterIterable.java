@@ -37,7 +37,9 @@ public final class BatchProviderFilterIterable implements Iterable<ICraftingProv
         public boolean hasNext() {
             while (!ready && raw.hasNext()) {
                 var candidate = raw.next();
-                if (!excluded.containsKey(candidate)) {
+                // A successful partial batch is not evidence that a provider is full. Let an
+                // available provider receive ordinary work after the batch path stops.
+                if (!excluded.containsKey(candidate) || !candidate.isBusy()) {
                     next = candidate;
                     ready = true;
                 }

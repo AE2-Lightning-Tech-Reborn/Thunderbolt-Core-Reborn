@@ -169,6 +169,34 @@ class PlannedInputDispatchTest {
     }
 
     @Test
+    void concreteAdmissionBoundsExtractionAndRefundsRejectedOrFailedPrototypes() {
+        var planned = new PlannedInputPattern(pattern(input(3, B, A)), List.of(Map.of(A, 1L, B, 2L)));
+        var stock = inventory(10, 20);
+        var admitted = ParallelBatchCpuHelper.withBatchCapacityLimiter(planned, stock, (prototype, copies) -> {
+            assertEquals(1, prototype[0].get(A));
+            assertEquals(2, prototype[0].get(B));
+            assertEquals(10, copies);
+            return 2;
+        }, () -> ParallelBatchCpuHelper.bulkExtract(planned, stock, 10, false, Map.of(), null));
+        assertNotNull(admitted);
+        assertEquals(2, admitted.actualCopies);
+        assertEquals(8, held(stock, A));
+        assertEquals(16, held(stock, B));
+        ParallelBatchCpuHelper.reinject(admitted, 2, stock);
+        assertNull(ParallelBatchCpuHelper.withBatchCapacityLimiter(planned, stock, (prototype, copies) -> 0,
+                () -> ParallelBatchCpuHelper.bulkExtract(planned, stock, 10, false, Map.of(), null)));
+        assertEquals(10, held(stock, A));
+        assertEquals(20, held(stock, B));
+        assertThrows(IllegalStateException.class, () ->
+                ParallelBatchCpuHelper.withBatchCapacityLimiter(planned, stock, (prototype, copies) -> {
+                    throw new IllegalStateException("admission failed");
+                }, () -> ParallelBatchCpuHelper.bulkExtract(planned, stock, 10, false, Map.of(), null)));
+        assertEquals(10, held(stock, A));
+        assertEquals(20, held(stock, B));
+        assertNull(ParallelBatchCpuHelper.currentBatchCapacityLimiter(planned, stock));
+    }
+
+    @Test
     void singleCopyCannotSpendTheWholeMixedSlotOnOneAvailableKey() {
         var inventory = inventory(10, 10);
         var planned = new PlannedInputPattern(pattern(input(3, B, A)), List.of(Map.of(A, 2L, B, 1L)));
