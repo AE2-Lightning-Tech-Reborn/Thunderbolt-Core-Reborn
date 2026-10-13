@@ -20,7 +20,8 @@ final class MultiRouteBatchOptimizer {
     static <K> BatchOptimizationResult<K> solve(CraftGraph<K> graph, K target, long amount,
             CraftPlan<K> initial, IntPredicate sharedWork) {
         PlanningCancellation.check();
-        List<CraftPattern<K>> routes = graph.patternsFor(target);
+        List<CraftPattern<K>> routes = new ArrayList<>(graph.patternsFor(target));
+        OrdinaryBatchOptimizer.sortRoutes(routes);
         int size = routes.size();
         if (size < 3 || size > 6 || amount <= 0 || amount >= Sat.SAT
                 || !initial.supported() || !initial.feasible() || !initial.missing().isEmpty()
@@ -82,6 +83,7 @@ final class MultiRouteBatchOptimizer {
         for (int total = lower; total <= count; total++) {
             search.best = null;
             search.bestStock = null;
+            search.seedSingleRouteWitness(total);
             search.visit(0, total, ZERO, caps.clone(), new long[size]);
             if (search.best != null) {
                 var candidate = certificate(target, amount, targetStock, initial, routes, resources, outputs, use, caps, demand, search.best);
@@ -132,6 +134,30 @@ final class MultiRouteBatchOptimizer {
         Search(BigInteger[] outputs, BigInteger[][] use, BigInteger[] caps, BigInteger demand, IntPredicate shared, int work) {
             this.outputs = outputs; this.use = use; this.caps = caps; this.demand = demand;
             this.shared = shared; remaining = work;
+        }
+
+        /** Preserve a cheap certified incumbent before route-order search can exhaust its budget. */
+        void seedSingleRouteWitness(int total) {
+            for (int route = 0; route < outputs.length; route++) {
+                BigInteger firings = demand.subtract(BigInteger.ONE)
+                        .divide(outputs[route]).add(BigInteger.ONE);
+                if (firings.signum() <= 0 || firings.compareTo(BigInteger.valueOf(total)) > 0
+                        || firings.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) continue;
+                BigInteger stock = ZERO;
+                boolean fits = true;
+                for (int resource = 0; resource < caps.length; resource++) {
+                    BigInteger consumed = use[route][resource].multiply(firings);
+                    if (consumed.compareTo(caps[resource]) > 0) {
+                        fits = false;
+                        break;
+                    }
+                    stock = stock.add(consumed);
+                }
+                if (!fits || bestStock != null && stock.compareTo(bestStock) >= 0) continue;
+                bestStock = stock;
+                best = new long[outputs.length];
+                best[route] = firings.longValueExact();
+            }
         }
 
         void visit(int route, int left, BigInteger produced, BigInteger[] available, long[] counts) {

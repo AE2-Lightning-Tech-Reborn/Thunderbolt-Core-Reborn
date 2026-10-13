@@ -15,6 +15,202 @@ import org.junit.jupiter.api.Test;
 
 class MaterialDagBudgetTest {
     @Test
+    void primaryCertificatesScaleAndSurviveReversedRecipeRegistration() {
+        for (long scale : new long[] {1L, 50L, 500_000_000_000L}) {
+            for (boolean reverse : new boolean[] {false, true}) {
+                var original = batchCycle();
+                var builder = CraftGraph.<String>builder();
+                for (int i = 0; i <= 6; i++) {
+                    String key = "M" + i;
+                    builder.stock(key, original.stock(key) * scale + (i == 3 ? scale : 0L));
+                    var routes = new ArrayList<>(original.patternsFor(key));
+                    if (reverse) java.util.Collections.reverse(routes);
+                    routes.forEach(builder::pattern);
+                }
+                var graph = builder.build();
+                var ready = CraftPlannerV2.planDetailed(graph, "M6", 2 * scale, 1, 1);
+                assertTrue(ready.plan().feasible(), () -> "scale=" + scale + " reverse=" + reverse
+                        + " result=" + ready);
+                assertBalance(graph, ready.plan(), 2 * scale);
+                assertTrue(ready.diagnostics().consumedSearchBudget() <= 1);
+            }
+        }
+    }
+
+    @Test
+    void primaryCertificatesSurviveAnExhaustedOptionalPortfolioInAFreshSession() throws Exception {
+        for (int round = 0; round < 3; round++) {
+            for (var graph : List.of(batchCycle().withAdditionalStock(Map.of("M3", 1L)),
+                    sharedCycle().withAdditionalStock(Map.of("M2", 2L)))) {
+                var session = new CraftPlannerV2.PlanningSession<String>();
+                session.optimizeFeasible = false;
+                session.refineMissing = false;
+                var time = session.getClass().getDeclaredField("materialDagOrderNanos");
+                var attempts = session.getClass().getDeclaredField("materialDagOrderAttempts");
+                time.setAccessible(true);
+                attempts.setAccessible(true);
+                time.setLong(session, 100_000_000L);
+                attempts.setInt(session, 120);
+                var result = CraftPlannerV2.planCore(graph, "M6", 2, 1, 1,
+                        session.reachableWork(graph, "M6"), session);
+                assertTrue(result.plan().feasible(), () -> result.toString());
+                assertBalance(graph, result.plan());
+                ByproductReplaySafetyTest.assertEveryOrderFinishes(result.plan(), "M6", 2);
+                assertTrue(result.diagnostics().consumedSearchBudget() <= 1);
+                assertEquals(100_000_000L, time.getLong(session));
+                assertEquals(120, attempts.getInt(session));
+                result.plan().firings().keySet().forEach(pattern ->
+                        assertTrue(graph.patternsFor(pattern.output()).contains(pattern)));
+            }
+        }
+    }
+
+    @Test
+    void coreCertificateEnumerationChargesSharedWorkAndHonorsTheParentDeadline() throws Exception {
+        var graph = batchCycle().withAdditionalStock(Map.of("M3", 1L));
+        var denied = MaterialDagOrders.compileCertificates(graph, "M6",
+                BoundedIntegerLinearSolver.WorkBudget.bounded(1, 1, Long.MAX_VALUE),
+                candidate -> false, List.of());
+        assertFalse(denied.complete());
+        assertTrue(denied.candidates().isEmpty());
+        var field = PlanningCancellation.class.getDeclaredField("OPTIONAL_DEADLINE");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked") var deadline = (ThreadLocal<Long>) field.get(null);
+        try (var parent = PlanningCancellation.limitOptionalWork(Long.MAX_VALUE / 4L)) {
+            long expired = System.nanoTime() - 1L;
+            deadline.set(expired);
+            var stopped = MaterialDagOrders.compileCertificates(graph, "M6",
+                    BoundedIntegerLinearSolver.WorkBudget.unlimited(), candidate -> false, List.of());
+            assertFalse(stopped.complete());
+            assertTrue(stopped.candidates().isEmpty());
+            assertEquals(expired, deadline.get(), "core certification must not extend the parent's cutoff");
+        }
+        assertDoesNotThrow(PlanningCancellation::check);
+        try {
+            Thread.currentThread().interrupt();
+            assertThrows(CancellationException.class, () -> MaterialDagOrders.compileCertificates(
+                    graph, "M6", BoundedIntegerLinearSolver.WorkBudget.unlimited(), candidate -> false, List.of()));
+        } finally {
+            Thread.interrupted();
+        }
+        var exit = new PlanningExitException("outer cancellation during core certification");
+        var context = new PlanningAttemptContext() {
+            @Override public long deadlineNanos() { return Long.MAX_VALUE; }
+            @Override public void report(PlanningDiagnosticSnapshot snapshot) {}
+            @Override public void checkpoint() { throw exit; }
+        };
+        try (var bound = PlanningCancellation.bind(context)) {
+            assertSame(exit, assertThrows(PlanningExitException.class, () -> MaterialDagOrders.compileCertificates(
+                    graph, "M6", BoundedIntegerLinearSolver.WorkBudget.unlimited(), candidate -> false, List.of())));
+        }
+        assertDoesNotThrow(PlanningCancellation::check);
+    }
+
+    @Test
+    void cheapDagProposalsCanSplitRoutesWithoutSpendingAnotherBranchsStock() {
+        var graph = CraftGraph.<String>builder().stock("A", 3).stock("B", 2)
+                .pattern("P", 1, List.of(CraftInput.of("A", 1)))
+                .pattern("P", 1, List.of(CraftInput.of("B", 1)))
+                .pattern("T", 1, List.of(CraftInput.of("P", 4), CraftInput.of("A", 1))).build();
+        var candidates = MaterialDagOrders.compile(graph, "T");
+        var plan = candidates.get(0).tryFixedPlan("T", 1);
+        assertNotNull(plan);
+        assertEquals(Map.of("A", 3L, "B", 2L), plan.usedStock());
+        assertEquals(2L, plan.firings().get(graph.patternsFor("P").get(0)));
+        assertEquals(2L, plan.firings().get(graph.patternsFor("P").get(1)));
+        var shortGraph = graph.withStockLimits(Map.of("A", 2L, "B", 2L));
+        assertTrue(MaterialDagOrders.compile(shortGraph, "T").stream()
+                .allMatch(candidate -> candidate.tryFixedPlan("T", 1) == null));
+    }
+
+    @Test
+    void aPartialBatchUsesItsActualDrawBeforeLaunchingAWholePlannerProbe() {
+        var graph = CraftGraph.<String>builder().stock("raw", 1)
+                .pattern("T", 3, List.of(CraftInput.of("raw", 3)))
+                .pattern("T", 1, List.of(CraftInput.of("raw", 1))).build();
+        var candidates = MaterialDagOrders.compile(graph, "T");
+        assertFalse(candidates.isEmpty());
+        var plan = candidates.get(0).tryFixedPlan("T", 1);
+        assertNotNull(plan, "equal unit costs do not justify withdrawing an unaffordable whole batch");
+        assertEquals(Map.of("raw", 1L), plan.usedStock());
+        assertEquals(Map.of(graph.patternsFor("T").get(1), 1L), plan.firings());
+        assertTrue(plan.feasible());
+    }
+
+    @Test
+    void anExhaustedSharedBudgetCannotRecursivelyRecompileTheSamePrefix() throws Exception {
+        var graph = batchCycle();
+        var session = new CraftPlannerV2.PlanningSession<String>();
+        session.optimizeFeasible = false;
+        session.refineMissing = false;
+        CraftPlannerV2.planDetailed(graph, "M6", 0, session);
+        session.lowWidthWorkBudget = BoundedIntegerLinearSolver.WorkBudget.bounded(1, 1, Long.MAX_VALUE);
+        assertFalse(session.lowWidthWorkBudget.tryConsume(2));
+        var cached = session.getClass().getDeclaredField("materialDagOrders");
+        cached.setAccessible(true);
+        cached.set(session, List.of());
+        int[] maximumDepth = {0};
+        var context = new PlanningAttemptContext() {
+            @Override public long deadlineNanos() { return Long.MAX_VALUE; }
+            @Override public void report(PlanningDiagnosticSnapshot snapshot) {}
+            @Override public void checkpoint() {
+                int depth = StackWalker.getInstance().walk(frames -> (int) frames.filter(frame ->
+                        frame.getClassName().equals(CraftPlannerV2.class.getName())
+                                && frame.getMethodName().equals("tryMaterialDagOrders")).count());
+                maximumDepth[0] = Math.max(maximumDepth[0], depth);
+                assertTrue(depth <= 2, "work denial cannot trigger repeated recursive compilation");
+            }
+        };
+        try (var ignored = PlanningCancellation.bind(context)) {
+            var result = CraftPlannerV2.planDetailed(graph, "M6", 2, session);
+            assertTrue(result.plan().supported());
+            assertFalse(result.plan().feasible());
+        }
+        assertEquals(2, maximumDepth[0], "a reused incomplete prefix receives one stock-local retry");
+        assertDoesNotThrow(PlanningCancellation::check);
+    }
+
+    @Test
+    void completedSupportsAreTriedBeforeTheRestOfThePortfolioIsCompiled() {
+        var graph = CraftGraph.<String>builder().stock("raw", 4L)
+                .pattern("A", 1, List.of(CraftInput.of("raw", 1)))
+                .pattern("A", 1, List.of(CraftInput.of("B", 1)))
+                .pattern("B", 1, List.of(CraftInput.of("raw", 1)))
+                .pattern("B", 1, List.of(CraftInput.of("A", 1)))
+                .pattern("T", 1, List.of(CraftInput.of("A", 1), CraftInput.of("B", 1))).build();
+        var fullPortfolio = MaterialDagOrders.compilePortfolio(graph, "T",
+                BoundedIntegerLinearSolver.WorkBudget.unlimited(), candidate -> false, List.of());
+        assertTrue(fullPortfolio.complete());
+        var complete = fullPortfolio.candidates();
+        var certified = new ArrayList<CraftPlan<String>>();
+        var prefix = MaterialDagOrders.compile(graph, "T", BoundedIntegerLinearSolver.WorkBudget.unlimited(), order -> {
+            if (!order.maySupply(1)) return false;
+            var plan = CraftPlannerV2.plan(order.graph(), "T", 1, 1, 1);
+            if (!plan.feasible()) return false;
+            certified.add(order.restore(plan));
+            return true;
+        });
+        assertEquals(1, certified.size());
+        assertTrue(prefix.size() < complete.size(), "unused permutations must not delay an available proof");
+        assertEquals(Map.of("raw", 2L), certified.get(0).usedStock());
+    }
+
+    @Test
+    void freshRecipeIdentitiesKeepBothCycleSupplementsReproducible() {
+        for (int round = 0; round < 6; round++) {
+            for (var graph : List.of(batchCycle(), sharedCycle())) {
+                var plan = CraftPlannerV2.plan(graph, "M6", 2);
+                assertFalse(plan.missing().isEmpty());
+                var supplied = graph.withAdditionalStock(plan.missing());
+                var ready = CraftPlannerV2.planDetailed(supplied, "M6", 2, 1, 1);
+                assertTrue(ready.plan().feasible(), () -> "missing=" + plan.missing()
+                        + " diagnostics=" + ready.diagnostics());
+                assertBalance(supplied, ready.plan());
+            }
+        }
+    }
+
+    @Test
     void theSameDagCertificateWorksWithMinimalRecursiveSearch() {
         for (var graph : List.of(batchCycle().withAdditionalStock(Map.of("M0", 1L)),
                 sharedCycle().withAdditionalStock(Map.of("M2", 5L)))) {
@@ -64,37 +260,46 @@ class MaterialDagBudgetTest {
     }
 
     @Test
-    void replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain() {
-        var graph = sharedCycle();
-        var context = new RefinementDeadlineProbe(null, false);
-        PlanningResult<String> result;
-        try (var ignored = PlanningCancellation.bind(context)) {
-            result = CraftPlannerV2.planDetailed(graph, "M6", 2);
+    @SuppressWarnings("unchecked")
+    void replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain() throws Exception {
+        var field = PlanningCancellation.class.getDeclaredField("OPTIONAL_DEADLINE");
+        field.setAccessible(true);
+        var deadline = (ThreadLocal<Long>) field.get(null);
+        try (var refinement = PlanningCancellation.limitOptionalWork(100_000_000L)) {
+            long parentDeadline = deadline.get();
+            try (var portfolio = MaterialDagOrders.limitWork(0L, true)) {
+                assertNotNull(portfolio);
+                assertEquals(parentDeadline, deadline.get(), "replenishment retains the exact parent cutoff");
+            }
+            assertEquals(parentDeadline, deadline.get());
+            try (var ordinary = MaterialDagOrders.limitWork(0L, false)) {
+                assertNotNull(ordinary);
+                assertTrue(deadline.get() < parentDeadline, "ordinary planning reserves caller time");
+            }
+            assertEquals(parentDeadline, deadline.get());
+            assertNull(MaterialDagOrders.limitWork(100_000_000L, true), "the cumulative cap still applies");
         }
-        assertTrue(context.observedPortfolio, "must inspect a portfolio inside the replenishment oracle");
-        // Compare installed deadlines, not elapsed runtime: cold class loading or scheduling
-        // cannot make a deliberate quarter-sized child slice satisfy this relationship.
-        assertTrue(context.portfolioDeadline >= context.refinementDeadline,
-                "the nested proof must not reserve the caller's adaptation time a second time");
-        assertTrue(context.portfolioDeadline <= context.refinementDeadline + 1_000_000L,
-                "the child scope must still respect the parent's 100 ms deadline");
-        assertTrue(result.plan().missing().getOrDefault("M2", 0L) < 6,
-                () -> result.diagnostics().toString());
-        var supplied = graph.withAdditionalStock(result.plan().missing());
-        var ready = CraftPlannerV2.plan(supplied, "M6", 2, 1, 1);
-        assertTrue(ready.feasible());
-        assertBalance(supplied, ready);
+        assertDoesNotThrow(PlanningCancellation::check);
     }
 
     @Test
     void replenishmentPortfolioStillPropagatesOuterCancellation() {
         var exit = new PlanningExitException("test cancellation during replenishment proof");
-        var context = new RefinementDeadlineProbe(exit, false);
-        try (var ignored = PlanningCancellation.bind(context)) {
+        var graph = sharedCycle().withAdditionalStock(Map.of("M2", 6L));
+        var checks = new java.util.concurrent.atomic.AtomicInteger();
+        var context = new PlanningAttemptContext() {
+            @Override public long deadlineNanos() { return Long.MAX_VALUE; }
+            @Override public void report(PlanningDiagnosticSnapshot snapshot) {}
+            @Override public void checkpoint() { checks.incrementAndGet(); throw exit; }
+        };
+        try (var refinement = PlanningCancellation.limitOptionalWork(100_000_000L);
+             var portfolio = MaterialDagOrders.limitWork(0L, true);
+             var ignored = PlanningCancellation.bind(context)) {
+            assertNotNull(portfolio);
             assertSame(exit, assertThrows(PlanningExitException.class,
-                    () -> CraftPlannerV2.plan(sharedCycle(), "M6", 2)));
+                    () -> MaterialDagOrders.compile(graph, "M6")));
         }
-        assertTrue(context.observedPortfolio);
+        assertTrue(checks.get() > 0);
         assertDoesNotThrow(PlanningCancellation::check, "the caller scope must be restored after cancellation");
     }
 
@@ -199,11 +404,14 @@ class MaterialDagBudgetTest {
                 }
             }
         };
-        List<MaterialDagOrders.Candidate<String>> partial;
+        MaterialDagOrders.Portfolio<String> partialPortfolio;
         try (var bound = PlanningCancellation.bind(context);
              var optional = PlanningCancellation.limitOptionalWork(Long.MAX_VALUE / 4L)) {
-            partial = MaterialDagOrders.compile(graph, "T");
+            partialPortfolio = MaterialDagOrders.compilePortfolio(graph, "T",
+                    BoundedIntegerLinearSolver.WorkBudget.unlimited(), candidate -> false, List.of());
         }
+        var partial = partialPortfolio.candidates();
+        assertFalse(partialPortfolio.complete(), "a timed out prefix must remain eligible for stock-local discovery");
         assertTrue(expired[0]);
         assertFalse(partial.isEmpty(), "a completed support must survive expiration during the next support");
         assertTrue(partial.size() < complete.size());
@@ -240,7 +448,7 @@ class MaterialDagBudgetTest {
         @Override public long deadlineNanos() { return Long.MAX_VALUE; }
         @Override public void report(PlanningDiagnosticSnapshot snapshot) {}
         @Override public void checkpoint() {
-            if (observedPortfolio || expiredRefinement) return;
+            if (observedPortfolio || expiredRefinement || optionalDeadline.get() == null) return;
             boolean refinement = false, portfolio = false;
             for (var frame : Thread.currentThread().getStackTrace()) {
                 refinement |= frame.getClassName().equals(MissingRefinement.class.getName())
@@ -313,6 +521,10 @@ class MaterialDagBudgetTest {
     }
 
     private static void assertBalance(CraftGraph<String> graph, CraftPlan<String> plan) {
+        assertBalance(graph, plan, 2L);
+    }
+
+    private static void assertBalance(CraftGraph<String> graph, CraftPlan<String> plan, long amount) {
         var balance = new HashMap<String, BigInteger>();
         plan.usedStock().forEach((key, value) -> {
             assertTrue(value <= graph.stock(key));
@@ -325,6 +537,6 @@ class MaterialDagBudgetTest {
             p.byproducts().forEach(o -> balance.merge(o.key(), o.exactAmount().multiply(n), BigInteger::add));
         });
         assertTrue(balance.values().stream().allMatch(n -> n.signum() >= 0));
-        assertTrue(balance.getOrDefault("M6", BigInteger.ZERO).compareTo(BigInteger.TWO) >= 0);
+        assertTrue(balance.getOrDefault("M6", BigInteger.ZERO).compareTo(BigInteger.valueOf(amount)) >= 0);
     }
 }

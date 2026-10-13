@@ -9,7 +9,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.server.ServerLifecycleHooks;
 
-import com.moakiee.thunderbolt.core.storage.cell.IndexedCellStorageSavedData;
 
 /** Public lifecycle/cache facade for world-backed {@link IndexedStorage} cell contents. */
 public final class IndexedCellStorageRegistry {

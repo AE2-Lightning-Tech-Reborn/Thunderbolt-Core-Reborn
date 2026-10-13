@@ -10,7 +10,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 
-import com.moakiee.thunderbolt.core.storage.cell.IndexedStorage;
 
 /** Internal world persistence behind the public indexed-cell registry. */
 public final class IndexedCellStorageSavedData extends SavedData {

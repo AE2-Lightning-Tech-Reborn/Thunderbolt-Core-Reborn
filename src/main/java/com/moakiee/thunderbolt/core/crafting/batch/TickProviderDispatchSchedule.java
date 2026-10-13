@@ -60,31 +60,29 @@ public final class TickProviderDispatchSchedule {
     }
 
     public boolean isBlocked(IPatternDetails canonicalPattern, ICraftingProvider provider) {
-        var schedule = patterns.get(canonicalPattern);
-        if (schedule != null) schedule.beginTick(tick);
+        var schedule = scheduleForTick(canonicalPattern);
         return schedule != null && schedule.candidates.isBlocked(provider);
     }
 
     public void recordFailure(IPatternDetails canonicalPattern, ICraftingProvider provider) {
-        var schedule = patterns.get(canonicalPattern);
-        if (schedule != null) {
-            schedule.beginTick(tick);
-            schedule.candidates.block(provider);
-        }
+        var schedule = scheduleForTick(canonicalPattern);
+        if (schedule != null) schedule.candidates.block(provider);
     }
 
     public void recordSuccess(IPatternDetails canonicalPattern, ICraftingProvider provider) {
-        var schedule = patterns.get(canonicalPattern);
-        if (schedule != null) {
-            schedule.beginTick(tick);
-            schedule.candidates.markSuccess(provider);
-        }
+        var schedule = scheduleForTick(canonicalPattern);
+        if (schedule != null) schedule.candidates.markSuccess(provider);
     }
 
     public int blockedCount(IPatternDetails canonicalPattern) {
+        var schedule = scheduleForTick(canonicalPattern);
+        return schedule != null ? schedule.candidates.blockedCount() : 0;
+    }
+
+    private PatternSchedule scheduleForTick(IPatternDetails canonicalPattern) {
         var schedule = patterns.get(canonicalPattern);
         if (schedule != null) schedule.beginTick(tick);
-        return schedule != null ? schedule.candidates.blockedCount() : 0;
+        return schedule;
     }
 
     private static final class PatternSchedule {

@@ -23,9 +23,11 @@ final class CpSatSparseDag {
         var ids = new LinkedHashMap<K, Integer>();
         var distances = new ArrayList<Integer>();
         var patterns = new ArrayList<CraftPattern<K>>();
+        var sideKeys = new java.util.HashSet<K>();
         var seenPatterns = java.util.Collections.newSetFromMap(new IdentityHashMap<CraftPattern<K>, Boolean>());
         var inputs = new ArrayList<Map<Integer, Long>>();
         var outputs = new ArrayList<Integer>();
+        boolean finiteInputs = false;
         keys.add(target); ids.put(target, 0); distances.add(0);
         for (int cursor = 0; cursor < keys.size(); cursor++) {
             PlanningCancellation.check();
@@ -33,13 +35,17 @@ final class CpSatSparseDag {
                 PlanningCancellation.check();
                 if (System.nanoTime()-start >= nanos) return status(CpSatRankedFlowSolver.Status.UNKNOWN);
                 if (!seenPatterns.add(p)) continue;
-                if (!p.byproducts().isEmpty() || !p.exactOutputAmount().equals(BigInteger.valueOf(p.outputAmount()))
+                if (!p.exactOutputAmount().equals(BigInteger.valueOf(p.outputAmount()))
                         || Sat.isSaturated(p.outputAmount())) return null;
+                for (var side : p.byproducts()) {
+                    PlanningCancellation.check();
+                    sideKeys.add(side.key());
+                }
                 var pre = new LinkedHashMap<Integer, Long>();
                 for (var input : p.inputs()) {
                     PlanningCancellation.check();
-                    if (input.returned() || input.remainder() != null || input.reusableStockSource() != null
-                            || !input.exactAmount().equals(BigInteger.valueOf(input.amount()))) return null;
+                    if (!input.exactAmount().equals(BigInteger.valueOf(input.amount()))) return null;
+                    finiteInputs |= input.returned();
                     Integer id = ids.get(input.key());
                     if (id == null) {
                         id = keys.size(); ids.put(input.key(), id); keys.add(input.key());
@@ -53,6 +59,9 @@ final class CpSatSparseDag {
             }
         }
         int itemCount = keys.size(), recipeCount = patterns.size();
+        // Unconsumed side outputs cannot affect demand or firing minimization. Any side credit
+        // in the primary ancestry still needs the full ranked model, including feedback checks.
+        if (sideKeys.stream().anyMatch(ids::containsKey)) return null;
         if (recipeCount == 0 || (long) itemCount * recipeCount < minimumCells) return null;
         var consumers = new ArrayList<List<Integer>>(itemCount);
         var producers = new ArrayList<List<Integer>>(itemCount);
@@ -86,12 +95,52 @@ final class CpSatSparseDag {
         var ready = new ArrayDeque<Integer>();
         for (int i = 0; i < itemCount; i++) if (indegree[i] == 0) ready.add(i);
         int visited = 0;
+        var supplyOrder = new ArrayList<K>(itemCount);
         while (!ready.isEmpty()) {
             PlanningCancellation.check();
             int item = ready.removeFirst(); visited++;
+            supplyOrder.add(keys.get(item));
             for (int output : consumers.get(item)) if (--indegree[output] == 0) ready.add(output);
         }
         if (visited != itemCount) return null;
+        // With one positive-cost producer per key, stock-first demand propagation minimizes
+        // every firing count and leaf shortage simultaneously. Do not construct a native model
+        // for a fixed DAG; zero-cost conversions and competing producers keep the CP-SAT path.
+        boolean fixedDag = patterns.stream().allMatch(pattern -> pattern.executionCost() > 0)
+                && producers.stream().allMatch(routes -> routes.size() <= 1);
+        if (fixedDag) {
+            java.util.Collections.reverse(supplyOrder);
+            var selected = new LinkedHashMap<K, List<CraftPattern<K>>>();
+            for (int i = 0; i < itemCount; i++) {
+                PlanningCancellation.check();
+                var routes = producers.get(i);
+                selected.put(keys.get(i), routes.isEmpty() ? List.of() : List.of(patterns.get(routes.get(0))));
+            }
+            var policy = ConservativeReplenishment.compileIgnoringByproductsWithStateInputs(
+                    graph, supplyOrder, selected);
+            var fixed = policy == null ? null : policy.plan(target, amount, Map.of());
+            if (fixed != null) {
+                boolean inDomain = true;
+                for (int r = 0; r < recipeCount; r++) {
+                    PlanningCancellation.check();
+                    inDomain &= fixed.firings().getOrDefault(patterns.get(r), 0L) <= upper[r];
+                }
+                long missingCap = (Long.MAX_VALUE / 4) / itemCount;
+                inDomain &= fixed.missing().values().stream().allMatch(value -> value <= missingCap);
+                if (inDomain) {
+                    var certified = MaterialDagReplay.tryLeafMissingPlan(graph, fixed.firings(), target, amount);
+                    PlanningCancellation.check();
+                    if (System.nanoTime() - start >= nanos) return status(CpSatRankedFlowSolver.Status.UNKNOWN);
+                    if (certified != null) {
+                        if (weightedDomainLimited) certified = CraftPlannerV2.markBudgetExhausted(certified);
+                        return new CpSatRankedFlowSolver.Result<>(CpSatRankedFlowSolver.Status.SOLVED, certified, 0L);
+                    }
+                }
+            }
+        }
+        // The linear sparse model has no ceil(firings / lifetime) variables. Only the fixed
+        // demand path above can certify finite-use inputs without changing their consumption.
+        if (finiteInputs) return null;
         int[][] variables = new int[itemCount][], producerIds = new int[itemCount][];
         long[][] coefficients = new long[itemCount][];
         long[] stocks = new long[itemCount];

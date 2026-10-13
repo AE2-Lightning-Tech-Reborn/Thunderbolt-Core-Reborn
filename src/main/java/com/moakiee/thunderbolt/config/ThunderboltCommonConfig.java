@@ -16,6 +16,7 @@ public final class ThunderboltCommonConfig {
     public static final ForgeConfigSpec SPEC;
     private static final ForgeConfigSpec.BooleanValue ENABLE_CP_SAT_PLANNER;
     private static final ForgeConfigSpec.EnumValue<ChannelMode> CHANNEL_MODE;
+    private static final ForgeConfigSpec.BooleanValue FAST_NBT_COPIES;
 
     static {
         var builder = new ForgeConfigSpec.Builder();
@@ -31,6 +32,12 @@ public final class ThunderboltCommonConfig {
         CHANNEL_MODE = builder.comment("When to enable Thunderbolt channel max-flow.")
                 .defineEnum("mode", ChannelMode.MOD);
         builder.pop();
+        builder.push("objects");
+        FAST_NBT_COPIES = builder.comment(
+                "Reduce temporary allocations while deeply copying NBT.",
+                "Disable if another mod replaces the same NBT copy operations.")
+                .define("fastNbtCopies", true);
+        builder.pop();
         SPEC = builder.build();
     }
 
@@ -40,6 +47,8 @@ public final class ThunderboltCommonConfig {
     public static boolean enableCpSatPlanner() {
         return ENABLE_CP_SAT_PLANNER.get();
     }
+
+    public static boolean fastNbtCopies() { return FAST_NBT_COPIES.get(); }
 
     public static boolean useMaxFlow(IGrid grid, boolean hasControllers) {
         if (!hasControllers) return false;

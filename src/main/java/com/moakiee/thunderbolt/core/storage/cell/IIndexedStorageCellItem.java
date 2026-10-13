@@ -5,8 +5,6 @@ import appeng.api.stacks.AEKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
-import com.moakiee.thunderbolt.core.storage.cell.ByteTracker;
-
 /**
  * Item-side definition consumed by Thunderbolt's shared indexed-cell handler.
  * Implementations own presentation, filtering and accounting policy; Thunderbolt owns storage.

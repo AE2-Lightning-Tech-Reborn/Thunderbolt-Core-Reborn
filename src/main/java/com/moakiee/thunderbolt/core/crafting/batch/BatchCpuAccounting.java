@@ -38,8 +38,7 @@ public final class BatchCpuAccounting {
     }
 
     public static long maxCopiesForCpuOps(int cpuOps) {
-        if (cpuOps <= 0) return 0;
-        return (long) cpuOps * cpuOps;
+        return maxCopiesForCpuOps(cpuOps, Mode.QUADRATIC);
     }
 
     public static int cpuOpsForCopies(int copies) {

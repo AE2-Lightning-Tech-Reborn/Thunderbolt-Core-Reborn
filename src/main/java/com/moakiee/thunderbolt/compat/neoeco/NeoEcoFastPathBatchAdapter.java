@@ -2,6 +2,7 @@ package com.moakiee.thunderbolt.compat.neoeco;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -9,8 +10,6 @@ import org.jetbrains.annotations.Nullable;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.KeyCounter;
-
-
 import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderResolver;
 import com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider;
@@ -22,8 +21,7 @@ public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
 
     @Override
     public @Nullable IBatchCraftingProvider resolve(ICraftingProvider provider) {
-        // prepareAllocated only accepts native providers. supports() also includes bridges
-        // that require NeoECO's inventory-owned transaction and cannot use this contract.
+        // Allocated dispatch requires a native provider, not an inventory-owned bridge.
         return NeoEcoAllocatedApi.supports(provider) ? new AdaptedProvider(provider) : null;
     }
 
@@ -47,7 +45,7 @@ public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
         }
 
         @Override
-        public java.util.List<IPatternDetails> getAvailablePatterns() {
+        public List<IPatternDetails> getAvailablePatterns() {
             return delegate.getAvailablePatterns();
         }
 
@@ -58,8 +56,7 @@ public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
 
         @Override
         public long getBatchCapacity(IPatternDetails details) {
-            // NeoECO performs the authoritative recipe, cache, coolant and lane checks while
-            // preparing the concrete allocated batch below.
+            // Concrete allocation performs recipe, coolant and lane checks.
             if (delegate.isBusy()) return 0L;
             return ordinaryPatterns.contains(details) ? 1L : Long.MAX_VALUE;
         }
@@ -88,8 +85,7 @@ public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
                     return maxCraft - offered;
                 }
             } catch (NeoEcoAllocatedApi.IndeterminateBatchException uncertain) {
-                // Ownership may already have crossed the API boundary. Account the prepared part
-                // as dispatched so BatchExecutor cannot refund it and duplicate the materials.
+                // Ownership is uncertain: do not refund the prepared inputs and risk duplication.
                 appeng.core.AELog.error(
                         "[thunderbolt] NeoECO FastPath acceptance is indeterminate; retaining CPU output accounting for %d crafts.",
                         offered,
@@ -100,12 +96,9 @@ public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
         }
 
         private long pushSingleCopy(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft) {
-            // Do not extract and refund a full batch again for every subsequent single copy.
-            // Capacity 1 sends later visits through the CPU's ordinary bulk-extraction path.
+            // Later visits use ordinary extraction instead of repeatedly refunding a full batch.
             ordinaryPatterns.add(details);
-            // A declined batch must still get the ordinary attempt before BatchExecutor
-            // blocks this provider.
-            // pushPattern takes ownership; the batch template itself is borrowed read-only.
+            // Try ordinary dispatch before blocking; pushPattern needs an owned input copy.
             var inputs = new KeyCounter[oneCopy.length];
             for (int slot = 0; slot < oneCopy.length; slot++) {
                 inputs[slot] = new KeyCounter();

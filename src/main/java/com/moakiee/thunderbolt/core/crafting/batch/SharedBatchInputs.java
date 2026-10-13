@@ -1,7 +1,5 @@
 package com.moakiee.thunderbolt.core.crafting.batch;
 
-import com.moakiee.thunderbolt.core.crafting.batch.SharedBatchInputPattern;
-
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEKey;
 

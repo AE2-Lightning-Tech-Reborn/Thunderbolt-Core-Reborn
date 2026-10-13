@@ -26,18 +26,20 @@ final class UnorderedByproductSafety {
     static <K> CraftPlan<K> protect(CraftGraph<K> graph, CraftPlan<K> plan, K target, long amount) {
         if (!plan.supported() || !plan.usedReusableStock().isEmpty() || plan.firings().isEmpty()) return plan;
         boolean hasByproducts = false;
+        int work = 0;
         for (var entry : plan.firings().entrySet()) {
+            PlanningCancellation.check();
             if (entry.getValue() <= 0) continue;
             hasByproducts |= !entry.getKey().byproducts().isEmpty();
             for (var input : entry.getKey().inputs()) {
+                if ((++work & 255) == 0) PlanningCancellation.check();
                 // Tools, containers and private reusable pools have separate runtime contracts.
                 if (input.returned() || input.remainder() != null || input.reusableStockSource() != null)
                     return plan;
             }
         }
         if (!hasByproducts) return plan;
-        var nodes = new LinkedHashSet<Object>();
-        var edges = new HashMap<Object, LinkedHashSet<Object>>();
+        var topology = new PlannerTopology.MaterialGraph<K>();
         var patterns = new ArrayList<MaterialPattern<K>>();
         var reserve = new HashMap<K, BigInteger>();
         for (var entry : plan.firings().entrySet()) {
@@ -46,8 +48,14 @@ final class UnorderedByproductSafety {
             var pattern = entry.getKey();
             var inputs = new HashMap<K, BigInteger>();
             var outputs = new HashMap<K, BigInteger>();
-            for (var input : pattern.inputs()) add(inputs, input.key(), BigInteger.valueOf(input.amount()));
-            for (var output : pattern.byproducts()) add(outputs, output.key(), BigInteger.valueOf(output.amount()));
+            for (var input : pattern.inputs()) {
+                if ((++work & 255) == 0) PlanningCancellation.check();
+                add(inputs, input.key(), BigInteger.valueOf(input.amount()));
+            }
+            for (var output : pattern.byproducts()) {
+                if ((++work & 255) == 0) PlanningCancellation.check();
+                add(outputs, output.key(), BigInteger.valueOf(output.amount()));
+            }
             for (var input : inputs.entrySet()) {
                 BigInteger returned = input.getValue().min(outputs.getOrDefault(input.getKey(), BigInteger.ZERO));
                 if (returned.signum() > 0) {
@@ -58,22 +66,24 @@ final class UnorderedByproductSafety {
                     outputs.put(input.getKey(), BigInteger.ZERO);
                 }
             }
-            var node = new PatternNode(patterns.size());
-            nodes.add(node);
+            var node = topology.node();
             // A fully returned input still has to exist before this producer can fire. Keep
             // its enabling arc in the dependency graph even though its net consumption is zero.
             // Otherwise a later, seed-dependent producer could incorrectly fund that same seed.
-            for (var input : pattern.inputs())
-                edge(nodes, edges, new ItemNode<>(input.key()), node);
+            for (var input : pattern.inputs()) {
+                if ((++work & 255) == 0) PlanningCancellation.check();
+                topology.edge(topology.item(input.key()), node);
+            }
             // Keep primary and side output arcs separate when deciding which feedback credits to cut.
-            edge(nodes, edges, node, new ItemNode<>(pattern.output()));
-            for (var output : outputs.entrySet()) if (output.getValue().signum() > 0)
-                edge(nodes, edges, node, new ItemNode<>(output.getKey()));
+            topology.edge(node, topology.item(pattern.output()));
+            for (var output : outputs.entrySet()) {
+                if ((++work & 255) == 0) PlanningCancellation.check();
+                if (output.getValue().signum() > 0)
+                    topology.edge(node, topology.item(output.getKey()));
+            }
             patterns.add(new MaterialPattern<>(pattern, entry.getValue(), node, inputs, outputs));
         }
-        var adjacency = new HashMap<Object, List<Object>>();
-        for (Object node : nodes) adjacency.put(node, List.copyOf(edges.getOrDefault(node, new LinkedHashSet<>())));
-        var components = CraftPlannerV2.stronglyConnectedComponents(List.copyOf(nodes), adjacency);
+        var components = topology.isAcyclic() ? null : topology.components();
         var balance = new HashMap<K, BigInteger>();
         add(balance, target, BigInteger.valueOf(amount));
         reserve.forEach((key, value) -> add(balance, key, value));
@@ -82,11 +92,13 @@ final class UnorderedByproductSafety {
             BigInteger times = BigInteger.valueOf(material.times());
             material.inputs().forEach((key, value) -> add(balance, key, value.multiply(times)));
             var pattern = material.pattern();
-            if (!components.get(material.node()).equals(components.get(new ItemNode<>(pattern.output()))))
+            if (components == null
+                    || !components.get(material.node()).equals(components.get(topology.item(pattern.output()))))
                 add(balance, pattern.output(), BigInteger.valueOf(pattern.outputAmount()).multiply(times).negate());
             for (var output : material.outputs().entrySet()) {
                 if (output.getValue().signum() > 0
-                        && !components.get(material.node()).equals(components.get(new ItemNode<>(output.getKey()))))
+                        && (components == null
+                        || !components.get(material.node()).equals(components.get(topology.item(output.getKey())))))
                     add(balance, output.getKey(), output.getValue().multiply(times).negate());
             }
         }
@@ -99,7 +111,7 @@ final class UnorderedByproductSafety {
                 additional.put(entry.getKey(), deficit.min(BigInteger.valueOf(Sat.SAT)).longValueExact());
         }
         if (additional.isEmpty() || allOrdersFinishSmall(plan, target, amount)) return plan;
-        Map<K, Long> persistentReserve = conflictFreeFeedbackReserve(plan);
+        Map<K, Long> persistentReserve = conflictFreeFeedbackReserve(graph, plan);
         if (persistentReserve != null) {
             additional.clear();
             additional.putAll(persistentReserve);
@@ -122,7 +134,7 @@ final class UnorderedByproductSafety {
 
     /** With one internal consumer per cyclic place, enabled internal firings cannot disable each
      * other. Reserve every external sink before checking the existing compressed prefix witness. */
-    private static <K> Map<K, Long> conflictFreeFeedbackReserve(CraftPlan<K> plan) {
+    private static <K> Map<K, Long> conflictFreeFeedbackReserve(CraftGraph<K> graph, CraftPlan<K> plan) {
         var additional = new HashMap<K, Long>();
         var active = plan.firings().entrySet().stream().filter(e -> e.getValue() > 0)
                 .map(Map.Entry::getKey).toList();
@@ -158,9 +170,11 @@ final class UnorderedByproductSafety {
             if (demand.isEmpty()) continue;
             Map<K, Long> best = null;
             BigInteger bestCost = null;
+            BigInteger bestWithdrawal = null;
             for (var option : ConservativeFeedbackAnalysis.fixedCountSchedules(states, internal, plan.firings())) {
                 var extra = new HashMap<K, Long>();
                 BigInteger cost = BigInteger.ZERO;
+                BigInteger withdrawal = BigInteger.ZERO;
                 for (K key : states) {
                     BigInteger available = BigInteger.valueOf(plan.usedStock().getOrDefault(key, 0L))
                             .add(BigInteger.valueOf(plan.missing().getOrDefault(key, 0L)))
@@ -170,10 +184,21 @@ final class UnorderedByproductSafety {
                     BigInteger deficit = needed.subtract(available).max(BigInteger.ZERO);
                     if (deficit.signum() > 0) {
                         extra.put(key, deficit.min(BigInteger.valueOf(Sat.SAT)).longValueExact());
-                        cost = cost.add(deficit);
+                        // Choose a certificate against the entire inventory before committing its
+                        // reserve. A smaller withdrawal from an exhausted key can require supply
+                        // even though another complete certificate fits the unassigned stock.
+                        BigInteger free = BigInteger.valueOf(Math.max(0L,
+                                graph.stock(key) - plan.usedStock().getOrDefault(key, 0L)));
+                        cost = cost.add(deficit.subtract(free).max(BigInteger.ZERO));
+                        withdrawal = withdrawal.add(deficit);
                     }
                 }
-                if (best == null || cost.compareTo(bestCost) < 0) { best = extra; bestCost = cost; }
+                if (best == null || cost.compareTo(bestCost) < 0
+                        || cost.equals(bestCost) && withdrawal.compareTo(bestWithdrawal) < 0) {
+                    best = extra;
+                    bestCost = cost;
+                    bestWithdrawal = withdrawal;
+                }
             }
             if (best == null) return null;
             additional.putAll(best);
@@ -183,12 +208,6 @@ final class UnorderedByproductSafety {
 
     private static <K> void add(Map<K, BigInteger> map, K key, BigInteger amount) {
         if (amount.signum() != 0) map.merge(key, amount, BigInteger::add);
-    }
-
-    private static void edge(Set<Object> nodes, Map<Object, LinkedHashSet<Object>> edges,
-                             Object from, Object to) {
-        nodes.add(from); nodes.add(to);
-        edges.computeIfAbsent(from, ignored -> new LinkedHashSet<>()).add(to);
     }
 
     /** Optional exact proof for tiny plans; exceeding either fixed bound retains the DAG certificate. */
@@ -230,7 +249,8 @@ final class UnorderedByproductSafety {
                 if (!pattern.exactOutputAmount().equals(BigInteger.valueOf(pattern.outputAmount()))) return false;
                 remaining[r] = entry.getValue().intValue();
                 for (var input : pattern.inputs()) {
-                    if (input.returned() || input.remainder() != null || input.reusableStockSource() != null
+                    // Consumed remainders use the normalized ordinary output arcs below.
+                    if (input.returned() || input.reusableStockSource() != null
                             || !input.exactAmount().equals(BigInteger.valueOf(input.amount()))) return false;
                     int k = indices.get(input.key()); inputs[r][k] = Math.addExact(inputs[r][k], input.amount());
                 }
@@ -278,8 +298,6 @@ final class UnorderedByproductSafety {
         return true;
     }
 
-    private record ItemNode<K>(K key) {}
-    private record PatternNode(int index) {}
-    private record MaterialPattern<K>(CraftPattern<K> pattern, long times, PatternNode node,
+    private record MaterialPattern<K>(CraftPattern<K> pattern, long times, PlannerTopology.Vertex node,
                                       Map<K, BigInteger> inputs, Map<K, BigInteger> outputs) {}
 }

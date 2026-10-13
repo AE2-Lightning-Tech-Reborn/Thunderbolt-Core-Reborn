@@ -24,7 +24,6 @@ import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapter;
 import com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider;
 import com.moakiee.thunderbolt.api.crafting.batch.PreparedBatch;
-import com.moakiee.thunderbolt.core.crafting.batch.BatchCopyLimitPattern;
 import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
 
 public final class BatchExecutor {
@@ -35,9 +34,7 @@ public final class BatchExecutor {
     }
 
     /**
-     * Patterns matching this rule are skipped by the batch dispatcher (they are handled by another
-     * path). Decoupled from content: the host mod installs the rule during setup (e.g. to exclude
-     * its host-specific pattern type). Defaults to "skip nothing" so the lib works standalone.
+     * Host-defined exclusions from batch dispatch; no patterns are skipped by default.
      */
     private static volatile Predicate<IPatternDetails> skipRule = details -> false;
     private static volatile Predicate<IPatternDetails> batchEligibleRule = details -> true;
@@ -220,12 +217,7 @@ public final class BatchExecutor {
 
             var details = task.details();
             var executionDetails = CraftingPatternDelegates.forBatchExecution(details);
-            if (shouldSkip(executionDetails)) {
-                continue;
-            }
-            if (!isBatchEligible(executionDetails)) {
-                continue;
-            }
+            if (shouldSkip(executionDetails) || !isBatchEligible(executionDetails)) continue;
             boolean hasSharedInputs = SharedBatchInputs.hasSharedInputs(details);
 
             var providerPattern = CraftingPatternDelegates.forProviderLookup(details);
@@ -254,16 +246,7 @@ public final class BatchExecutor {
                     }
                     continue;
                 }
-                // Capacity has a three-state meaning:
-                //   0: unavailable/busy (the ordinary path independently observes isBusy());
-                //   1: ordinary single-copy provider, let the CPU's bulk-extract/single-push
-                //      path handle it without paying BatchExecutor's per-copy bookkeeping;
-                //  >1: a real batch candidate.
-                //
-                // In particular, providers with a disabled batch feature commonly report 1.
-                // Treating that as a one-copy batch would bypass pushBulkForTask and repeat batch
-                // extraction, template cloning, power simulation and output registration for
-                // every physical dispatch.
+                // 0 is unavailable; 1 uses ordinary bulk extraction; >1 is a batch candidate.
                 if (!usesBatchPath(capacity)) continue;
                 if (dispatchMode == null) {
                     dispatchMode = BatchDispatchMode.NORMAL;
@@ -289,7 +272,6 @@ public final class BatchExecutor {
                 hasUnboundedProvider |= provider.mode() == BatchDispatchMode.UNBOUNDED;
                 availableBatchCapacity = saturatingAdd(availableBatchCapacity, provider.capacity());
             }
-            if (availableBatchCapacity <= 0) continue;
 
             // Legacy-unbounded providers get first access to the current CPU copy budget. They do
             // not bypass copiesBudget. Normal providers retain the smaller-first balancing order.
@@ -312,7 +294,6 @@ public final class BatchExecutor {
             if (details instanceof BatchCopyLimitPattern limited) {
                 budget = Math.min(budget, Math.max(1L, limited.maxBatchCopies()));
             }
-            if (budget <= 0) continue;
 
             var dispatchProviders = eligible;
             ParallelBatchCpuHelper.BulkResult result;

@@ -14,6 +14,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.spongepowered.asm.mixin.MixinEnvironment;
@@ -28,6 +29,7 @@ import com.moakiee.thunderbolt.core.crafting.planner.CpSatPlanningEngine;
 import com.moakiee.thunderbolt.core.crafting.planner.ThunderboltV2PlanningEngine;
 import com.moakiee.thunderbolt.core.eject.EjectEndpointIndex;
 import com.moakiee.thunderbolt.core.eject.ThunderboltBlockEntities;
+import com.moakiee.thunderbolt.core.nbt.NbtCopyOptions;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedCellStorageRegistry;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedStorageCellHandler;
 
@@ -38,15 +40,14 @@ public final class ThunderboltCore {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ThunderboltCore() {
-        // No-arg @Mod constructor: the only style accepted by every 1.20.1 loader
-        // (Forge 47.2.x requires no-arg; NeoForge 47.1.x tries no-arg first;
-        // Forge 47.4.x falls back to it). Fetch the bus via the static context.
+        // Forge 1.20.1 requires the no-arg @Mod entry point.
         var modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         EjectCapabilityRegistry.installRuntime(EjectEndpointIndex.INSTANCE);
         ThunderboltBlockEntities.TYPES.register(modEventBus);
         ThunderboltMenus.TYPES.register(modEventBus);
         modEventBus.addListener(this::onCommonSetup);
         modEventBus.addListener(this::onLoadComplete);
+        modEventBus.addListener(this::onConfigEvent);
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.COMMON, ThunderboltCommonConfig.SPEC, "thunderbolt-common.toml");
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
@@ -57,6 +58,13 @@ public final class ThunderboltCore {
     private void onServerStarting(ServerStartingEvent event) {
         EjectEndpointIndex.INSTANCE.onServerStart(event.getServer());
         IndexedCellStorageRegistry.get(event.getServer());
+    }
+
+    private void onConfigEvent(ModConfigEvent event) {
+        if (event.getConfig().getSpec() == ThunderboltCommonConfig.SPEC) {
+            NbtCopyOptions.configure(!(event instanceof ModConfigEvent.Unloading)
+                    && ThunderboltCommonConfig.fastNbtCopies());
+        }
     }
 
     private void onServerStopped(ServerStoppedEvent event) {

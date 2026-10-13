@@ -18,44 +18,32 @@ public final class BatchProviderFilterIterable implements Iterable<ICraftingProv
 
     @Override
     public Iterator<ICraftingProvider> iterator() {
-        return new FilteringIterator(raw.iterator(), excluded);
-    }
+        var iterator = raw.iterator();
+        return new Iterator<>() {
+            private ICraftingProvider next;
+            private boolean ready;
 
-    private static final class FilteringIterator implements Iterator<ICraftingProvider> {
-        private final Iterator<ICraftingProvider> raw;
-        private final IdentityHashMap<ICraftingProvider, Boolean> excluded;
-        private ICraftingProvider next;
-        private boolean ready;
-
-        private FilteringIterator(Iterator<ICraftingProvider> raw,
-                                  IdentityHashMap<ICraftingProvider, Boolean> excluded) {
-            this.raw = raw;
-            this.excluded = excluded;
-        }
-
-        @Override
-        public boolean hasNext() {
-            while (!ready && raw.hasNext()) {
-                var candidate = raw.next();
-                // A successful partial batch is not evidence that a provider is full. Let an
-                // available provider receive ordinary work after the batch path stops.
-                if (!excluded.containsKey(candidate) || !candidate.isBusy()) {
-                    next = candidate;
-                    ready = true;
+            @Override
+            public boolean hasNext() {
+                while (!ready && iterator.hasNext()) {
+                    var candidate = iterator.next();
+                    // Partial batches do not exclude an available provider from ordinary work.
+                    if (!excluded.containsKey(candidate) || !candidate.isBusy()) {
+                        next = candidate;
+                        ready = true;
+                    }
                 }
+                return ready;
             }
-            return ready;
-        }
 
-        @Override
-        public ICraftingProvider next() {
-            if (!ready && !hasNext()) {
-                throw new NoSuchElementException();
+            @Override
+            public ICraftingProvider next() {
+                if (!hasNext()) throw new NoSuchElementException();
+                ready = false;
+                var result = next;
+                next = null;
+                return result;
             }
-            ready = false;
-            var result = next;
-            next = null;
-            return result;
-        }
+        };
     }
 }

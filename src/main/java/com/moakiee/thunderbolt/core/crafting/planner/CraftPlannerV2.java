@@ -20,62 +20,19 @@ import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
 
 /**
- * v2 autocrafting planner: an iterative linear backbone plus bounded integer flow over shared
- * material conflicts, with ordered execution validation for stateful recipes and bounded fallback.
+ * Quantity-independent planning over shared stock/byproduct pools, with a linear DAG pass,
+ * bounded integer conflict solving and local fallback. Cycle cuts only remove routes.
  *
- * <p>This is the evolution of the v1 planner (closed-form two-pass, removed). It keeps v1's strengths
- * — quantity-independent batching ({@code ceil} arithmetic), {@code returned} (container/catalyst)
- * inputs in closed form, saturating arithmetic — and adds:
- *
- * <ul>
- *   <li><b>In-engine cycle breaking ("去头尾")</b>: instead of declining when the recipe graph has a
- *       cycle, a DFS from the target drops back-edges, keeping the recipe direction toward the target
- *       and cutting the reverse. A compress/decompress pair (1 block ⇄ 9 ingots) is planned directly;
- *       the reverse side resolves from stock/missing. Cuts only remove options, so feasibility is never
- *       overstated (no false positives).</li>
- *   <li><b>Shared pool + byproducts</b>: stock and crafting byproducts live in one mutable pool;
- *       demand draws byproducts first, then stock, then crafts. Multi-output patterns are supported
- *       (a pattern's extra outputs feed sibling demands).</li>
- *   <li><b>Dynamic-capacity greedy</b>: among an item's recipes, the one with the highest current
- *       capacity ({@code stock + craftable}) is preferred. Concrete fuzzy expansions of one real
- *       recipe are kept in a source group and consume already-stocked variants before recursively
- *       crafting another accepted variant.</li>
- *   <li><b>Budgeted backtracking</b>: contended items (more than one recipe) are searched in
- *       capacity order with a {@code trail} for commit/rollback. No node drops candidates at a fixed
- *       route count: a hot node re-ranks every materially distinct route against the current pools and
- *       search continues while the plan-wide deterministic work budget remains. Failed speculative
- *       subtrees are memoized only for the exact node, amount, depth and rollback-restored availability
- *       state, preventing repeated proof work without reusing a stale inventory result.</li>
- *   <li><b>Global integer flow</b>: every bounded-width material conflict, including a single fork
- *       that competes with a later sibling, is solved as one integral balance model. Its firing vector
- *       is validated in deterministic producer/seed order; ordinary recipe choices never trigger
- *       a whole-plan replay. Unsupported stateful or over-budget components retain the bounded local
- *       fallback, while conversion SCCs may retry a small fixed set of cut orientations.</li>
- *   <li><b>Consumable-bound no-goods</b>: an unavoidable direct raw-consumable shortage is proven
- *       against the exact current pool and quantity, rather than tied to a whole recipe identity.
- *       Thus materially different routes that both require eight unavailable C are pruned alike,
- *       while a route requiring one available C remains eligible.</li>
- * </ul>
- *
- * <p><b>Soundness (no false positives):</b> the pool is never overdrawn (a draw is capped by what is
- * actually present), so a plan reports {@link CraftPlan#feasible() feasible} only when every demand was
- * met from stock or from a craft whose own inputs were met. Shortfalls always surface in
- * {@link CraftPlan#missing()}.
+ * <p>Speculative search rolls back both pools and learned state. Exact flow candidates require
+ * execution/startup validation; aggregate balance alone does not prove a cyclic plan feasible.
+ * Budget exhaustion retains a conservative missing-material witness, not a global optimum.
  */
 public final class CraftPlannerV2<K> {
 
-    /**
-     * Default hot-node threshold. It does not truncate search: after this many visits the node merely
-     * switches from its immutable capacity order to current-pool re-ranking. Normal graphs are resolved
-     * by the linear backbone or recover via a handful of backtracks, never approaching this threshold.
-     */
+    /** Hot-node visits trigger current-pool re-ranking, not search truncation. */
     public static final int DEFAULT_VISIT_CAP = 256;
 
-    /**
-     * Whole-graph preprocessing guard. Optional exact/local stages have their own smaller budgets,
-     * but even linear normalization becomes disruptive on a deliberately enormous reachable graph.
-     * Exceeding this bound reports the requested key as missing (Policy A), never feasible.
-     */
+    /** Preprocessing limit; exceeding it reports the target missing, never feasible. */
     private static final int MAX_REACHABLE_PLANNING_WORK = Math.min(
             Integer.MAX_VALUE - 1,
             Math.max(4_096,
@@ -119,16 +76,9 @@ public final class CraftPlannerV2<K> {
     private static final long MAX_MISSING_REFINEMENT_NANOS = 100_000_000L;
 
     /**
-     * Stack-overflow safety net for the bounded fallback search. {@link #obtain} recurses once per
-     * crafting edge along a single root-to-leaf path ({@code obtain → fire → obtain}), so its stack depth
-     * equals the depth of the (acyclic) recipe DAG. The clean linear backbone ({@link #linearPass}) is
-     * fully iterative and resolves every feasible, non-contended request without recursing — the
-     * recursion is entered only when that backbone reports infeasible or hits contention. To keep a
-     * pathologically deep recipe chain from overflowing the calculating thread's stack, descent past this
-     * many levels degrades only that branch to "missing" (Policy A), allowing its parent to try another
-     * route. 256 levels (~512 stack frames with the paired {@code fire}) is far
-     * deeper than any real Minecraft recipe chain yet safe on a default thread stack; overridable via
-     * {@code -Dthunderbolt.maxCraftDepth} for unusual {@code -Xss} setups.
+     * Bounds recursive {@code obtain → fire → obtain} fallback depth; deeper branches report missing
+     * so parents can try other routes. The linear pass is iterative. Override with
+     * {@code -Dthunderbolt.maxCraftDepth} when using a different {@code -Xss}.
      */
     public static final int MAX_OBTAIN_DEPTH =
             Math.max(16, Integer.getInteger("thunderbolt.maxCraftDepth", 256));
@@ -162,7 +112,9 @@ public final class CraftPlannerV2<K> {
         long consumptionOptimizationNanos;
         private int missingRefinementProbes;
         private List<MaterialDagOrders.Candidate<K>> materialDagOrders;
+        private boolean materialDagOrdersComplete;
         private List<MaterialDagOrders.Candidate<K>> materialDagOrderTemplates;
+        private boolean materialDagOrderTemplatesComplete;
         private Map<K, Long> materialDagAdditionalStock;
         private final Map<Integer, PreparedGraph<K>> preparedMaterialDagOrders = new HashMap<>();
         private int preferredMaterialDagOrder;
@@ -170,10 +122,24 @@ public final class CraftPlannerV2<K> {
         private long materialDagOrderNanos;
         long conservativeSearchNanos;
         private long missingRefinementNanos;
+        private MaterialDagOrders.CertificateFamily<K> materialDagCertificates;
+        private int materialDagCertificatePrefix;
         private int reachableWorkEstimate;
         private Map<K, Integer> inputDistances;
 
         public PlanningSession() {
+        }
+
+        /** Share work limits, but rebuild stock-dependent analysis and disable nested optional stages. */
+        PlanningSession<K> newProbe() {
+            var probe = new PlanningSession<K>();
+            probe.refineMissing = false;
+            probe.optimizeFeasible = false;
+            probe.lowWidthWorkBudget = lowWidthWorkBudget;
+            probe.searchWorkBudget = searchWorkBudget;
+            probe.resolutionWorkBudget = resolutionWorkBudget;
+            probe.fallbackWorkBudget = fallbackWorkBudget;
+            return probe;
         }
 
         int reachableWork(CraftGraph<K> candidateGraph, K candidateTarget) {
@@ -275,9 +241,9 @@ public final class CraftPlannerV2<K> {
     private Map<K, Long> flowLeafDiagnosis;
     private List<CraftPlan<K>> cutPolicyPlans = List.of();
     private PlanningSession<K> planningSession;
-    /** Active producer-before-byproduct-row order for linear and aggregate sweeps in this run. */
     /** Primary and credited side-output arcs are acyclic in a bounded material-order candidate. */
     private boolean materialDagProjection;
+    private boolean independentRawStockCutoff;
     private List<K> activeReplayOrder = List.of();
     private Map<K, Integer> activeReplayRanks;
     private final Set<K> cutOutputs = new LinkedHashSet<>();
@@ -338,6 +304,10 @@ public final class CraftPlannerV2<K> {
     private Map<K, List<CraftPattern<K>>> capacityOrderByOutput = Map.of();
     /** Per-firing unavoidable ordinary raw inputs, aggregated by consumable rather than pattern slot. */
     private Map<CraftPattern<K>, Map<K, Long>> directRawConsumablesByPattern = Map.of();
+    private boolean directRawConsumablesIndexed;
+    /** Per-search lazy entries; the complete index is unnecessary for linear plans. */
+    private final IdentityHashMap<CraftPattern<K>, Map<K, Long>> directRawConsumableCache =
+            new IdentityHashMap<>();
     /**
      * Learned lower bounds keyed by the consumable and exact rollback-restored availability state.
      * The value is the smallest quantity already proven unavailable in that state, so the proof is
@@ -586,7 +556,7 @@ public final class CraftPlannerV2<K> {
                 graph, firstPlanner.run(target, amount, firstOrientation), target, amount);
         preparedByOrientation.put(new Orientation<>(firstOrientation, false), firstPlanner.preparedGraph);
         if (first.feasible()) {
-            return finish(first, diagnostics, budget, started, graph, target, amount);
+            return finishProtected(first, diagnostics, budget, started);
         }
         CraftPlan<K> baseline = firstPlanner.replenishmentPlan(target, amount);
         session.replenishment = firstPlanner.replenishment;
@@ -595,8 +565,9 @@ public final class CraftPlannerV2<K> {
         if (baseline != null && baseline.feasible()) {
             return finish(baseline, diagnostics, budget, started, graph, target, amount);
         }
-        CraftPlan<K> dagOrdered = firstPlanner.tryMaterialDagOrders(target, amount);
-        if (dagOrdered != null) return finish(dagOrdered, diagnostics, budget, started, graph, target, amount);
+        CraftPlan<K> dagOrdered = firstPlanner.tryMaterialDagCertificates(target, amount);
+        if (dagOrdered == null) dagOrdered = firstPlanner.tryMaterialDagOrders(target, amount);
+        if (dagOrdered != null) return finishProtected(dagOrdered, diagnostics, budget, started);
         CraftPlan<K> ranked = null;
         for (boolean stockSeeded : new boolean[] {true, false}) {
             if (firstPlanner.cutOutputs.isEmpty()) break;
@@ -605,7 +576,7 @@ public final class CraftPlannerV2<K> {
                     graph, target, amount, visitCap, budget, lowWidthWorkBudget, diagnostics,
                     objectiveDistances, preparedByOrientation, stockSeeded);
             if (candidate.feasible()) {
-                return finish(candidate, diagnostics, budget, started, graph, target, amount);
+                return finishProtected(candidate, diagnostics, budget, started);
             }
             if (!candidate.budgetExhausted()) {
                 ranked = ranked == null ? candidate : betterPlan(ranked, candidate, objectiveDistances);
@@ -670,7 +641,7 @@ public final class CraftPlannerV2<K> {
                         graph, planner.run(target, amount, orientation), target, amount);
                 preparedByOrientation.putIfAbsent(new Orientation<>(orientation, explicitCuts), planner.preparedGraph);
                 if (candidate.feasible()) {
-                    return finish(candidate, diagnostics, budget, started, graph, target, amount);
+                    return finishProtected(candidate, diagnostics, budget, started);
                 }
                 if (candidate.budgetExhausted()) {
                     return finish(
@@ -719,73 +690,162 @@ public final class CraftPlannerV2<K> {
         return plan;
     }
 
+    /** Rebuildable primary DAG certificates, independent of optional route-search time. */
+    private CraftPlan<K> tryMaterialDagCertificates(K target, long amount) {
+        PlanningSession<K> session = planningSession;
+        if (diagnostics.reachableWorkEstimate > MaterialDagOrders.MAX_GRAPH_WORK) return null;
+        if (session.materialDagCertificates == null) {
+            var accepted = new ArrayList<CraftPlan<K>>(1);
+            var family = MaterialDagOrders.compileCertificateFamily(graph, target, lowWidthWorkBudget, order -> {
+                CraftPlan<K> plan = tryMaterialDagCertificate(order, target, amount);
+                if (plan == null) return false;
+                accepted.add(plan);
+                return true;
+            }, preparedGraph.order);
+            // A deadline/work-limited prefix is never a complete proof of infeasibility.
+            if (family.portfolio().complete()) session.materialDagCertificates = family;
+            if (!accepted.isEmpty()) return accepted.get(0);
+        } else {
+            for (var order : session.materialDagCertificates.portfolio().candidates()) {
+                CraftPlan<K> plan = tryMaterialDagCertificate(order, target, amount);
+                if (plan != null) return plan;
+            }
+        }
+        return null;
+    }
+
+    private CraftPlan<K> tryMaterialDagCertificate(MaterialDagOrders.Candidate<K> order,
+            K target, long amount) {
+        PlanningCancellation.check();
+        if (!order.maySupply(amount)) return null;
+        if (!lowWidthWorkBudget.tryConsume(16L * reachableWorkEstimate(order.graph(), target))) return null;
+        var plan = order.tryFixedPlan(target, amount, lowWidthWorkBudget);
+        if (plan == null) return null;
+        plan = UnorderedByproductSafety.protect(graph, order.restore(plan), target, amount);
+        PlanningCancellation.check();
+        return plan.feasible() ? plan : null;
+    }
+
     /** Small material-order portfolio; every result is a complete ordinary DAG replay, never a splice. */
     private CraftPlan<K> tryMaterialDagOrders(K target, long amount) {
         PlanningSession<K> session = planningSession;
         if (diagnostics.reachableWorkEstimate > MaterialDagOrders.MAX_GRAPH_WORK
                 || session.materialDagOrderAttempts >= 120) return null;
-        long available = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
         // Replenishment probes already run inside the caller's bounded optional deadline.
         // Quartering that slice again gives a 100 ms refinement only ~25 ms to certify a
         // smaller supplement, turning a portfolio timeout into a heuristic false negative.
         // Keep the portfolio's own cumulative cap and all shared work budgets unchanged.
-        boolean replenishmentProbe = !session.refineMissing;
-        long remaining = Math.min(100_000_000L - session.materialDagOrderNanos,
-                replenishmentProbe ? available : available / 4L);
-        if (remaining <= 0) return null;
+        var scope = MaterialDagOrders.limitWork(session.materialDagOrderNanos, !session.refineMissing);
+        if (scope == null) return null;
         long started = System.nanoTime();
-        try (var ignored = PlanningCancellation.limitOptionalWork(remaining)) {
+        boolean reusedPortfolio = session.materialDagOrders != null || session.materialDagOrderTemplates != null;
+        int triedFullPrefix = 0;
+        try (var ignored = scope) {
             if (session.materialDagOrders == null) {
-                session.materialDagOrders = session.materialDagOrderTemplates == null
-                        ? MaterialDagOrders.compile(graph, target, lowWidthWorkBudget)
-                        : MaterialDagOrders.withAdditionalStock(session.materialDagOrderTemplates,
-                                session.materialDagAdditionalStock, target, lowWidthWorkBudget);
-            }
-            int count = session.materialDagOrders.size();
-            for (int offset = 0; offset < count && session.materialDagOrderAttempts < 120; offset++) {
-                int index = (session.preferredMaterialDagOrder + offset) % count;
-                var order = session.materialDagOrders.get(index);
-                if (!order.maySupply(amount)) continue;
-                CraftGraph<K> projected = order.graph();
-                int charge = reachableWorkEstimate(projected, target);
-                // This finite portfolio builds exact DAG models. Charge its bounded compilation
-                // and replay work to the same shared budget as those models, even when recursive
-                // route search has stopped. Minimal-search replenishment uses this identical path.
-                if (!lowWidthWorkBudget.tryConsume(16L * charge)) return null;
-                session.materialDagOrderAttempts++;
-                PreparedGraph<K> prepared = session.preparedMaterialDagOrders.get(index);
-                CraftPlannerV2<K> planner = prepared == null
-                        ? new CraftPlannerV2<>(projected, visitCap, searchBudget, lowWidthWorkBudget, diagnostics)
-                        : new CraftPlannerV2<>(prepared, visitCap, searchBudget, lowWidthWorkBudget, diagnostics);
-                planner.objectiveDistances = objectiveDistances;
-                planner.materialDagProjection = true;
-                CraftPlan<K> candidate = planner.run(target, amount, List.of());
-                session.preparedMaterialDagOrders.putIfAbsent(index, planner.preparedGraph);
-                if (candidate.feasible()) {
-                    candidate = UnorderedByproductSafety.protect(graph, order.restore(candidate), target, amount);
-                    if (candidate.feasible()) {
-                        session.preferredMaterialDagOrder = index;
-                        return candidate;
+                var primary = session.materialDagOrderTemplates == null ? session.materialDagCertificates : null;
+                session.materialDagCertificatePrefix = primary != null && primary.reusableFor(graph, target)
+                        ? primary.portfolio().candidates().size() : 0;
+                class PortfolioProbe {
+                    int index;
+                    int fullIndex;
+                    CraftPlan<K> accepted;
+                    boolean test(MaterialDagOrders.Candidate<K> order) {
+                        int current = index++;
+                        accepted = tryMaterialDagOrder(order, current, target, amount, session, true,
+                                current < session.materialDagCertificatePrefix);
+                        return accepted != null || session.materialDagOrderAttempts >= 120;
+                    }
+                    boolean finishFamily(List<MaterialDagOrders.Candidate<K>> orders) {
+                        for (; fullIndex < orders.size() && session.materialDagOrderAttempts < 120; fullIndex++) {
+                            accepted = tryMaterialDagOrder(orders.get(fullIndex), fullIndex, target, amount, session, false,
+                                    fullIndex < session.materialDagCertificatePrefix);
+                            if (accepted != null) return true;
+                        }
+                        return session.materialDagOrderAttempts >= 120;
                     }
                 }
+                var probe = new PortfolioProbe();
+                var portfolio = session.materialDagOrderTemplates == null
+                        ? MaterialDagOrders.compilePortfolio(graph, target, lowWidthWorkBudget, probe::test,
+                                preparedGraph.order, probe::finishFamily, primary)
+                        : MaterialDagOrders.refreshPortfolio(session.materialDagOrderTemplates,
+                                session.materialDagAdditionalStock, target, lowWidthWorkBudget, probe::test,
+                                session.preferredMaterialDagOrder);
+                session.materialDagOrders = portfolio.candidates();
+                triedFullPrefix = probe.fullIndex;
+                session.materialDagOrdersComplete = portfolio.complete()
+                        && (session.materialDagOrderTemplates == null || session.materialDagOrderTemplatesComplete);
+                if (probe.accepted != null) return probe.accepted;
+                session.preferredMaterialDagOrder = 0;
+            }
+            // Complete the cheap policy scan before any full planning probe can consume the
+            // remaining deadline. Cached supports and harder allocations retain the full path.
+            int count = session.materialDagOrders.size();
+            for (int offset = triedFullPrefix; offset < count && session.materialDagOrderAttempts < 120; offset++) {
+                int index = (session.preferredMaterialDagOrder + offset) % count;
+                var candidate = tryMaterialDagOrder(session.materialDagOrders.get(index),
+                        index, target, amount, session, false, index < session.materialDagCertificatePrefix);
+                if (candidate != null) return candidate;
             }
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             // Only this optional portfolio stopped; retain the ordinary cut/search fallback.
         } finally {
             session.materialDagOrderNanos += Math.max(0L, System.nanoTime() - started);
         }
-        if (session.materialDagOrderTemplates != null) {
+        if (reusedPortfolio && !session.materialDagOrdersComplete) {
             // The original portfolio may have stopped before reaching a support enabled by
             // replenishment. Reused supports are a fast path, never an infeasibility proof.
             // Try stock-local compilation only if the same cumulative time/attempt/work
             // bounds permit it; do not carry index-based preparations across portfolios.
+            // A fresh compilation rejected by the shared work budget cannot make progress
+            // by recursively repeating it. Only a reused prefix receives this one retry.
             session.materialDagOrderTemplates = null;
             session.materialDagOrders = null;
+            session.materialDagOrdersComplete = false;
             session.preparedMaterialDagOrders.clear();
+            session.materialDagCertificatePrefix = 0;
             session.preferredMaterialDagOrder = 0;
             return tryMaterialDagOrders(target, amount);
         }
         return null;
+    }
+
+    private CraftPlan<K> tryMaterialDagOrder(MaterialDagOrders.Candidate<K> order, int index,
+            K target, long amount, PlanningSession<K> session, boolean fixedOnly, boolean fixedAlreadyTried) {
+        PlanningCancellation.check();
+        if (!order.maySupply(amount) || session.materialDagOrderAttempts >= 120) return null;
+        if (fixedOnly && fixedAlreadyTried) return null;
+        CraftGraph<K> projected = order.graph();
+        int charge = reachableWorkEstimate(projected, target);
+        // Compilation and replay retain the same shared work/attempt/cumulative time limits.
+        if (!lowWidthWorkBudget.tryConsume(16L * charge)) return null;
+        if (!fixedAlreadyTried) {
+            var fixed = order.tryFixedPlan(target, amount, lowWidthWorkBudget);
+            if (fixed != null) {
+                fixed = UnorderedByproductSafety.protect(graph, order.restore(fixed), target, amount);
+                PlanningCancellation.check();
+                if (fixed.feasible()) {
+                    session.preferredMaterialDagOrder = index;
+                    return fixed;
+                }
+            }
+        }
+        if (fixedOnly) return null;
+        session.materialDagOrderAttempts++;
+        PreparedGraph<K> prepared = session.preparedMaterialDagOrders.get(index);
+        CraftPlannerV2<K> planner = prepared == null
+                ? new CraftPlannerV2<>(projected, visitCap, searchBudget, lowWidthWorkBudget, diagnostics)
+                : new CraftPlannerV2<>(prepared, visitCap, searchBudget, lowWidthWorkBudget, diagnostics);
+        planner.objectiveDistances = objectiveDistances;
+        planner.materialDagProjection = true;
+        CraftPlan<K> candidate = planner.run(target, amount, List.of());
+        session.preparedMaterialDagOrders.putIfAbsent(index, planner.preparedGraph);
+        if (!candidate.feasible()) return null;
+        candidate = UnorderedByproductSafety.protect(graph, order.restore(candidate), target, amount);
+        PlanningCancellation.check();
+        if (!candidate.feasible()) return null;
+        session.preferredMaterialDagOrder = index;
+        return candidate;
     }
 
     private CraftPlan<K> replenishmentPlan(K target, long amount) {
@@ -944,20 +1004,12 @@ public final class CraftPlannerV2<K> {
         if (!searchBudget.tryConsume(charge)) return null;
         session.missingRefinementProbes++;
         diagnostics.missingRefinementProbes++;
-        var probeSession = new PlanningSession<K>();
-        probeSession.refineMissing = false;
-        probeSession.optimizeFeasible = false;
-        probeSession.lowWidthWorkBudget = session.lowWidthWorkBudget;
-        probeSession.searchWorkBudget = session.searchWorkBudget;
-        probeSession.resolutionWorkBudget = session.resolutionWorkBudget;
-        probeSession.fallbackWorkBudget = session.fallbackWorkBudget;
+        var probeSession = session.newProbe();
         probeSession.materialDagOrderTemplates = session.materialDagOrders;
+        probeSession.materialDagOrderTemplatesComplete = session.materialDagOrdersComplete;
+        probeSession.preferredMaterialDagOrder = session.preferredMaterialDagOrder;
         probeSession.materialDagAdditionalStock = supplied;
-        // The stock-sensitive capacities are recompiled. Reusing PreparedGraph here would
-        // silently reuse the old stock limits. Reuse completed material-order topology only,
-        // refreshing its supply bounds and projecting stock separately for every probe.
-        // Require the supplement to survive the smallest ordinary search/visit allowance,
-        // including later quantity probes whose shared alternative budget is already spent.
+        // Reuse completed topology, not stock bounds; certify even with minimal search/visit limits.
         return planDetailed(graph.withAdditionalStock(supplied), target, amount, 1,
                 1, charge, probeSession).plan();
     }
@@ -1130,6 +1182,13 @@ public final class CraftPlannerV2<K> {
             SearchBudget budget,
             long started, CraftGraph<K> graph, K target, long amount) {
         plan = UnorderedByproductSafety.protect(graph, plan, target, amount);
+        return finishProtected(plan, diagnostics, budget, started);
+    }
+
+    /** Only completed protect() results may use this path; keep the outer exit checkpoint. */
+    private static <K> PlanningResult<K> finishProtected(CraftPlan<K> plan,
+            DiagnosticsCollector diagnostics, SearchBudget budget, long started) {
+        PlanningCancellation.check();
         return new PlanningResult<>(plan, diagnostics.finish(started, budget));
     }
 
@@ -1326,7 +1385,6 @@ public final class CraftPlannerV2<K> {
             objectiveDistances = shortestInputDistances(graph, target);
         }
 
-        List<K> order;
         Set<K> items;
         if (preparedGraph == null) {
             long compileStarted = System.nanoTime();
@@ -1349,7 +1407,7 @@ public final class CraftPlannerV2<K> {
                 // needs the catalyst is executable.
                 requiresSeedOrderedPlanning = true;
             }
-            order = new ArrayList<>(postOrder.size());
+            List<K> order = new ArrayList<>(postOrder.size());
             for (int i = postOrder.size() - 1; i >= 0; i--) {
                 order.add(postOrder.get(i));
             }
@@ -1382,14 +1440,12 @@ public final class CraftPlannerV2<K> {
             indexSeedOrderedDependencyCone(order);
             this.capacity = capacityFromOrder(order, items.size());
             indexCapacityOrder();
-            indexDirectRawConsumables();
             ByproductSchedule<K> compiledByproductSchedule = lowWidthByproductSchedule(order);
             preparedGraph = snapshotPreparedGraph(order, items, compiledByproductSchedule);
-            diagnostics.recordCompilation(preparedGraph, System.nanoTime() - compileStarted);
+            diagnostics.recordPreparedGraph(preparedGraph, false, System.nanoTime() - compileStarted);
         } else {
-            order = preparedGraph.order;
             items = preparedGraph.items;
-            diagnostics.recordCompilationReuse();
+            diagnostics.recordPreparedGraph(preparedGraph, true, 0L);
         }
 
         // Build the same conservative producer-before-consumer schedule for every normalized DAG.
@@ -1453,6 +1509,7 @@ public final class CraftPlannerV2<K> {
         var leafSupplyPatterns = java.util.Collections.newSetFromMap(new IdentityHashMap<CraftPattern<K>, Boolean>());
         boolean componentProvedInfeasible = false;
         if (lowWidth != null) {
+            var witnesses = new IntegerWitnessCache();
             for (LowWidthComponent<K> component : lowWidth.components()) {
                 LowWidthSolve<K> exact;
                 // A recognized unary network has a direct integral solver and a leaf diagnosis.
@@ -1473,7 +1530,8 @@ public final class CraftPlannerV2<K> {
                     exact = new LowWidthSolve<>(unit.status(), unit.firings(), Set.of(), 0);
                 } else {
                     if (!component.exactSolverEligible() || capacityProvedInfeasible) continue;
-                    exact = solveLowWidthComponent(component, List.of());
+                    exact = solveLowWidthComponent(component, List.of(),
+                            isPureByproductMaterialComponent(component) ? witnesses : null);
                 }
                 diagnostics.recordLowWidthAttempt();
                 diagnostics.recordLowWidthResult(exact.status(), exact.integerNodes());
@@ -1691,6 +1749,8 @@ public final class CraftPlannerV2<K> {
             fallback = snapshotRecursivePlan();
         }
         diagnostics.addSearchNanos(System.nanoTime() - searchStarted);
+        if (!fallback.feasible() && independentRawStockCutoff)
+            fallback = markBudgetExhausted(fallback);
         if (!fallback.feasible() && independentDiagnosis != null) {
             boolean cutoff = fallback.budgetExhausted();
             // Both are complete diagnoses. Prefer the globally balanced proposal unless the
@@ -1725,6 +1785,12 @@ public final class CraftPlannerV2<K> {
      * A leaf shortage is retained only as a diagnosis while the normal search still tries to solve. */
     private CraftPlan<K> tryIndependentRawStock(ByproductSchedule<K> schedule, K target, long amount,
             Map<CraftPattern<K>, Long> baseline, int coupledComponents) {
+        // Partitioning is linear graph preparation, not integer search. Keep it under the
+        // inherited deadline; cold preparation must not spend the component solver's slice.
+        var relaxed = analyzeLowWidthComponents(schedule, target, amount, baseline, true);
+        if (relaxed == null || relaxed.components().size() <= coupledComponents
+                || relaxed.components().stream().anyMatch(c -> !c.exactSolverEligible()
+                        || !isPureByproductMaterialComponent(c))) return null;
         long available = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
         // Replenishment probes already run inside the shared 100 ms optional deadline. Dividing
         // that remaining slice again can reject the same cheap component proof during the recheck.
@@ -1736,24 +1802,28 @@ public final class CraftPlannerV2<K> {
                 Math.max(250_000_000L, diagnostics.reachableWorkEstimate * 25_000L));
         long limit = Math.min(portfolioNanos, replenishmentProbe ? available : available / 4);
         if (limit <= 0) return null;
+        Map<CraftPattern<K>, Long> counts;
         try (var ignored = PlanningCancellation.limitOptionalWork(limit)) {
-            var relaxed = analyzeLowWidthComponents(schedule, target, amount, baseline, true);
-            if (relaxed == null || relaxed.components().size() <= coupledComponents
-                    || relaxed.components().stream().anyMatch(c -> !c.exactSolverEligible()
-                            || !isPureByproductMaterialComponent(c))) return null;
-            var counts = new IdentityHashMap<CraftPattern<K>, Long>(baseline);
+            counts = new IdentityHashMap<CraftPattern<K>, Long>(baseline);
+            var witnesses = new IntegerWitnessCache();
             for (var component : relaxed.components()) {
                 diagnostics.recordLowWidthAttempt();
-                var result = solveLowWidthComponent(component, List.of());
+                var result = solveLowWidthComponent(component, List.of(), witnesses);
                 diagnostics.recordLowWidthResult(result.status(), result.integerNodes());
                 if (result.firings() == null) return null;
                 for (var pattern : component.patterns()) counts.remove(pattern);
                 counts.putAll(result.firings());
             }
-            return MaterialDagReplay.tryLeafMissingPlan(graph, counts, target, amount);
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            independentRawStockCutoff = true;
+            diagnostics.recordLowWidthResult(BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED, 0);
             return null;
         }
+        // Candidate search is complete. Perform its one linear whole-inventory certificate
+        // under the caller's restored deadline, rather than discarding a completed vector when
+        // the local search slice expires during verification. Parent optional/router deadlines
+        // and cancellation remain active; no unverified vector can leave this method.
+        return MaterialDagReplay.tryLeafMissingPlan(graph, counts, target, amount);
     }
 
     private void initializeRecursiveExecution() {
@@ -1898,6 +1968,8 @@ public final class CraftPlannerV2<K> {
         capacityScoreByPattern = (IdentityHashMap<CraftPattern<K>, Long>) prepared.capacityScoreByPattern.clone();
         capacityOrderByOutput = prepared.capacityOrderByOutput;
         directRawConsumablesByPattern = prepared.directRawConsumablesByPattern;
+        directRawConsumableCache.clear();
+        directRawConsumableCache.putAll(prepared.directRawConsumablesByPattern);
     }
 
     /**
@@ -2511,8 +2583,6 @@ public final class CraftPlannerV2<K> {
         }
         return false;
     }
-
-    // ---- graph construction ------------------------------------------------
 
     private static final int GRAY = 1; // on the current DFS path (an ancestor)
     private static final int BLACK = 2; // fully expanded
@@ -3137,6 +3207,7 @@ public final class CraftPlannerV2<K> {
     }
 
     private void indexDirectRawConsumables() {
+        if (directRawConsumablesIndexed) return;
         Map<CraftPattern<K>, Map<K, Long>> rawInputs = new IdentityHashMap<>();
         for (List<CraftPattern<K>> patterns : patternsByOutput.values()) {
             PlanningCancellation.check();
@@ -3173,6 +3244,9 @@ public final class CraftPlannerV2<K> {
             }
         }
         directRawConsumablesByPattern = java.util.Collections.unmodifiableMap(rawInputs);
+        directRawConsumableCache.clear();
+        directRawConsumableCache.putAll(rawInputs);
+        directRawConsumablesIndexed = true;
     }
 
     private List<CraftPattern<K>> capacityOrder(K key) {
@@ -3208,8 +3282,6 @@ public final class CraftPlannerV2<K> {
         }
         return foundSeed && availableOutput >= requiredOutput;
     }
-
-    // ---- linear backbone: one topological aggregation pass, each item resolved once -------------
 
     /**
      * Resolves the whole request in a single topological pass (target → leaves). Each item is visited
@@ -3968,6 +4040,12 @@ public final class CraftPlannerV2<K> {
     private LowWidthSolve<K> solveLowWidthComponent(
             LowWidthComponent<K> model,
             List<Set<CraftPattern<K>>> noGoodSupports) {
+        return solveLowWidthComponent(model, noGoodSupports, null);
+    }
+
+    private LowWidthSolve<K> solveLowWidthComponent(
+            LowWidthComponent<K> model,
+            List<Set<CraftPattern<K>>> noGoodSupports, IntegerWitnessCache witnesses) {
         int patternVariableCount = model.patterns().size();
         IdentityHashMap<CraftPattern<K>, Integer> patternVariable = new IdentityHashMap<>();
         Set<CraftPattern<K>> decisionPatterns =
@@ -4298,12 +4376,12 @@ public final class CraftPlannerV2<K> {
         int nodeBudget = Math.min(
                 MAX_LOW_WIDTH_INTEGER_NODES,
                 Math.max(16, 2 * variableCount + 4 * model.separatorWidth()));
-        BoundedIntegerLinearSolver.Result result = BoundedIntegerLinearSolver.solve(
+        BoundedIntegerLinearSolver.Result result = witnesses == null ? BoundedIntegerLinearSolver.solve(
                 variableCount,
                 constraints,
                 Sat.SAT,
                 nodeBudget,
-                lowWidthWorkBudget);
+                lowWidthWorkBudget) : witnesses.solve(variableCount, constraints, Sat.SAT, nodeBudget, lowWidthWorkBudget);
         if (!result.solved()) {
             return new LowWidthSolve<>(
                     result.status(), null, Set.of(), result.visitedNodes());
@@ -4943,8 +5021,6 @@ public final class CraftPlannerV2<K> {
         return v == null ? 0L : v;
     }
 
-    // ---- core: obtain d units of x, consuming from pool/stock, crafting the rest ----------------
-
     /**
      * @param commitFailure whether an exhausted route must commit its greedy partial plan and concrete
      *                      missing leaves. Speculative parents pass {@code false}: they only need a
@@ -5252,8 +5328,12 @@ public final class CraftPlannerV2<K> {
      */
     private boolean hasProvenDirectConsumableShortfall(CraftPattern<K> pattern, long demand) {
         long times = Sat.ceilDiv(demand, pattern.outputAmount());
-        for (Map.Entry<K, Long> entry
-                : directRawConsumablesByPattern.getOrDefault(pattern, Map.of()).entrySet()) {
+        Map<K, Long> directRaw = directRawConsumableCache.get(pattern);
+        if (directRaw == null && !directRawConsumableCache.containsKey(pattern)) {
+            directRaw = directRawConsumables(pattern);
+            directRawConsumableCache.put(pattern, directRaw);
+        }
+        for (Map.Entry<K, Long> entry : directRaw.entrySet()) {
             long required = Sat.mul(entry.getValue(), times);
             ConsumableProofState<K> state =
                     new ConsumableProofState<>(entry.getKey(), availabilityState);
@@ -5269,6 +5349,30 @@ public final class CraftPlannerV2<K> {
             }
         }
         return false;
+    }
+
+    private Map<K, Long> directRawConsumables(CraftPattern<K> pattern) {
+        K firstKey = null;
+        long firstAmount = 0L;
+        Map<K, Long> perFiring = null;
+        for (CraftInput<K> input : pattern.inputs()) {
+            if (input.returned() || input.reusableStockSource() != null
+                    || !patternsByOutput.getOrDefault(input.key(), List.of()).isEmpty()) continue;
+            if (perFiring != null) {
+                perFiring.merge(input.key(), input.amount(), Sat::add);
+            } else if (firstKey == null) {
+                firstKey = input.key();
+                firstAmount = input.amount();
+            } else if (firstKey.equals(input.key())) {
+                firstAmount = Sat.add(firstAmount, input.amount());
+            } else {
+                perFiring = new HashMap<>();
+                perFiring.put(firstKey, firstAmount);
+                perFiring.put(input.key(), input.amount());
+            }
+        }
+        if (perFiring != null) return Map.copyOf(perFiring);
+        return firstKey == null ? Map.of() : Map.of(firstKey, firstAmount);
     }
 
     private long currentCapacityVia(
@@ -5415,16 +5519,9 @@ public final class CraftPlannerV2<K> {
     }
 
     /**
-     * Resolves the cone under an uncontended node by one topological demand-aggregation sweep.
-     * Demand for every item is summed across all of its consumers before the item is expanded, so a
-     * node shared by many parents is fired exactly once per sweep instead of once per root-to-node
-     * path (which is exponential in chain depth). Contended or otherwise non-aggregable descendants
-     * are handed their <em>total</em> aggregated demand through an ordinary {@link #obtain} boundary
-     * call, confining the branching search to the contended subgraph. All mutations go through the
-     * trail-logged helpers, so a speculative caller can roll the whole sweep back like any branch.
-     *
-     * <p>{@code x}'s own gross demand, seed reservations and pool draw were already performed by the
-     * calling {@link #obtain}.
+     * Aggregates demand before expanding each uncontended descendant once; other descendants pass
+     * their total demand to {@link #obtain}. Trail-logged mutations keep the sweep rollback-safe.
+     * The caller already recorded {@code x}'s gross demand, seed reservations and pool draw.
      */
     private long obtainAggregate(K x, long d, boolean commitFailure) {
         Map<K, Long> need = new HashMap<>();
@@ -6220,8 +6317,6 @@ public final class CraftPlannerV2<K> {
         return got;
     }
 
-    // ---- trail-logged mutation helpers -----------------------------------------------------------
-
     private static <T> long get(Map<T, Long> m, T k) {
         Long v = m.get(k);
         return v == null ? 0L : v;
@@ -6548,7 +6643,7 @@ public final class CraftPlannerV2<K> {
             this.reachableWorkEstimate = reachableWorkEstimate;
             this.configuredSearchBudget = Math.max(1, configuredSearchBudget);
             this.configuredResolutionBudget = fallbackWorkBudget(reachableWorkEstimate);
-            this.configuredFallbackBudget = fallbackWorkBudget(reachableWorkEstimate);
+            this.configuredFallbackBudget = configuredResolutionBudget;
             this.sharedResolutionWorkBudget = session.resolutionWorkBudget;
             this.sharedFallbackWorkBudget = session.fallbackWorkBudget;
         }
@@ -6557,19 +6652,20 @@ public final class CraftPlannerV2<K> {
             return configuredFallbackBudget;
         }
 
-        private void recordCompilation(PreparedGraph<?> prepared, long nanos) {
-            compiledOrientations = increment(compiledOrientations);
+        private void recordPreparedGraph(PreparedGraph<?> prepared, boolean reused, long nanos) {
+            if (reused) {
+                reusedCompilations = increment(reusedCompilations);
+            } else {
+                compiledOrientations = increment(compiledOrientations);
+                graphCompileNanos = addNanos(graphCompileNanos, nanos);
+            }
+            // Cache hits retain graph facts; contendedOutputs also gates optional optimization.
             reachableItems = Math.max(reachableItems, prepared.items.size());
             reachablePatterns = Math.max(reachablePatterns, prepared.patternCount);
             inputEdges = Math.max(inputEdges, prepared.inputCount);
             contendedOutputs = Math.max(contendedOutputs, prepared.contendedOutputCount);
             cycleCuts = Math.max(cycleCuts, prepared.cutOutputs.size());
             seedOrdered |= prepared.seedOrdered;
-            graphCompileNanos = addNanos(graphCompileNanos, nanos);
-        }
-
-        private void recordCompilationReuse() {
-            reusedCompilations = increment(reusedCompilations);
         }
 
         private void recordPlanRun() {
@@ -6611,9 +6707,7 @@ public final class CraftPlannerV2<K> {
                 case SOLVED -> lowWidthSolved = increment(lowWidthSolved);
                 case INFEASIBLE -> lowWidthInfeasible = increment(lowWidthInfeasible);
                 case BUDGET_EXHAUSTED -> lowWidthCutoffs = increment(lowWidthCutoffs);
-                default -> {
-                    // Unsupported/overflow/internal results simply retain the ordinary fallback.
-                }
+                default -> {} // Other statuses retain ordinary fallback.
             }
         }
 

@@ -530,6 +530,7 @@ final class UpstreamBatchOptimizer {
                     }
                     model.inputs.put(pattern, consumed);
                 }
+                OrdinaryBatchOptimizer.sortRoutes(routes);
             }
             for (K key : discovered) {
                 if (!budget.charge(1)) return null;

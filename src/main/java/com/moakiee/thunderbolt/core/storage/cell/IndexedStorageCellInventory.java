@@ -18,7 +18,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.server.ServerLifecycleHooks;
 
-import com.moakiee.thunderbolt.core.storage.cell.ByteTracker;
 
 /** Shared AE2 {@link StorageCell} wrapper for every {@link IIndexedStorageCellItem}. */
 public final class IndexedStorageCellInventory implements StorageCell, com.moakiee.thunderbolt.api.storage.BigMEStorage {

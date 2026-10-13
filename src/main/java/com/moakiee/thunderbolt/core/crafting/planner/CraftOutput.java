@@ -4,15 +4,11 @@ import java.util.Objects;
 import java.math.BigInteger;
 
 /**
- * An additional (non-primary) output of a {@link CraftPattern}: a byproduct.
- *
- * <p>The primary output is modeled directly on {@link CraftPattern} ({@code output}/{@code outputAmount}).
- * Every other item a pattern yields per firing is a byproduct. The v2 planner feeds byproducts into a
- * shared pool so they can opportunistically satisfy other demands (sibling needs) before anything is
- * crafted from scratch — mirroring AE2's optimistic reuse, but in closed form.
+ * Non-primary output of a {@link CraftPattern}, credited to the shared byproduct pool.
  *
  * @param key    the byproduct item
  * @param amount how many are produced per single firing of the pattern
+ * @param exactAmount exact per-firing quantity behind the bounded {@code long} view
  * @param <K>    item key type
  */
 public record CraftOutput<K>(K key, long amount, BigInteger exactAmount) {

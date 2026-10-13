@@ -159,7 +159,8 @@ class FeasibleConsumptionOptimizerTest {
         assertEquals(2, executions(initial));
         var result = CraftPlannerV2.planDetailed(graph, "T", 1, CraftPlannerV2.DEFAULT_VISIT_CAP, 256);
         assertTrue(result.plan().feasible(), result::toString);
-        assertEquals(1, executions(result.plan()));
+        assertEquals(1, executions(result.plan()), () -> result.diagnostics()
+                + " trace=" + FeasibleConsumptionOptimizer.LAST_TRACE.get());
         assertEquals(initial.usedStock(), result.plan().usedStock());
         assertTrue(result.diagnostics().consumptionOptimizationProbes() > 0);
         assertBalance(graph, result.plan(), "T", 1);
@@ -429,18 +430,7 @@ class FeasibleConsumptionOptimizerTest {
 
     private static boolean targetOnlyBound(CraftGraph<String> graph, String target, long amount,
             CraftPlan<String> initial) throws ReflectiveOperationException {
-        var search = Class.forName(FeasibleConsumptionOptimizer.class.getName() + "$Search");
-        var constructor = search.getDeclaredConstructor(CraftGraph.class, Object.class, long.class,
-                CraftPlan.class, int.class, java.util.function.Function.class,
-                FeasibleConsumptionOptimizer.IndexCache.class, java.util.function.IntPredicate.class);
-        constructor.setAccessible(true);
-        var state = constructor.newInstance(graph, target, amount, initial, 32,
-                (java.util.function.Function<CraftGraph<String>, CraftPlan<String>>) candidate -> null,
-                new FeasibleConsumptionOptimizer.IndexCache<String>(),
-                (java.util.function.IntPredicate) work -> true);
-        var proof = search.getDeclaredMethod("targetOnlyBound");
-        proof.setAccessible(true);
-        return (boolean) proof.invoke(state);
+        return FeasibleConsumptionOptimizer.targetOnlyBound(graph, target, amount, initial);
     }
 
     @Test
@@ -620,6 +610,40 @@ class FeasibleConsumptionOptimizerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void oracleInheritsTheRemainingStallDeadlineAndRestoresItsCallerScope() throws Exception {
+        var field = PlanningCancellation.class.getDeclaredField("OPTIONAL_DEADLINE");
+        field.setAccessible(true);
+        var deadline = (ThreadLocal<Long>) field.get(null);
+        var graph = batchGraph(1);
+        var initial = baseline(graph, "T", 1);
+        var calls = new AtomicInteger();
+        try (var parent = PlanningCancellation.limitOptionalWork(5_000_000_000L)) {
+            long parentDeadline = deadline.get();
+            try (var budget = new FeasibleOptimizationBudget(FeasibleConsumptionOptimizer.MAX_NANOS)) {
+                long stageDeadline = deadline.get();
+                var result = FeasibleConsumptionOptimizer.optimize(graph, "T", 1, initial, 32, candidate -> {
+                    calls.incrementAndGet();
+                    long probeDeadline = deadline.get();
+                    assertTrue(probeDeadline < parentDeadline);
+                    assertTrue(probeDeadline <= stageDeadline,
+                            "a planning probe must inherit the installed absolute stage cutoff");
+                    // Expire the installed probe directly; no wall-clock delay or relaxed budget.
+                    deadline.set(System.nanoTime() - 1L);
+                    PlanningCancellation.check();
+                    throw new AssertionError("the expired probe continued");
+                }, new FeasibleConsumptionOptimizer.IndexCache<>(), units -> true, budget);
+                assertEquals(1, calls.get());
+                assertSame(initial, result.plan());
+                assertEquals(stageDeadline, deadline.get());
+            }
+            assertEquals(parentDeadline, deadline.get());
+            assertDoesNotThrow(PlanningCancellation::check);
+        }
+        assertDoesNotThrow(PlanningCancellation::check);
+    }
+
+    @Test
     void fixedChainsAndMissingPlansDoNotEnterFeasibleOptimization() {
         var chain = CraftGraph.<String>builder().stock("raw", 100)
                 .pattern("A", 1, List.of(CraftInput.of("raw", 1)))
@@ -766,10 +790,13 @@ class FeasibleConsumptionOptimizerTest {
             int sampleId = regression[0];
             var sample = auditSample(sampleId);
             assertEquals(regression[1], sample.amount(), "generator amount sample=" + sampleId);
-            var result = CraftPlannerV2.plan(sample.graph(), 6, sample.amount());
+            var detailed = CraftPlannerV2.planDetailed(sample.graph(), 6, sample.amount());
+            var result = detailed.plan();
             assertTrue(result.feasible(), "feasibility sample=" + sampleId);
             assertTrue(executions(result) <= regression[2],
-                    () -> "executions sample=" + sampleId + ": " + executions(result));
+                    () -> "executions sample=" + sampleId + ": " + executions(result)
+                            + " diagnostics=" + detailed.diagnostics()
+                            + " trace=" + FeasibleConsumptionOptimizer.LAST_TRACE.get());
             assertBalance(sample.graph(), result, 6, sample.amount());
         }
     }
@@ -790,6 +817,36 @@ class FeasibleConsumptionOptimizerTest {
     }
 
     private record AuditSample(CraftGraph<Integer> graph, long amount) {}
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void smallBatchExecutionProofSurvivesExpiryOfTheFirstWholePlannerProbe() throws Exception {
+        var field = PlanningCancellation.class.getDeclaredField("OPTIONAL_DEADLINE");
+        field.setAccessible(true);
+        var deadline = (ThreadLocal<Long>) field.get(null);
+        for (int[] regression : new int[][] {{876, 8}, {2261, 11}}) {
+            var sample = auditSample(regression[0]);
+            var original = baseline(sample.graph(), 6, sample.amount());
+            var calls = new AtomicInteger();
+            FeasibleConsumptionOptimizer.Result<Integer> result;
+            try (var budget = new FeasibleOptimizationBudget(FeasibleConsumptionOptimizer.MAX_NANOS)) {
+                result = FeasibleConsumptionOptimizer.optimize(sample.graph(), 6, sample.amount(), original, 32,
+                    candidate -> {
+                        calls.incrementAndGet();
+                        deadline.set(System.nanoTime() - 1L);
+                        PlanningCancellation.check();
+                        throw new AssertionError("expired planner probe continued");
+                    }, new FeasibleConsumptionOptimizer.IndexCache<>(), units -> true, budget, true);
+            }
+            assertTrue(executions(result.plan()) <= regression[1],
+                    () -> "sample=" + regression[0] + " executions=" + executions(result.plan()));
+            assertTrue(result.improvements() > 0);
+            assertTrue(result.probes() <= 32);
+            assertTrue(calls.get() <= 1);
+            assertNull(deadline.get());
+            assertBalance(sample.graph(), result.plan(), 6, sample.amount());
+        }
+    }
 
     private static AuditSample auditSample(int sampleId) {
         var random = new Random(725318L + sampleId);
@@ -821,8 +878,8 @@ class FeasibleConsumptionOptimizerTest {
                 .pattern("T", scale, List.of(CraftInput.of("raw", 2 * scale))).build();
     }
 
-    private static CraftPlan<String> baseline(CraftGraph<String> graph, String target, long amount) {
-        var session = new CraftPlannerV2.PlanningSession<String>();
+    private static <K> CraftPlan<K> baseline(CraftGraph<K> graph, K target, long amount) {
+        var session = new CraftPlannerV2.PlanningSession<K>();
         session.optimizeFeasible = false;
         return CraftPlannerV2.planDetailed(graph, target, amount, session).plan();
     }

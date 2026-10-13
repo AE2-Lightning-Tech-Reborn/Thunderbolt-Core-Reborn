@@ -28,8 +28,12 @@ tasks.register('printProjectVersion') {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
-// Source files contain UTF-8 comments (incl. Chinese); on CJK Windows javac otherwise
-// defaults to GBK and reports unmappable-character errors while compiling.
+sourceSets.create('gameTest') {
+    compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    runtimeClasspath += output + sourceSets.main.runtimeClasspath
+}
+
+// Keep source encoding independent of the Windows locale.
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
@@ -58,12 +62,12 @@ minecraft {
             mods { "${mod_id}" { source sourceSets.main } }
         }
         gameTestServer {
-            workingDirectory project.file('run')
+            workingDirectory project.file('build/nbt-game-test')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
             property 'thunderbolt.mixinAudit', 'true'
-            property 'forge.enabledGameTestNamespaces', mod_id
-            mods { "${mod_id}" { source sourceSets.main } }
+            property 'forge.enabledGameTestNamespaces', 'thunderbolt_nbt'
+            mods { "${mod_id}" { source sourceSets.main; source sourceSets.gameTest } }
         }
         data {
             workingDirectory project.file('run')
@@ -84,8 +88,7 @@ mixin {
     add sourceSets.main, "${mod_id}.refmap.json"
 }
 
-// MixinGradle writes these beside javac's temporary incremental state. Track the
-// generated files explicitly so compileJava cache restores include the refmap and mappings.
+// Include Mixin processor outputs in compileJava cache restores.
 tasks.named('compileJava', JavaCompile) {
     outputs.file(layout.buildDirectory.file('tmp/compileJava/compileJava-refmap.json'))
             .withPropertyName('mixinProcessorRefmap')
@@ -132,11 +135,7 @@ tasks.register('verifyReleaseJar') {
 
 tasks.named('build') { dependsOn 'verifyReleaseJar' }
 
-// Forge discovers Mixin configs from the mod manifest. Registering the config through
-// MixinGradle's `config` method also adds an early `--mixin.config` launch argument; on
-// ForgeGradle 6 userdev that argument is processed before exploded mod resources join the
-// transforming classloader, so runClient/runServer cannot read the otherwise valid JSON.
-// Keep the release-jar manifest explicit, while the source manifest covers exploded runs.
+// Manifest loading avoids ForgeGradle 6 userdev's premature --mixin.config argument.
 jar {
     archiveClassifier = 'slim'
 
@@ -146,8 +145,7 @@ jar {
     from('LICENSE') {
         into 'META-INF'
     }
-    // The refmap is present once through processed resources (development runs) and
-    // once through MixinGradle's release-jar wiring. They are the same generated file.
+    // Processed resources and MixinGradle can add the same refmap twice.
     filesMatching("${mod_id}.refmap.json") {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
@@ -296,8 +294,7 @@ tasks.register("referenceCapabilityTest", Test) {
     }
 }
 
-// Run this witness in a separate test JVM: the normal suite can hide optional-stage
-// class-loading costs by warming the same planner/certificate classes in earlier tests.
+// A fresh JVM exposes planner/certificate class-loading costs hidden by the normal suite.
 tasks.register('cpSatColdRefinementTest', Test) {
     group = 'verification'
     description = 'Checks bounded CP-SAT recovery before planner/certificate classes are warmed.'
@@ -322,9 +319,29 @@ tasks.register('materialDagColdReplayTest', Test) {
     filter {
         includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MixedRouteQuantityRegressionTest.freshRecipeIdentitiesKeepTrillionScaleFeasibility'
     }
-    testLogging { events 'failed' }
+    testLogging { events 'passed', 'failed' }
 }
 tasks.named('check') { dependsOn 'materialDagColdReplayTest' }
+
+// Fork per class to keep material-order and replay witnesses cold and independent.
+tasks.register('materialDagColdReplenishmentTest', Test) {
+    group = 'verification'
+    description = 'Checks fresh-session replenishment certificates and material DAG recovery in cold JVMs.'
+    dependsOn 'testClasses'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    forkEvery = 1
+    filter {
+        includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest.freshRecipeIdentitiesKeepBothCycleSupplementsReproducible'
+        includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MaterialDagReplayTest.recoversMaterialDag8089'
+    }
+    testLogging { events 'passed', 'failed' }
+}
+
+tasks.named('compileGameTestJava') { dependsOn 'classes' }
+tasks.matching { it.name == 'runGameTestServer' }.configureEach { dependsOn 'gameTestClasses' }
+tasks.named('check') { dependsOn 'materialDagColdReplenishmentTest' }
 
 tasks.register('prepareOptionalModShapeArtifacts', Sync) {
     from configurations.optionalModShapeArtifacts

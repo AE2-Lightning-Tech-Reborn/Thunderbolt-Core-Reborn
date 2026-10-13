@@ -12,14 +12,8 @@ import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
 /**
- * Shared reflection helpers for {@link org.spongepowered.asm.mixin.Pseudo} mixins
- * that target optional dependencies (AdvancedAE, NeoECOAEExtension, ...).
- * <p>
- * Lookup helpers return {@code null} on failure instead of throwing, so static
- * field initializers in mixin classes never crash class loading. Invocation
- * helpers swallow {@link ReflectiveOperationException} and log a warning at
- * most once per {@code action} key, mirroring the existing {@code thunderbolt$*}
- * pattern that lived inside {@code AdvCraftingCpuLogicMixin}.
+ * Optional-Mixin reflection helpers. Failed lookups return null; invocation failures log once
+ * per action and leave callers to use their fallback.
  */
 public final class MixinReflectionSupport {
     private static final Logger LOGGER = LogUtils.getLogger();

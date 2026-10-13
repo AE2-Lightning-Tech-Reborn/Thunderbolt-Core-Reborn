@@ -13,17 +13,62 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /** Bounded, quantity-independent ordinary material DAGs, including side-output dependencies. */
 final class MaterialDagOrders {
     private static final int MAX_ORDERED_ITEMS = 6;
     static final int MAX_GRAPH_WORK = 128;
 
+    record Portfolio<K>(List<Candidate<K>> candidates, boolean complete) {}
+
+    /** Capacities belong to this exact immutable stock snapshot and target. */
+    record CertificateFamily<K>(CraftGraph<K> source, K target, Portfolio<K> portfolio) {
+        boolean reusableFor(CraftGraph<K> graph, K requestedTarget) {
+            return source == graph && java.util.Objects.equals(target, requestedTarget) && portfolio.complete();
+        }
+    }
+
     record Candidate<K>(CraftGraph<K> graph, long optimisticCapacity,
                         Map<CraftPattern<K>, CraftPattern<K>> originals,
                         List<CraftPattern<K>> supplyOrder) {
         boolean maySupply(long amount) {
             return Sat.isSaturated(optimisticCapacity) || optimisticCapacity >= amount;
+        }
+
+        /** Cheap monotone policy for ordinary projections; failure still leaves the full planner. */
+        CraftPlan<K> tryFixedPlan(K target, long amount) {
+            return tryFixedPlan(target, amount, BoundedIntegerLinearSolver.WorkBudget.unlimited());
+        }
+
+        CraftPlan<K> tryFixedPlan(K target, long amount, BoundedIntegerLinearSolver.WorkBudget budget) {
+            var selected = new LinkedHashMap<K, List<CraftPattern<K>>>();
+            var adjacency = new HashMap<K, LinkedHashSet<K>>();
+            var keys = new LinkedHashSet<K>();
+            keys.add(target);
+            for (var pattern : supplyOrder) {
+                PlanningCancellation.check();
+                if (!pattern.byproducts().isEmpty()) return null;
+                keys.add(pattern.output());
+                selected.computeIfAbsent(pattern.output(), ignored -> new ArrayList<>()).add(pattern);
+                for (var input : pattern.inputs()) {
+                    if (input.returned() || input.remainder() != null || input.reusableStockSource() != null) return null;
+                    keys.add(input.key());
+                    adjacency.computeIfAbsent(pattern.output(), ignored -> new LinkedHashSet<>()).add(input.key());
+                }
+            }
+            var stable = List.copyOf(keys);
+            var order = PlannerTopology.stableTopologicalOrder(stable, PlannerTopology.freezeAdjacency(stable, adjacency));
+            if (order.size() != keys.size()) return null;
+            var policy = ConservativeReplenishment.compileFixed(graph, order, selected);
+            var plan = policy == null ? null : policy.planBatchAware(target, amount, budget);
+            if (plan != null && !plan.feasible()) plan = policy.plan(target, amount, Map.of());
+            // Replay certifies the counts, but its minimal net draw need not equal the stable
+            // policy's stock-first withdrawal. Preserve that policy's existing stock contract;
+            // the general optimizer may normalize surplus after route search has completed.
+            return plan != null && plan.feasible()
+                    && MaterialDagReplay.tryPlan(graph, plan.firings(), target, amount) != null ? plan : null;
         }
 
         CraftPlan<K> restore(CraftPlan<K> plan) {
@@ -39,44 +84,154 @@ final class MaterialDagOrders {
 
     private MaterialDagOrders() {}
 
+    /**
+     * The small primary DAG family is a core certificate path, bounded structurally and by
+     * shared cell work. Its existence must not depend on an optional optimization deadline.
+     * It still inherits the caller's deadline/cancellation (including a replenishment probe's
+     * optional parent). Real side outputs are restored and protected by the caller.
+     */
+    static <K> Portfolio<K> compileCertificates(CraftGraph<K> graph, K target,
+            BoundedIntegerLinearSolver.WorkBudget budget, Predicate<Candidate<K>> stop,
+            List<K> demandOrder) {
+        var result = new ArrayList<Candidate<K>>();
+        try {
+            compile(graph, target, 3, budget, candidate -> {
+                result.add(candidate);
+                if (stop.test(candidate)) throw new SupportAccepted();
+            }, demandOrder);
+        } catch (SupportAccepted | WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
+            return new Portfolio<>(List.copyOf(result), false);
+        }
+        return new Portfolio<>(List.copyOf(result), true);
+    }
+
+    static <K> CertificateFamily<K> compileCertificateFamily(CraftGraph<K> graph, K target,
+            BoundedIntegerLinearSolver.WorkBudget budget, Predicate<Candidate<K>> stop,
+            List<K> demandOrder) {
+        return new CertificateFamily<>(graph, target, compileCertificates(graph, target, budget, stop, demandOrder));
+    }
+
+    /** Replenishment certificates share their parent's remaining optional deadline. */
+    static PlanningCancellation.Scope limitWork(long spentNanos, boolean replenishmentProbe) {
+        long available = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
+        long remaining = Math.min(100_000_000L - spentNanos,
+                replenishmentProbe ? available : available / 4L);
+        return remaining <= 0L ? null : PlanningCancellation.limitOptionalWork(remaining);
+    }
+
     static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target) {
         return compile(graph, target, BoundedIntegerLinearSolver.WorkBudget.unlimited());
     }
 
     static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target,
             BoundedIntegerLinearSolver.WorkBudget budget) {
+        return compile(graph, target, budget, candidate -> false);
+    }
+
+    /** Try completed supports before spending the remaining deadline on more permutations. */
+    static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target,
+            BoundedIntegerLinearSolver.WorkBudget budget, Predicate<Candidate<K>> stop) {
+        return compile(graph, target, budget, stop, List.of());
+    }
+
+    static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target,
+            BoundedIntegerLinearSolver.WorkBudget budget, Predicate<Candidate<K>> stop, List<K> demandOrder) {
+        return compilePortfolio(graph, target, budget, stop, demandOrder).candidates();
+    }
+
+    static <K> Portfolio<K> compilePortfolio(CraftGraph<K> graph, K target,
+            BoundedIntegerLinearSolver.WorkBudget budget, Predicate<Candidate<K>> stop, List<K> demandOrder) {
+        return compilePortfolio(graph, target, budget, stop, demandOrder, candidates -> false);
+    }
+
+    static <K> Portfolio<K> compilePortfolio(CraftGraph<K> graph, K target,
+            BoundedIntegerLinearSolver.WorkBudget budget, Predicate<Candidate<K>> stop, List<K> demandOrder,
+            Predicate<List<Candidate<K>>> familyComplete) {
+        return compilePortfolio(graph, target, budget, stop, demandOrder, familyComplete, null);
+    }
+
+    static <K> Portfolio<K> compilePortfolio(CraftGraph<K> graph, K target,
+            BoundedIntegerLinearSolver.WorkBudget budget, Predicate<Candidate<K>> stop, List<K> demandOrder,
+            Predicate<List<Candidate<K>>> familyComplete, CertificateFamily<K> primary) {
         var result = new ArrayList<Candidate<K>>();
+        Consumer<Candidate<K>> completed = candidate -> {
+            result.add(candidate);
+            if (stop.test(candidate)) throw new SupportAccepted();
+        };
         try {
-            result.addAll(compile(graph, target, 0, budget));
-            result.addAll(compile(graph, target, 2, budget));
-            result.addAll(compile(graph, target, 1, budget));
-        } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
+            // Certify a primary-only projection before spending the slice on feedback-rich
+            // supports. Real recipe identities and their side outputs are restored and protected
+            // by the caller; an ignored surplus never supplies material in this projection.
+            boolean reusePrimary = primary != null && primary.reusableFor(graph, target);
+            if (reusePrimary) {
+                for (var candidate : primary.portfolio().candidates()) {
+                    // Compilation has already paid for projection and capacity construction.
+                    // Traversal and every new plan/probe still debit their shared work budgets.
+                    charge(budget, 1L);
+                    completed.accept(candidate);
+                }
+            } else {
+                compile(graph, target, 1, budget, completed, demandOrder);
+            }
+            if (familyComplete.test(List.copyOf(result))) throw new SupportAccepted();
+            // Without side outputs, the primary and full families are the same supports.
+            // Feedback-rich supports remain a separate family and must still be compiled.
+            if (!reusePrimary || graph.hasByproducts()) {
+                compile(graph, target, 0, budget, completed, demandOrder);
+                if (familyComplete.test(List.copyOf(result))) throw new SupportAccepted();
+                compile(graph, target, 2, budget, completed, demandOrder);
+                if (familyComplete.test(List.copyOf(result))) throw new SupportAccepted();
+            }
+        } catch (SupportAccepted | WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
             // Already completed supports remain valid even if the next family expires.
+            return new Portfolio<>(List.copyOf(result), false);
         }
-        return List.copyOf(result);
+        return new Portfolio<>(List.copyOf(result), true);
     }
 
     /** Reuse only immutable arc admission/order; capacities and graph stock are probe-local. */
     static <K> List<Candidate<K>> withAdditionalStock(List<Candidate<K>> templates,
             Map<K, Long> supplied, K target, BoundedIntegerLinearSolver.WorkBudget budget) {
+        return withAdditionalStock(templates, supplied, target, budget, candidate -> false);
+    }
+
+    static <K> List<Candidate<K>> withAdditionalStock(List<Candidate<K>> templates,
+            Map<K, Long> supplied, K target, BoundedIntegerLinearSolver.WorkBudget budget,
+            Predicate<Candidate<K>> stop) {
+        return withAdditionalStock(templates, supplied, target, budget, stop, 0);
+    }
+
+    static <K> List<Candidate<K>> withAdditionalStock(List<Candidate<K>> templates,
+            Map<K, Long> supplied, K target, BoundedIntegerLinearSolver.WorkBudget budget,
+            Predicate<Candidate<K>> stop, int preferred) {
+        return refreshPortfolio(templates, supplied, target, budget, stop, preferred).candidates();
+    }
+
+    static <K> Portfolio<K> refreshPortfolio(List<Candidate<K>> templates,
+            Map<K, Long> supplied, K target, BoundedIntegerLinearSolver.WorkBudget budget,
+            Predicate<Candidate<K>> stop, int preferred) {
         var result = new ArrayList<Candidate<K>>(templates.size());
         try {
-            for (var template : templates) {
+            for (int offset = 0; offset < templates.size(); offset++) {
+                var template = templates.get(Math.floorMod(preferred + offset, templates.size()));
                 charge(budget, 1);
                 for (var pattern : template.supplyOrder())
                     charge(budget, 4L * (1L + pattern.inputs().size() + pattern.byproducts().size()));
                 var graph = template.graph().withAdditionalStock(supplied);
-                result.add(new Candidate<>(graph, optimisticCapacity(graph, target, template.supplyOrder()),
-                        template.originals(), template.supplyOrder()));
+                var candidate = new Candidate<>(graph, optimisticCapacity(graph, target, template.supplyOrder()),
+                        template.originals(), template.supplyOrder());
+                result.add(candidate);
+                if (stop.test(candidate)) return new Portfolio<>(List.copyOf(result), false);
             }
         } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
             // Only fully refreshed supports can be used after shared work exhaustion.
+            return new Portfolio<>(List.copyOf(result), false);
         }
-        return List.copyOf(result);
+        return new Portfolio<>(List.copyOf(result), true);
     }
 
-    private static <K> List<Candidate<K>> compile(CraftGraph<K> graph, K target, int sidePolicy,
-            BoundedIntegerLinearSolver.WorkBudget budget) {
+    private static <K> void compile(CraftGraph<K> graph, K target, int sidePolicy,
+            BoundedIntegerLinearSolver.WorkBudget budget, Consumer<Candidate<K>> completed, List<K> demandOrder) {
         boolean ignoreSideOutputs = sidePolicy != 0;
         boolean retainedSelfReturn = false;
         var originals = new IdentityHashMap<CraftPattern<K>, CraftPattern<K>>();
@@ -90,10 +245,10 @@ final class MaterialDagOrders {
         while (!queue.isEmpty()) {
             charge(budget, 1);
             K key = queue.removeFirst();
-            if (++work > MAX_GRAPH_WORK) return List.of();
+            if (++work > MAX_GRAPH_WORK) return;
             for (var pattern : graph.patternsFor(key)) {
                 charge(budget, 1L+pattern.inputs().size()+pattern.byproducts().size());
-                if (++work > MAX_GRAPH_WORK) return List.of();
+                if (++work > MAX_GRAPH_WORK) return;
                 // Explicit tag conversions have no side outputs and retain their original
                 // identity and zero execution cost through every projection family.
                 CraftPattern<K> projected = pattern;
@@ -107,23 +262,31 @@ final class MaterialDagOrders {
                 produced.add(pattern.output());
                 for (var input : pattern.inputs()) {
                     if (++work > MAX_GRAPH_WORK || input.returned() || input.remainder() != null
-                            || input.reusableStockSource() != null || input.key().equals(target)) return List.of();
+                            || input.reusableStockSource() != null || input.key().equals(target)) return;
                     if (reachable.add(input.key())) queue.addLast(input.key());
                 }
                 for (var output : pattern.byproducts()) {
-                    if (++work > MAX_GRAPH_WORK) return List.of();
+                    if (++work > MAX_GRAPH_WORK) return;
                     if (!ignoreSideOutputs) produced.add(output.key());
                 }
             }
         }
-        if (ignoreSideOutputs && originals.isEmpty() || sidePolicy == 2 && !retainedSelfReturn)
-            return List.of();
+        if (ignoreSideOutputs && originals.isEmpty() && sidePolicy != 3 || sidePolicy == 2 && !retainedSelfReturn)
+            return;
         var ordered = new ArrayList<K>();
         for (K key : reachable) {
             if (!key.equals(target) && produced.contains(key)) ordered.add(key);
         }
-        if (ordered.size() > MAX_ORDERED_ITEMS) return List.of();
-        var result = new ArrayList<Candidate<K>>();
+        if (ordered.size() > MAX_ORDERED_ITEMS) return;
+        // The core has already computed a cut orientation. Try its reverse supply order first;
+        // all other permutations remain available if that orientation cannot certify this stock.
+        if (!demandOrder.isEmpty()) {
+            charge(budget, demandOrder.size() + (long) ordered.size() * ordered.size());
+            var positions = new HashMap<K, Integer>();
+            for (int i = 0; i < demandOrder.size(); i++) positions.put(demandOrder.get(i), i);
+            ordered.sort(Comparator.comparingInt(key -> -positions.getOrDefault(key, -1)));
+        }
+
         var ids = new HashMap<K, Integer>();
         int[] permutation = new int[ordered.size()];
         for (int i = 0; i < ordered.size(); i++) {
@@ -149,15 +312,8 @@ final class MaterialDagOrders {
         }
         int[] ranks = new int[ordered.size() + 1];
         ranks[ordered.size()] = ordered.size() + 1;
-        try {
-            permute(graph, target, ordered, permutation, 0, patterns, new HashSet<>(),
-                    Map.copyOf(originals), result, budget, ranks, inputMasks, outputMasks);
-        } catch (WorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
-            // A timeout must not discard already completed supports and force replenishment
-            // to repeat the same permutations. Every retained projection is self-contained;
-            // user cancellation and router exits are deliberately not caught here.
-        }
-        return List.copyOf(result);
+        permute(graph, target, ordered, permutation, 0, patterns, new HashSet<>(),
+                Map.copyOf(originals), completed, budget, ranks, inputMasks, outputMasks);
     }
 
     /** A consumed return needs its retained seed plus net consumption, independently of amount.
@@ -185,7 +341,7 @@ final class MaterialDagOrders {
 
     private static <K> void permute(CraftGraph<K> graph, K target, List<K> ordered, int[] permutation,
             int index, List<CraftPattern<K>> patterns, Set<BitSet> seen,
-            Map<CraftPattern<K>, CraftPattern<K>> originals, List<Candidate<K>> result,
+            Map<CraftPattern<K>, CraftPattern<K>> originals, Consumer<Candidate<K>> completed,
             BoundedIntegerLinearSolver.WorkBudget budget, int[] ranks, int[] inputMasks, int[] outputMasks) {
         charge(budget, 1);
         if (index < permutation.length) {
@@ -194,7 +350,7 @@ final class MaterialDagOrders {
                 permutation[index] = permutation[next];
                 permutation[next] = saved;
                 permute(graph, target, ordered, permutation, index + 1, patterns, seen, originals,
-                        result, budget, ranks, inputMasks, outputMasks);
+                        completed, budget, ranks, inputMasks, outputMasks);
                 permutation[next] = permutation[index];
                 permutation[index] = saved;
             }
@@ -242,7 +398,7 @@ final class MaterialDagOrders {
         // A zero-stock support can become productive after replenishment. Retain it as a
         // topology template, but maySupply still rejects its current zero capacity. Filtering
         // here would make reuse silently miss routes enabled by the hypothetical inventory.
-        result.add(new Candidate<>(graph.withPatterns(selected), capacity, originals, List.copyOf(supplyOrder)));
+        completed.accept(new Candidate<>(graph.withPatterns(selected), capacity, originals, List.copyOf(supplyOrder)));
     }
 
     private static void charge(BoundedIntegerLinearSolver.WorkBudget budget, long work) {
@@ -251,6 +407,10 @@ final class MaterialDagOrders {
     }
 
     private static final class WorkLimit extends RuntimeException {}
+
+    private static final class SupportAccepted extends RuntimeException {
+        SupportAccepted() { super(null, null, false, false); }
+    }
 
     private static <K> int lastInputRank(CraftPattern<K> pattern, Map<K, Integer> rank) {
         int last = -1;

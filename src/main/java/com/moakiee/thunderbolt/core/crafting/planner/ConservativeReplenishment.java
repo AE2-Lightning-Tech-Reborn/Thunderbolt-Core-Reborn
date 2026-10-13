@@ -56,9 +56,21 @@ final class ConservativeReplenishment<K> {
         return compile(graph, order, patterns, false, true);
     }
 
+    /** Fixed-DAG proposal used by the sparse certificate path; state inputs are certified later. */
+    static <K> ConservativeReplenishment<K> compileIgnoringByproductsWithStateInputs(
+            CraftGraph<K> graph, List<K> order, Map<K, List<CraftPattern<K>>> patterns) {
+        return compile(graph, order, patterns, false, true, true);
+    }
+
     private static <K> ConservativeReplenishment<K> compile(
             CraftGraph<K> graph, List<K> order, Map<K, List<CraftPattern<K>>> patterns,
             boolean resourceBound, boolean ignoreByproducts) {
+        return compile(graph, order, patterns, resourceBound, ignoreByproducts, false);
+    }
+
+    private static <K> ConservativeReplenishment<K> compile(
+            CraftGraph<K> graph, List<K> order, Map<K, List<CraftPattern<K>>> patterns,
+            boolean resourceBound, boolean ignoreByproducts, boolean allowStateInputs) {
         var position = new HashMap<K, Integer>();
         for (int i = 0; i < order.size(); i++) position.put(order.get(i), i);
         var costs = new HashMap<K, Long>();
@@ -78,7 +90,10 @@ final class ConservativeReplenishment<K> {
                         || pattern.exactOutputAmount().compareTo(EXECUTABLE_LIMIT) >= 0) return null;
                 long cost = 0L;
                 for (var input : pattern.inputs()) {
-                    if (input.returned() || input.remainder() != null || input.reusableStockSource() != null
+                    if ((!allowStateInputs && input.returned()
+                                    && input.uses() == CraftInput.INFINITE_USES)
+                            || (!ignoreByproducts && input.remainder() != null)
+                            || (!allowStateInputs && input.reusableStockSource() != null)
                             || input.exactAmount().compareTo(EXECUTABLE_LIMIT) >= 0
                             || !input.exactAmount().equals(BigInteger.valueOf(input.amount()))
                             || position.getOrDefault(input.key(), -1) <= i) {
@@ -136,6 +151,16 @@ final class ConservativeReplenishment<K> {
     }
 
     CraftPlan<K> plan(K target, long amount, Map<K, Long> additionalStock) {
+        return plan(target, amount, additionalStock, false, null);
+    }
+
+    /** Quantity-local proposal only; unlike the fixed policy it makes no monotonicity claim. */
+    CraftPlan<K> planBatchAware(K target, long amount, BoundedIntegerLinearSolver.WorkBudget budget) {
+        return plan(target, amount, Map.of(), true, budget);
+    }
+
+    private CraftPlan<K> plan(K target, long amount, Map<K, Long> additionalStock, boolean batchAware,
+            BoundedIntegerLinearSolver.WorkBudget budget) {
         if (amount >= Sat.SAT) return null;
         var need = new HashMap<K, BigInteger>();
         var fired = new IdentityHashMap<CraftPattern<K>, Long>();
@@ -161,11 +186,52 @@ final class ConservativeReplenishment<K> {
                 missing.put(item, demand.longValueExact());
                 continue;
             }
+            if (batchAware) {
+                // Reserve demands already queued for other branches before allocating a route.
+                // These are proposals inside an ordinary DAG, never local stock certificates.
+                for (int attempt = 0; demand.signum() > 0 && attempt <= graph.patternsFor(item).size(); attempt++) {
+                    PlanningCancellation.check();
+                    CraftPattern<K> selected = null;
+                    BigInteger selectedTimes = BigInteger.ZERO, largestSupply = BigInteger.ZERO, leastDraw = null;
+                    for (var alternative : graph.patternsFor(item)) {
+                        PlanningCancellation.check();
+                        if (!budget.tryConsume(4L * (1L + alternative.inputs().size()))) return null;
+                        var merged = new HashMap<K, BigInteger>();
+                        for (var input : alternative.inputs()) merged.merge(input.key(), input.exactAmount(), BigInteger::add);
+                        BigInteger times = ceilDivide(demand, alternative.outputAmount());
+                        for (var input : merged.entrySet()) {
+                            BigInteger availableInput = BigInteger.valueOf(graph.stock(input.getKey()))
+                                    .subtract(need.getOrDefault(input.getKey(), BigInteger.ZERO)).max(BigInteger.ZERO);
+                            times = times.min(availableInput.divide(input.getValue()));
+                        }
+                        BigInteger supply = times.multiply(alternative.exactOutputAmount()).min(demand);
+                        BigInteger draw = BigInteger.ZERO;
+                        for (var input : merged.values()) draw = draw.add(input.multiply(times));
+                        if (supply.signum() > 0 && (supply.compareTo(largestSupply) > 0
+                                || supply.equals(largestSupply) && (leastDraw == null || draw.compareTo(leastDraw) < 0))) {
+                            selected = alternative;
+                            selectedTimes = times;
+                            largestSupply = supply;
+                            leastDraw = draw;
+                        }
+                    }
+                    if (selected == null) break;
+                    fired.merge(selected, selectedTimes.longValueExact(), Math::addExact);
+                    for (var input : selected.inputs()) {
+                        BigInteger next = need.getOrDefault(input.key(), BigInteger.ZERO)
+                                .add(requiredUnits(input, selectedTimes));
+                        if (next.compareTo(EXECUTABLE_LIMIT) >= 0) return null;
+                        need.put(input.key(), next);
+                    }
+                    demand = demand.subtract(largestSupply);
+                }
+                if (demand.signum() == 0) continue;
+            }
             BigInteger times = ceilDivide(demand, route.outputAmount());
-            fired.put(route, times.longValueExact());
+            fired.merge(route, times.longValueExact(), Math::addExact);
             for (var input : route.inputs()) {
                 BigInteger next = need.getOrDefault(input.key(), BigInteger.ZERO)
-                        .add(times.multiply(input.exactAmount()));
+                        .add(requiredUnits(input, times));
                 if (next.compareTo(EXECUTABLE_LIMIT) >= 0) return null;
                 need.put(input.key(), next);
             }
@@ -176,6 +242,12 @@ final class ConservativeReplenishment<K> {
     private static BigInteger ceilDivide(BigInteger amount, long divisor) {
         return amount.signum() == 0 ? BigInteger.ZERO
                 : amount.subtract(BigInteger.ONE).divide(BigInteger.valueOf(divisor)).add(BigInteger.ONE);
+    }
+
+    private static <K> BigInteger requiredUnits(CraftInput<K> input, BigInteger firings) {
+        if (!input.returned()) return input.exactAmount().multiply(firings);
+        BigInteger uses = BigInteger.valueOf(input.uses());
+        return input.exactAmount().multiply(firings.add(uses).subtract(BigInteger.ONE).divide(uses));
     }
 
 }

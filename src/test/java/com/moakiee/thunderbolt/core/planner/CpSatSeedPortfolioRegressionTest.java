@@ -24,6 +24,42 @@ class CpSatSeedPortfolioRegressionTest {
         }
     }
 
+    @Test void freshSeedRefinementUsesTheExternalProducerWitness() {
+        assertTrue(CpSatIntegerLinearSolver.initializeFromTestClasspath());
+        for (int trial = 0; trial < 32; trial++) {
+            final int attempt = trial;
+            var result = CpSatRankedFlowSolver.solve(
+                    CpSatExecutionBlocksTest.seedFromStock(12), "T", 2,
+                    new CpSatRankedFlowSolver.PlanningSession());
+            assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status(), "trial=" + attempt);
+            assertTrue(result.plan().feasible(), () -> "trial=" + attempt + " missing="
+                    + result.plan().missing());
+            assertFalse(result.plan().budgetExhausted(), "trial=" + attempt);
+        }
+    }
+
+    @Test void freshSharedAmountProbesReplanAfterTheirSupplement() {
+        assertTrue(CpSatIntegerLinearSolver.initializeFromTestClasspath());
+        for (int trial = 0; trial < 32; trial++) {
+            String label = "trial=" + trial;
+            var graph = CpSatExecutionBlocksTest.seedFromStock(12);
+            var shared = new CpSatRankedFlowSolver.PlanningSession(1, 4096, 1_000_000_000L);
+            var first = CpSatRankedFlowSolver.solve(graph, "T", 1, shared);
+            assertEquals(CpSatRankedFlowSolver.Status.SOLVED, first.status(), label);
+            assertNotNull(first.plan(), label);
+            for (int amount = 2; amount <= 12; amount++) {
+                CpSatRankedFlowSolver.solve(graph, "T", amount, shared);
+            }
+            var result = CpSatRankedFlowSolver.solve(
+                    graph.withAdditionalStock(first.plan().missing()), "T", 12,
+                    new CpSatRankedFlowSolver.PlanningSession());
+            assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status(), label);
+            assertNotNull(result.plan(), label);
+            assertTrue(result.plan().feasible(), () -> label + " missing=" + result.plan().missing());
+            assertFalse(result.plan().budgetExhausted(), label);
+        }
+    }
+
     @Test void compactCatalogRetainsRoundWitnessWithoutDiscovery() {
         long[][] pre = {{1, 0, 0}, {0, 1, 1}};
         long[][] post = {{0, 1, 0}, {1, 0, 0}};

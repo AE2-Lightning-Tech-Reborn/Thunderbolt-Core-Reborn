@@ -18,20 +18,11 @@ import java.util.function.Function;
 import java.util.function.IntPredicate;
 
 /**
- * Optional anytime improvement of an already certified plan; probes never replace its witness.
- * Fewer executions come first, using any ordinary stock in the inventory snapshot. At equal
- * executions, stock and net resource loss must improve without increasing any material's draw.
+ * Optional improvement of a certified plan. Prefer fewer executions using ordinary snapshot
+ * stock; at equal executions, reduce stock/loss without increasing any material's draw.
  *
- * <p>Candidates are pruned before the planner runs. A forward fixpoint from the available stock
- * keeps only patterns that can ever fire, and a dual-feasible cost potential over them bounds the
- * executions (and stock units) of every plan inside the probed pattern set. A probe whose bound
- * cannot beat the incumbent by 1% executions, or by stock at equal executions, never enters the
- * planner, and once the whole reachable graph is bounded that way the search stops.
- *
- * <p>The first proposal is the cheapest route per item over the whole reachable graph, with scarce
- * stock priced up until its fixed replay fits the inventory snapshot. Subsequent local probes use
- * the incumbent's draws: adding unrelated stocked routes to every withdrawal dilutes the bounded
- * search and can hide the improvements it already finds within the incumbent's materials.
+ * <p>Fireability and dual cost bounds prune probes. The first policy uses the reachable graph;
+ * local withdrawals stay inside incumbent materials. Every replacement requires certification.
  */
 final class FeasibleConsumptionOptimizer {
     static final int MAX_PROBES = 32;
@@ -40,9 +31,7 @@ final class FeasibleConsumptionOptimizer {
             Long.getLong("thunderbolt.maxConsumptionOptimizationNanos", 2_800_000_000L));
     static final long EXPORT_RESERVE_NANOS = 50_000_000L;
     /**
-     * Stop once probes have spent this long without cutting executions by at least 1%; 0 disables.
-     * Measured in time, not probes: a probe is a whole planning run, milliseconds on a small graph
-     * and over a second on a large pack, and the player waits for every one of them.
+     * Elapsed time without at least 1% fewer executions; 0 disables the stall cutoff.
      */
     static final long STALL_NANOS = Math.max(0L, Long.getLong("thunderbolt.feasibleOptimizationStallMs", 500L))
             * 1_000_000L;
@@ -86,7 +75,24 @@ final class FeasibleConsumptionOptimizer {
     static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
             int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache,
             IntPredicate spendWork) {
-        var state = new Search<>(graph, target, amount, initial, probeLimit, oracle, cache, spendWork);
+        try (var budget = new FeasibleOptimizationBudget(MAX_NANOS)) {
+            return optimize(graph, target, amount, initial, probeLimit, oracle, cache, spendWork, budget);
+        } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            return new Result<>(initial, 0, 0, 0);
+        }
+    }
+
+    static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
+            int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache,
+            IntPredicate spendWork, FeasibleOptimizationBudget budget) {
+        return optimize(graph, target, amount, initial, probeLimit, oracle, cache, spendWork, budget, false);
+    }
+
+    static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
+            int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache,
+            IntPredicate spendWork, FeasibleOptimizationBudget budget, boolean batchFirst) {
+        var state = new Search<>(graph, target, amount, initial, probeLimit, oracle, cache, spendWork, budget);
+        state.batchFirst = batchFirst;
         try {
             state.run();
             state.mixSmallBatches();
@@ -147,6 +153,12 @@ final class FeasibleConsumptionOptimizer {
     static <K> boolean targetOnlyBound(CraftGraph<K> graph, K target, long amount, CraftPlan<K> best) {
         if (graph.hasByproducts() || graph.hasTagConversions()
                 || graph.stock(target) != 0 || best.firings().isEmpty()) return false;
+        // An upstream firing already disproves this target-only certificate. Check the small
+        // incumbent before scanning a potentially wide target portfolio under the stall cutoff.
+        for (var pattern : best.firings().keySet()) {
+            PlanningCancellation.check();
+            if (!pattern.output().equals(target)) return false;
+        }
         BigInteger largestOutput = BigInteger.ZERO;
         BigInteger smallestDraw = null;
         for (var pattern : graph.patternsFor(target)) {
@@ -165,7 +177,6 @@ final class FeasibleConsumptionOptimizer {
         var needed = BigInteger.valueOf(amount);
         var lowerExecutions = needed.add(largestOutput).subtract(BigInteger.ONE).divide(largestOutput);
         if (!executions(best).equals(lowerExecutions)) return false;
-        for (var pattern : best.firings().keySet()) if (!pattern.output().equals(target)) return false;
         BigInteger used = BigInteger.ZERO;
         for (long value : best.usedStock().values()) used = used.add(BigInteger.valueOf(value));
         return smallestDraw.multiply(lowerExecutions).compareTo(used) >= 0;
@@ -185,9 +196,10 @@ final class FeasibleConsumptionOptimizer {
         private int mixedProbes;
         private int improvements;
         private int pruned;
-        private long lastGain;
+        private final FeasibleOptimizationBudget budget;
         private boolean exhausted;
         private boolean targetOptimal;
+        private boolean batchFirst;
 
         private Index<K> index;
         private long[] limits;
@@ -227,7 +239,8 @@ final class FeasibleConsumptionOptimizer {
         private int regionSize;
 
         Search(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial, int limit,
-                Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache, IntPredicate spendWork) {
+                Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache, IntPredicate spendWork,
+                FeasibleOptimizationBudget budget) {
             this.graph = graph;
             this.target = target;
             this.amount = amount;
@@ -236,10 +249,15 @@ final class FeasibleConsumptionOptimizer {
             this.oracle = oracle;
             this.cache = cache;
             this.spendWork = spendWork;
+            this.budget = budget;
         }
 
         /** Finish small ordinary DAGs with integer batch mixes under the same budgets. */
         private void mixSmallBatches() {
+            mixSmallBatches(false);
+        }
+
+        private void mixSmallBatches(boolean executionsOnly) {
             if (targetOptimal || index == null || !index.choices || index.patterns.size() > MAX_MIXED_PATTERNS
                     || exhausted || probes >= limit)
                 return;
@@ -263,6 +281,14 @@ final class FeasibleConsumptionOptimizer {
                 PlanningCancellation.check();
                 var ordinary = OrdinaryBatchOptimizer.startSearch(graph, target, amount, best, charge, reserve);
                 var candidate = ordinary.tryWhole(index.keys);
+                // Reserve the early slice for the cheap whole-output proof. Upstream expansion
+                // retains its established position after policies/withdrawals, where its larger
+                // work allowance cannot starve a better full-inventory route proposal.
+                if (executionsOnly) {
+                    if (candidate == null || executionCount(candidate) >= executionCount(best)
+                            || !accept(candidate)) break;
+                    continue;
+                }
                 UpstreamBatchOptimizer.Search<K> upstream = null;
                 if (candidate == null && !exhausted && probes < limit) {
                     upstream = UpstreamBatchOptimizer.startSearch(graph, target, amount, best, index.keys,
@@ -275,16 +301,13 @@ final class FeasibleConsumptionOptimizer {
                 // Keep the same upstream allowance after the earlier local neighborhoods finish.
                 if (candidate == null && upstream != null && !exhausted && probes < limit)
                     candidate = upstream.tryAdditional();
-                if (candidate == null || !improves(best, candidate)) break;
-                best = candidate;
-                improvements++;
+                // Early batch proofs must not tighten the incumbent stock domain before route
+                // search. Equal-execution exchanges and final normalization remain deferred.
+                if (!accept(candidate)) break;
             }
-            if (!exhausted && probes < limit) {
+            if (!executionsOnly && !exhausted && probes < limit) {
                 var normalized = OrdinaryBatchOptimizer.normalizeStock(graph, target, amount, best, charge, reserve);
-                if (normalized != null && improves(best, normalized)) {
-                    best = normalized;
-                    improvements++;
-                }
+                accept(normalized);
             }
         }
 
@@ -306,10 +329,7 @@ final class FeasibleConsumptionOptimizer {
                         mixedProbes++;
                         return true;
                     });
-            if (candidate != null && improves(best, candidate)) {
-                best = candidate;
-                improvements++;
-            }
+            accept(candidate);
             mixTerminalFixedDepthBatches();
         }
 
@@ -330,10 +350,7 @@ final class FeasibleConsumptionOptimizer {
                         mixedProbes++;
                         return true;
                     });
-            if (candidate != null && improves(best, candidate)) {
-                best = candidate;
-                improvements++;
-            }
+            accept(candidate);
         }
 
         void run() {
@@ -375,6 +392,11 @@ final class FeasibleConsumptionOptimizer {
                 return;
             }
 
+            // A small exact batch proof is cheaper than a whole planning probe. Waiting until
+            // withdrawals finish lets unproductive probes consume the entire stall allowance.
+            int beforeBatches = improvements;
+            if (batchFirst) mixSmallBatches(true);
+            if (improvements != beforeBatches) propagateStock();
             probePolicy();
             if (targetOnlyBound()) {
                 targetOptimal = true;
@@ -387,9 +409,7 @@ final class FeasibleConsumptionOptimizer {
             availableStock = false;
             propagateStock();
             if (!proven()) probePolicy();
-            // The stall clock times withdrawals only. Indexing, bounds and the policy proposal
-            // are paid once and grow with the pack; a slow machine must still get to reroute.
-            lastGain = System.nanoTime();
+            // Policy probes and withdrawals share the same no-improvement allowance.
             var tried = new HashSet<Integer>();
             while (!exhausted && probes < limit && !stalled()) {
                 PlanningCancellation.check();
@@ -451,7 +471,7 @@ final class FeasibleConsumptionOptimizer {
         }
 
         private boolean stalled() {
-            return STALL_NANOS != 0 && System.nanoTime() - lastGain >= STALL_NANOS;
+            return budget.stalled();
         }
 
         private boolean proven() {
@@ -921,8 +941,13 @@ final class FeasibleConsumptionOptimizer {
             if (exhausted || probes >= limit) return false;
             probes++;
             long probeStarted = System.nanoTime();
-            CraftPlan<K> candidate = oracle.apply(candidateGraph);
-            oracleNanos.add(System.nanoTime() - probeStarted);
+            CraftPlan<K> candidate;
+            try (var ignored = PlanningCancellation.limitOptionalWork(budget.remainingNanos())) {
+                candidate = oracle.apply(candidateGraph);
+                PlanningCancellation.check();
+            } finally {
+                oracleNanos.add(System.nanoTime() - probeStarted);
+            }
             lastCandidate = null;
             if (candidate == null) {
                 exhausted = true;
@@ -931,12 +956,12 @@ final class FeasibleConsumptionOptimizer {
             for (var entry : candidate.usedStock().entrySet())
                 if (entry.getValue() < 0 || entry.getValue() > candidateGraph.stock(entry.getKey())) return false;
             lastCandidate = candidate;
-            if (!improves(best, candidate)) return false;
-            BigInteger before = executions(best);
-            BigInteger gain = before.subtract(executions(candidate));
-            // Stock-only tie-breaks and sub-percent gains do not restart the stall clock.
-            if (gain.signum() > 0 && gain.multiply(BigInteger.valueOf(100))
-                    .compareTo(before.multiply(BigInteger.valueOf(MIN_GAIN_PERCENT))) >= 0) lastGain = System.nanoTime();
+            return accept(candidate);
+        }
+
+        private boolean accept(CraftPlan<K> candidate) {
+            if (candidate == null || !improves(best, candidate)) return false;
+            budget.improved(best, candidate);
             best = candidate;
             improvements++;
             region = null;
@@ -952,6 +977,7 @@ final class FeasibleConsumptionOptimizer {
          * bounds executions; a second potential that also prices limited stock subtracts it.
          */
         private Prop propagate(int[] patterns, boolean keepChoices) {
+            PlanningCancellation.check();
             int n = index.keys.size(), m = patterns.length;
             var prop = new Prop();
             prop.patterns = patterns;

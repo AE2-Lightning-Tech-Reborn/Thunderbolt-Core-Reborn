@@ -90,13 +90,116 @@ class CpSatSparseDagTest {
         }
     }
 
-    @Test void cyclesAndStatefulInputsKeepTheExistingImplementation() {
+    @Test void cyclesStayOutButSimpleStatefulDagUsesItsCertificate() {
         var cyclic = CraftGraph.<String>builder().pattern("A",1,List.of(CraftInput.of("B",1)))
                 .pattern("B",1,List.of(CraftInput.of("A",1))).stock("A",1).build();
         assertNull(CpSatSparseDag.trySolve(cyclic,"A",1,0));
         var stateful = CraftGraph.<String>builder().pattern("T",1,List.of(CraftInput.returned("tool",1)))
                 .stock("tool",1).build();
-        assertNull(CpSatSparseDag.trySolve(stateful,"T",1,0));
+        var catalyst = CpSatSparseDag.trySolve(stateful, "T", 1, 0);
+        assertEquals(CpSatRankedFlowSolver.Status.SOLVED, catalyst.status());
+        assertTrue(catalyst.plan().feasible());
+        assertEquals(Map.of("tool", 1L), catalyst.plan().usedStock());
+    }
+
+    @Test void unconsumedSideOutputsUseTheFixedDagCertificateAndRefillExactLeaves() {
+        var recipe = new CraftPattern<>("T", 2, List.of(CraftInput.of("raw", 3)),
+                List.of(CraftOutput.of("unused", 7)), null);
+        var graph = CraftGraph.<String>builder().pattern(recipe).stock("raw", 5).stock("unused", 100).build();
+        var result = CpSatSparseDag.trySolve(graph, "T", 4, 0);
+        assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
+        assertEquals(Map.of("raw", 1L), result.plan().missing());
+        assertEquals(Map.of(recipe, 2L), result.plan().firings());
+        assertEquals(Map.of("raw", 5L), result.plan().usedStock());
+        assertEquals(0, result.branches());
+        var ready = CpSatSparseDag.trySolve(graph.withAdditionalStock(result.plan().missing()), "T", 4, 0);
+        assertTrue(ready.plan().feasible());
+        assertFalse(ready.plan().budgetExhausted());
+        assertEquals(Map.of("raw", 6L), ready.plan().usedStock());
+        assertTrue(UnorderedByproductSafety.allOrdersFinishSmall(ready.plan(), "T", 4));
+    }
+
+    @Test void finiteToolsUseExactBatchDemandAndRefillWithoutEnteringTheLinearModel() {
+        var recipe = new CraftPattern<>("T", 1,
+                List.of(CraftInput.of("raw", 1), CraftInput.finiteUse("tool", 2, 10)), null);
+        for (long amount : new long[] {1, 10, 11, 100, 1_000_000_000_000L}) {
+            long tools = 2 * Sat.ceilDiv(amount, 10);
+            var graph = CraftGraph.<String>builder().pattern(recipe).stock("raw", amount)
+                    .stock("tool", tools - 1).build();
+            var result = CpSatSparseDag.trySolve(graph, "T", amount, 0);
+            assertNotNull(result);
+            assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
+            assertEquals(Map.of(recipe, amount), result.plan().firings());
+            assertEquals(Map.of("tool", 1L), result.plan().missing());
+            assertEquals(tools - 1, result.plan().usedStock().getOrDefault("tool", 0L));
+            var ready = CpSatSparseDag.trySolve(graph.withAdditionalStock(result.plan().missing()),
+                    "T", amount, 0);
+            assertTrue(ready.plan().feasible());
+            assertEquals(Map.of("raw", amount, "tool", tools), ready.plan().usedStock());
+            assertFalse(ready.plan().budgetExhausted());
+            assertEquals(0, ready.branches());
+        }
+        var alternative = new CraftPattern<>("T", 1, List.of(CraftInput.of("raw", 2)), null);
+        var competing = CraftGraph.<String>builder().pattern(recipe).pattern(alternative)
+                .stock("raw", 22).stock("tool", 4).build();
+        assertNull(CpSatSparseDag.trySolve(competing, "T", 11, 0));
+        var ranked = CpSatRankedFlowSolver.solve(competing, "T", 11);
+        assertEquals(CpSatRankedFlowSolver.Status.SOLVED, ranked.status());
+        assertTrue(ranked.plan().feasible());
+    }
+
+    @Test void unusedContainerRemaindersKeepExactConsumptionAndTheOriginalPattern() {
+        var recipe = new CraftPattern<>("T", 2, List.of(CraftInput.consumedReturning("raw", 3, "empty")), null);
+        var graph = CraftGraph.<String>builder().pattern(recipe).stock("raw", 5).build();
+        var result = CpSatSparseDag.trySolve(graph, "T", 4, 0);
+        assertNotNull(result);
+        assertEquals(Map.of(recipe, 2L), result.plan().firings());
+        assertEquals(Map.of("raw", 1L), result.plan().missing());
+        assertEquals(Map.of("raw", 5L), result.plan().usedStock());
+        var ready = CpSatSparseDag.trySolve(graph.withAdditionalStock(result.plan().missing()), "T", 4, 0);
+        assertTrue(ready.plan().feasible());
+        assertFalse(ready.plan().budgetExhausted());
+        assertEquals(Map.of("raw", 6L), ready.plan().usedStock());
+        assertEquals(0, ready.branches());
+        assertTrue(UnorderedByproductSafety.allOrdersFinishSmall(ready.plan(), "T", 4));
+
+        var consumer = new CraftPattern<>("U", 1, List.of(CraftInput.of("T", 1), CraftInput.of("empty", 1)), null);
+        assertNull(CpSatSparseDag.trySolve(CraftGraph.<String>builder().pattern(recipe).pattern(consumer)
+                .stock("raw", 3).build(), "U", 1, 0));
+    }
+
+    @Test void aConsumedSideOutputOrSelfReturnStillRequiresTheRankedModel() {
+        var producer = new CraftPattern<>("A", 1, List.of(CraftInput.of("raw", 1)),
+                List.of(CraftOutput.of("B", 1)), null);
+        var graph = CraftGraph.<String>builder().pattern(producer).pattern("T", 1,
+                List.of(CraftInput.of("A", 1), CraftInput.of("B", 1))).stock("raw", 1).build();
+        assertNull(CpSatSparseDag.trySolve(graph, "T", 1, 0));
+        var self = new CraftPattern<>("T", 1, List.of(CraftInput.of("raw", 1)),
+                List.of(CraftOutput.of("raw", 1)), null);
+        assertNull(CpSatSparseDag.trySolve(CraftGraph.<String>builder().pattern(self).stock("raw", 1).build(),
+                "T", 1, 0));
+    }
+
+    @Test void fixedDagUsesStockAndMergedInputsWithWeightedExecutionsAndExactRefill() {
+        var batch = CraftPattern.weighted("part", 3,
+                List.of(CraftInput.of("raw", 2), CraftInput.of("raw", 1)), List.of(), null, 7);
+        var target = CraftPattern.weighted("T", 2, List.of(CraftInput.of("part", 4)), List.of(), null, 3);
+        var graph = CraftGraph.<String>builder().stock("raw", 6).stock("part", 1)
+                .stock("T", 1).pattern(batch).pattern(target).build();
+        var result = CpSatSparseDag.trySolve(graph, "T", 5, 0);
+        assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
+        assertFalse(result.plan().feasible());
+        assertEquals(Map.of("raw", 3L), result.plan().missing());
+        assertEquals(Map.of(batch, 3L, target, 2L), result.plan().firings());
+        assertEquals(java.math.BigInteger.valueOf(27), result.plan().executionCount());
+        var supplied = graph.withAdditionalStock(result.plan().missing());
+        var ready = CpSatSparseDag.trySolve(supplied, "T", 5, 0);
+        assertTrue(ready.plan().feasible());
+        // Three batches make nine parts, covering the eight consumed parts without extracting
+        // the stocked part. The final certificate removes that unnecessary draw.
+        assertEquals(Map.of("raw", 9L, "T", 1L), ready.plan().usedStock());
+        assertEquals(result.plan().firings(), ready.plan().firings());
+        assertEquals(0, ready.branches());
     }
 
     @Test void repeatedPatternIdentityIsNotASecondRecipeVariable() {

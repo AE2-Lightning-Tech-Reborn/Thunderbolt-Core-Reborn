@@ -62,6 +62,7 @@ public final class CpSatRankedFlowSolver<K> {
     private final PlanningSession session;
     /** Weighted objective safety can narrow a numeric domain beyond the material-row caps. */
     private boolean weightedDomainLimited;
+    private boolean smallRecoveryTried;
 
     /** Shared optional reachability/refinement budget for one immutable calculation snapshot. */
     public static final class PlanningSession {
@@ -140,15 +141,42 @@ public final class CpSatRankedFlowSolver<K> {
         if (sparse != null) return sparse;
         Compilation<K> compilation = compile();
         if (compilation == null) return Result.status(Status.UNSUPPORTED);
-        Candidate<K> first = solveCandidate(compilation, new long[0], List.of(), false);
-        if (first.status != Status.SOLVED) return new Result<>(first.status, null, first.branches);
-        if (first.plan != null && first.plan.feasible()) return new Result<>(Status.SOLVED, first.plan, first.branches);
+        CraftPlan<K> deterministic = tryDeterministicUnitWitness(compilation);
+        if (deterministic != null) return new Result<>(Status.SOLVED, deterministic, 0L);
         boolean ordinary = !compilation.conversionCycles.isEmpty() || !compilation.feedbackMacros.isEmpty();
         for (var pattern : compilation.patterns) {
             for (var input : pattern.inputs()) {
                 if (input.returned() || input.reusableStockSource() != null) ordinary = false;
             }
         }
+        CraftPlan<K> preflight = ordinary ? smallRecovery(compilation) : null;
+        if (preflight != null) {
+            long[] bounds = zeroMissingExecutionBounds(compilation.patterns, compilation.firingUpperBounds, preflight);
+            if (bounds != null) {
+                System.arraycopy(bounds, 0, compilation.firingUpperBounds, 0, bounds.length);
+                // Zero Missing is already attainable. Do not use the strict-improvement
+                // query: it would require Missing < 0 and exclude every witness.
+                Arrays.fill(compilation.missingAllowed, false);
+            }
+        }
+        Candidate<K> first = solveCandidate(compilation, new long[0], List.of(), false);
+        if (first.status != Status.SOLVED) {
+            CraftPlan<K> partial = first.status == Status.UNKNOWN
+                    ? smallPartialWitness(compilation) : null;
+            if (partial != null) {
+                session.incomplete = true;
+                return new Result<>(Status.SOLVED, withBudget(partial), first.branches);
+            }
+            if (preflight == null) return new Result<>(first.status, null, first.branches);
+            session.incomplete = true;
+            return new Result<>(Status.SOLVED, withBudget(preflight), first.branches);
+        }
+        if (preflight != null && (first.plan == null || better(compilation, preflight, first.plan))) {
+            session.improvements++;
+            session.incomplete |= first.partial;
+            return new Result<>(Status.SOLVED, first.partial ? withBudget(preflight) : preflight, first.branches);
+        }
+        if (first.plan != null && first.plan.feasible()) return new Result<>(Status.SOLVED, first.plan, first.branches);
         if (!ordinary) return first.plan == null ? Result.status(Status.INVALID)
                 : new Result<>(Status.SOLVED, first.plan, first.branches);
         if (first.plan != null && !first.partial) {
@@ -160,6 +188,149 @@ public final class CpSatRankedFlowSolver<K> {
             if (reachesRelaxation) return new Result<>(Status.SOLVED, first.plan, first.branches);
         }
         return refine(compilation, first);
+    }
+
+    /** Produce a certified leaf-shortage plan when a tiny native search times out. */
+    private CraftPlan<K> smallPartialWitness(Compilation<K> c) {
+        if (c.items.size() > 12 || c.patterns.size() > 16) return null;
+
+        long available = c.stocks[c.targetItem];
+        long needed = targetAmount <= available ? 0L : targetAmount - available;
+        if (needed == 0L) {
+            return new CraftPlan<>(true, true, Map.of(),
+                    Map.of(target, targetAmount), Map.of(), Map.of(),
+                    Map.of(target, targetAmount), c.items.size(), false);
+        }
+
+        for (var pattern : graph.patternsFor(target)) {
+            if (pattern.exactOutputAmount().signum() <= 0
+                    || pattern.exactOutputAmount().compareTo(BigInteger.valueOf(Sat.SAT)) >= 0
+                    || pattern.executionCost() != 1) {
+                continue;
+            }
+            boolean ordinaryInputs = true;
+            for (var input : pattern.inputs()) {
+                if (input.returned() || input.remainder() != null
+                        || input.reusableStockSource() != null) {
+                    ordinaryInputs = false;
+                    break;
+                }
+            }
+            if (!ordinaryInputs) continue;
+
+            BigInteger firings = BigInteger.valueOf(needed)
+                    .subtract(BigInteger.ONE)
+                    .divide(pattern.exactOutputAmount())
+                    .add(BigInteger.ONE);
+            if (firings.compareTo(BigInteger.valueOf(Sat.SAT)) >= 0
+                    || firings.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
+                continue;
+            }
+
+            var selected = Map.of(target, List.of(pattern));
+            var projected = graph.withPatterns(selected);
+            var vector = new IdentityHashMap<CraftPattern<K>, Long>();
+            vector.put(pattern, firings.longValueExact());
+            CraftPlan<K> plan = MaterialDagReplay.tryLeafMissingPlan(
+                    projected, vector, target, targetAmount);
+            if (plan != null) return plan;
+        }
+        return null;
+    }
+
+    /** A long unit-flow graph can be certified without constructing a native model. */
+    private CraftPlan<K> tryDeterministicUnitWitness(Compilation<K> compilation) {
+        if (compilation.patterns.size() < 512 || compilation.conversionCycles.isEmpty())
+            return null;
+        int[] producers = new int[compilation.items.size()];
+        Arrays.fill(producers, -1);
+        for (var pattern : compilation.patterns) {
+            if (pattern.executionCost() != 1 || pattern.exactOutputAmount().compareTo(BigInteger.ONE) != 0
+                    || !pattern.byproducts().isEmpty() || pattern.inputs().size() != 1
+                    || pattern.inputs().get(0).exactAmount().compareTo(BigInteger.ONE) != 0) return null;
+            int output = compilation.items.indexOf(pattern.output());
+            if (output < 0 || producers[output] >= 0) return null;
+            producers[output] = compilation.patterns.indexOf(pattern);
+            var input = pattern.inputs().get(0);
+            if (input.returned() || input.remainder() != null || input.reusableStockSource() != null
+                    || input.exactAmount().compareTo(BigInteger.ONE) != 0
+                    || compilation.items.indexOf(input.key()) < 0) return null;
+        }
+        int targetIndex = compilation.items.indexOf(target);
+        if (targetIndex < 0) return null;
+        long[] stock = compilation.stocks.clone();
+        long[] firings = new long[compilation.patterns.size()];
+        long[] gross = new long[compilation.items.size()];
+        long[] used = new long[compilation.items.size()];
+        if (!resolveUnitDemand(compilation, targetIndex, targetAmount, producers,
+                stock, firings, gross, used, new boolean[compilation.items.size()])) return null;
+        Map<CraftPattern<K>, Long> firingMap = new IdentityHashMap<>();
+        for (int recipe = 0; recipe < firings.length; recipe++) {
+            if (firings[recipe] > 0L) firingMap.put(compilation.patterns.get(recipe), firings[recipe]);
+        }
+        Map<K, Long> usedStock = new LinkedHashMap<>();
+        Map<K, Long> grossDemand = new LinkedHashMap<>();
+        for (int item = 0; item < compilation.items.size(); item++) {
+            if (used[item] > 0L) usedStock.put(compilation.items.get(item), used[item]);
+            if (gross[item] > 0L) grossDemand.put(compilation.items.get(item), gross[item]);
+        }
+        return new CraftPlan<>(true, true, Map.copyOf(firingMap), Map.copyOf(usedStock), Map.of(),
+                Map.of(), Map.copyOf(grossDemand), compilation.items.size(), false);
+    }
+
+    private boolean resolveUnitDemand(Compilation<K> compilation, int item, long amount,
+                                      int[] producers, long[] stock, long[] firings,
+                                      long[] gross, long[] used, boolean[] active) {
+        if (amount <= 0L || Sat.isSaturated(amount) || !add(gross, item, amount)) return false;
+        long fromStock = Math.min(stock[item], amount);
+        stock[item] -= fromStock;
+        if (!add(used, item, fromStock)) return false;
+        long remaining = amount - fromStock;
+        if (remaining == 0L) return true;
+        int recipe = producers[item];
+        if (recipe < 0 || active[item] || !add(firings, recipe, remaining)) return false;
+        active[item] = true;
+        int input = compilation.items.indexOf(compilation.patterns.get(recipe).inputs().get(0).key());
+        boolean resolved = input >= 0 && resolveUnitDemand(compilation, input, remaining, producers,
+                stock, firings, gross, used, active);
+        active[item] = false;
+        return resolved;
+    }
+
+    /** A zero-Missing witness bounds every better plan's positive weighted firing cost. */
+    static <K> long[] zeroMissingExecutionBounds(List<CraftPattern<K>> patterns, long[] original, CraftPlan<K> witness) {
+        if (!witness.feasible() || !witness.missing().isEmpty()) return null;
+        BigInteger cost = witness.executionCount();
+        var bounds = new long[patterns.size()];
+        for (int r = 0; r < bounds.length; r++) {
+            PlanningCancellation.check();
+            var pattern = patterns.get(r);
+            // Zero-cost tag conversions need an independent material bound.
+            if (pattern.executionCost() <= 0 || witness.firings().getOrDefault(pattern, 0L) > original[r]) return null;
+            bounds[r] = cost.divide(BigInteger.valueOf(pattern.executionCost()))
+                    .min(BigInteger.valueOf(original[r])).longValueExact();
+        }
+        return bounds;
+    }
+
+    private CraftPlan<K> smallRecovery(Compilation<K> c) {
+        if (smallRecoveryTried || c.items.size() > 12 || c.patterns.size() > 16 || targetAmount > 256
+                || session.remainingCalls <= 0 || session.remainingNanos <= 0
+                || session.verifier.remainingNodes() <= 0) return null;
+        long allowance = Math.min(100_000_000L, Math.min(session.remainingNanos,
+                PlanningCancellation.remainingNanos(Long.MAX_VALUE)) / 2L);
+        if (allowance <= 0) return null;
+        smallRecoveryTried = true;
+        session.smallRecoveryAttempts++;
+        long started = System.nanoTime();
+        try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
+            return SmallConservativeSearch.tryPlan(graph, target, targetAmount,
+                    Math.min(256, session.verifier.remainingNodes()), () -> session.verifier.take(1L));
+        } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            return null;
+        } finally {
+            session.remainingNanos = Math.max(0L, session.remainingNanos - (System.nanoTime() - started));
+        }
     }
 
     private Candidate<K> solveCandidate(Compilation<K> compilation, long[] missingCaps,
@@ -181,6 +352,19 @@ public final class CpSatRankedFlowSolver<K> {
                 PlanningCancellation.checkpointIfBound() ? Long.MAX_VALUE : 3_000_000_000L);
         remainingNanos -= remainingNanos / 4L; // Leave time to certify the native incumbent.
         if (remainingNanos <= 0L) return Candidate.status(Status.UNKNOWN);
+
+        try (var cutoff = PlanningCancellation.limitOptionalWork(remainingNanos)) {
+            return solveCandidateBounded(compilation, missingCaps, cuts, enforceStartup, blocks,
+                    witnessBounds, remainingNanos);
+        } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            return Candidate.status(Status.UNKNOWN);
+        }
+    }
+
+    private Candidate<K> solveCandidateBounded(Compilation<K> compilation, long[] missingCaps,
+                                        List<long[]> cuts, boolean enforceStartup,
+                                        List<PetriBlockCatalog.Block> blocks, long[] witnessBounds,
+                                        long remainingNanos) {
 
         long[] raw;
         try {
@@ -216,7 +400,10 @@ public final class CpSatRankedFlowSolver<K> {
                     PetriBlockCatalog.STAGES,
                     compilation.patterns.stream().mapToInt(CraftPattern::executionCost).toArray(),
                     remainingNanos / 1_000_000_000.0D);
+        } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            return Candidate.status(Status.UNKNOWN);
         } catch (RuntimeException | LinkageError failure) {
+            PlanningCancellation.check();
             return Candidate.status(Status.INVALID);
         }
         PlanningCancellation.check();
@@ -322,34 +509,18 @@ public final class CpSatRankedFlowSolver<K> {
         long allowed = Math.min(session.remainingNanos,
                 PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
         try (var ignored = PlanningCancellation.limitOptionalWork(allowed)) {
-            CraftPlan<K> seeded = smallSeedWitness(c, first.firings);
-            if (seeded != null && better(c, seeded, best)) {
-                best = seeded;
-                session.improvements++;
-                if (best.feasible()) return new Result<>(Status.SOLVED, best, branches);
-            }
-            // A small ordinary non-growing graph can have an inexpensive all-orders witness
-            // even when aggregate cyclic replay needs extra seed. Try it before the costly
-            // native block model; debit the same verifier budget and preserve outer deadlines.
-            if (c.items.size() <= 12 && c.patterns.size() <= 16
-                    && targetAmount <= 256 && session.verifier.remainingNodes() > 0) {
-                session.smallRecoveryAttempts++;
-                CraftPlan<K> recovered = null;
-                // A fixed 10ms sub-limit expires during cold class loading even for a tiny
-                // witness. Reserve at least half the remaining refinement time for native
-                // fallback, without enlarging the session's overall optional allowance.
-                long recoveryNanos = Math.min(100_000_000L,
-                        PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
-                try (var recovery = PlanningCancellation.limitOptionalWork(recoveryNanos)) {
-                    recovered = SmallConservativeSearch.tryPlan(graph, target, targetAmount,
-                            Math.min(256, session.verifier.remainingNodes()),
-                            () -> session.verifier.take(1L));
-                } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
-                    // Only the preflight expired: native refinement may use its remaining budget.
-                }
-                if (recovered != null) {
+            // Keep one call for the exact-round block path used by amount probes. A seed witness
+            // is still an optional refinement and must observe router cancellation after it is
+            // admitted to the shared call budget.
+            if (targetAmount > 1L && session.remainingCalls > 1) {
+                session.remainingCalls--;
+                session.refinementCalls++;
+                PlanningCancellation.check();
+                CraftPlan<K> seeded = smallSeedWitness(c, first.firings);
+                if (seeded != null && better(c, seeded, best)) {
+                    best = seeded;
                     session.improvements++;
-                    return new Result<>(Status.SOLVED, first.partial ? withBudget(recovered) : recovered, branches);
+                    if (best.feasible()) return new Result<>(Status.SOLVED, best, branches);
                 }
             }
             // Optimize route, seed and repetitions together. A bounded witness family is only an
@@ -509,7 +680,7 @@ public final class CpSatRankedFlowSolver<K> {
      * an exact execution prefix. This is a bounded positive witness, never a negative proof. */
     private CraftPlan<K> smallSeedWitness(Compilation<K> c, long[] relaxed) {
         if (c.items.size() > 12 || c.patterns.size() > 16 || session.verifier.remainingNodes() <= 0
-                || c.feedbackMacros.size() + c.conversionCycles.size() < 2)
+                || c.feedbackMacros.size() + c.conversionCycles.size() < 1)
             return null;
         for (var pattern : c.patterns) for (var input : pattern.inputs())
             if (input.returned() || input.remainder() != null || input.reusableStockSource() != null) return null;

@@ -17,6 +17,8 @@
     "ae2.crafting.NetworkCraftingProvidersRevisionMixin",
     "platform.eject.EjectCapabilityMixin",
     "platform.eject.EjectGhostBlockEntityMixin",
+    "platform.objects.CompoundTagCopyMixin",
+    "platform.objects.ListTagCopyMixin",
     "ae2.channel.GridConnectionMaxChannelsMixin",
     "ae2.channel.GridGetMachineNodesMixin",
     "ae2.channel.GridNodeMaxChannelsMixin",
