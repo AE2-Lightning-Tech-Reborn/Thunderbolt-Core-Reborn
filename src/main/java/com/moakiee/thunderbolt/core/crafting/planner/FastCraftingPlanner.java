@@ -306,14 +306,17 @@ public final class FastCraftingPlanner {
         if (!plan.supported()) {
             return FastAttempt.decline();
         }
+        boolean needsExact = ExactPlanPreview.needsExact(plan);
+        plan = IdOnlyInputGroups.project(plan);
         boolean multi = compiled.multiplePaths;
         if (session.solverKind == CalculationSession.SolverKind.V2
-                && (amount >= Sat.SAT || ExactPlanPreview.needsExact(plan)
+                && (amount >= Sat.SAT || needsExact
                     || computeBytes(plan, compiled.durability, compiled.patternSources) == Long.MAX_VALUE)) {
             var exact = CraftPlannerV2.planExactDiagnostic(compiled.graph, output,
                     BigInteger.valueOf(amount), session.plannerSession, compiled.emittable);
             return FastAttempt.handled(ExactPlanPreview.create(output, amount, multi,
-                    exact, compiled.durability, compiled.emittable), Map.of());
+                    IdOnlyInputGroups.project(exact), compiled.durability, compiled.emittable,
+                    key -> usableStock(snapshot, key, reservedStock)), Map.of());
         }
         // Emittable shortfalls are supplied by emitters, not crafted, so they don't make a plan
         // infeasible — only a non-emittable shortfall does.
@@ -496,6 +499,7 @@ public final class FastCraftingPlanner {
         // substitutes most-available-first so the bounded keep-best-32 picks the cheapest routes.
         Map<AEKey, Long> availability = new HashMap<>();
         Map<AEKey, Boolean> lateBoundOutputs = new HashMap<>();
+        IdOnlyInputGroups idOnlyGroups = new IdOnlyInputGroups();
         RequirementModes requirementModes = new RequirementModes(root, forcedRequirementModes);
         Map<AEKey, Long> supplementalSelfSeedStock = new HashMap<>();
         // Unit-system bookkeeping. A durability chain prices its links in USES (carrier pool); every
@@ -538,9 +542,9 @@ public final class FastCraftingPlanner {
                 itemUnitKeys.add(key); // this node is priced in whole items from here on
             }
 
-            // Emitable items (e.g. via level/energy emitters) are an infinite on-demand source: keep
-            // them as a leaf with their current real stock, and treat any shortfall as emitted (handled
-            // in toAe2Plan) rather than crafted. Never decline just because an item is emittable.
+            // Emittable items (e.g. via level/energy emitters) are an infinite on-demand source.
+            // This virtual stock includes real inventory; plan conversion splits it back into
+            // policy-allowed physical stock and the shortfall supplied by the emitter.
             if (!lateBound && craftingService.canEmitFor(key)) {
                 emittable.add(key);
                 builder.stock(key, Sat.SAT);
@@ -757,6 +761,20 @@ public final class FastCraftingPlanner {
                     if (opts.isEmpty()) {
                         patternUnsatisfiable = true; // this recipe can't be fired; surfaces as missing
                         break;
+                    }
+                    if (sameIdClosure && opts.stream().allMatch(option ->
+                            in.getRemainingKey(LateBoundOutputKey.physical(option.key())) == null)) {
+                        AEKey group = idOnlyGroups.register(opts, builder, candidate -> {
+                            requirementModes.require(candidate, RequirementMode.ID_ONLY);
+                            if (seen.add(candidate)) queue.add(candidate);
+                        }, exportBudget::consume);
+                        if (group != null) {
+                            slotOptions.add(List.of(new SlotChoice(List.of(
+                                    CraftInput.of(group, Math.max(1, in.getMultiplier()))))));
+                            slotRequirementModes.add(RequirementMode.ID_ONLY);
+                            if (opts.size() > 1) multiplePaths[0] = true;
+                            continue;
+                        }
                     }
                     // Rank this slot's substitutes most-available-first. When the full OR-product
                     // overruns the budget we keep only the best `FUZZY_NONCYCLE_STEPS` combinations
@@ -1364,7 +1382,7 @@ public final class FastCraftingPlanner {
                 SlotChoice selected = selectedSlots.get(slot);
                 RequirementMode mode = slotRequirementModes.get(slot);
                 for (var input : selected.inputs()) {
-                    requirementModes.require(input.key(), mode);
+                    if (!IdOnlyInputGroups.isGroup(input.key())) requirementModes.require(input.key(), mode);
                 }
                 coreInputs.addAll(selected.inputs());
             }
@@ -1372,7 +1390,7 @@ public final class FastCraftingPlanner {
             // THIS combination, so we copy the shared byproduct list and append per-chosen-option leftovers.
             List<CraftOutput<AEKey>> combo = byproducts;
             for (CraftInput<AEKey> opt : coreInputs) {
-                if (seen.add(opt.key())) {
+                if (!IdOnlyInputGroups.isGroup(opt.key()) && seen.add(opt.key())) {
                     queue.add(opt.key());
                 }
                 if (opt.remainder() != null) {
@@ -1506,7 +1524,10 @@ public final class FastCraftingPlanner {
         for (Map.Entry<AEKey, Long> e : plan.usedStock().entrySet()) {
             PlanningCancellation.check();
             if (emittable.contains(e.getKey())) {
-                emittedItems.add(e.getKey(), e.getValue());
+                long fromStock = Math.min(e.getValue(), usableStock(snapshot, e.getKey(), reservedStock));
+                if (fromStock > 0) usedItems.add(e.getKey(), fromStock);
+                long fromEmitter = e.getValue() - fromStock;
+                if (fromEmitter > 0) emittedItems.add(e.getKey(), fromEmitter);
                 continue;
             }
             DurabilityChain<AEKey> chain = durability.get(e.getKey());

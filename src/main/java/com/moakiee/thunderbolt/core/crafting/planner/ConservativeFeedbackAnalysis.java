@@ -3,9 +3,11 @@ package com.moakiee.thunderbolt.core.crafting.planner;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -118,9 +120,15 @@ final class ConservativeFeedbackAnalysis<K> {
     static <K> Analysis<K> analyzeAll(
             List<K> itemOrder,
             Map<K, List<CraftPattern<K>>> patternsByOutput) {
-        List<CraftPattern<K>> patterns = stablePatterns(itemOrder, patternsByOutput);
         Map<K, Integer> itemRank = new HashMap<>();
-        for (int i = 0; i < itemOrder.size(); i++) itemRank.putIfAbsent(itemOrder.get(i), i);
+        for (int i = 0; i < itemOrder.size(); i++) {
+            if ((i & 255) == 0) PlanningCancellation.check();
+            itemRank.putIfAbsent(itemOrder.get(i), i);
+        }
+        if (obeysReverseTopologicalOrder(itemOrder, patternsByOutput, itemRank)) {
+            return new Analysis<>(List.of(), List.of(), List.of());
+        }
+        List<CraftPattern<K>> patterns = stablePatterns(itemOrder, patternsByOutput);
         List<Component<K>> result = new ArrayList<>();
         List<FallbackComponent<K>> fallbacks = new ArrayList<>();
         List<Set<K>> cyclicComponents = cyclicComponents(patterns);
@@ -134,6 +142,46 @@ final class ConservativeFeedbackAnalysis<K> {
             }
         }
         return new Analysis<>(result, fallbacks, cyclicComponents);
+    }
+
+    /**
+     * Proves that every material edge strictly decreases the supplied rank before building an SCC
+     * graph. All primary and normalized side outputs must be ranked, including container remainders.
+     * Missing ranks, backward edges and self-loops simply leave the existing SCC path in charge.
+     */
+    private static <K> boolean obeysReverseTopologicalOrder(
+            List<K> itemOrder, Map<K, List<CraftPattern<K>>> patternsByOutput,
+            Map<K, Integer> itemRank) {
+        // A successful order proof needs no flattened identity set. Preserve stable
+        // deduplication for the SCC path when any material edge fails this proof.
+        for (int i = 0; i < itemOrder.size(); i++) {
+            PlanningCancellation.check();
+            var patterns = patternsByOutput.getOrDefault(itemOrder.get(i), List.of());
+            for (int p = 0; p < patterns.size(); p++) {
+                PlanningCancellation.check();
+                CraftPattern<K> pattern = patterns.get(p);
+                Integer primaryRank = itemRank.get(pattern.output());
+                if (primaryRank == null) return false;
+                int latestOutput = primaryRank;
+                var byproducts = pattern.byproducts();
+                for (int slot = 0; slot < byproducts.size(); slot++) {
+                    if ((slot & 255) == 255) PlanningCancellation.check();
+                    Integer rank = itemRank.get(byproducts.get(slot).key());
+                    if (rank == null) return false;
+                    latestOutput = Math.max(latestOutput, rank);
+                }
+                var inputs = pattern.inputs();
+                for (int slot = 0; slot < inputs.size(); slot++) {
+                    if ((slot & 255) == 255) PlanningCancellation.check();
+                    CraftInput<K> input = inputs.get(slot);
+                    // Match cyclicComponents exactly: returned/private reusable inputs are not flow.
+                    if (!isConsumedArc(input)) continue;
+                    Integer rank = itemRank.get(input.key());
+                    if (rank == null || rank <= latestOutput) return false;
+                }
+            }
+        }
+        return true;
     }
 
     /** Structural membership alone never admits cyclic execution or a growing feedback route. */
@@ -177,10 +225,12 @@ final class ConservativeFeedbackAnalysis<K> {
     private static <K> List<CraftPattern<K>> stablePatterns(
             List<K> itemOrder,
             Map<K, List<CraftPattern<K>>> patternsByOutput) {
-        Set<CraftPattern<K>> seen = new LinkedHashSet<>();
+        Set<CraftPattern<K>> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         List<CraftPattern<K>> result = new ArrayList<>();
         for (K item : itemOrder) {
+            PlanningCancellation.check();
             for (CraftPattern<K> pattern : patternsByOutput.getOrDefault(item, List.of())) {
+                PlanningCancellation.check();
                 if (seen.add(pattern)) result.add(pattern);
             }
         }

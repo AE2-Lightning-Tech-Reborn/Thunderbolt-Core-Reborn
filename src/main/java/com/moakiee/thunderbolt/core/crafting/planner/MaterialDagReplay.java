@@ -44,6 +44,7 @@ final class MaterialDagReplay {
         var indegree = new HashMap<Object, Integer>();
         var active = new IdentityHashMap<CraftPattern<K>, Long>();
         add(demand, target, BigInteger.valueOf(amount));
+        int slotIndex = 0;
         for (var entry : counts.entrySet()) {
             PlanningCancellation.check();
             long firings = entry.getValue();
@@ -60,12 +61,14 @@ final class MaterialDagReplay {
                     outputAmount.multiply(times.subtract(BigInteger.ONE)).add(BigInteger.ONE));
             edge(edges, indegree, node, new ItemNode<>(pattern.output()));
             for (var input : pattern.inputs()) {
+                if ((++slotIndex & 255) == 0) PlanningCancellation.check();
                 if (input.returned() || input.remainder() != null || input.reusableStockSource() != null)
                     return null;
                 add(demand, input.key(), input.exactAmount().multiply(times));
                 edge(edges, indegree, new ItemNode<>(input.key()), node);
             }
             for (var output : pattern.byproducts()) {
+                if ((++slotIndex & 255) == 0) PlanningCancellation.check();
                 add(produced, output.key(), output.exactAmount().multiply(times));
                 edge(edges, indegree, node, new ItemNode<>(output.key()));
             }
@@ -77,13 +80,18 @@ final class MaterialDagReplay {
         // Use a bipartite graph so a recipe with many inputs and outputs still costs O(V+E).
         // The original input arcs remain present: a self-returning seed is not a material DAG.
         var ready = new ArrayDeque<Object>();
-        indegree.forEach((node, degree) -> { if (degree == 0) ready.addLast(node); });
+        int topologyIndex = 0;
+        for (var entry : indegree.entrySet()) {
+            if ((++topologyIndex & 255) == 0) PlanningCancellation.check();
+            if (entry.getValue() == 0) ready.addLast(entry.getKey());
+        }
         int visited = 0;
         while (!ready.isEmpty()) {
             PlanningCancellation.check();
             Object node = ready.removeFirst();
             visited++;
             for (Object next : edges.getOrDefault(node, Set.of())) {
+                if ((++topologyIndex & 255) == 0) PlanningCancellation.check();
                 if (indegree.merge(next, -1, Integer::sum) == 0) ready.addLast(next);
             }
         }

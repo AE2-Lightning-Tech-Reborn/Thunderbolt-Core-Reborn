@@ -4,6 +4,7 @@ import com.google.ortools.sat.BoolVar;
 import com.google.ortools.sat.CpModel;
 import com.google.ortools.sat.IntVar;
 import com.google.ortools.sat.LinearExpr;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
@@ -14,7 +15,7 @@ final class CpSatExecutionBlocks {
     /** Wire row: group, original firing vector, required marking, net change. */
     static IntVar[] add(CpModel model, IntVar[] firings, IntVar[] used, IntVar[] missing,
                         SparseLongMatrix produced, int[] outputs, int[] groups, long[] firingBounds,
-                        long[][] blocks, int stages) {
+                        long[][] blocks, int stages, long[] stocks) {
         if (blocks.length == 0) return new IntVar[0];
         if (stages < 1 || stages > 8 || blocks.length > 96) throw new IllegalArgumentException("block shape");
         int recipes = firings.length, items = groups.length, size = blocks.length;
@@ -46,11 +47,13 @@ final class CpSatExecutionBlocks {
         long safeUpper = (Long.MAX_VALUE / 16L) / (size * (long) stages) / maximumCoefficient;
         var repeats = new IntVar[stages * size];
         var active = new BoolVar[repeats.length];
+        long[] repeatBounds = new long[size];
         for (int stage = 0; stage < stages; stage++) for (int b = 0; b < size; b++) {
             long upper = safeUpper;
             for (int r = 0; r < recipes; r++) if (blocks[b][1+r] > 0)
                 upper = Math.min(upper, firingBounds[r] / blocks[b][1+r]);
             int index = stage * size + b;
+            repeatBounds[b] = upper;
             repeats[index] = model.newIntVar(0, upper, "block_n_" + stage + "_" + b);
             active[index] = model.newBoolVar("block_active_" + stage + "_" + b);
             model.addGreaterOrEqual(repeats[index], 1).onlyEnforceIf(active[index]);
@@ -95,6 +98,79 @@ final class CpSatExecutionBlocks {
                 }
             }
         }
+        hintSchedules(model, firings, repeats, active, produced, outputs, groups, firingBounds,
+                blocks, stages, stocks, repeatBounds, byGroup);
         return repeats;
+    }
+
+    /** A bounded scheduling hint, never a restriction or a certificate of an executable plan. */
+    private static void hintSchedules(CpModel model, IntVar[] firings, IntVar[] repeats, BoolVar[] active,
+            SparseLongMatrix produced, int[] outputs, int[] groups, long[] firingBounds,
+            long[][] blocks, int stages, long[] stocks, long[] repeatBounds,
+            LinkedHashMap<Integer, ArrayList<Integer>> byGroup) {
+        int recipes = firings.length, items = groups.length, size = blocks.length;
+        for (var entry : byGroup.entrySet()) {
+            if (Thread.currentThread().isInterrupted()) return;
+            int group = entry.getKey();
+            long[] remaining = new long[recipes];
+            BigInteger[] marking = new BigInteger[items];
+            for (int r = 0; r < recipes; r++)
+                if (groups[outputs[r]] == group) remaining[r] = firingBounds[r];
+            for (int i = 0; i < items; i++) {
+                marking[i] = BigInteger.valueOf(stocks[i]);
+                // Rank constraints place outside producers before this group. Their bounds are
+                // optimistic hint credits only; the solver still chooses and checks their counts.
+                for (int r : produced.columnKeys(i))
+                    if (groups[outputs[r]] != group)
+                        marking[i] = marking[i].add(BigInteger.valueOf(produced.get(r, i))
+                                .multiply(BigInteger.valueOf(firingBounds[r])));
+            }
+            long[] scheduled = new long[stages * size];
+            for (int stage = 0; stage < stages; stage++) {
+                if (Thread.currentThread().isInterrupted()) return;
+                int selected = -1;
+                long copies = 0;
+                BigInteger bestScore = BigInteger.ZERO;
+                for (int b : entry.getValue()) {
+                    long n = repeatBounds[b];
+                    BigInteger perCopy = BigInteger.ZERO;
+                    for (int r = 0; r < recipes; r++) if (blocks[b][1 + r] > 0) {
+                        n = Math.min(n, remaining[r] / blocks[b][1 + r]);
+                        perCopy = perCopy.add(BigInteger.valueOf(blocks[b][1 + r]));
+                    }
+                    for (int i = 0; n > 0 && i < items; i++) {
+                        long required = blocks[b][1 + recipes + i];
+                        long delta = blocks[b][1 + recipes + items + i];
+                        BigInteger spare = marking[i].subtract(BigInteger.valueOf(required));
+                        if (spare.signum() < 0) n = 0;
+                        else if (delta < 0) n = Math.min(n, spare.divide(BigInteger.valueOf(-delta))
+                                .add(BigInteger.ONE).min(BigInteger.valueOf(n)).longValueExact());
+                    }
+                    BigInteger score = BigInteger.valueOf(n).multiply(perCopy);
+                    if (score.compareTo(bestScore) > 0) {
+                        selected = b;
+                        copies = n;
+                        bestScore = score;
+                    }
+                }
+                if (selected < 0) break;
+                scheduled[stage * size + selected] = copies;
+                for (int r = 0; r < recipes; r++)
+                    remaining[r] -= Math.multiplyExact(blocks[selected][1 + r], copies);
+                for (int i = 0; i < items; i++)
+                    marking[i] = marking[i].add(BigInteger.valueOf(blocks[selected][1 + recipes + items + i])
+                            .multiply(BigInteger.valueOf(copies)));
+            }
+            boolean complete = true;
+            for (long n : remaining) complete &= n == 0;
+            if (!complete) continue;
+            for (int stage = 0; stage < stages; stage++) for (int b : entry.getValue()) {
+                int index = stage * size + b;
+                model.addHint(repeats[index], scheduled[index]);
+                model.addHint(active[index], scheduled[index] > 0 ? 1L : 0L);
+            }
+            for (int r = 0; r < recipes; r++)
+                if (groups[outputs[r]] == group) model.addHint(firings[r], firingBounds[r]);
+        }
     }
 }

@@ -63,10 +63,12 @@ final class CpSatSparseDag {
         }
         int[] indegree = new int[itemCount];
         long[] batches = new long[recipeCount], upper = new long[recipeCount];
+        boolean weightedDomainLimited = false;
         for (int r = 0; r < recipeCount; r++) {
             PlanningCancellation.check();
             int output = outputs.get(r);
-            long batch = patterns.get(r).outputAmount(), max = batch;
+            long batch = patterns.get(r).outputAmount();
+            long max = batch;
             batches[r] = batch;
             producers.get(output).add(r); rows.get(output).put(r, batch);
             for (var input : inputs.get(r).entrySet()) {
@@ -75,8 +77,11 @@ final class CpSatSparseDag {
                 consumers.get(item).add(output); indegree[output]++;
                 rows.get(item).put(r, -input.getValue()); max = Math.max(max, input.getValue());
             }
-            // Match the existing ranked model's signed-long activity safety domain.
+            // Match the ranked model's signed-long material and weighted-objective safety domain.
+            long materialUpper = Math.max(1, Sat.SAT / max / recipeCount);
+            max = Math.max(max, patterns.get(r).executionCost());
             upper[r] = Math.max(1, Sat.SAT / max / recipeCount);
+            weightedDomainLimited |= upper[r] < materialUpper;
         }
         var ready = new ArrayDeque<Integer>();
         for (int i = 0; i < itemCount; i++) if (indegree[i] == 0) ready.add(i);
@@ -104,7 +109,8 @@ final class CpSatSparseDag {
         final long[] raw;
         try {
             raw = CpSatRuntime.solveSparseDag(variables, coefficients, producerIds, batches, upper,
-                    stocks, distance, amount, remaining / 1_000_000_000.0);
+                    stocks, distance, amount, patterns.stream().mapToInt(CraftPattern::executionCost).toArray(),
+                    remaining / 1_000_000_000.0);
         } catch (RuntimeException | LinkageError invalid) {
             // Keep router cancellation visible, including cancellation concurrent with native work.
             PlanningCancellation.check();
@@ -132,7 +138,7 @@ final class CpSatSparseDag {
                     || plan.missing().getOrDefault(keys.get(i), 0L) > missing)
                 return status(CpSatRankedFlowSolver.Status.INVALID);
         }
-        if (raw[0] == 4) plan = new CraftPlan<>(plan.supported(), plan.feasible(), plan.firings(), plan.usedStock(),
+        if (raw[0] == 4 || weightedDomainLimited) plan = new CraftPlan<>(plan.supported(), plan.feasible(), plan.firings(), plan.usedStock(),
                 plan.usedReusableStock(), plan.missing(), plan.grossDemand(), plan.itemsProcessed(), true);
         return new CpSatRankedFlowSolver.Result<>(CpSatRankedFlowSolver.Status.SOLVED, plan, raw[1]);
     }

@@ -14,6 +14,7 @@ import java.util.Set;
 final class PetriBlockCatalog {
     static final int STAGES = 4;
     private static final int MAX_BLOCKS = 96;
+    private static final int MAX_PREFIX_CACHE_CELLS = 524_288;
     record Block(int group, PetriExecutionTrace.Node trace, long[] wire) { }
 
     private final SparseLongMatrix pre, post;
@@ -29,6 +30,12 @@ final class PetriBlockCatalog {
 
     static List<Block> build(SparseLongMatrix pre, SparseLongMatrix post, int[] groups, int[] outputs,
                              Set<Integer> cyclicGroups, List<PetriExecutionTrace.Node> suggested) {
+        return build(pre, post, groups, outputs, cyclicGroups, suggested, true);
+    }
+
+    static List<Block> build(SparseLongMatrix pre, SparseLongMatrix post, int[] groups, int[] outputs,
+                             Set<Integer> cyclicGroups, List<PetriExecutionTrace.Node> suggested,
+                             boolean discover) {
         var catalog = new PetriBlockCatalog(pre, post, groups);
         var members = new LinkedHashMap<Integer, List<Integer>>();
         for (int r = 0; r < pre.rows(); r++) {
@@ -50,7 +57,7 @@ final class PetriBlockCatalog {
                 if (!cyclicGroups.contains(current) || (group >= 0 && current != group)) { group = -1; break; }
                 group = current;
             }
-            if (group >= 0) catalog.add(group, trace);
+            if (group >= 0) catalog.add(group, trace, summary);
         }
         for (var entry : members.entrySet()) {
             // Deterministic rotations also cover lossy/full-vector grouped schedules.
@@ -61,28 +68,45 @@ final class PetriBlockCatalog {
                     steps.add(new PetriExecutionTrace.Fire(recipes.get((start + j) % recipes.size()), 1));
                 catalog.add(entry.getKey(), new PetriExecutionTrace.Sequence(steps));
             }
-            catalog.discover(entry.getKey(), recipes, new ArrayList<>(), new int[pre.rows()]);
+            if (discover) {
+                // Cache only this group's single-fire summaries, with a fixed cell limit.
+                // Wider groups keep the original rebuild path rather than retaining large arrays.
+                var cache = recipes.size() * ((long) pre.rows() + 2L * groups.length) <= MAX_PREFIX_CACHE_CELLS
+                        ? new PetriExecutionTrace.Summary[pre.rows()] : null;
+                catalog.discover(entry.getKey(), recipes, new ArrayList<>(), new int[pre.rows()], null, cache);
+            }
         }
         return List.copyOf(catalog.blocks);
     }
 
-    private void discover(int group, List<Integer> recipes, List<PetriExecutionTrace.Node> steps, int[] counts) {
+    private void discover(int group, List<Integer> recipes, List<PetriExecutionTrace.Node> steps, int[] counts,
+                          PetriExecutionTrace.Summary prefix, PetriExecutionTrace.Summary[] singles) {
         if (remainingProbes-- <= 0 || blocks.size() >= MAX_BLOCKS) return;
         PlanningCancellation.check();
+        PetriExecutionTrace.Summary summary = null;
+        if (singles != null && !steps.isEmpty()) {
+            var fire = (PetriExecutionTrace.Fire) steps.get(steps.size() - 1);
+            if (singles[fire.recipe()] == null)
+                singles[fire.recipe()] = PetriExecutionTrace.summarize(fire, pre, post);
+            summary = prefix == null ? singles[fire.recipe()]
+                    : PetriExecutionTrace.compose(prefix, singles[fire.recipe()]);
+        }
         if (steps.size() >= 2) {
-            var trace = new PetriExecutionTrace.Sequence(steps);
-            var summary = PetriExecutionTrace.summarize(trace, pre, post);
+            if (singles == null)
+                summary = PetriExecutionTrace.summarize(new PetriExecutionTrace.Sequence(steps), pre, post);
             boolean round = summary != null;
             for (int i = 0; round && i < groups.length; i++)
                 if (groups[i] == group && summary.delta()[i].signum() > 0) round = false;
-            if (round) add(group, trace);
+            if (round) add(group, new PetriExecutionTrace.Sequence(steps), summary);
         }
         if (steps.size() >= Math.min(6, recipes.size() * 2)) return;
         for (int r : recipes) {
             if (counts[r] >= 2) continue;
             counts[r]++;
             steps.add(new PetriExecutionTrace.Fire(r, 1));
-            discover(group, recipes, steps, counts);
+            // These summaries are read-only. The independent execution certificate still
+            // rebuilds every accepted trace from recipe arcs rather than trusting this cache.
+            discover(group, recipes, steps, counts, summary, singles);
             steps.removeLast(); counts[r]--;
             if (remainingProbes <= 0 || blocks.size() >= MAX_BLOCKS) break;
         }
@@ -90,7 +114,12 @@ final class PetriBlockCatalog {
 
     private void add(int group, PetriExecutionTrace.Node trace) {
         if (blocks.size() >= MAX_BLOCKS) return;
-        var summary = PetriExecutionTrace.summarize(trace, pre, post);
+        add(group, trace, PetriExecutionTrace.summarize(trace, pre, post));
+    }
+
+    private void add(int group, PetriExecutionTrace.Node trace, PetriExecutionTrace.Summary summary) {
+        if (blocks.size() >= MAX_BLOCKS) return;
+        PlanningCancellation.check();
         if (summary == null) return;
         String key = group + ":" + Arrays.toString(summary.firings()) + Arrays.toString(summary.required());
         if (!seen.add(key)) return;

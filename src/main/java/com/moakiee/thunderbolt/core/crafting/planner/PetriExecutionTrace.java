@@ -88,7 +88,8 @@ final class PetriExecutionTrace {
         return new Summary(new long[recipes], required, delta);
     }
 
-    private static Summary compose(Summary left, Summary right) {
+    /** Read-only inputs, fresh arrays; also used by bounded catalog prefix discovery. */
+    static Summary compose(Summary left, Summary right) {
         var result = empty(left.firings.length, left.required.length);
         try {
             for (int r = 0; r < result.firings.length; r++)

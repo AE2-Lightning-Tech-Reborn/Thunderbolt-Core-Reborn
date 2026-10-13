@@ -100,7 +100,7 @@ final class BoundedIntegerLinearSolver {
 
         for (Constraint constraint : constraints) {
             PlanningCancellation.check();
-            if (constraint == null || constraint.coefficients().length != variableCount) {
+            if (constraint == null || constraint.coefficients.length != variableCount) {
                 return result(Status.INVALID_INPUT, 0);
             }
         }
@@ -772,10 +772,14 @@ final class BoundedIntegerLinearSolver {
                 numerator = numerator.negate();
                 denominator = denominator.negate();
             }
-            BigInteger gcd = denominator.equals(BigInteger.ONE)
-                    ? BigInteger.ONE : numerator.gcd(denominator);
-            this.numerator = numerator.divide(gcd);
-            this.denominator = denominator.divide(gcd);
+            if (denominator.equals(BigInteger.ONE)) {
+                this.numerator = numerator;
+                this.denominator = BigInteger.ONE;
+                return;
+            }
+            BigInteger gcd = numerator.gcd(denominator);
+            this.numerator = gcd.equals(BigInteger.ONE) ? numerator : numerator.divide(gcd);
+            this.denominator = gcd.equals(BigInteger.ONE) ? denominator : denominator.divide(gcd);
         }
 
         static Rational of(BigInteger value) {
@@ -785,7 +789,7 @@ final class BoundedIntegerLinearSolver {
             if (value.equals(BigInteger.ONE)) {
                 return ONE;
             }
-            if (value.equals(BigInteger.ONE.negate())) {
+            if (value.equals(NEGATIVE_ONE.numerator)) {
                 return NEGATIVE_ONE;
             }
             return new Rational(value, BigInteger.ONE);
@@ -846,6 +850,7 @@ final class BoundedIntegerLinearSolver {
         }
 
         BigInteger floor() {
+            if (isInteger()) return numerator;
             BigInteger[] divided = numerator.divideAndRemainder(denominator);
             if (numerator.signum() < 0 && divided[1].signum() != 0) {
                 return divided[0].subtract(BigInteger.ONE);
@@ -855,6 +860,7 @@ final class BoundedIntegerLinearSolver {
 
         @Override
         public int compareTo(Rational other) {
+            if (denominator.equals(other.denominator)) return numerator.compareTo(other.numerator);
             return numerator.multiply(other.denominator)
                     .compareTo(other.numerator.multiply(denominator));
         }

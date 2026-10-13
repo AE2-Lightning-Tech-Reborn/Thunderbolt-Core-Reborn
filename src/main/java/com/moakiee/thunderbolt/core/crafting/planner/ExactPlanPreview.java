@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.ToLongFunction;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEKey;
@@ -41,14 +42,20 @@ final class ExactPlanPreview {
     }
 
     static CraftingPlan create(AEKey output, long amount, boolean multiplePaths,
-            ExactCraftPlan<AEKey> plan, Map<AEKey, DurabilityChain<AEKey>> durability, Set<AEKey> emittable) {
+            ExactCraftPlan<AEKey> plan, Map<AEKey, DurabilityChain<AEKey>> durability, Set<AEKey> emittable,
+            ToLongFunction<AEKey> usableStock) {
         Map<AEKey, BigInteger> used = new HashMap<>();
         Map<AEKey, BigInteger> missing = new HashMap<>();
         Map<AEKey, BigInteger> produced = new HashMap<>();
         Map<AEKey, BigInteger> emitted = new HashMap<>();
         plan.usedStock().forEach((key, value) -> {
             if (emittable.contains(key)) {
-                emitted.merge(key, value, BigInteger::add);
+                // Match executable plans: virtual stock includes the physical inventory that the
+                // requester is allowed to use. Keep the remainder exact even beyond long range.
+                BigInteger fromStock = value.min(BigInteger.valueOf(usableStock.applyAsLong(key)));
+                if (fromStock.signum() > 0) used.merge(key, fromStock, BigInteger::add);
+                BigInteger fromEmitter = value.subtract(fromStock);
+                if (fromEmitter.signum() > 0) emitted.merge(key, fromEmitter, BigInteger::add);
             } else if (durability.containsKey(key)) {
                 durability.get(key).chargeFromStockExact(value,
                         (actual, count) -> used.merge(actual, count, BigInteger::add));
