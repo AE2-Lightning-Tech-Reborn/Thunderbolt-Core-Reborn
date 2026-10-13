@@ -21,4 +21,12 @@ bash ./gradlew check jar
 - 2026-09-23 验证：常规 `check jar` 通过 782 项测试；`bash ./gradlew -PthunderboltFmlTests=true test` 另通过 45 项依赖 FML 的测试。
 - 与 LT、PP 联合专用服务器及实际客户端加载通过；客户端完成大整数有线/无线终端计划、提交、CPU 状态、取消和精确退款流程。
 
-LT 原有的四项调度性能失败保留在 LT 的移植说明中，未修改核心算法规避这些门槛。
+LT 调度性能结果见 LT 的移植说明，保持原验收门槛。
+
+## alpha 最终状态同步（2026-10-13）
+
+以 alpha `7559206..0ed711d` 的最终差异为依据，同步规划器的批次优化、索引复用、反馈预处理、种子组合与排程提示，以及预备输入分配、原生 AE2/AdvancedAE CPU 每 tick 的共享派发排程。保留 26.1.2 的 AEKey、ValueIO 与 CPU 存档接口，按规划器和批次执行两批提交。
+
+AdvancedAE 接口已核对远端 `main` 的 `5ad43ee1e5f7`，使用实际 `tickCraftingLogic` 与批次提供器签名。未移植缺少对应版本的 UselessMod 兼容，也未恢复已不匹配当前运行版本的旧 NeoEco 批次接口。
+
+本次 `check jar` 通过；FML 测试共 59 项，58 项通过，1 项跳过。LT 的 CPU GameTest 联合加载此核心、AE2、AdvancedAE、ExtendedAE 和 Applied Flux，25 项必需测试全部通过。
