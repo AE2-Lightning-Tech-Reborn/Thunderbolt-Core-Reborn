@@ -1,0 +1,44 @@
+name: Verify Forge planner
+
+on:
+  pull_request:
+  push:
+    branches: [main, '1.20.1']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Detect Forge 1.20.1 target
+        id: target
+        shell: bash
+        run: |
+          game_version=$(sed -n 's/^minecraft_version=//p' gradle.properties | tr -d '\r')
+          if [ "$game_version" = '1.20.1' ]; then
+            echo 'forge=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'forge=false' >> "$GITHUB_OUTPUT"
+            echo "Forge verification does not apply to Minecraft $game_version."
+          fi
+      - name: Set up Java 17
+        if: steps.target.outputs.forge == 'true'
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        if: steps.target.outputs.forge == 'true'
+        uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
+      - name: Verify planner and release JAR
+        if: steps.target.outputs.forge == 'true'
+        run: bash ./gradlew --no-daemon --max-workers=2 test cpSatColdRefinementTest materialDagColdReplayTest materialDagColdReplenishmentTest assemble verifyReleaseJar
+      - name: Verify NBT copy Mixin and deep-copy behavior
+        if: steps.target.outputs.forge == 'true'
+        run: bash ./gradlew --no-daemon --max-workers=2 runGameTestServer

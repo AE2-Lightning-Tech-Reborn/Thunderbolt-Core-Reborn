@@ -34,10 +34,7 @@ public final class ByteTracker {
         this.totalTypesGetter = totalTypesGetter;
     }
 
-    // ══════════════════════════════════════════════════════════════════════
     //  Configuration
-    // ══════════════════════════════════════════════════════════════════════
-
     public void configure(int bytesPerType, int maxTypes, long capacityLo, long capacityHi) {
         this.bytesPerType = bytesPerType;
         this.maxTypes = maxTypes;
@@ -45,10 +42,7 @@ public final class ByteTracker {
         this.capacityHi = capacityHi;
     }
 
-    // ══════════════════════════════════════════════════════════════════════
     //  Hot-path: capacity check
-    // ══════════════════════════════════════════════════════════════════════
-
     public long computeMaxInsertable(AEKeyType type, boolean isNewKey) {
         int apb = type.getAmountPerByte();
 
@@ -74,10 +68,7 @@ public final class ByteTracker {
         return result < 0 ? Long.MAX_VALUE : result;
     }
 
-    // ══════════════════════════════════════════════════════════════════════
     //  Hot-path: insert delta
-    // ══════════════════════════════════════════════════════════════════════
-
     public void onInsert(AEKeyType type, long amount, boolean isNewKey) {
         int apb = type.getAmountPerByte();
 
@@ -100,10 +91,7 @@ public final class ByteTracker {
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
     }
 
-    // ══════════════════════════════════════════════════════════════════════
     //  Hot-path: extract delta
-    // ══════════════════════════════════════════════════════════════════════
-
     public void onExtract(AEKeyType type, long amount, boolean keyRemoved) {
         int apb = type.getAmountPerByte();
 
@@ -139,10 +127,7 @@ public final class ByteTracker {
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi--; }
     }
 
-    // ══════════════════════════════════════════════════════════════════════
     //  Queries
-    // ══════════════════════════════════════════════════════════════════════
-
     public long getUsedBytes() {
         return DualLong126.cap(usedBytesHi, usedBytesLo);
     }
@@ -165,10 +150,7 @@ public final class ByteTracker {
         return keyTypeCounts.size() + keyTypeRemainders.size();
     }
 
-    // ══════════════════════════════════════════════════════════════════════
     //  Cold-path: full rebuild from pre-aggregated per-type data — O(keyTypes)
-    // ══════════════════════════════════════════════════════════════════════
-
     /**
      * Rebuild byte tracking state from per-{@link AEKeyType} aggregates
      * already maintained by the storage engine.

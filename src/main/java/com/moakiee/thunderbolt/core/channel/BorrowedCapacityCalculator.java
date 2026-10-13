@@ -26,17 +26,9 @@ import com.moakiee.thunderbolt.api.channel.ChannelRequestProvider;
 import com.moakiee.thunderbolt.api.channel.ConnectionChannelCapacityProvider;
 
 /**
- * Assigns channels to devices in the high-capacity network using a bidirectional tree seed followed by exact residual max-flow.
- * <p>
- * Flow network model:
- * <ul>
- *   <li><b>Sources</b>: high-capacity controllers (cap={@code channelsPerController}),
- *       vanilla controller faces (cap={@code 32×factor}).</li>
- *   <li><b>Relays</b> (node-split): high-capacity cables/controllers = ∞,
- *       dense cables = 32×f, normal cables = 8×f.</li>
- *   <li><b>Sinks</b>: {@code REQUIRE_CHANNEL} devices → super-sink T (cap=requested channels).</li>
- * </ul>
- * After max-flow, a device is active iff its device→T edge carries its full request.
+ * Seeds a controller network with a bidirectional tree, then solves exact residual max-flow.
+ * Controllers supply channels, split relay nodes enforce cable capacity, and each device's sink
+ * edge requests its full demand. A device activates only when that demand is fully supplied.
  */
 public final class BorrowedCapacityCalculator {
 
@@ -44,9 +36,7 @@ public final class BorrowedCapacityCalculator {
     private static final int INF = Integer.MAX_VALUE / 2;
 
     /**
-     * Active flow data set by the current PathingCalculation for use by
-     * {@code GridNode.finalizeChannels()} injection. Cleared after finalization.
-     * Thread-safe: Minecraft world ticks are single-threaded.
+     * Temporary flow for channel finalization; cleared afterward. Access belongs to the server tick thread.
      */
     public static volatile Reference2IntOpenHashMap<IGridNode> activeNodeFlow;
     public static volatile Set<IGridNode> activeNetworkNodes;
@@ -163,8 +153,6 @@ public final class BorrowedCapacityCalculator {
         nodes.add(other);
         q.add(other);
     }
-
-    // ── flow-network construction & solve ────────────────────────────
 
     private static Result solve(IGrid grid,
                                 List<IGridNode> capacitySources,

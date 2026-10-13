@@ -9,21 +9,9 @@ import java.util.function.Function;
 import java.util.function.ObjLongConsumer;
 
 /**
- * A durability tool's degradation chain {@code A(n) → A(n-1) → … → broken}, built once by stepping a
- * "remaining" function (AE2's {@code getRemainingKey}) from the full tool until it breaks.
- *
- * <p>The per-use rule {@code 1·A(d) + 1·B → 1·C + A(d-1)} can only be matched one durability point at a
- * time, but once the chain is known it reduces to the closed form a planner can batch:
- * <ul>
- *   <li>a full tool survives {@code n} uses (= chain length),</li>
- *   <li>stock contributes {@code Σ (remaining durability) × count} uses (链长×数量, partial tools
- *       included),</li>
- *   <li>consuming {@code k} uses translates back to concrete tools drained <b>most-degraded first</b>.</li>
- * </ul>
- *
- * <p>This is pure: the AE2 adapter supplies the {@code remaining} and {@code stock} lambdas; everything
- * here (building the chain, deriving {@code n}, aggregating uses, degraded-first withdrawal) is engine
- * logic and unit-tested with plain keys.
+ * Degradation chain {@code A(n) → A(n-1) → … → broken}, built from the adapter's remaining-key function.
+ * A full tool survives {@code n} uses; stock contributes remaining durability times count.
+ * Withdrawals charge concrete tools most-degraded first, including partial tools.
  *
  * @param <K> item key type (AE2's AEKey, or String in tests)
  */
@@ -51,7 +39,7 @@ public final class DurabilityChain<K> {
         return n;
     }
 
-    /** Aggregate uses available from stock across all links (链长×数量, saturating). */
+    /** Exact aggregate uses: remaining durability times stock count across all links. */
     public BigInteger exactTotalUses() {
         BigInteger total = BigInteger.ZERO;
         for (int i = 0; i < stockPerLink.length; i++) {

@@ -59,11 +59,23 @@ public final class PlanningCancellation {
     static Scope limitOptionalWork(long nanos) {
         Long previous = OPTIONAL_DEADLINE.get();
         long duration = remainingNanos(nanos);
-        OPTIONAL_DEADLINE.set(System.nanoTime() + duration);
+        long deadline = System.nanoTime() + duration;
+        // Preserve the parent's absolute cutoff; time spent computing a remaining slice must
+        // not push a nested proof beyond the scope it inherited.
+        if (previous != null && deadline - previous > 0L) deadline = previous;
+        OPTIONAL_DEADLINE.set(deadline);
         return () -> {
             if (previous == null) OPTIONAL_DEADLINE.remove();
             else OPTIONAL_DEADLINE.set(previous);
         };
+    }
+
+    /** Install an absolute stage cutoff without adding elapsed installation time to it. */
+    static Scope limitOptionalWorkUntil(long deadline) {
+        Scope scope = limitOptionalWork(Math.max(0L, deadline - System.nanoTime()));
+        Long installed = OPTIONAL_DEADLINE.get();
+        if (installed != null && installed - deadline > 0L) OPTIONAL_DEADLINE.set(deadline);
+        return scope;
     }
 
     static final class OptionalWorkLimit extends RuntimeException {

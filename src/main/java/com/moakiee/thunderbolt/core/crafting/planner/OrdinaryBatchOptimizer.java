@@ -19,6 +19,11 @@ final class OrdinaryBatchOptimizer {
 
     private OrdinaryBatchOptimizer() {}
 
+    /** Optional route search must not depend on provider registration order. */
+    static <K> void sortRoutes(List<CraftPattern<K>> routes) {
+        routes.sort((left, right) -> right.toString().compareTo(left.toString()));
+    }
+
     static <K> CraftPlan<K> tryImprove(CraftGraph<K> graph, K target, long amount, CraftPlan<K> incumbent, List<K> keyOrder,
             IntPredicate spendWork, BooleanSupplier reserveProbe) {
         var search = startSearch(graph, target, amount, incumbent, spendWork, reserveProbe);
@@ -117,6 +122,7 @@ final class OrdinaryBatchOptimizer {
                     if (alternatives.size() == MAX_ROUTES) break;
                 }
                 if (alternatives.size() < 2) continue;
+                sortRoutes(alternatives);
                 var route = new BatchRoutes<>(output, old, alternatives, largestOutput, upstreamAlternative);
                 routes.add(route);
                 var candidate = replace(route, old, true, false);

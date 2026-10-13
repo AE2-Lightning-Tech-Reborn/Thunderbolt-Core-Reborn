@@ -229,10 +229,12 @@ class FeasibleCostPropagationTest {
             keys = (List<?>) field(index, "keys");
             var type = Class.forName(FeasibleConsumptionOptimizer.class.getName() + "$Search");
             var constructor = type.getDeclaredConstructor(CraftGraph.class, Object.class, long.class,
-                    CraftPlan.class, int.class, Function.class, FeasibleConsumptionOptimizer.IndexCache.class, IntPredicate.class);
+                    CraftPlan.class, int.class, Function.class, FeasibleConsumptionOptimizer.IndexCache.class,
+                    IntPredicate.class, FeasibleOptimizationBudget.class);
             constructor.setAccessible(true);
             search = constructor.newInstance(graph, "T", 100L, null, 32,
-                    (Function<CraftGraph<String>, CraftPlan<String>>) ignored -> null, cache, (IntPredicate) work -> true);
+                    (Function<CraftGraph<String>, CraftPlan<String>>) ignored -> null, cache,
+                    (IntPredicate) work -> true, null); // This harness calls only propagation, not a timed search.
             set(search, "index", index);
             long[] limits = new long[keys.size()];
             var limited = new java.util.ArrayList<Integer>();

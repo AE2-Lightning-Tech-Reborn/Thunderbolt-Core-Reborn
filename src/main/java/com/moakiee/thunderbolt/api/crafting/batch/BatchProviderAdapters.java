@@ -7,10 +7,9 @@ import java.util.Objects;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Global adapter definitions shared by every Thunderbolt batch CPU. Register during common setup.
- * Native {@link IBatchCraftingProvider} implementations always win. Otherwise the first matching
- * adapter wins, ordered by descending priority, then registry ID. Endpoints and jobs are never
- * stored here: resolution caching remains CPU-owned and honors each resolver's cache policy.
+ * Shared definitions registered during common setup. Native providers win; other adapters run
+ * by descending priority, then registry ID. CPU-owned caches follow resolver policy; this registry
+ * stores neither jobs nor provider endpoints.
  */
 public final class BatchProviderAdapters {
     private static volatile List<Entry> entries = List.of();

@@ -1,12 +1,10 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
 import java.math.BigInteger;
-import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
 
 /** Exact count-vector certificate for ordinary material DAGs, including every side output. */
 final class MaterialDagReplay {
@@ -40,8 +38,8 @@ final class MaterialDagReplay {
         var demand = new HashMap<K, BigInteger>();
         var produced = new HashMap<K, BigInteger>();
         var minimumPrimaryDemand = new HashMap<K, BigInteger>();
-        var edges = new HashMap<Object, Set<Object>>();
-        var indegree = new HashMap<Object, Integer>();
+        var reusableDemand = new HashMap<ReusableStockRouteKey<K>, BigInteger>();
+        var topology = new PlannerTopology.MaterialGraph<K>();
         var active = new IdentityHashMap<CraftPattern<K>, Long>();
         add(demand, target, BigInteger.valueOf(amount));
         int slotIndex = 0;
@@ -50,7 +48,7 @@ final class MaterialDagReplay {
             long firings = entry.getValue();
             if (firings <= 0) continue;
             var pattern = entry.getKey();
-            var node = new PatternNode(active.size());
+            var node = topology.node();
             active.put(pattern, firings);
             var times = BigInteger.valueOf(firings);
             var outputAmount = pattern.exactOutputAmount();
@@ -59,18 +57,26 @@ final class MaterialDagReplay {
             // Surplus within that final batch is allowed; extra byproduct-only batches are not.
             add(minimumPrimaryDemand, pattern.output(),
                     outputAmount.multiply(times.subtract(BigInteger.ONE)).add(BigInteger.ONE));
-            edge(edges, indegree, node, new ItemNode<>(pattern.output()));
+            topology.edge(node, topology.item(pattern.output()));
             for (var input : pattern.inputs()) {
                 if ((++slotIndex & 255) == 0) PlanningCancellation.check();
-                if (input.returned() || input.remainder() != null || input.reusableStockSource() != null)
-                    return null;
-                add(demand, input.key(), input.exactAmount().multiply(times));
-                edge(edges, indegree, new ItemNode<>(input.key()), node);
+                if (input.reusableStockSource() != null) {
+                    var route = new ReusableStockRouteKey<>(
+                            input.reusableStockSource(), input.key());
+                    reusableDemand.merge(route, requiredUnits(input, times), BigInteger::add);
+                    topology.edge(topology.item(input.key()), node);
+                    continue;
+                }
+                // Consumed container remainders are already normalized into byproducts. A normal
+                // catalyst still needs one physical seed; only host-private catalysts bypass the
+                // ordinary stock map above.
+                add(demand, input.key(), requiredUnits(input, times));
+                topology.edge(topology.item(input.key()), node);
             }
             for (var output : pattern.byproducts()) {
                 if ((++slotIndex & 255) == 0) PlanningCancellation.check();
                 add(produced, output.key(), output.exactAmount().multiply(times));
-                edge(edges, indegree, node, new ItemNode<>(output.key()));
+                topology.edge(node, topology.item(output.key()));
             }
         }
         for (var entry : minimumPrimaryDemand.entrySet()) {
@@ -79,24 +85,32 @@ final class MaterialDagReplay {
         }
         // Use a bipartite graph so a recipe with many inputs and outputs still costs O(V+E).
         // The original input arcs remain present: a self-returning seed is not a material DAG.
-        var ready = new ArrayDeque<Object>();
-        int topologyIndex = 0;
-        for (var entry : indegree.entrySet()) {
-            if ((++topologyIndex & 255) == 0) PlanningCancellation.check();
-            if (entry.getValue() == 0) ready.addLast(entry.getKey());
+        boolean cyclic = !topology.isAcyclic();
+        if (!proveEveryOrder && cyclic) return null;
+        var reusableLongDemand = new HashMap<ReusableStockRouteKey<K>, Long>();
+        for (var entry : reusableDemand.entrySet()) {
+            if (entry.getValue().signum() < 0
+                    || entry.getValue().compareTo(BigInteger.valueOf(Sat.SAT)) >= 0) return null;
+            reusableLongDemand.put(entry.getKey(), entry.getValue().longValueExact());
         }
-        int visited = 0;
-        while (!ready.isEmpty()) {
-            PlanningCancellation.check();
-            Object node = ready.removeFirst();
-            visited++;
-            for (Object next : edges.getOrDefault(node, Set.of())) {
-                if ((++topologyIndex & 255) == 0) PlanningCancellation.check();
-                if (indegree.merge(next, -1, Integer::sum) == 0) ready.addLast(next);
-            }
+        Map<ReusableStockAllocationKey<K>, Long> reusableAssignments = Map.of();
+        if (!reusableLongDemand.isEmpty()) {
+            var reusableAllocation = ReusableStockMatcher.allocate(
+                    graph.reusableStock(), reusableLongDemand,
+                    route -> graph.reusableStockCandidates(route.source(), route.plannedKey()));
+            if (!reusableAllocation.feasible()) return null;
+            reusableAssignments = reusableAllocation.allocation();
         }
-        if (!proveEveryOrder && visited != indegree.size()) return null;
         var used = new HashMap<K, Long>();
+        var usedReusable = new HashMap<ReusableStockUsageKey<K>, Long>();
+        for (var entry : reusableAssignments.entrySet()) {
+            var route = entry.getKey().route();
+            var source = route.source();
+            var usage = new ReusableStockUsageKey<>(
+                    source.storageScope(), source.poolScope(), source.routingScope(),
+                    route.plannedKey(), entry.getKey().actualKey());
+            usedReusable.merge(usage, entry.getValue(), Sat::add);
+        }
         var missing = new HashMap<K, Long>();
         var gross = new HashMap<K, Long>();
         for (var entry : demand.entrySet()) {
@@ -115,15 +129,17 @@ final class MaterialDagReplay {
             // A cyclic vector may need startup stock even when its net balance is zero. Draw only
             // available stock, bounded by the selected recipes' gross consumption. No missing or
             // invented stock is permitted, and all-order execution below must certify this draw.
-            if (proveEveryOrder) needed = entry.getValue().min(BigInteger.valueOf(graph.stock(key)));
+            if (cyclic) needed = entry.getValue().min(BigInteger.valueOf(graph.stock(key)));
             if (needed.signum() > 0) used.put(key, needed.longValueExact());
             gross.put(key, entry.getValue().min(BigInteger.valueOf(Sat.SAT)).longValueExact());
         }
         // In a material DAG, complete net balance is also an all-enabled-orders certificate:
         // the earliest unfinished producer has no unfinished supplier and therefore has its inputs.
-        var plan = new CraftPlan<>(true, missing.isEmpty(), Map.copyOf(active), Map.copyOf(used), Map.of(), Map.copyOf(missing),
-                Map.copyOf(gross), demand.size(), false);
-        return !proveEveryOrder || UnorderedByproductSafety.allOrdersFinishSmall(plan, target, amount)
+        // These completed tables are privately owned; freezing need not rehash large inventories.
+        var plan = new CraftPlan<>(true, missing.isEmpty(), Collections.unmodifiableMap(active),
+                Collections.unmodifiableMap(used), Map.copyOf(usedReusable), Map.copyOf(missing),
+                Collections.unmodifiableMap(gross), demand.size(), false);
+        return !cyclic || UnorderedByproductSafety.allOrdersFinishSmall(plan, target, amount)
                 ? plan : null;
     }
 
@@ -131,14 +147,10 @@ final class MaterialDagReplay {
         map.merge(key, amount, BigInteger::add);
     }
 
-    private static void edge(Map<Object, Set<Object>> edges, Map<Object, Integer> indegree,
-            Object from, Object to) {
-        indegree.putIfAbsent(from, 0);
-        indegree.putIfAbsent(to, 0);
-        if (edges.computeIfAbsent(from, ignored -> new HashSet<>()).add(to))
-            indegree.merge(to, 1, Integer::sum);
+    private static <K> BigInteger requiredUnits(CraftInput<K> input, BigInteger firings) {
+        if (!input.returned()) return input.exactAmount().multiply(firings);
+        BigInteger uses = BigInteger.valueOf(input.uses());
+        return input.exactAmount().multiply(firings.add(uses).subtract(BigInteger.ONE).divide(uses));
     }
 
-    private record ItemNode<K>(K key) {}
-    private record PatternNode(int index) {}
 }

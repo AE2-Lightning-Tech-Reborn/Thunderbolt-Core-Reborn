@@ -210,25 +210,34 @@ class ReferenceCapabilityRunnerTest {
 
     @Test
     void nonCooperativeTimeoutIsReportedSeparately() {
+        var release = new java.util.concurrent.CountDownLatch(1);
         ReferencePlanner planner = new ReferencePlanner() {
             @Override
             public boolean check(ReferenceScenario scenario) {
+                // Keep the worker alive until the classification has been observed. A fixed
+                // 500 ms busy loop can finish during a scheduler pause and change the result.
+                while (release.getCount() != 0) {
+                    try {
+                        release.await();
+                    } catch (InterruptedException ignored) {
+                        // This fixture deliberately declines cooperative cancellation.
+                    }
+                }
                 return true;
             }
 
             @Override
             public CraftPlan<String> plan(ReferenceScenario scenario) {
-                long until = System.nanoTime() + Duration.ofMillis(500).toNanos();
-                while (System.nanoTime() < until) {
-                    // Deliberately ignore interruption to exercise quarantine classification.
-                }
                 return feasiblePlan();
             }
         };
 
-        var result = TIMEOUT_RUNNER.run(planner, FEASIBLE);
-
-        assertEquals(ReferenceSupportStatus.NON_COOPERATIVE_TIMEOUT, result.status());
+        try {
+            var result = TIMEOUT_RUNNER.run(planner, FEASIBLE);
+            assertEquals(ReferenceSupportStatus.NON_COOPERATIVE_TIMEOUT, result.status());
+        } finally {
+            release.countDown();
+        }
     }
 
     @Test
@@ -253,9 +262,48 @@ class ReferenceCapabilityRunnerTest {
     }
 
     @Test
+    void aCompletedCheckAfterTheAbsoluteDeadlineCannotStartPlanning() {
+        var clock = new java.util.concurrent.atomic.AtomicLong();
+        var plans = new java.util.concurrent.atomic.AtomicInteger();
+        var runner = new ReferenceCapabilityRunner(Duration.ofMillis(250), Duration.ofMillis(50), clock::get);
+        ReferencePlanner planner = new ReferencePlanner() {
+            @Override public boolean check(ReferenceScenario scenario) {
+                clock.set(Duration.ofMillis(300).toNanos());
+                return true;
+            }
+            @Override public CraftPlan<String> plan(ReferenceScenario scenario) {
+                plans.incrementAndGet(); return feasiblePlan();
+            }
+        };
+        assertEquals(ReferenceSupportStatus.ENGINE_TIMEOUT, runner.run(planner, FEASIBLE).status());
+        assertEquals(0, plans.get());
+    }
+
+    @Test
+    void aCompletedPlanCannotBorrowMoreTimeAfterItsCheck() {
+        var clock = new java.util.concurrent.atomic.AtomicLong();
+        var plans = new java.util.concurrent.atomic.AtomicInteger();
+        var runner = new ReferenceCapabilityRunner(Duration.ofMillis(250), Duration.ofMillis(50), clock::get);
+        ReferencePlanner planner = new ReferencePlanner() {
+            @Override public boolean check(ReferenceScenario scenario) {
+                clock.set(Duration.ofMillis(150).toNanos());
+                return true;
+            }
+            @Override public CraftPlan<String> plan(ReferenceScenario scenario) {
+                plans.incrementAndGet(); clock.set(Duration.ofMillis(300).toNanos());
+                return feasiblePlan();
+            }
+        };
+        assertEquals(ReferenceSupportStatus.ENGINE_TIMEOUT, runner.run(planner, FEASIBLE).status());
+        assertEquals(1, plans.get());
+    }
+
+    @Test
     void refillStartsASecondPassWithAFreshDeadline() {
+        var clock = new java.util.concurrent.atomic.AtomicLong();
+        var passes = new java.util.concurrent.atomic.AtomicInteger();
         var runner = new ReferenceCapabilityRunner(
-                Duration.ofMillis(250), Duration.ofMillis(50));
+                Duration.ofMillis(250), Duration.ofMillis(50), clock::get);
         ReferencePlanner planner = new ReferencePlanner() {
             @Override
             public boolean check(ReferenceScenario scenario) {
@@ -263,8 +311,9 @@ class ReferenceCapabilityRunnerTest {
             }
 
             @Override
-            public CraftPlan<String> plan(ReferenceScenario scenario) throws InterruptedException {
-                Thread.sleep(150L);
+            public CraftPlan<String> plan(ReferenceScenario scenario) {
+                passes.incrementAndGet();
+                clock.addAndGet(Duration.ofMillis(150).toNanos());
                 return scenario.id().endsWith("/refill")
                         ? targetFromRawPlan()
                         : infeasiblePlan(Map.of("raw", 2L));
@@ -272,6 +321,8 @@ class ReferenceCapabilityRunnerTest {
         };
 
         assertEquals(ReferenceSupportStatus.SUPPORTED, runner.run(planner, MISSING).status());
+        assertEquals(2, passes.get());
+        assertEquals(Duration.ofMillis(300).toNanos(), clock.get());
     }
 
     private static ReferencePlanner planner(boolean check, CraftPlan<String> plan) {

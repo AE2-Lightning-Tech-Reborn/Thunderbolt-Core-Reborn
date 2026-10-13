@@ -121,7 +121,9 @@ final class SmallConservativeSearch {
                 }
                 // A successful sequential witness alone is not safe to export to an unordered
                 // CPU. This also checks primary-demand support for every selected final batch.
-                CraftPlan<K> certified = MaterialDagReplay.trySmallPlan(graph, vector, target, amount);
+                CraftPlan<K> certified = MaterialDagReplay.tryPlan(graph, vector, target, amount);
+                if (certified != null) return certified;
+                certified = MaterialDagReplay.trySmallPlan(graph, vector, target, amount);
                 if (certified != null && admittedMasks.computeIfAbsent(mask, ignored -> {
                     var selected = new LinkedHashMap<K, List<CraftPattern<K>>>();
                     for (var pattern : vector.keySet())

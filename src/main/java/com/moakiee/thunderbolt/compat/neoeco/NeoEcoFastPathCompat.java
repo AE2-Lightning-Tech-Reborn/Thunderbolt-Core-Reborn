@@ -21,7 +21,6 @@ public final class NeoEcoFastPathCompat {
 
     @Nullable
     public static BatchProviderAdapter createAdapter() {
-        // Plain unit tests do not initialize the NeoForge mod list.
         var modList = ModList.get();
         if (modList == null || !modList.isLoaded("neoecoae")) {
             return null;
@@ -31,8 +30,7 @@ public final class NeoEcoFastPathCompat {
 
     static @Nullable BatchProviderAdapter loadAdapter(ClassLoader loader) {
         try {
-            // Constructing the adapter alone does not force lazy API references to link.
-            // Probe before registration so old NeoECO releases retain ordinary dispatch.
+            // Validate lazy API references before registration; older releases use ordinary dispatch.
             Class.forName("cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider", false, loader);
             var facade = Class.forName("cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade", false, loader);
             var prepared = facade.getMethod("prepareAllocated", ICraftingProvider.class, IPatternDetails.class,

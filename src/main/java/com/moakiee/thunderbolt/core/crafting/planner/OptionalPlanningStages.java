@@ -75,13 +75,22 @@ final class OptionalPlanningStages {
         FeasibleConsumptionOptimizer.Result<K> optimized;
         CraftPlan<K> seed = initial.plan();
         int mixedProbes = 0, mixedImprovements = 0;
-        try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
-            // Apply the established lower-bound certificate before allocating a mixed-batch search.
-            // Keep this extra check restricted to the small portfolios accepted by those helpers.
+            try (var budget = new FeasibleOptimizationBudget(allowance)) {
+                // Certify small portfolios before allocating a mixed-batch search.
             int targetRoutes = graph.patternsFor(target).size();
             if (targetRoutes >= 2 && targetRoutes <= 6
                     && FeasibleConsumptionOptimizer.targetOnlyBound(graph, target, amount, initial.plan()))
                 return initial;
+            var smallDag = targetRoutes <= 1
+                    ? SmallDagBatchOptimizer.solve(graph, target, amount, seed,
+                            session.searchWorkBudget::tryConsume)
+                    : null;
+            if (smallDag != null && FeasibleConsumptionOptimizer.improves(seed, smallDag)) {
+                budget.improved(seed, smallDag);
+                seed = smallDag;
+                mixedProbes = 1;
+                mixedImprovements = 1;
+            }
             var mixed = TwoRouteBatchOptimizer.solve(graph, target, amount, seed,
                     session.searchWorkBudget::tryConsume);
             if (mixed.status() == BatchOptimizationResult.Status.UNSUPPORTED) {
@@ -89,38 +98,27 @@ final class OptionalPlanningStages {
                         session.searchWorkBudget::tryConsume);
             }
             if (mixed.plan() != seed) {
+                budget.improved(seed, mixed.plan());
                 seed = mixed.plan();
                 mixedProbes = 1;
                 mixedImprovements = 1;
             }
-            // The local exact search proves optimality only inside incumbent stock draws.
-            // Upstream may now use other available inventory to reduce executions, so only
-            // skip its scan when that larger inventory domain is exactly the same domain.
+            // A local optimum can skip the general search only when both stock domains match.
             if (canSkipGeneralOptimization(graph, target, initial.plan(), mixed)) {
                 optimized = new FeasibleConsumptionOptimizer.Result<>(seed, 0, 0, 0);
             } else {
                 optimized = FeasibleConsumptionOptimizer.optimize(graph, target, amount, seed,
                         probeLimit - session.consumptionOptimizationProbes - mixedProbes,
                         candidateGraph -> {
-                            // Charge the reachable local region, not the whole integration pack.
-                            var probe = new PlanningSession<K>();
+                            var probe = session.newProbe();
                             int localWork = probe.reachableWork(candidateGraph, target);
                             if (!session.searchWorkBudget.tryConsume(localWork)) return null;
-                            probe.optimizeFeasible = false;
-                            probe.refineMissing = false;
-                            probe.lowWidthWorkBudget = session.lowWidthWorkBudget;
-                            probe.searchWorkBudget = session.searchWorkBudget;
-                            probe.resolutionWorkBudget = session.resolutionWorkBudget;
-                            probe.fallbackWorkBudget = session.fallbackWorkBudget;
-                            // Stock-dependent capacities are rebuilt; sharing PreparedGraph would reuse
-                            // the incumbent's larger stock. Patterns and all work limits remain shared.
                             return planCore(candidateGraph, target, amount, visitCap, searchWorkBudget,
                                     localWork, probe).plan();
-                        }, session.consumptionIndex, session.searchWorkBudget::tryConsume);
+                        }, session.consumptionIndex, session.searchWorkBudget::tryConsume, budget, true);
             }
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
-            // The bounded mixed-batch stage may expire before the general optimizer starts.
-            // Retain its last completed witness, but never swallow external cancellation.
+            // Keep the last certified witness on optional expiry; external cancellation propagates.
             optimized = new FeasibleConsumptionOptimizer.Result<>(seed, 0, 0, 0);
         } finally {
             session.consumptionOptimizationNanos += Math.max(0L, System.nanoTime() - optimizationStarted);

@@ -10,15 +10,9 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * A single crafting pattern (recipe) in the planner's view: it produces {@code outputAmount} of
- * {@code output} per firing, consuming the given {@code inputs}.
- *
- * <p>The primary {@code output} is modeled directly; every other item produced per firing is a
- * {@link CraftOutput byproduct}. The v1 closed-form planner ignores byproducts (and its caller
- * declines such patterns), while the v2 planner ({@code CraftPlannerV2}) routes byproducts into a
- * shared pool for opportunistic reuse. {@code source} is an opaque handle back to the original recipe
- * object (e.g. AE2 {@code IPatternDetails}); the planner uses its identity to group concrete fuzzy
- * expansions of one real recipe and as the {@link CraftPlan#firings()} key.
+ * Produces {@code outputAmount} of {@code output} per firing, consuming {@code inputs} and supplying
+ * optional {@link CraftOutput byproducts}. Pattern identity keys {@link CraftPlan#firings()}.
+ * The opaque {@code source} identifies the original recipe and groups its concrete fuzzy expansions.
  *
  * @param <K> item key type
  */

@@ -56,13 +56,35 @@ class MaterialDagReplayCancellationTest {
 
         probe.armed = true;
         try {
-            assertThrows(CancellationException.class, () -> {
-                if (publicEntry) CraftPlannerV2.plan(graph, target, 1);
-                else MaterialDagReplay.tryPlan(graph, firings, target, 1);
-            });
+            if (topology) {
+                var cancellation = new CancellationException("cancel material topology");
+                var context = new com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext() {
+                    @Override public long deadlineNanos() { return Long.MAX_VALUE; }
+                    @Override public void report(com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot snapshot) {}
+                    @Override public void checkpoint() {
+                        if (StackWalker.getInstance().walk(frames -> frames.anyMatch(frame ->
+                                frame.getClassName().equals(PlannerTopology.MaterialGraph.class.getName())
+                                        && frame.getMethodName().equals("isAcyclic")))) {
+                            probe.triggered = true;
+                            throw cancellation;
+                        }
+                    }
+                };
+                try (var ignored = PlanningCancellation.bind(context)) {
+                    assertSame(cancellation, assertThrows(CancellationException.class, () -> {
+                        if (publicEntry) CraftPlannerV2.plan(graph, target, 1);
+                        else MaterialDagReplay.tryPlan(graph, firings, target, 1);
+                    }));
+                }
+            } else {
+                assertThrows(CancellationException.class, () -> {
+                    if (publicEntry) CraftPlannerV2.plan(graph, target, 1);
+                    else MaterialDagReplay.tryPlan(graph, firings, target, 1);
+                });
+                assertTrue(probe.distinct > 0 && probe.distinct < 256,
+                        () -> "visited " + probe.distinct + " side-output keys after cancellation");
+            }
             assertTrue(probe.triggered, "the public route must actually enter the material certificate");
-            assertTrue(probe.distinct > 0 && probe.distinct < 256,
-                    () -> "visited " + probe.distinct + " side-output keys after cancellation");
         } finally {
             probe.armed = false;
             Thread.interrupted();
@@ -80,22 +102,10 @@ class MaterialDagReplayCancellationTest {
         Probe(int width, boolean topology) { visited = new boolean[width]; this.topology = topology; }
 
         void observe(int id) {
-            if (!armed || id < 0) return;
-            if (!triggered && (topology || id == 0) && StackWalker.getInstance().walk(frames -> {
-                boolean merging = false;
-                var iterator = frames.iterator();
-                while (iterator.hasNext()) {
-                    var frame = iterator.next();
-                    merging |= frame.getClassName().equals("java.util.HashMap") && frame.getMethodName().equals("merge");
-                    if (!frame.getClassName().endsWith("MaterialDagReplay")) continue;
-                    // Topology uses merge directly. Ignore merges in balance/edge construction;
-                    // HashSet encounter order also means the first successor need not have id 0.
-                    if (topology && (frame.getMethodName().equals("add") || frame.getMethodName().equals("edge")))
-                        return false;
-                    if (frame.getMethodName().equals("tryPlan")) return !topology || merging;
-                }
-                return false;
-            })) {
+            if (!armed || topology || id < 0) return;
+            if (!triggered && id == 0 && StackWalker.getInstance().walk(frames -> frames.anyMatch(frame ->
+                    frame.getClassName().equals(MaterialDagReplay.class.getName())
+                            && frame.getMethodName().equals("tryPlan")))) {
                 triggered = true;
                 Thread.currentThread().interrupt();
             }

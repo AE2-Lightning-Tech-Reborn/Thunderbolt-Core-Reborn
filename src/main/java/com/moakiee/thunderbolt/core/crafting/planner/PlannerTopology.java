@@ -15,6 +15,63 @@ import java.util.Set;
 final class PlannerTopology {
     private PlannerTopology() {}
 
+    /** Separate item/pattern vertices without wrapper keys or per-edge hash sets. */
+    static final class MaterialGraph<K> {
+        private final Map<K, Vertex> items = new HashMap<>();
+        private final List<Vertex> nodes = new ArrayList<>();
+
+        Vertex node() {
+            var node = new Vertex(nodes.size());
+            nodes.add(node);
+            return node;
+        }
+
+        Vertex item(K key) { return items.computeIfAbsent(key, ignored -> node()); }
+
+        void edge(Vertex from, Vertex to) {
+            from.next.add(to);
+            to.indegree++;
+        }
+
+        boolean isAcyclic() {
+            int[] remaining = new int[nodes.size()];
+            var ready = new ArrayDeque<Vertex>();
+            for (var node : nodes) {
+                PlanningCancellation.check();
+                remaining[node.index] = node.indegree;
+                if (node.indegree == 0) ready.addLast(node);
+            }
+            int visited = 0, edges = 0;
+            while (!ready.isEmpty()) {
+                PlanningCancellation.check();
+                var node = ready.removeFirst();
+                visited++;
+                for (var next : node.next) {
+                    if ((++edges & 255) == 0) PlanningCancellation.check();
+                    if (--remaining[next.index] == 0) ready.addLast(next);
+                }
+            }
+            return visited == nodes.size();
+        }
+
+        Map<Vertex, Integer> components() {
+            var adjacency = new HashMap<Vertex, List<Vertex>>();
+            for (var node : nodes) {
+                PlanningCancellation.check();
+                adjacency.put(node, node.next);
+            }
+            return stronglyConnectedComponents(nodes, adjacency);
+        }
+    }
+
+    static final class Vertex {
+        private final int index;
+        private int indegree;
+        private final List<Vertex> next = new ArrayList<>();
+
+        private Vertex(int index) { this.index = index; }
+    }
+
     static <K> Map<K, List<K>> freezeAdjacency(
             List<K> nodes, Map<K, LinkedHashSet<K>> mutable) {
         Map<K, List<K>> frozen = new HashMap<>(nodes.size() * 2);

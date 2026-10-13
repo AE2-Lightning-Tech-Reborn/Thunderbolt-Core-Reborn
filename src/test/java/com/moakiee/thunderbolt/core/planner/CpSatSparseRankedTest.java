@@ -25,7 +25,7 @@ class CpSatSparseRankedTest {
             }
             for (int i = 1; i < 1000; i++) b.pattern("P"+i,1,List.of(CraftInput.of("P"+(i-1),1)));
             var graph = b.build();
-            var result = assertTimeoutPreemptively(Duration.ofSeconds(3), () -> CpSatRankedFlowSolver.solve(graph,"P999",n));
+            var result = assertTimeoutPreemptively(Duration.ofSeconds(3), () -> CpSatRankedFlowSolver.solve(graph,"P999",n), kind);
             assertEquals(CpSatRankedFlowSolver.Status.SOLVED,result.status(),kind);
             assertTrue(result.plan().feasible(),kind);
             assertEquals(n,result.plan().firings().get(graph.patternsFor("P999").get(0)),kind);

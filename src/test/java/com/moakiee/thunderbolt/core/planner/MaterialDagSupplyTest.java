@@ -133,15 +133,19 @@ class MaterialDagSupplyTest {
             for (long n : new long[] {1, 1_000_000_000_000L}) {
                 for (long shortage : new long[] {0, 1}) {
                     var graph = stockedBranches(branches, n, false, true, shortage);
-                    var plan = assertTimeoutPreemptively(Duration.ofSeconds(3),
-                            () -> CraftPlannerV2.plan(graph, "T", n));
-                    assertEquals(shortage == 0, plan.feasible());
-                    assertEquals(shortage == 0 ? Map.of() : Map.of("raw", shortage), plan.missing());
+                    var result = assertTimeoutPreemptively(Duration.ofSeconds(3),
+                            () -> CraftPlannerV2.planDetailed(graph, "T", n));
+                    var plan = result.plan();
+                    var context = "branches=" + branches + " n=" + n + " shortage=" + shortage
+                            + " diagnostics=" + result.diagnostics();
+                    assertEquals(shortage == 0, plan.feasible(), context);
+                    assertEquals(shortage == 0 ? Map.of() : Map.of("raw", shortage), plan.missing(), context);
                     assertStockIsPhysical(graph, plan);
                     var stocked = graph.withAdditionalStock(plan.missing());
                     var ready = assertTimeoutPreemptively(Duration.ofSeconds(3),
                             () -> CraftPlannerV2.plan(stocked, "T", n));
-                    assertTrue(ready.feasible());
+                    assertTrue(ready.feasible(), () -> "branches=" + branches + " n=" + n
+                            + " shortage=" + shortage + " missing=" + ready.missing());
                     assertStockIsPhysical(stocked, ready);
                 }
             }
@@ -149,11 +153,67 @@ class MaterialDagSupplyTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void expiredIndependentProposalReportsCutoffAndKeepsAReplenishableFallback() throws Exception {
+        var field = PlanningCancellation.class.getDeclaredField("OPTIONAL_DEADLINE");
+        field.setAccessible(true);
+        var deadline = (ThreadLocal<Long>) field.get(null);
+        var expired = new java.util.concurrent.atomic.AtomicBoolean();
+        var graph = stockedBranches(256, 1, false, true, 1);
+        var context = new com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext() {
+            @Override public long deadlineNanos() { return Long.MAX_VALUE; }
+            @Override public void report(com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot snapshot) {}
+            @Override public void checkpoint() {
+                if (expired.get() || deadline.get() == null) return;
+                if (StackWalker.getInstance().walk(frames -> frames.anyMatch(frame ->
+                        frame.getClassName().equals(CraftPlannerV2.class.getName())
+                                && frame.getMethodName().equals("tryIndependentRawStock")))) {
+                    expired.set(true);
+                    deadline.set(System.nanoTime() - 1L);
+                }
+            }
+        };
+        PlanningResult<String> result;
+        try (var ignored = PlanningCancellation.bind(context)) {
+            result = CraftPlannerV2.planDetailed(graph, "T", 1);
+        }
+        assertTrue(expired.get(), "the original shared-raw proposal path must be reached");
+        assertFalse(result.plan().feasible());
+        assertTrue(result.plan().budgetExhausted(), "a timed-out proposal is not a completed shortage search");
+        assertTrue(result.diagnostics().lowWidthCutoffs() > 0);
+        assertStockIsPhysical(graph, result.plan());
+        var stocked = graph.withAdditionalStock(result.plan().missing());
+        var ready = CraftPlannerV2.plan(stocked, "T", 1);
+        assertTrue(ready.feasible());
+        assertStockIsPhysical(stocked, ready);
+        assertDoesNotThrow(PlanningCancellation::check);
+    }
+
+    @org.junit.jupiter.api.RepeatedTest(3)
+    void freshSharedRawIdentitiesKeepShortageAndReplanningStable() {
+        for (long shortage : new long[] {0, 1}) {
+            var graph = stockedBranches(1024, 1, false, true, shortage);
+            var first = assertTimeoutPreemptively(Duration.ofSeconds(3),
+                    () -> CraftPlannerV2.planDetailed(graph, "T", 1));
+            assertEquals(shortage == 0 ? Map.of() : Map.of("raw", 1L), first.plan().missing(),
+                    () -> first.diagnostics().toString());
+            assertFalse(first.plan().budgetExhausted(), () -> first.diagnostics().toString());
+            assertStockIsPhysical(graph, first.plan());
+            var supplied = graph.withAdditionalStock(first.plan().missing());
+            var ready = assertTimeoutPreemptively(Duration.ofSeconds(3), () -> CraftPlannerV2.plan(supplied, "T", 1));
+            assertTrue(ready.feasible(), () -> "missing=" + ready.missing());
+            assertFalse(ready.budgetExhausted());
+            assertStockIsPhysical(supplied, ready);
+        }
+    }
+
+    @Test
     void sharedRawStockMustAlsoPayForTheRootOutsideTheLocalModels() {
         var graph = stockedBranches(64, 1, false, true, 0, 1);
-        var plan = CraftPlannerV2.plan(graph, "T", 1);
+        var result = CraftPlannerV2.planDetailed(graph, "T", 1);
+        var plan = result.plan();
         assertFalse(plan.feasible());
-        assertEquals(Map.of("raw", 1L), plan.missing());
+        assertEquals(Map.of("raw", 1L), plan.missing(), () -> result.diagnostics().toString());
         assertStockIsPhysical(graph, plan);
         assertTrue(CraftPlannerV2.plan(graph.withAdditionalStock(plan.missing()), "T", 1).feasible());
     }

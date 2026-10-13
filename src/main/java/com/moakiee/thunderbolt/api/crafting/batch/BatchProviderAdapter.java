@@ -6,17 +6,10 @@ import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 
 /**
- * Per-dispatch adapter for optional provider APIs.
- *
- * <p>Register shared integrations with {@link BatchProviderAdapters}, or pass a private adapter
- * explicitly to the executor. Omitting the argument or passing {@code null} uses the global
- * registry; a non-null adapter replaces global lookup for that call. Native providers take
- * precedence in either case. Returning null declines the provider without taking ownership.</p>
- *
- * <p>Pattern/job-dependent adapters are evaluated on every dispatch. Implement
- * {@link BatchProviderResolver} for context-free capability resolution that can be cached
- * within a CPU tick, or across ticks when explicitly opted in. Never cache a job-bound provider
- * wrapper across jobs.</p>
+ * Per-dispatch adaptation; null declines without transferring ownership. Native providers win.
+ * Use {@link BatchProviderAdapters} for global registration; an explicit non-null adapter replaces
+ * global lookup for that call. Implement {@link BatchProviderResolver} only for context-free,
+ * cacheable resolution. Never cache a job-bound wrapper across jobs.
  */
 @FunctionalInterface
 public interface BatchProviderAdapter {

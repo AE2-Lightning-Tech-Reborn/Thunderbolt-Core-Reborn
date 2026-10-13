@@ -245,7 +245,16 @@ class DirectRawConsumablesIndexTest {
         }
         var indexField = CraftPlannerV2.class.getDeclaredField("directRawConsumablesByPattern");
         indexField.setAccessible(true);
-        return (Map<CraftPattern<K>, Map<K, Long>>) indexField.get(planner);
+        var actual = (Map<CraftPattern<K>, Map<K, Long>>) indexField.get(planner);
+        var lazyMethod = CraftPlannerV2.class.getDeclaredMethod("directRawConsumables", CraftPattern.class);
+        lazyMethod.setAccessible(true);
+        for (var patterns : selected.values()) {
+            for (var pattern : patterns) {
+                assertEquals(actual.getOrDefault(pattern, Map.of()), lazyMethod.invoke(planner, pattern),
+                        "lazy and full indexes must use the same selected producer lists");
+            }
+        }
+        return actual;
     }
 
     /** Equal-but-distinct and colliding keys exercise equality without depending on hash order. */

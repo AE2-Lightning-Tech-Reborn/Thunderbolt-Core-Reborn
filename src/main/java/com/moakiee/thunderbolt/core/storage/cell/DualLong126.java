@@ -34,10 +34,7 @@ public final class DualLong126 {
         return hi > 0 ? Long.MAX_VALUE : lo;
     }
 
-    // ══════════════════════════════════════════════════════════════════════
     //  Cold-path helpers  (load / rebuild only)
-    // ══════════════════════════════════════════════════════════════════════
-
     /**
      * {@code (hi × 2^63 + lo) mod d}.
      * <p>

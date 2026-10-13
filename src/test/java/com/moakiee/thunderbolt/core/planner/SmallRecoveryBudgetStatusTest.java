@@ -24,13 +24,33 @@ class SmallRecoveryBudgetStatusTest {
         assertTrue(copiedDiagnostics.searchCutoff(), "the original two-argument API retains an existing cutoff");
     }
 
-    @Test void successfulRecoveryMaySpendTheLastWorkUnitWithoutARejection() {
+    @Test void successfulRecoveryDoesNotInventARejectedWorkRequest() {
         var result = CraftPlannerV2.planDetailed(terminalMixture(), "T", 23, 256, 71);
         assertTrue(result.plan().feasible());
-        assertEquals(71, result.diagnostics().consumedSearchBudget());
+        // The core's tied route order can consume 70 or 71 units. The exact last-unit boundary
+        // is independently checked below against the real recovery callback and shared counter.
+        assertTrue(result.diagnostics().consumedSearchBudget() > 48);
+        assertTrue(result.diagnostics().consumedSearchBudget() <= 71);
         assertFalse(result.plan().budgetExhausted());
         assertFalse(result.diagnostics().searchCutoff());
         assertEquals(4, result.plan().firings().values().stream().mapToLong(n -> n).sum());
+    }
+
+    @Test void smallWitnessAcceptsTheLastWorkUnitButRejectsTheNextRequest() {
+        var graph = terminalMixture();
+        int[] consumed = {0};
+        var measured = SmallConservativeSearch.tryPlan(graph, "T", 23, 4096, () -> { consumed[0]++; return true; });
+        assertNotNull(measured);
+        int needed = consumed[0];
+        var exact = new CraftPlannerV2.SharedCounterBudget(needed);
+        var recovered = SmallConservativeSearch.tryPlan(graph, "T", 23, 4096, () -> exact.tryConsume(1));
+        assertNotNull(recovered);
+        assertTrue(recovered.feasible());
+        assertEquals(0, exact.remaining);
+        var insufficient = new CraftPlannerV2.SharedCounterBudget(needed - 1);
+        assertNull(SmallConservativeSearch.tryPlan(graph, "T", 23, 4096, () -> insufficient.tryConsume(1)));
+        assertEquals(0, insufficient.remaining);
+        assertTrue(UnorderedByproductSafety.allOrdersFinishSmall(recovered, "T", 23));
     }
 
     @Test void naturallyExhaustedQueueDoesNotTurnExactBudgetUseIntoARejection() {

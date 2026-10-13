@@ -38,9 +38,11 @@ class FeasiblePolicyAlternativesTest {
             assertEquals(8, executions(initial));
             assertEquals(Map.of("ore", 1L, "dust", 1L), initial.usedStock());
 
-            var result = CraftPlannerV2.plan(graph, "machine", 2);
+            var detailed = CraftPlannerV2.planDetailed(graph, "machine", 2);
+            var result = detailed.plan();
             // One six-wire batch supplies both plates and coils: 1 + 2 + 2 + 2 firings.
-            assertEquals(7, executions(result));
+            assertEquals(7, executions(result), () -> "reversed=" + reversed + " diagnostics="
+                    + detailed.diagnostics() + " trace=" + FeasibleConsumptionOptimizer.LAST_TRACE.get());
             assertEquals(Map.of("ore", 2L), result.usedStock());
             assertExecutable(graph, result, 2);
         }
