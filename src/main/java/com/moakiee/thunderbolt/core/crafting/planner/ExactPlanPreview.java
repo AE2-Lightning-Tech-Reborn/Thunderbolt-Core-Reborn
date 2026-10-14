@@ -95,7 +95,7 @@ final class ExactPlanPreview {
         // No executable pattern counts cross this boundary. simulation=true also blocks native
         // auto-start, and the exact attachment is checked at the server submission boundary.
         var projection = new CraftingPlan(new GenericStack(output, amount), ExactPlanReport.project(bytes),
-                true, multiplePaths, project(used), new KeyCounter(), project(missing), Map.of());
+                true, multiplePaths, project(used), new KeyCounter(), project(missing), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>());
         ExactPlanReports.attach(projection, new ExactPlanReport(bytes, entries, plan.incomplete()));
         return projection;
     }

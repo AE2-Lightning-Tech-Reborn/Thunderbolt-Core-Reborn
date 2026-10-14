@@ -6,7 +6,6 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "thunderbolt.refmap.json",
   "mixins": [
-    "ae2.crafting.CraftingCalculationMixin",
     "ae2.crafting.CraftConfirmMenuMixin",
     "ae2.crafting.MenuTypeBuilderMixin",
     "ae2.crafting.ExactCraftConfirmPacketMixin",
@@ -23,20 +22,17 @@
     "ae2.channel.GridGetMachineNodesMixin",
     "ae2.channel.GridNodeMaxChannelsMixin",
     "ae2.channel.PathingCalculationCapMixin",
-    "ae2.crafting.CraftingCpuLogicBatchMixin",
     "compat.advancedae.AdvCraftingCpuLogicBatchMixin",
-    "ae2.crafting.CraftingCpuLogicAccessor",
     "compat.advancedae.AdvCraftingCpuAccessor",
     "compat.appliede.AppliedETransmutationModuleBatchMixin",
-    "ae2.crafting.ExecutingCraftingJobAccessor",
-    "ae2.crafting.ElapsedTimeTrackerAccessor",
-    "ae2.crafting.TaskProgressAccessor",
     "compat.advancedae.AaeExecutingCraftingJobAccessor",
     "compat.advancedae.AaeElapsedTimeTrackerAccessor",
     "compat.advancedae.AaeTaskProgressAccessor",
     "ae2.crafting.ExtendedCraftingCpuInsertMixin",
     "ae2.storage.NetworkBigStorageMixin",
-    "ae2.storage.DriveBigStorageMixin"
+    "ae2.storage.DriveBigStorageMixin",
+    "compat.gto.GtoCraftingPlannerMixin",
+    "ae2.storage.GtoStorageMountAccessor"
   ],
   "client": [
     "ae2.client.CraftConfirmScreenMixin",

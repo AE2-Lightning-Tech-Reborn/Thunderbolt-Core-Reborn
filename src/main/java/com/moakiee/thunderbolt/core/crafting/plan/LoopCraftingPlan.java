@@ -390,7 +390,7 @@ public record LoopCraftingPlan(
     }
 
     @Override
-    public Map<IPatternDetails, Long> patternTimes() {
+    public it.unimi.dsi.fastutil.objects.Object2LongMap<IPatternDetails> patternTimes() {
         return delegate.patternTimes();
     }
 

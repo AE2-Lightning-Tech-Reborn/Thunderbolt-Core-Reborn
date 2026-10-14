@@ -37,7 +37,7 @@ public final class CraftingPlanSummaryAdapter {
                 copyCounter(plan.usedItems()),
                 copyCounter(plan.emittedItems()),
                 copyCounter(plan.missingItems()),
-                Map.copyOf(plan.patternTimes()));
+                it.unimi.dsi.fastutil.objects.Object2LongMaps.unmodifiable(new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(plan.patternTimes())));
     }
 
     private static KeyCounter copyCounter(KeyCounter source) {

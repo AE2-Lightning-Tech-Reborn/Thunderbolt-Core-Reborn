@@ -29,8 +29,8 @@ import appeng.api.stacks.KeyCounter;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import appeng.crafting.CraftingPlan;
-import appeng.crafting.inv.ChildCraftingSimulationState;
-import appeng.crafting.inv.CraftingSimulationState;
+import com.moakiee.thunderbolt.compat.gto.inv.ChildCraftingSimulationState;
+import com.moakiee.thunderbolt.compat.gto.inv.CraftingSimulationState;
 import appeng.crafting.pattern.AECraftingPattern;
 
 import com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot;
@@ -1461,7 +1461,7 @@ public final class FastCraftingPlanner {
                 usedItems,
                 emittedItems,
                 missingItems,
-                patternTimes);
+                new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(patternTimes));
         return result;
     }
 

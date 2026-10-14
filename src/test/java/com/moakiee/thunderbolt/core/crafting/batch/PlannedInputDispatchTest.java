@@ -391,6 +391,8 @@ class PlannedInputDispatchTest {
     }
     private static final class TestKey extends AEKey {
         private static final TestKeyType TYPE = new TestKeyType();
+        private static final java.util.Map<String, TestKey> INTERNED = new java.util.HashMap<>();
+        @Override public int getUid() { return primaryId.hashCode(); }
         private final String primaryId;
         private final String id;
 
@@ -401,6 +403,7 @@ class PlannedInputDispatchTest {
         private TestKey(String primaryId, String id) {
             this.primaryId = primaryId.intern();
             this.id = id;
+            INTERNED.put(primaryId + ":" + id, this);
         }
 
         @Override
@@ -465,7 +468,7 @@ class PlannedInputDispatchTest {
         }
 
 
-        @Override public AEKey loadKeyFromTag(CompoundTag tag) { return new TestKey(tag.getString("primary"), tag.getString("id")); }
+        @Override public AEKey loadKeyFromTag(CompoundTag tag) { return TestKey.INTERNED.get(tag.getString("primary") + ":" + tag.getString("id")); }
 
         @Override
         public AEKey readFromPacket(FriendlyByteBuf input) {

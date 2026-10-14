@@ -47,51 +47,14 @@ class PlannerPackageBoundaryTest {
     }
 
     @Test
-    void craftingCalculationKeepsVanillaNativeAndIsolatesEngines() throws Exception {
+    void gtoCalculationRetainsNativeTaskAndIsolatesEngines() throws Exception {
         var source = Files.readString(Path.of(
-                "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/"
-                        + "CraftingCalculationMixin.java"));
-
-        int vanillaBranch = source.indexOf(
-                "if (choice.kind() == PlanningChoice.Kind.VANILLA)");
-        int isolatedExecution = source.indexOf("PlanningCandidateExecutor.execute(");
-        assertTrue(vanillaBranch >= 0);
-        assertTrue(source.contains("ICraftingPlan result = original.call(instance);"));
-        assertTrue(isolatedExecution > vanillaBranch,
-                "vanilla must return through AE2 before engine isolation begins");
-        var vanillaSource = source.substring(vanillaBranch, isolatedExecution);
-        assertTrue(vanillaSource.contains("if (result == null)"));
-        assertTrue(vanillaSource.contains("thunderbolt$declinedEngines.incrementAndGet();"));
-        assertTrue(vanillaSource.contains("break;"),
-                "a declined terminal vanilla candidate must reach ALL_FAILED");
-        assertFalse(vanillaSource.contains("throw new PlanningCandidateDeclinedException()"));
-        assertFalse(source.contains("thunderbolt$runVanillaCandidate"));
+                "src/main/java/com/moakiee/thunderbolt/compat/gto/GtoPlanningCalculation.java"));
+        assertTrue(source.contains("return nativeCalculation.call();"));
+        assertTrue(source.contains("PlanningCandidateExecutor.execute("));
         assertTrue(source.contains("try (session)"));
-        assertFalse(source.contains("PlanningAttemptMonitor.start("));
-    }
-
-    @Test
-    void candidateWaitingChecksOnceAndHandsTheTickBackImmediately() throws Exception {
-        var executor = Files.readString(Path.of(
-                "src/main/java/com/moakiee/thunderbolt/core/crafting/algorithm/"
-                        + "PlanningCandidateExecutor.java"));
-        var mixin = Files.readString(Path.of(
-                "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/"
-                        + "CraftingCalculationMixin.java"));
-
-        assertTrue(executor.contains("if (!result.isDone())"));
-        assertFalse(executor.contains("POLL_MS"));
-        assertFalse(executor.contains("get(POLL_MS"));
-        assertTrue(mixin.contains("this::thunderbolt$pauseUntilNextTick"));
-        assertTrue(mixin.contains("running = false;"));
-        assertTrue(mixin.contains("monitor.notify();"));
-        assertTrue(mixin.contains("while (!running)"));
-        assertFalse(mixin.contains("handlePausing()"));
-        assertFalse(executor.contains("ThreadLocal<"));
-        assertTrue(mixin.contains("method = \"handlePausing\""));
-        assertTrue(mixin.contains("PlanningCandidateExecutor.checkpointCandidateThread()"));
-        assertTrue(executor.contains("PlanningCancellation.checkpointIfBound()"));
-        assertTrue(mixin.contains("ci.cancel()"));
+        assertFalse(source.contains("com.gtolib"));
+        assertTrue(source.contains("Thread.currentThread().isInterrupted()"));
     }
 
     @Test

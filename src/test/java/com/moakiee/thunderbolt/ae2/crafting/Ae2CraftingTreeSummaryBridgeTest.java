@@ -23,7 +23,7 @@ class Ae2CraftingTreeSummaryBridgeTest {
     private static CraftingPlan plan() {
         return new CraftingPlan(
                 null, 1, false, false,
-                new KeyCounter(), new KeyCounter(), new KeyCounter(), Map.of());
+                new KeyCounter(), new KeyCounter(), new KeyCounter(), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of()));
     }
 
     private static final class CurrentSummary

@@ -317,11 +317,11 @@ public final class ParallelBatchCpuHelper {
                         slotInventory, template, remainingMultiplier);
                 if (extracted <= 0) continue;
 
-                holder.add(template.key(), saturatingMultiply(extracted, template.amount()));
-                var remaining = input.getRemainingKey(template.key());
+                holder.add(template.what(), saturatingMultiply(extracted, template.amount()));
+                var remaining = input.getRemainingKey(template.what());
                 if (remaining != null) {
                     boolean shared = allowSharedInputs
-                            && SharedBatchInputs.isSharedInput(details, slot, template.key());
+                            && SharedBatchInputs.isSharedInput(details, slot, template.what());
                     remainders.add(new RemainderSpec(remaining, extracted, shared));
                 }
                 remainingMultiplier -= extracted;

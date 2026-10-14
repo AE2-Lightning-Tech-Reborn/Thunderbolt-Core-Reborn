@@ -26,7 +26,7 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.crafting.CraftingPlan;
-import appeng.crafting.inv.ChildCraftingSimulationState;
+import com.moakiee.thunderbolt.compat.gto.inv.ChildCraftingSimulationState;
 import appeng.crafting.inv.ICraftingInventory;
 
 import com.moakiee.thunderbolt.core.crafting.pattern.CraftingStockPolicy;

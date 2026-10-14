@@ -21,6 +21,6 @@ public final class PlanningFailurePlans {
                 new KeyCounter(),
                 new KeyCounter(),
                 new KeyCounter(),
-                Map.of());
+                it.unimi.dsi.fastutil.objects.Object2LongMaps.emptyMap());
     }
 }

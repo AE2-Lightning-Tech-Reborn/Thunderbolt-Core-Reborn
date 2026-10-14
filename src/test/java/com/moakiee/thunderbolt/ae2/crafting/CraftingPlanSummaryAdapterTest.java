@@ -42,7 +42,7 @@ class CraftingPlanSummaryAdapterTest {
         var emitted = new KeyCounter();
         var missing = new KeyCounter();
         ICraftingPlan thirdPartyPlan = new ThirdPartyPlan(
-                null, 48, true, true, used, emitted, missing, Map.of());
+                null, 48, true, true, used, emitted, missing, new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of()));
 
         CraftingPlan adapted = CraftingPlanSummaryAdapter.adapt(thirdPartyPlan);
 
@@ -63,8 +63,7 @@ class CraftingPlanSummaryAdapterTest {
                 multiplePaths,
                 new KeyCounter(),
                 new KeyCounter(),
-                new KeyCounter(),
-                Map.of());
+                new KeyCounter(), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of()));
     }
 
     private record ThirdPartyPlan(
@@ -75,6 +74,6 @@ class CraftingPlanSummaryAdapterTest {
             KeyCounter usedItems,
             KeyCounter emittedItems,
             KeyCounter missingItems,
-            Map<IPatternDetails, Long> patternTimes) implements ICraftingPlan {
+            it.unimi.dsi.fastutil.objects.Object2LongMap<IPatternDetails> patternTimes) implements ICraftingPlan {
     }
 }

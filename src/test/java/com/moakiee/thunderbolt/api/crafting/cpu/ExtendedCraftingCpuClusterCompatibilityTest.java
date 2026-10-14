@@ -39,13 +39,13 @@ class ExtendedCraftingCpuClusterCompatibilityTest {
     private static CraftingPlan nativePlan() {
         return new CraftingPlan(
                 null, 1, false, false,
-                new KeyCounter(), new KeyCounter(), new KeyCounter(), Map.of());
+                new KeyCounter(), new KeyCounter(), new KeyCounter(), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of()));
     }
 
     private static ICraftingPlan thirdPartyPlan() {
         return new ThirdPartyPlan(
                 null, 1, false, false,
-                new KeyCounter(), new KeyCounter(), new KeyCounter(), Map.of());
+                new KeyCounter(), new KeyCounter(), new KeyCounter(), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of()));
     }
 
     private record ThirdPartyPlan(
@@ -56,6 +56,6 @@ class ExtendedCraftingCpuClusterCompatibilityTest {
             KeyCounter usedItems,
             KeyCounter emittedItems,
             KeyCounter missingItems,
-            Map<IPatternDetails, Long> patternTimes) implements ICraftingPlan {
+            it.unimi.dsi.fastutil.objects.Object2LongMap<IPatternDetails> patternTimes) implements ICraftingPlan {
     }
 }

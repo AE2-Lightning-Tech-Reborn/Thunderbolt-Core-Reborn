@@ -36,7 +36,6 @@ import appeng.api.networking.crafting.UnsuitableCpus;
 import appeng.api.networking.energy.IEnergyService;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
-import appeng.crafting.CraftingCalculation;
 import appeng.crafting.CraftingLink;
 import appeng.crafting.CraftingPlan;
 import appeng.crafting.execution.CraftingSubmitResult;
@@ -74,7 +73,7 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
 
     @Shadow
     @Final
-    private Set<AEKey> currentlyCrafting;
+    private appeng.api.stacks.AEKeySet<AEKey> currentlyCrafting;
 
     @Shadow
     private boolean updateList;
@@ -84,24 +83,6 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
 
     @Shadow
     public abstract void addLink(CraftingLink link);
-
-    @Inject(
-            method = "beginCraftingCalculation",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Ljava/util/concurrent/ExecutorService;submit(Ljava/util/concurrent/Callable;)Ljava/util/concurrent/Future;",
-                    shift = At.Shift.BEFORE))
-    private void thunderbolt$configurePlanningSelection(Level level,
-                                                               ICraftingSimulationRequester simRequester,
-                                                               AEKey what,
-                                                               long amount,
-                                                               CalculationStrategy strategy,
-                                                               CallbackInfoReturnable<Future<ICraftingPlan>> cir,
-                                                               @Local CraftingCalculation job) {
-        var planning = grid.getService(ICraftingPlanningService.class);
-        ((CraftingPlanningControl) job).thunderbolt$configurePlanning(
-                planning.resolve(), grid);
-    }
 
     @Inject(
             method = "onServerEndTick",

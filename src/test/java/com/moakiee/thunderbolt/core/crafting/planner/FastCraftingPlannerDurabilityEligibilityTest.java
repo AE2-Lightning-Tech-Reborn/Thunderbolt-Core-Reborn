@@ -43,7 +43,7 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.AEKeyFilter;
-import appeng.crafting.inv.ChildCraftingSimulationState;
+import com.moakiee.thunderbolt.compat.gto.inv.ChildCraftingSimulationState;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.crafting.pattern.AECraftingPattern;
 
@@ -415,6 +415,10 @@ class FastCraftingPlannerDurabilityEligibilityTest {
     }
 
     private static final class FakeCraftingService implements ICraftingService {
+        @Override public appeng.me.service.helpers.NetworkCraftingProviders getCraftingProviders() {
+            throw new UnsupportedOperationException("test service supplies explicit patterns");
+        }
+
         private final Map<AEKey, List<IPatternDetails>> patterns = new LinkedHashMap<>();
         private final Set<AEKey> craftables = new java.util.LinkedHashSet<>();
 

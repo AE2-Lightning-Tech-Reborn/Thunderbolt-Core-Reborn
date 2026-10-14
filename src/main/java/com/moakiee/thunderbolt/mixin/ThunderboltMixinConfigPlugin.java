@@ -28,6 +28,8 @@ public final class ThunderboltMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        // LeanObject replaces CompoundTag.copy entirely; its own copy path is authoritative.
+        if ((mixinClassName.endsWith(".CompoundTagCopyMixin") || mixinClassName.endsWith(".ListTagCopyMixin")) && isModLoaded("leanobject")) return false;
         boolean apply = OptionalMixinSelector.shouldApply(
                 mixinClassName, ThunderboltMixinConfigPlugin::isModLoaded);
         LOGGER.debug("Mixin select: {} -> {} : {}", mixinClassName, targetClassName, apply);

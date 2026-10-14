@@ -26,7 +26,7 @@ tasks.register('printProjectVersion') {
     }
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 sourceSets.create('gameTest') {
     compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
@@ -142,9 +142,8 @@ jar {
     manifest {
         attributes 'MixinConfigs': "${mod_id}.mixins.json"
     }
-    from('LICENSE') {
-        into 'META-INF'
-    }
+    from('LICENSE') { into 'META-INF' }
+    from('THIRD_PARTY_NOTICES.md') { into 'META-INF' }
     // Processed resources and MixinGradle can add the same refmap twice.
     filesMatching("${mod_id}.refmap.json") {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -154,12 +153,15 @@ jar {
 tasks.named('jarJar', Jar) {
     archiveClassifier = ''
 
-    from('LICENSE') {
-        into 'META-INF'
-    }
+    from('LICENSE') { into 'META-INF' }
+    from('THIRD_PARTY_NOTICES.md') { into 'META-INF' }
 }
 
 repositories {
+    maven {
+        url = 'https://gtodyssey.com/maven/releases'
+        content { includeGroup 'appeng'; includeGroup 'com.gto.fastcollection' }
+    }
     mavenLocal()
     mavenCentral()
     // Forge/MCP 工具链依赖（accesstransformers 等）通过项目仓库解析。
@@ -237,8 +239,9 @@ dependencies {
     // AE2 is provided by the modpack in production, but ForgeGradle development runs still
     // need it on their runtime classpath so client/server smoke tests exercise the real mod.
     // `runtimeOnly` does not bundle AE2 into the published Thunderbolt jar.
-    compileOnly "appeng:appliedenergistics2-forge:${ae2_version}"
-    runtimeOnly fg.deobf("appeng:appliedenergistics2-forge:${ae2_version}")
+    compileOnly fg.deobf("appeng:appliedenergistics2-forge-1.20.1:${ae2_version}")
+    implementation "com.gto.fastcollection:FastCollection:26.8.7"
+    runtimeOnly fg.deobf("appeng:appliedenergistics2-forge-1.20.1:${ae2_version}")
     // The ModMaven AE2 artifact has no transitive POM metadata, so its mandatory
     // GuideME dependency must be declared explicitly for development launches.
     runtimeOnly fg.deobf("org.appliedenergistics:guideme:${guideme_version}")
@@ -353,7 +356,7 @@ tasks.register('optimizationBenchmark', JavaExec) {
     description = 'Runs opt-in planner and batch-dispatch allocation benchmarks in a separate JVM.'
     dependsOn 'testClasses'
     mainClass = 'com.moakiee.thunderbolt.core.OptimizationBenchmark'
-    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
     def baseline = providers.gradleProperty('optimizationBaseline').getOrElse('false').toBoolean()
     classpath = baseline
             ? files(layout.buildDirectory.dir('optimization-baseline/classes')) + sourceSets.test.runtimeClasspath
@@ -442,4 +445,17 @@ if (plugins.hasPlugin('idea')) {
             downloadJavadoc = true
         }
     }
+}
+
+// JUnit has no ModLauncher: apply the actual AE2-GTO identity mixins to its test JVM only.
+// This fixture is not included in either production artifact.
+def gtoTestAgent = tasks.register('gtoTestAgent', Jar) {
+    dependsOn tasks.named('testClasses')
+    archiveClassifier = 'gto-test-agent'
+    from(sourceSets.test.output) { include 'com/moakiee/gtotest/GtoTestMixinAgent*.class' }
+    manifest { attributes 'Premain-Class': 'com.moakiee.gtotest.GtoTestMixinAgent' }
+}
+tasks.withType(Test).configureEach {
+    dependsOn gtoTestAgent
+    doFirst { jvmArgs "-javaagent:${gtoTestAgent.get().archiveFile.get().asFile}" }
 }

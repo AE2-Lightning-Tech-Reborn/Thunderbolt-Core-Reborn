@@ -57,8 +57,7 @@ class ThunderboltCraftingPlanSummaryTest {
                 false,
                 used,
                 new KeyCounter(),
-                missing,
-                Map.of());
+                missing, new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of()));
 
         var summary = ThunderboltCraftingPlanSummary.fromPlan(plan);
 
@@ -83,8 +82,7 @@ class ThunderboltCraftingPlanSummaryTest {
                 false,
                 used,
                 new KeyCounter(),
-                new KeyCounter(),
-                Map.of());
+                new KeyCounter(), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of()));
 
         var entry = ThunderboltCraftingPlanSummary.fromPlan(plan).getEntries().get(0);
 
@@ -106,8 +104,7 @@ class ThunderboltCraftingPlanSummaryTest {
                 false,
                 used,
                 emitted,
-                new KeyCounter(),
-                Map.of(pattern, 5L));
+                new KeyCounter(), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of(pattern, 5L)));
 
         var summary = ThunderboltCraftingPlanSummary.fromPlan(plan);
 

@@ -22,9 +22,9 @@ class PortMetadataContractTest {
             properties.load(reader);
         }
 
-        // Baseline synced with AE2 15.4.10 (AE2 declares forge [47.1.3,)).
-        assertEquals("[47.1.3,)", properties.getProperty("forge_version_range"));
-        assertEquals("[15.4.10,16.0.0)", properties.getProperty("ae2_version_range"));
+        // Baseline synced with GTO 0.6.0 (AE2 declares forge [47.4.20,)).
+        assertEquals("[47.4.20,)", properties.getProperty("forge_version_range"));
+        assertEquals("[15.2610.8]", properties.getProperty("ae2_version_range"));
     }
 
     @Test

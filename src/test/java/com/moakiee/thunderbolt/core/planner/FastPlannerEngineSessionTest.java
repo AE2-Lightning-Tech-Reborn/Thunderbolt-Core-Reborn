@@ -40,7 +40,7 @@ class FastPlannerEngineSessionTest {
         // Equal records must still retain independent metadata from their respective probes.
         var second = new CraftingPlan(
                 first.finalOutput(), first.bytes(), first.simulation(), first.multiplePaths(),
-                first.usedItems(), first.emittedItems(), first.missingItems(), first.patternTimes());
+                first.usedItems(), first.emittedItems(), first.missingItems(), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(first.patternTimes()));
         assertEquals(first, second);
         var context = new Context();
         try (var session = new FastPlannerEngineSession((amount, simulate) -> {
@@ -146,7 +146,7 @@ class FastPlannerEngineSessionTest {
 
     private static CraftingPlan plan(boolean simulation) {
         return new CraftingPlan(null, 1L, simulation, false,
-                new KeyCounter(), new KeyCounter(), new KeyCounter(), Map.of());
+                new KeyCounter(), new KeyCounter(), new KeyCounter(), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of()));
     }
 
     private static final class Context implements PlanningAttemptContext {

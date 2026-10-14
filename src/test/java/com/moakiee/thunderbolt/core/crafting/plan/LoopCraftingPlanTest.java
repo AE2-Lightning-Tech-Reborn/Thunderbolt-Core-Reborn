@@ -39,7 +39,7 @@ class LoopCraftingPlanTest {
         var pattern = new TestLoopPattern(seed, acceptedHost);
         var delegate = new CraftingPlan(
                 new GenericStack(seed, 1L), 0L, false, false,
-                new KeyCounter(), new KeyCounter(), new KeyCounter(), Map.of(pattern, 1L));
+                new KeyCounter(), new KeyCounter(), new KeyCounter(), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of(pattern, 1L)));
 
         var wrapped = (LoopCraftingPlan) LoopCraftingPlan.wrapIfNeeded(delegate);
 
