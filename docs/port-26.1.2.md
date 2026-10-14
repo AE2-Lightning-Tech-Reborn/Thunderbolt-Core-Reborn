@@ -30,3 +30,5 @@ LT 调度性能结果见 LT 的移植说明，保持原验收门槛。
 AdvancedAE 接口已核对远端 `main` 的 `5ad43ee1e5f7`，使用实际 `tickCraftingLogic` 与批次提供器签名。未移植缺少对应版本的 UselessMod 兼容，也未恢复已不匹配当前运行版本的旧 NeoEco 批次接口。
 
 本次 `check jar` 通过；FML 测试共 59 项，58 项通过，1 项跳过。LT 的 CPU GameTest 联合加载此核心、AE2、AdvancedAE、ExtendedAE 和 Applied Flux，25 项必需测试全部通过。
+
+2026-10-14 重新获取远端后，alpha 仍为 `0ed711d`，公共规划器与批次执行无新增待移植功能。与 alpha 的保留差异为 26.1.2 API 适配及此前跳过的可选兼容；SorrowMist/UselessMod 远端仍无 26.1.2 分支。Java 25 / NeoForge 26.1.2.109 下重新执行 `check jar` 成功，常规测试结果 1207 项通过（Gradle 复用缓存）；未重复运行 FML 专项。
