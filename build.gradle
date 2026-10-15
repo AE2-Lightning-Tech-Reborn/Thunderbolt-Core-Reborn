@@ -276,6 +276,10 @@ test {
     if (!batchTestMods.isEmpty()) {
         classpath += files(batchTestMods.split(java.io.File.pathSeparator))
     }
+    def neoEcoProtocolPath = providers.gradleProperty('neoecoProtocolPath').getOrElse('').trim()
+    if (!neoEcoProtocolPath.isEmpty()) {
+        systemProperty 'thunderbolt.neoecoProtocolPath', neoEcoProtocolPath
+    }
     testLogging {
         events "passed", "skipped", "failed"
     }

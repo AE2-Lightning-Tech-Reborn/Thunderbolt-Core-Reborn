@@ -29,6 +29,8 @@ public final class NeoEcoFastPathCompat {
     }
 
     static @Nullable BatchProviderAdapter loadAdapter(ClassLoader loader) {
+        var forgeApi = NeoEcoBatchApi.load(loader);
+        if (forgeApi != null) return new NeoEcoBatchAdapter(forgeApi);
         try {
             // Validate lazy API references before registration; older releases use ordinary dispatch.
             Class.forName("cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider", false, loader);
