@@ -318,14 +318,17 @@ public abstract class ExtendedCraftingCpuServiceMixin {
         }
     }
 
-    @Inject(method = "getRequestedAmount", at = @At("RETURN"), cancellable = true, order = 1500)
-    private void thunderbolt$getExtendedRequestedAmount(AEKey what, CallbackInfoReturnable<Long> cir) {
-        long requested = cir.getReturnValue();
+    @Inject(method = "getRequestedAmount",
+            at = @At(value = "RETURN", shift = At.Shift.BY, by = -1), order = 1500)
+    private void thunderbolt$getExtendedRequestedAmount(AEKey what, CallbackInfoReturnable<Long> cir,
+            @Local(ordinal = 0) LocalLongRef requestedRef) {
+        // AdvancedAE's cancellable RETURN callback reads this same native accumulator.
+        long requested = requestedRef.get();
         for (var cluster : thunderbolt$getExtendedCpuClusters()) {
             long addition = cluster.getRequestedAmount(what);
             requested = requested >= Long.MAX_VALUE - addition ? Long.MAX_VALUE : requested + addition;
         }
-        cir.setReturnValue(requested);
+        requestedRef.set(requested);
     }
 
     @Inject(method = "hasCpu", at = @At("HEAD"), cancellable = true)
