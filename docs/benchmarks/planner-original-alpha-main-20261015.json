@@ -1,0 +1,2401 @@
+{
+  "scope": "Original alpha 4b59ae7 and main bfb53ac before this conversation, compared with current first-principles candidate; full four AW v3 graphs and original 192 query manifests, not all producible targets.",
+  "protocol": "For each dataset: original alpha, candidate, candidate, original main; fresh single-processor JVM per arm; one complete warmup then one formal pass. Old planner classes are byte-identical; each old branch has one formal sample per query, their shared implementation has two; candidate has two.",
+  "measurement": "Planning-call time and cumulative planning-thread allocation only; excludes input normalization, graph construction, and independent replay. Allocation is not peak heap, retained memory, or RSS.",
+  "variants": {
+    "original-alpha": {
+      "commit": "4b59ae736f1c0a13a007b57c7b6ad87ca8e0d210",
+      "sourceSha256": "a8ca7688e95132a917a356f9e86d2b601a40bb83ef9525d6ae675137220f98e3",
+      "sourceFiles": 256,
+      "jarSha256": "de72e2e23d33a16fdac13a877b8a3ccb915f1892c491c38a1b4ed53aa8f8095c",
+      "classCount": 505
+    },
+    "original-main": {
+      "commit": "bfb53ac0b5a029ec79acfc8dc344202d91b6308d",
+      "sourceSha256": "e72327270c114db7db6187e153fc39fa0228e52a240f501eac502766669cf830",
+      "sourceFiles": 255,
+      "jarSha256": "4e7bf52684d138102c18374cd733966847810d2eeaf11d1cd1a7a1bba1649389",
+      "classCount": 504
+    },
+    "candidate": {
+      "commit": "e3ce383+first-principles:3a998dd290c5",
+      "sourceSha256": "3a998dd290c52b9abe299b8f73103b24feded491682de136d24beca325273d76",
+      "sourceFiles": 257,
+      "jarSha256": "9c774aba0e14125d3184d6c8566908b3ff21f49696aa041e40ac33bfead5509d",
+      "classCount": 506
+    }
+  },
+  "oldPlannerEquivalence": {
+    "identical": true,
+    "classFiles": 263,
+    "package": "com/moakiee/thunderbolt/core/crafting/planner"
+  },
+  "oldCommonClassDifferences": [
+    "com/moakiee/thunderbolt/ae2/crafting/ExactPlanReport$Amounts.class",
+    "com/moakiee/thunderbolt/ae2/crafting/ExactPlanReport.class",
+    "com/moakiee/thunderbolt/ae2/crafting/ExactPlanReports.class",
+    "com/moakiee/thunderbolt/mixin/ae2/crafting/ExactCraftConfirmPacketMixin.class"
+  ],
+  "oldAlphaOnlyClasses": [
+    "com/moakiee/thunderbolt/core/crafting/big/BigLongSlice.class"
+  ],
+  "datasets": {
+    "recipes-vanilla": {
+      "arms": [
+        {
+          "variant": "original-alpha",
+          "arm": 0,
+          "planMs": 96.307171,
+          "allocatedBytes": 65358600,
+          "feasible": 20,
+          "cutoffs": 10,
+          "missingWithoutCutoff": 18,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "candidate",
+          "arm": 1,
+          "planMs": 97.90375,
+          "allocatedBytes": 65583192,
+          "feasible": 20,
+          "cutoffs": 10,
+          "missingWithoutCutoff": 18,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "candidate",
+          "arm": 2,
+          "planMs": 97.870458,
+          "allocatedBytes": 65195872,
+          "feasible": 20,
+          "cutoffs": 10,
+          "missingWithoutCutoff": 18,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "original-main",
+          "arm": 3,
+          "planMs": 97.351793,
+          "allocatedBytes": 65152592,
+          "feasible": 20,
+          "cutoffs": 10,
+          "missingWithoutCutoff": 18,
+          "errors": 0,
+          "entryRejected": 0
+        }
+      ],
+      "originalImplementationMeanMs": 96.829482,
+      "candidateMeanMs": 97.887104,
+      "timeChangePercent": 1.0922520477802289,
+      "speedup": 0.9891954919822739,
+      "originalImplementationMeanAllocatedBytes": 65255596,
+      "candidateMeanAllocatedBytes": 65389532,
+      "allocationChangePercent": 0.20524829778583165,
+      "oldAllocationMaxMinRatio": 1.003161930994242
+    },
+    "recipes-small": {
+      "arms": [
+        {
+          "variant": "original-alpha",
+          "arm": 0,
+          "planMs": 7229.8447479999995,
+          "allocatedBytes": 7777424456,
+          "feasible": 2,
+          "cutoffs": 42,
+          "missingWithoutCutoff": 4,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "candidate",
+          "arm": 1,
+          "planMs": 4670.840371,
+          "allocatedBytes": 6393986208,
+          "feasible": 2,
+          "cutoffs": 42,
+          "missingWithoutCutoff": 4,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "candidate",
+          "arm": 2,
+          "planMs": 4426.18825,
+          "allocatedBytes": 6336941160,
+          "feasible": 2,
+          "cutoffs": 42,
+          "missingWithoutCutoff": 4,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "original-main",
+          "arm": 3,
+          "planMs": 7633.956372,
+          "allocatedBytes": 7598757696,
+          "feasible": 2,
+          "cutoffs": 42,
+          "missingWithoutCutoff": 4,
+          "errors": 0,
+          "entryRejected": 0
+        }
+      ],
+      "originalImplementationMeanMs": 7431.90056,
+      "candidateMeanMs": 4548.514310500001,
+      "timeChangePercent": -38.797427740341014,
+      "speedup": 1.6339182538887165,
+      "originalImplementationMeanAllocatedBytes": 7688091076,
+      "candidateMeanAllocatedBytes": 6365463684,
+      "allocationChangePercent": -17.20358641599422,
+      "oldAllocationMaxMinRatio": 1.0235126276093856
+    },
+    "recipes-nast": {
+      "arms": [
+        {
+          "variant": "original-alpha",
+          "arm": 0,
+          "planMs": 23782.233082,
+          "allocatedBytes": 22525628688,
+          "feasible": 26,
+          "cutoffs": 16,
+          "missingWithoutCutoff": 6,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "candidate",
+          "arm": 1,
+          "planMs": 7859.802582,
+          "allocatedBytes": 10838436760,
+          "feasible": 26,
+          "cutoffs": 16,
+          "missingWithoutCutoff": 6,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "candidate",
+          "arm": 2,
+          "planMs": 7642.351047,
+          "allocatedBytes": 10848332032,
+          "feasible": 26,
+          "cutoffs": 16,
+          "missingWithoutCutoff": 6,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "original-main",
+          "arm": 3,
+          "planMs": 24211.008914000002,
+          "allocatedBytes": 22121698072,
+          "feasible": 26,
+          "cutoffs": 16,
+          "missingWithoutCutoff": 6,
+          "errors": 0,
+          "entryRejected": 0
+        }
+      ],
+      "originalImplementationMeanMs": 23996.620998,
+      "candidateMeanMs": 7751.0768145,
+      "timeChangePercent": -67.69929893402069,
+      "speedup": 3.09590803604337,
+      "originalImplementationMeanAllocatedBytes": 22323663380,
+      "candidateMeanAllocatedBytes": 10843384396,
+      "allocationChangePercent": -51.42650105665587,
+      "oldAllocationMaxMinRatio": 1.0182594760440775
+    },
+    "recipes-atm": {
+      "arms": [
+        {
+          "variant": "original-alpha",
+          "arm": 0,
+          "planMs": 203851.466917,
+          "allocatedBytes": 22695770480,
+          "feasible": 13,
+          "cutoffs": 11,
+          "missingWithoutCutoff": 24,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "candidate",
+          "arm": 1,
+          "planMs": 11840.314999,
+          "allocatedBytes": 14551130384,
+          "feasible": 13,
+          "cutoffs": 11,
+          "missingWithoutCutoff": 24,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "candidate",
+          "arm": 2,
+          "planMs": 11554.50442,
+          "allocatedBytes": 14358807656,
+          "feasible": 13,
+          "cutoffs": 11,
+          "missingWithoutCutoff": 24,
+          "errors": 0,
+          "entryRejected": 0
+        },
+        {
+          "variant": "original-main",
+          "arm": 3,
+          "planMs": 199430.112213,
+          "allocatedBytes": 22949877952,
+          "feasible": 13,
+          "cutoffs": 11,
+          "missingWithoutCutoff": 24,
+          "errors": 0,
+          "entryRejected": 0
+        }
+      ],
+      "originalImplementationMeanMs": 201640.78956499998,
+      "candidateMeanMs": 11697.4097095,
+      "timeChangePercent": -94.19888717221608,
+      "speedup": 17.238071895629876,
+      "originalImplementationMeanAllocatedBytes": 22822824216,
+      "candidateMeanAllocatedBytes": 14454969020,
+      "allocationChangePercent": -36.66441592330932,
+      "oldAllocationMaxMinRatio": 1.0111962478746392
+    }
+  },
+  "totals": {
+    "originalImplementationMeanMs": 233166.140605,
+    "candidateMeanMs": 24094.8879385,
+    "originalImplementationMeanAllocatedBytes": 52899834268,
+    "candidateMeanAllocatedBytes": 31729206632,
+    "timeChangePercent": -89.66621488180891,
+    "speedup": 9.676996265769539,
+    "allocationChangePercent": -40.02021542968514,
+    "arms": [
+      {
+        "variant": "original-alpha",
+        "arm": 0,
+        "planMs": 234959.851918,
+        "allocatedBytes": 53064182224,
+        "feasible": 61,
+        "cutoffs": 79,
+        "missingWithoutCutoff": 52,
+        "errors": 0,
+        "entryRejected": 0
+      },
+      {
+        "variant": "candidate",
+        "arm": 1,
+        "planMs": 24468.861702000002,
+        "allocatedBytes": 31849136544,
+        "feasible": 61,
+        "cutoffs": 79,
+        "missingWithoutCutoff": 52,
+        "errors": 0,
+        "entryRejected": 0
+      },
+      {
+        "variant": "candidate",
+        "arm": 2,
+        "planMs": 23720.914174999998,
+        "allocatedBytes": 31609276720,
+        "feasible": 61,
+        "cutoffs": 79,
+        "missingWithoutCutoff": 52,
+        "errors": 0,
+        "entryRejected": 0
+      },
+      {
+        "variant": "original-main",
+        "arm": 3,
+        "planMs": 231372.429292,
+        "allocatedBytes": 52735486312,
+        "feasible": 61,
+        "cutoffs": 79,
+        "missingWithoutCutoff": 52,
+        "errors": 0,
+        "entryRejected": 0
+      }
+    ]
+  },
+  "queriesIdenticalAcrossAllArms": 190,
+  "queriesWithPlanDifferences": [
+    {
+      "dataset": "recipes-atm",
+      "target": "mcwroofs:crimson_planks_lower_roof",
+      "targetId": 15303,
+      "amount": 100000,
+      "stock": "leaves",
+      "fields": [
+        "cost",
+        "recipe_exec",
+        "tag_exec",
+        "firings"
+      ],
+      "variants": [
+        {
+          "status": "ok",
+          "feasible": true,
+          "supported": true,
+          "budget_exhausted": false,
+          "missing": {},
+          "used_stock": {
+            "1014": 695,
+            "1520": 16667,
+            "1534": 9,
+            "14452": 9,
+            "18333": 3,
+            "64935": 1024,
+            "64971": 1024
+          },
+          "cost": 121087,
+          "recipe_exec": 119041,
+          "tag_exec": 49884,
+          "firings": [
+            [
+              1180,
+              695
+            ],
+            [
+              1398,
+              2084
+            ],
+            [
+              1432,
+              521
+            ],
+            [
+              1459,
+              521
+            ],
+            [
+              1499,
+              16667
+            ],
+            [
+              1567,
+              261
+            ],
+            [
+              1588,
+              9
+            ],
+            [
+              1616,
+              17
+            ],
+            [
+              1752,
+              16667
+            ],
+            [
+              1957,
+              16667
+            ],
+            [
+              2078,
+              9
+            ],
+            [
+              19583,
+              1024
+            ],
+            [
+              22976,
+              16667
+            ],
+            [
+              23015,
+              25000
+            ],
+            [
+              23104,
+              16667
+            ],
+            [
+              29841,
+              9
+            ],
+            [
+              32042,
+              667
+            ],
+            [
+              37451,
+              9
+            ],
+            [
+              48216,
+              667
+            ],
+            [
+              64626,
+              3
+            ],
+            [
+              69043,
+              1
+            ],
+            [
+              69044,
+              20
+            ],
+            [
+              70302,
+              4167
+            ],
+            [
+              77107,
+              10
+            ],
+            [
+              83957,
+              1
+            ],
+            [
+              85118,
+              11
+            ],
+            [
+              237425,
+              4167
+            ],
+            [
+              239399,
+              16667
+            ],
+            [
+              245120,
+              695
+            ],
+            [
+              253623,
+              9
+            ],
+            [
+              260444,
+              9
+            ],
+            [
+              260897,
+              667
+            ],
+            [
+              270487,
+              16667
+            ],
+            [
+              270910,
+              3
+            ],
+            [
+              276968,
+              11000
+            ]
+          ]
+        },
+        {
+          "status": "ok",
+          "feasible": true,
+          "supported": true,
+          "budget_exhausted": false,
+          "missing": {},
+          "used_stock": {
+            "1014": 695,
+            "1520": 16667,
+            "1534": 9,
+            "14452": 9,
+            "18333": 3,
+            "64935": 1024,
+            "64971": 1024
+          },
+          "cost": 120421,
+          "recipe_exec": 118375,
+          "tag_exec": 49551,
+          "firings": [
+            [
+              1180,
+              695
+            ],
+            [
+              1398,
+              2084
+            ],
+            [
+              1432,
+              521
+            ],
+            [
+              1459,
+              521
+            ],
+            [
+              1499,
+              16667
+            ],
+            [
+              1567,
+              261
+            ],
+            [
+              1588,
+              9
+            ],
+            [
+              1616,
+              17
+            ],
+            [
+              1752,
+              16667
+            ],
+            [
+              1957,
+              16667
+            ],
+            [
+              2078,
+              9
+            ],
+            [
+              3228,
+              334
+            ],
+            [
+              19583,
+              1024
+            ],
+            [
+              22976,
+              16667
+            ],
+            [
+              23015,
+              25000
+            ],
+            [
+              23104,
+              16667
+            ],
+            [
+              29841,
+              9
+            ],
+            [
+              37451,
+              9
+            ],
+            [
+              48219,
+              334
+            ],
+            [
+              64626,
+              3
+            ],
+            [
+              69043,
+              1
+            ],
+            [
+              69044,
+              20
+            ],
+            [
+              70302,
+              4167
+            ],
+            [
+              77107,
+              10
+            ],
+            [
+              83957,
+              1
+            ],
+            [
+              85118,
+              11
+            ],
+            [
+              237425,
+              4167
+            ],
+            [
+              239399,
+              16667
+            ],
+            [
+              245120,
+              695
+            ],
+            [
+              253623,
+              9
+            ],
+            [
+              257183,
+              334
+            ],
+            [
+              260444,
+              9
+            ],
+            [
+              270487,
+              16667
+            ],
+            [
+              270910,
+              3
+            ],
+            [
+              276968,
+              11000
+            ]
+          ]
+        },
+        {
+          "status": "ok",
+          "feasible": true,
+          "supported": true,
+          "budget_exhausted": false,
+          "missing": {},
+          "used_stock": {
+            "1014": 695,
+            "1520": 16667,
+            "1534": 9,
+            "14452": 9,
+            "18333": 3,
+            "64935": 1024,
+            "64971": 1024
+          },
+          "cost": 120421,
+          "recipe_exec": 118375,
+          "tag_exec": 49551,
+          "firings": [
+            [
+              1180,
+              695
+            ],
+            [
+              1398,
+              2084
+            ],
+            [
+              1432,
+              521
+            ],
+            [
+              1459,
+              521
+            ],
+            [
+              1499,
+              16667
+            ],
+            [
+              1567,
+              261
+            ],
+            [
+              1588,
+              9
+            ],
+            [
+              1616,
+              17
+            ],
+            [
+              1752,
+              16667
+            ],
+            [
+              1957,
+              16667
+            ],
+            [
+              2078,
+              9
+            ],
+            [
+              3228,
+              334
+            ],
+            [
+              19583,
+              1024
+            ],
+            [
+              22976,
+              16667
+            ],
+            [
+              23015,
+              25000
+            ],
+            [
+              23104,
+              16667
+            ],
+            [
+              29841,
+              9
+            ],
+            [
+              37451,
+              9
+            ],
+            [
+              48219,
+              334
+            ],
+            [
+              64626,
+              3
+            ],
+            [
+              69043,
+              1
+            ],
+            [
+              69044,
+              20
+            ],
+            [
+              70302,
+              4167
+            ],
+            [
+              77107,
+              10
+            ],
+            [
+              83957,
+              1
+            ],
+            [
+              85118,
+              11
+            ],
+            [
+              237425,
+              4167
+            ],
+            [
+              239399,
+              16667
+            ],
+            [
+              245120,
+              695
+            ],
+            [
+              253623,
+              9
+            ],
+            [
+              257183,
+              334
+            ],
+            [
+              260444,
+              9
+            ],
+            [
+              270487,
+              16667
+            ],
+            [
+              270910,
+              3
+            ],
+            [
+              276968,
+              11000
+            ]
+          ]
+        },
+        {
+          "status": "ok",
+          "feasible": true,
+          "supported": true,
+          "budget_exhausted": false,
+          "missing": {},
+          "used_stock": {
+            "1014": 695,
+            "1520": 16667,
+            "1534": 9,
+            "14452": 9,
+            "18333": 3,
+            "64935": 1024,
+            "64971": 1024
+          },
+          "cost": 121087,
+          "recipe_exec": 119041,
+          "tag_exec": 49884,
+          "firings": [
+            [
+              1180,
+              695
+            ],
+            [
+              1398,
+              2084
+            ],
+            [
+              1432,
+              521
+            ],
+            [
+              1459,
+              521
+            ],
+            [
+              1499,
+              16667
+            ],
+            [
+              1567,
+              261
+            ],
+            [
+              1588,
+              9
+            ],
+            [
+              1616,
+              17
+            ],
+            [
+              1752,
+              16667
+            ],
+            [
+              1957,
+              16667
+            ],
+            [
+              2078,
+              9
+            ],
+            [
+              19583,
+              1024
+            ],
+            [
+              22976,
+              16667
+            ],
+            [
+              23015,
+              25000
+            ],
+            [
+              23104,
+              16667
+            ],
+            [
+              29841,
+              9
+            ],
+            [
+              32042,
+              667
+            ],
+            [
+              37451,
+              9
+            ],
+            [
+              48216,
+              667
+            ],
+            [
+              64626,
+              3
+            ],
+            [
+              69043,
+              1
+            ],
+            [
+              69044,
+              20
+            ],
+            [
+              70302,
+              4167
+            ],
+            [
+              77107,
+              10
+            ],
+            [
+              83957,
+              1
+            ],
+            [
+              85118,
+              11
+            ],
+            [
+              237425,
+              4167
+            ],
+            [
+              239399,
+              16667
+            ],
+            [
+              245120,
+              695
+            ],
+            [
+              253623,
+              9
+            ],
+            [
+              260444,
+              9
+            ],
+            [
+              260897,
+              667
+            ],
+            [
+              270487,
+              16667
+            ],
+            [
+              270910,
+              3
+            ],
+            [
+              276968,
+              11000
+            ]
+          ]
+        }
+      ],
+      "optionalProbes": [
+        20,
+        28,
+        28,
+        22
+      ]
+    },
+    {
+      "dataset": "recipes-atm",
+      "target": "not_enough_glyphs:glyph_contingency_fall",
+      "targetId": 24722,
+      "amount": 1,
+      "stock": "leaves",
+      "fields": [
+        "cost",
+        "recipe_exec",
+        "firings"
+      ],
+      "variants": [
+        {
+          "status": "ok",
+          "feasible": true,
+          "supported": true,
+          "budget_exhausted": false,
+          "missing": {},
+          "used_stock": {
+            "1014": 1,
+            "9326": 1,
+            "36753": 4,
+            "64935": 1024
+          },
+          "cost": 1088,
+          "recipe_exec": 65,
+          "tag_exec": 1014,
+          "firings": [
+            [
+              283,
+              1
+            ],
+            [
+              1180,
+              1
+            ],
+            [
+              1698,
+              1
+            ],
+            [
+              2075,
+              1
+            ],
+            [
+              2380,
+              1
+            ],
+            [
+              13007,
+              1
+            ],
+            [
+              13420,
+              1
+            ],
+            [
+              16795,
+              4
+            ],
+            [
+              16830,
+              4
+            ],
+            [
+              29346,
+              2
+            ],
+            [
+              29395,
+              2
+            ],
+            [
+              31119,
+              1
+            ],
+            [
+              31144,
+              1
+            ],
+            [
+              31643,
+              1
+            ],
+            [
+              31811,
+              1
+            ],
+            [
+              31813,
+              3
+            ],
+            [
+              31815,
+              3
+            ],
+            [
+              33885,
+              1
+            ],
+            [
+              33923,
+              1
+            ],
+            [
+              34788,
+              1
+            ],
+            [
+              37152,
+              1
+            ],
+            [
+              39412,
+              3
+            ],
+            [
+              41541,
+              1
+            ],
+            [
+              41574,
+              1
+            ],
+            [
+              48212,
+              1
+            ],
+            [
+              48318,
+              1
+            ],
+            [
+              56980,
+              1
+            ],
+            [
+              59694,
+              1
+            ],
+            [
+              59848,
+              3
+            ],
+            [
+              61626,
+              1
+            ],
+            [
+              61741,
+              1
+            ],
+            [
+              63442,
+              1
+            ],
+            [
+              63529,
+              1
+            ],
+            [
+              63552,
+              1
+            ],
+            [
+              68120,
+              1
+            ],
+            [
+              68898,
+              1
+            ],
+            [
+              69043,
+              1
+            ],
+            [
+              69044,
+              5
+            ],
+            [
+              70302,
+              1
+            ],
+            [
+              70369,
+              3
+            ],
+            [
+              71912,
+              1
+            ],
+            [
+              77107,
+              1
+            ],
+            [
+              85119,
+              1
+            ],
+            [
+              237425,
+              1
+            ],
+            [
+              245120,
+              1
+            ],
+            [
+              252583,
+              1
+            ],
+            [
+              260455,
+              2
+            ],
+            [
+              269448,
+              4
+            ],
+            [
+              270810,
+              2
+            ],
+            [
+              270854,
+              1
+            ],
+            [
+              270901,
+              1
+            ],
+            [
+              275171,
+              1
+            ],
+            [
+              276968,
+              1000
+            ]
+          ]
+        },
+        {
+          "status": "ok",
+          "feasible": true,
+          "supported": true,
+          "budget_exhausted": false,
+          "missing": {},
+          "used_stock": {
+            "1014": 1,
+            "9326": 1,
+            "36753": 4,
+            "64935": 1024
+          },
+          "cost": 1088,
+          "recipe_exec": 65,
+          "tag_exec": 1014,
+          "firings": [
+            [
+              283,
+              1
+            ],
+            [
+              1180,
+              1
+            ],
+            [
+              1698,
+              1
+            ],
+            [
+              2075,
+              1
+            ],
+            [
+              2380,
+              1
+            ],
+            [
+              13007,
+              1
+            ],
+            [
+              13420,
+              1
+            ],
+            [
+              16795,
+              4
+            ],
+            [
+              16830,
+              4
+            ],
+            [
+              29346,
+              2
+            ],
+            [
+              29395,
+              2
+            ],
+            [
+              31119,
+              1
+            ],
+            [
+              31144,
+              1
+            ],
+            [
+              31643,
+              1
+            ],
+            [
+              31811,
+              1
+            ],
+            [
+              31813,
+              3
+            ],
+            [
+              31815,
+              3
+            ],
+            [
+              33885,
+              1
+            ],
+            [
+              33923,
+              1
+            ],
+            [
+              34788,
+              1
+            ],
+            [
+              37152,
+              1
+            ],
+            [
+              39412,
+              3
+            ],
+            [
+              41541,
+              1
+            ],
+            [
+              41574,
+              1
+            ],
+            [
+              48212,
+              1
+            ],
+            [
+              48318,
+              1
+            ],
+            [
+              56980,
+              1
+            ],
+            [
+              59694,
+              1
+            ],
+            [
+              59848,
+              3
+            ],
+            [
+              61626,
+              1
+            ],
+            [
+              61741,
+              1
+            ],
+            [
+              63442,
+              1
+            ],
+            [
+              63529,
+              1
+            ],
+            [
+              63552,
+              1
+            ],
+            [
+              68120,
+              1
+            ],
+            [
+              68898,
+              1
+            ],
+            [
+              69043,
+              1
+            ],
+            [
+              69044,
+              5
+            ],
+            [
+              70302,
+              1
+            ],
+            [
+              70369,
+              3
+            ],
+            [
+              71912,
+              1
+            ],
+            [
+              77107,
+              1
+            ],
+            [
+              85119,
+              1
+            ],
+            [
+              237425,
+              1
+            ],
+            [
+              245120,
+              1
+            ],
+            [
+              252583,
+              1
+            ],
+            [
+              260455,
+              2
+            ],
+            [
+              269448,
+              4
+            ],
+            [
+              270810,
+              2
+            ],
+            [
+              270854,
+              1
+            ],
+            [
+              270901,
+              1
+            ],
+            [
+              275171,
+              1
+            ],
+            [
+              276968,
+              1000
+            ]
+          ]
+        },
+        {
+          "status": "ok",
+          "feasible": true,
+          "supported": true,
+          "budget_exhausted": false,
+          "missing": {},
+          "used_stock": {
+            "1014": 1,
+            "9326": 1,
+            "36753": 4,
+            "64935": 1024
+          },
+          "cost": 1088,
+          "recipe_exec": 65,
+          "tag_exec": 1014,
+          "firings": [
+            [
+              283,
+              1
+            ],
+            [
+              1180,
+              1
+            ],
+            [
+              1698,
+              1
+            ],
+            [
+              2075,
+              1
+            ],
+            [
+              2380,
+              1
+            ],
+            [
+              13007,
+              1
+            ],
+            [
+              13420,
+              1
+            ],
+            [
+              16795,
+              4
+            ],
+            [
+              16830,
+              4
+            ],
+            [
+              29346,
+              2
+            ],
+            [
+              29395,
+              2
+            ],
+            [
+              31119,
+              1
+            ],
+            [
+              31144,
+              1
+            ],
+            [
+              31643,
+              1
+            ],
+            [
+              31811,
+              1
+            ],
+            [
+              31813,
+              3
+            ],
+            [
+              31815,
+              3
+            ],
+            [
+              33885,
+              1
+            ],
+            [
+              33923,
+              1
+            ],
+            [
+              34788,
+              1
+            ],
+            [
+              37152,
+              1
+            ],
+            [
+              39412,
+              3
+            ],
+            [
+              41541,
+              1
+            ],
+            [
+              41574,
+              1
+            ],
+            [
+              48212,
+              1
+            ],
+            [
+              48318,
+              1
+            ],
+            [
+              56980,
+              1
+            ],
+            [
+              59694,
+              1
+            ],
+            [
+              59848,
+              3
+            ],
+            [
+              61626,
+              1
+            ],
+            [
+              61741,
+              1
+            ],
+            [
+              63442,
+              1
+            ],
+            [
+              63529,
+              1
+            ],
+            [
+              63552,
+              1
+            ],
+            [
+              68120,
+              1
+            ],
+            [
+              68898,
+              1
+            ],
+            [
+              69043,
+              1
+            ],
+            [
+              69044,
+              5
+            ],
+            [
+              70302,
+              1
+            ],
+            [
+              70369,
+              3
+            ],
+            [
+              71912,
+              1
+            ],
+            [
+              77107,
+              1
+            ],
+            [
+              85119,
+              1
+            ],
+            [
+              237425,
+              1
+            ],
+            [
+              245120,
+              1
+            ],
+            [
+              252583,
+              1
+            ],
+            [
+              260455,
+              2
+            ],
+            [
+              269448,
+              4
+            ],
+            [
+              270810,
+              2
+            ],
+            [
+              270854,
+              1
+            ],
+            [
+              270901,
+              1
+            ],
+            [
+              275171,
+              1
+            ],
+            [
+              276968,
+              1000
+            ]
+          ]
+        },
+        {
+          "status": "ok",
+          "feasible": true,
+          "supported": true,
+          "budget_exhausted": false,
+          "missing": {},
+          "used_stock": {
+            "1014": 1,
+            "9326": 1,
+            "36753": 4,
+            "64935": 1024
+          },
+          "cost": 1090,
+          "recipe_exec": 67,
+          "tag_exec": 1014,
+          "firings": [
+            [
+              283,
+              1
+            ],
+            [
+              1180,
+              1
+            ],
+            [
+              1698,
+              1
+            ],
+            [
+              2075,
+              1
+            ],
+            [
+              2380,
+              1
+            ],
+            [
+              13007,
+              1
+            ],
+            [
+              13420,
+              1
+            ],
+            [
+              16795,
+              4
+            ],
+            [
+              16830,
+              4
+            ],
+            [
+              29346,
+              2
+            ],
+            [
+              29395,
+              2
+            ],
+            [
+              31119,
+              1
+            ],
+            [
+              31144,
+              1
+            ],
+            [
+              31643,
+              1
+            ],
+            [
+              31811,
+              1
+            ],
+            [
+              31813,
+              3
+            ],
+            [
+              31815,
+              3
+            ],
+            [
+              33885,
+              1
+            ],
+            [
+              33923,
+              1
+            ],
+            [
+              34788,
+              1
+            ],
+            [
+              37152,
+              1
+            ],
+            [
+              39412,
+              3
+            ],
+            [
+              41541,
+              1
+            ],
+            [
+              41574,
+              1
+            ],
+            [
+              48212,
+              1
+            ],
+            [
+              48318,
+              1
+            ],
+            [
+              56980,
+              1
+            ],
+            [
+              59694,
+              1
+            ],
+            [
+              59848,
+              3
+            ],
+            [
+              61626,
+              1
+            ],
+            [
+              61741,
+              1
+            ],
+            [
+              61760,
+              2
+            ],
+            [
+              63440,
+              1
+            ],
+            [
+              63529,
+              1
+            ],
+            [
+              63552,
+              1
+            ],
+            [
+              68120,
+              1
+            ],
+            [
+              68898,
+              1
+            ],
+            [
+              69043,
+              1
+            ],
+            [
+              69044,
+              5
+            ],
+            [
+              70302,
+              1
+            ],
+            [
+              70369,
+              3
+            ],
+            [
+              71912,
+              1
+            ],
+            [
+              77107,
+              1
+            ],
+            [
+              85119,
+              1
+            ],
+            [
+              237425,
+              1
+            ],
+            [
+              245120,
+              1
+            ],
+            [
+              252583,
+              1
+            ],
+            [
+              260455,
+              2
+            ],
+            [
+              269448,
+              4
+            ],
+            [
+              270810,
+              2
+            ],
+            [
+              270854,
+              1
+            ],
+            [
+              270901,
+              1
+            ],
+            [
+              275171,
+              1
+            ],
+            [
+              276968,
+              1000
+            ]
+          ]
+        }
+      ],
+      "optionalProbes": [
+        25,
+        25,
+        29,
+        21
+      ]
+    }
+  ],
+  "validationErrors": [],
+  "regressionsAbove1Ms": [
+    {
+      "dataset": "recipes-vanilla",
+      "target": "minecraft:black_carpet",
+      "amount": 100000,
+      "stock": "none",
+      "originalAlphaMs": 9.428459,
+      "originalMainMs": 9.656417,
+      "candidateMeanMs": 10.915375000000001,
+      "originalMeanMs": 9.542438,
+      "deltaMs": 1.3729370000000003,
+      "timeChangePercent": 14.387696309894803,
+      "samePlanFields": true
+    }
+  ],
+  "publicCorpus": {
+    "casesPerVariant": 3339,
+    "originalAlphaMainIdentical": true,
+    "candidateDifferences": []
+  },
+  "rawArmSummaries": [
+    {
+      "dataset": "recipes-vanilla",
+      "variant": "original-alpha",
+      "arm": 0,
+      "rows": 48,
+      "planMs": 96.307171,
+      "allocatedBytes": 65358600,
+      "status": {
+        "missing": 28,
+        "ok": 20
+      },
+      "cutoffs": 10,
+      "errors": 0,
+      "wallSeconds": 0.48900818824768066
+    },
+    {
+      "dataset": "recipes-vanilla",
+      "variant": "candidate",
+      "arm": 1,
+      "rows": 48,
+      "planMs": 97.90375,
+      "allocatedBytes": 65583192,
+      "status": {
+        "missing": 28,
+        "ok": 20
+      },
+      "cutoffs": 10,
+      "errors": 0,
+      "wallSeconds": 0.4816141128540039
+    },
+    {
+      "dataset": "recipes-vanilla",
+      "variant": "candidate",
+      "arm": 2,
+      "rows": 48,
+      "planMs": 97.870458,
+      "allocatedBytes": 65195872,
+      "status": {
+        "missing": 28,
+        "ok": 20
+      },
+      "cutoffs": 10,
+      "errors": 0,
+      "wallSeconds": 0.48977088928222656
+    },
+    {
+      "dataset": "recipes-vanilla",
+      "variant": "original-main",
+      "arm": 3,
+      "rows": 48,
+      "planMs": 97.351793,
+      "allocatedBytes": 65152592,
+      "status": {
+        "missing": 28,
+        "ok": 20
+      },
+      "cutoffs": 10,
+      "errors": 0,
+      "wallSeconds": 0.4750361442565918
+    },
+    {
+      "dataset": "recipes-small",
+      "variant": "original-alpha",
+      "arm": 0,
+      "rows": 48,
+      "planMs": 7229.8447479999995,
+      "allocatedBytes": 7777424456,
+      "status": {
+        "missing": 46,
+        "ok": 2
+      },
+      "cutoffs": 42,
+      "errors": 0,
+      "wallSeconds": 16.803874731063843
+    },
+    {
+      "dataset": "recipes-small",
+      "variant": "candidate",
+      "arm": 1,
+      "rows": 48,
+      "planMs": 4670.840371,
+      "allocatedBytes": 6393986208,
+      "status": {
+        "missing": 46,
+        "ok": 2
+      },
+      "cutoffs": 42,
+      "errors": 0,
+      "wallSeconds": 11.135637760162354
+    },
+    {
+      "dataset": "recipes-small",
+      "variant": "candidate",
+      "arm": 2,
+      "rows": 48,
+      "planMs": 4426.18825,
+      "allocatedBytes": 6336941160,
+      "status": {
+        "missing": 46,
+        "ok": 2
+      },
+      "cutoffs": 42,
+      "errors": 0,
+      "wallSeconds": 11.02799105644226
+    },
+    {
+      "dataset": "recipes-small",
+      "variant": "original-main",
+      "arm": 3,
+      "rows": 48,
+      "planMs": 7633.956372,
+      "allocatedBytes": 7598757696,
+      "status": {
+        "missing": 46,
+        "ok": 2
+      },
+      "cutoffs": 42,
+      "errors": 0,
+      "wallSeconds": 17.51378297805786
+    },
+    {
+      "dataset": "recipes-nast",
+      "variant": "original-alpha",
+      "arm": 0,
+      "rows": 48,
+      "planMs": 23782.233082,
+      "allocatedBytes": 22525628688,
+      "status": {
+        "missing": 22,
+        "ok": 26
+      },
+      "cutoffs": 16,
+      "errors": 0,
+      "wallSeconds": 52.88952875137329
+    },
+    {
+      "dataset": "recipes-nast",
+      "variant": "candidate",
+      "arm": 1,
+      "rows": 48,
+      "planMs": 7859.802582,
+      "allocatedBytes": 10838436760,
+      "status": {
+        "missing": 22,
+        "ok": 26
+      },
+      "cutoffs": 16,
+      "errors": 0,
+      "wallSeconds": 18.476398944854736
+    },
+    {
+      "dataset": "recipes-nast",
+      "variant": "candidate",
+      "arm": 2,
+      "rows": 48,
+      "planMs": 7642.351047,
+      "allocatedBytes": 10848332032,
+      "status": {
+        "missing": 22,
+        "ok": 26
+      },
+      "cutoffs": 16,
+      "errors": 0,
+      "wallSeconds": 17.862766981124878
+    },
+    {
+      "dataset": "recipes-nast",
+      "variant": "original-main",
+      "arm": 3,
+      "rows": 48,
+      "planMs": 24211.008914000002,
+      "allocatedBytes": 22121698072,
+      "status": {
+        "missing": 22,
+        "ok": 26
+      },
+      "cutoffs": 16,
+      "errors": 0,
+      "wallSeconds": 50.80762696266174
+    },
+    {
+      "dataset": "recipes-atm",
+      "variant": "original-alpha",
+      "arm": 0,
+      "rows": 48,
+      "planMs": 203851.466917,
+      "allocatedBytes": 22695770480,
+      "status": {
+        "missing": 35,
+        "ok": 13
+      },
+      "cutoffs": 11,
+      "errors": 0,
+      "wallSeconds": 417.5999460220337
+    },
+    {
+      "dataset": "recipes-atm",
+      "variant": "candidate",
+      "arm": 1,
+      "rows": 48,
+      "planMs": 11840.314999,
+      "allocatedBytes": 14551130384,
+      "status": {
+        "missing": 35,
+        "ok": 13
+      },
+      "cutoffs": 11,
+      "errors": 0,
+      "wallSeconds": 27.96198296546936
+    },
+    {
+      "dataset": "recipes-atm",
+      "variant": "candidate",
+      "arm": 2,
+      "rows": 48,
+      "planMs": 11554.50442,
+      "allocatedBytes": 14358807656,
+      "status": {
+        "missing": 35,
+        "ok": 13
+      },
+      "cutoffs": 11,
+      "errors": 0,
+      "wallSeconds": 27.71626901626587
+    },
+    {
+      "dataset": "recipes-atm",
+      "variant": "original-main",
+      "arm": 3,
+      "rows": 48,
+      "planMs": 199430.112213,
+      "allocatedBytes": 22949877952,
+      "status": {
+        "missing": 35,
+        "ok": 13
+      },
+      "cutoffs": 11,
+      "errors": 0,
+      "wallSeconds": 406.9623899459839
+    }
+  ],
+  "observedQualityChanges": {
+    "feasibilityRegressions": 0,
+    "candidateFeasibleCostWorseThanBothOriginals": 0,
+    "candidateFeasibleCostBetterThanBothOriginals": 1,
+    "equalCostDifferentWitness": 0,
+    "candidateFeasibleCostWorseThanBestOriginal": 0
+  },
+  "cumulativeProductionDiffFromOriginalAlpha": {
+    "files": 7,
+    "addedLines": 302,
+    "removedLines": 180,
+    "netLines": 122
+  },
+  "inputs": {
+    "recipes-vanilla": {
+      "awr": {
+        "path": "recipes-vanilla.awr",
+        "sha256": "d9697536cda9473d2dae5d8d976d60d619aa6332b2832c614f48aa4834464277"
+      },
+      "metadata": {
+        "path": "recipes-vanilla.meta.tsv",
+        "sha256": "f6097bb7f3d4b31388eea1981ccf9f28e315d0829016f9f0ebd33423b49565a8"
+      },
+      "targets": {
+        "path": "recipes-vanilla.targets.tsv",
+        "sha256": "dab94ecf83ebc0af9d6785fe92d57e50335b1b9ce2f065932342db402f5a5b64"
+      },
+      "stocks": {
+        "none": {
+          "path": "recipes-vanilla.stock.none.tsv",
+          "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+        },
+        "leaves": {
+          "path": "recipes-vanilla.stock.leaves.tsv",
+          "sha256": "9c584cb49422c5024d0af012522f49f0de27dc0db5aea448a19a66a24ae6d12c"
+        },
+        "random20": {
+          "path": "recipes-vanilla.stock.random20.tsv",
+          "sha256": "a77b8a5014c754c31ad0d278aebf0fe9838b8cc252f7f687dca0a412e5d22ced"
+        }
+      },
+      "normalized": {
+        "path": "normalized.bin",
+        "sha256": "94829a7a3d0a61167d2f73a53d58068d3ad5181eeac741a4a07c67a35b710401"
+      },
+      "counts": {
+        "n_real": 1335,
+        "n_item": 1418,
+        "n_recipe": 2236,
+        "n_recipe_raw": 2282,
+        "n_tag_recipe": 998,
+        "n_produced": 840,
+        "n_leaf": 495,
+        "r2i_edges": 2816,
+        "r2o_edges": 2236,
+        "ws_edges": 1289
+      },
+      "normalize_ms": 11.182667687535286
+    },
+    "recipes-small": {
+      "awr": {
+        "path": "recipes-small.awr",
+        "sha256": "b9bfe1992f1e4f39d0a91097983de0a4eec0e258a3307cb7126fe4aa26b34478"
+      },
+      "metadata": {
+        "path": "recipes-small.meta.tsv",
+        "sha256": "950a97550cf0548b5853bd24eddd4cab8ad58af4cccbefd5e327d3a26e7e42e3"
+      },
+      "targets": {
+        "path": "recipes-small.targets.tsv",
+        "sha256": "9434ed94c9a04f2860f542ed7872bdb8b587e387ecd8c35e16a101aaec8d746e"
+      },
+      "stocks": {
+        "none": {
+          "path": "recipes-small.stock.none.tsv",
+          "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+        },
+        "leaves": {
+          "path": "recipes-small.stock.leaves.tsv",
+          "sha256": "2ecb0ee7ecf42740be33c7a13c8cf3298648604b6ff2d5b00b074984f4fc4088"
+        },
+        "random20": {
+          "path": "recipes-small.stock.random20.tsv",
+          "sha256": "ea49be99c3662831f2a0d8c343090909ae620e80782332dc6026dc065be1e16b"
+        }
+      },
+      "normalized": {
+        "path": "normalized.bin",
+        "sha256": "b0c07d786fe2fc7491c5d548ea688b2847fa613b2ba8bc5b9fd302a9a6854f20"
+      },
+      "counts": {
+        "n_real": 2260,
+        "n_item": 2522,
+        "n_recipe": 6626,
+        "n_recipe_raw": 6890,
+        "n_tag_recipe": 3102,
+        "n_produced": 1862,
+        "n_leaf": 398,
+        "r2i_edges": 9240,
+        "r2o_edges": 6826,
+        "ws_edges": 19323
+      },
+      "normalize_ms": 36.63845732808113
+    },
+    "recipes-nast": {
+      "awr": {
+        "path": "recipes-nast.awr",
+        "sha256": "8ba03047c532c234987bcb9d61a1d384bd8fbb685bb49f5e499477b527ec2fdb"
+      },
+      "metadata": {
+        "path": "recipes-nast.meta.tsv",
+        "sha256": "0fff41a3400fe738b2efc3cf660f61e3ae7660da6d64bc3c5a5777cb00cc148d"
+      },
+      "targets": {
+        "path": "recipes-nast.targets.tsv",
+        "sha256": "b485f078a3605382aeb151e3a9ab0c870b809eb256b56ae12826f7969b7cabd7"
+      },
+      "stocks": {
+        "none": {
+          "path": "recipes-nast.stock.none.tsv",
+          "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+        },
+        "leaves": {
+          "path": "recipes-nast.stock.leaves.tsv",
+          "sha256": "b393bb7fccb99d00cf83373c474fb415237a77471fc308c6125473f16a377d3a"
+        },
+        "random20": {
+          "path": "recipes-nast.stock.random20.tsv",
+          "sha256": "59be70d796c57a91af190c4ec307dfd28159eb744cc21346440d0e2b289c15a9"
+        }
+      },
+      "normalized": {
+        "path": "normalized.bin",
+        "sha256": "8a879103a488bc7db75711a781ba185065e640a9d6172732f7a067837de908b3"
+      },
+      "counts": {
+        "n_real": 12027,
+        "n_item": 12717,
+        "n_recipe": 25880,
+        "n_recipe_raw": 41338,
+        "n_tag_recipe": 8907,
+        "n_produced": 10005,
+        "n_leaf": 2022,
+        "r2i_edges": 43113,
+        "r2o_edges": 28283,
+        "ws_edges": 183483
+      },
+      "normalize_ms": 269.1300828009844
+    },
+    "recipes-atm": {
+      "awr": {
+        "path": "recipes-atm.awr",
+        "sha256": "162637c8e484d325c01356e55d986cc9b512309dbe16737b63ffe37193fbba62"
+      },
+      "metadata": {
+        "path": "recipes-atm.meta.tsv",
+        "sha256": "a84353b032ee1b32e23d34099c2255c4dbbb274e56a0c3aaa77b4ab6c26ad07b"
+      },
+      "targets": {
+        "path": "recipes-atm.targets.tsv",
+        "sha256": "3eb4b311f2ee7706bc092063539d9cbc034fb5672eb528c95e89d5eedc2e6dd7"
+      },
+      "stocks": {
+        "none": {
+          "path": "recipes-atm.stock.none.tsv",
+          "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+        },
+        "leaves": {
+          "path": "recipes-atm.stock.leaves.tsv",
+          "sha256": "ee1fe682f9cc91ca545f28b1c43e70376db3f498b66458ad60511a569512b2bd"
+        },
+        "random20": {
+          "path": "recipes-atm.stock.random20.tsv",
+          "sha256": "fc306accd38c3f980e15439ffef168d85801f7c8f908a152ae14e14c3f8b1e55"
+        }
+      },
+      "normalized": {
+        "path": "normalized.bin",
+        "sha256": "ed93bc11bbcb6b57fc57de94b88f7ed054412118b66c2585565dcfc87e74ff09"
+      },
+      "counts": {
+        "n_real": 65115,
+        "n_item": 67232,
+        "n_recipe": 276991,
+        "n_recipe_raw": 396096,
+        "n_tag_recipe": 191328,
+        "n_produced": 46043,
+        "n_leaf": 19072,
+        "r2i_edges": 339885,
+        "r2o_edges": 287132,
+        "ws_edges": 1010354
+      },
+      "normalize_ms": 3090.107459574938
+    }
+  },
+  "harnessSha256": "6975f5a15ed0fd7dacd91ca19eb3a2cd90c09dc9e638b1dbc4e69a333e3e4bd1",
+  "normalizerSha256": "fad9dd9e1cb61cab886882544c79f5df3690e3e88a80708883fc5779904b4ae2",
+  "unitTestsCandidate": {
+    "tests": 1312,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2
+  }
+}

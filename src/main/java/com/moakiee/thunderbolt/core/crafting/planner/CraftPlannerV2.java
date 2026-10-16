@@ -164,6 +164,11 @@ public final class CraftPlannerV2<K> {
         boolean optimizeFeasible = true;
         final FeasibleConsumptionOptimizer.IndexCache<K> consumptionIndex =
                 new FeasibleConsumptionOptimizer.IndexCache<>();
+        private final FeasibleConsumptionOptimizer.IndexCache<K> primaryIndex =
+                new FeasibleConsumptionOptimizer.IndexCache<>(true);
+        private long primaryPolicyNanos;
+        private int primaryPolicyWork;
+        private CraftPlan<K> primaryFallback;
         int consumptionOptimizationProbes;
         long consumptionOptimizationNanos;
         private int missingRefinementProbes;
@@ -198,6 +203,8 @@ public final class CraftPlannerV2<K> {
                             : java.util.Collections.unmodifiableMap(distances);
                     consumptionIndex.expectSize(candidateGraph, candidateTarget, distances.size(),
                             sizes[0], sizes[1], sizes[2]);
+                    primaryIndex.expectSize(candidateGraph, candidateTarget, distances.size(),
+                            sizes[0], sizes[1], 0);
                 }
                 reachableWorkEstimate = work;
             }
@@ -291,6 +298,8 @@ public final class CraftPlannerV2<K> {
     private final Set<K> cutOutputs = new LinkedHashSet<>();
     private final Map<CraftPattern<K>, Set<K>> suppressedPositiveFeedbackOutputs =
             new IdentityHashMap<>(0);
+    /** A fact of the original graph/target, independent of stock, quantity and cut orientation. */
+    private Map<CraftPattern<K>, Set<K>> uncutPositiveFeedbackOutputs;
     /** One physical remainder batch withheld from linear byproduct credit to start a feedback path. */
     private final Map<CraftPattern<K>, Map<K, Long>> linearContainerBootstrapReserves =
             new IdentityHashMap<>(0);
@@ -489,7 +498,15 @@ public final class CraftPlannerV2<K> {
         ExactDiagnosticPlanner.checked(amount);
         PreparedGraph<K> prepared = session.preparedByOrientation.get(new Orientation<>(List.of(), false));
         if (prepared == null) {
-            planDetailed(graph, target, amount.min(BigInteger.valueOf(Sat.SAT)).longValueExact(), session);
+            boolean optimize = session.optimizeFeasible;
+            session.optimizeFeasible = false;
+            try {
+                // Exact display needs the full compiled graph, even if an ordinary witness
+                // answered a previous executable quantity without constructing that graph.
+                planDetailed(graph, target, amount.min(BigInteger.valueOf(Sat.SAT)).longValueExact(), session);
+            } finally {
+                session.optimizeFeasible = optimize;
+            }
             prepared = session.preparedByOrientation.get(new Orientation<>(List.of(), false));
         }
         if (prepared == null) {
@@ -528,8 +545,15 @@ public final class CraftPlannerV2<K> {
     private static <K> PlanningResult<K> planDetailed(
             CraftGraph<K> graph, K target, long amount, int visitCap,
             int searchWorkBudget, int reachableWork, PlanningSession<K> session) {
-        return OptionalPlanningStages.planDetailed(graph, target, amount, visitCap,
+        session.primaryFallback = null;
+        var result = OptionalPlanningStages.planDetailed(graph, target, amount, visitCap,
                 searchWorkBudget, reachableWork, session);
+        // Repriced policies can discard useful partial stock. Preserve the established search's
+        // incumbent and compare the independent ordinary witness only after its optimization ends.
+        var fallback = session.primaryFallback;
+        if (fallback != null && FeasibleConsumptionOptimizer.improves(result.plan(), fallback))
+            return new PlanningResult<>(fallback, result.diagnostics());
+        return result;
     }
 
     static <K> PlanningResult<K> planCore(
@@ -563,9 +587,68 @@ public final class CraftPlannerV2<K> {
                     true);
             return new PlanningResult<>(boundedMissing, diagnostics.finish(started, null));
         }
-        Map<K, Integer> objectiveDistances = session.inputDistances();
         SearchBudget budget = new SearchBudget(
                 searchWorkBudget, session.searchWorkBudget, diagnostics);
+        // Large byproduct closures pay for feedback analysis even when an ordinary DAG suffices.
+        // Pure ordinary graphs retain their established first-pass route and batch choices.
+        if (session.optimizeFeasible && graph.hasByproducts()
+                && reachableWork > FeasibleConsumptionOptimizer.PRIMARY_MIN_GRAPH_WORK && amount < Sat.SAT) {
+            long allowance = Math.min(FeasibleConsumptionOptimizer.PRIMARY_MAX_NANOS - session.primaryPolicyNanos,
+                    PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 8);
+            int workAllowance = Math.min(FeasibleConsumptionOptimizer.PRIMARY_MAX_WORK - session.primaryPolicyWork,
+                    Math.min(session.searchWorkBudget.remaining / 2,
+                            Math.max(0, session.searchWorkBudget.remaining - reachableWork
+                                    - Math.max(4_096, reachableWork / 16))));
+            if (allowance > 0 && workAllowance > 0) {
+                long primaryStarted = System.nanoTime();
+                int workBefore = session.searchWorkBudget.remaining;
+                FeasibleConsumptionOptimizer.PrimaryResult<K> primary = null;
+                PlanningResult<K> regional = null;
+                try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
+                    // Leave room to combine the rejected fixed policies into one small region.
+                    int[] left = {workAllowance - Math.min(65_536, workAllowance / 4)};
+                    primary = FeasibleConsumptionOptimizer.primaryPlan(graph, target, amount, session.primaryIndex,
+                            work -> {
+                                if (work > left[0]) return false;
+                                if (!budget.tryConsume(work)) return false;
+                                left[0] -= work;
+                                return true;
+                            });
+                    if (primary != null && primary.plan() == null) {
+                        var probe = new PlanningSession<K>();
+                        int localWork = probe.reachableWork(primary.graph(), target);
+                        int localAllowance = workAllowance - (workBefore - session.searchWorkBudget.remaining);
+                        if (localWork <= FeasibleConsumptionOptimizer.PRIMARY_MAX_REGION_WORK
+                                && localWork < localAllowance && budget.tryConsume(localWork)) {
+                            probe.optimizeFeasible = false;
+                            probe.refineMissing = false;
+                            probe.lowWidthWorkBudget = session.lowWidthWorkBudget;
+                            probe.searchWorkBudget = session.searchWorkBudget;
+                            probe.resolutionWorkBudget = session.resolutionWorkBudget;
+                            probe.fallbackWorkBudget = session.fallbackWorkBudget;
+                            regional = planCore(primary.graph(), target, amount, visitCap,
+                                    localAllowance - localWork, localWork, probe);
+                            if (regional.plan().feasible()) primary = primary.withPlan(regional.plan());
+                        }
+                    }
+                } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+                    // Keep any completed ordinary witness; external cancellation is never caught.
+                } finally {
+                    session.primaryPolicyNanos += Math.max(0L, System.nanoTime() - primaryStarted);
+                    session.primaryPolicyWork += workBefore - session.searchWorkBudget.remaining;
+                }
+                diagnostics.graphCompileNanos += Math.max(0L, System.nanoTime() - primaryStarted);
+                if (regional != null) diagnostics.recordRegionalWork(regional.diagnostics());
+                if (primary != null && primary.plan() != null) {
+                    session.primaryFallback = primary.plan();
+                    if (primary.directStock()) {
+                        diagnostics.recordPrimaryCompilation(primary);
+                        return finish(primary.plan(), diagnostics, budget, started, graph, target, amount, session);
+                    }
+                }
+            }
+        }
+        Map<K, Integer> objectiveDistances = session.inputDistances();
         BoundedIntegerLinearSolver.WorkBudget lowWidthWorkBudget = session.lowWidthWorkBudget;
         int orientationCharge = reachableWork;
         Map<Orientation<K>, PreparedGraph<K>> preparedByOrientation = session.preparedByOrientation;
@@ -594,17 +677,17 @@ public final class CraftPlannerV2<K> {
                 graph, firstPlanner.run(target, amount, firstOrientation), target, amount);
         preparedByOrientation.put(new Orientation<>(firstOrientation, false), firstPlanner.preparedGraph);
         if (first.feasible()) {
-            return finish(first, diagnostics, budget, started, graph, target, amount);
+            return finish(first, diagnostics, budget, started, graph, target, amount, session);
         }
         CraftPlan<K> baseline = firstPlanner.replenishmentPlan(target, amount);
         session.replenishment = firstPlanner.replenishment;
         session.replenishmentCompiled = firstPlanner.replenishmentCompiled;
         session.cutPolicies = firstPlanner.cutPolicies;
         if (baseline != null && baseline.feasible()) {
-            return finish(baseline, diagnostics, budget, started, graph, target, amount);
+            return finish(baseline, diagnostics, budget, started, graph, target, amount, session);
         }
         CraftPlan<K> dagOrdered = firstPlanner.tryMaterialDagOrders(target, amount);
-        if (dagOrdered != null) return finish(dagOrdered, diagnostics, budget, started, graph, target, amount);
+        if (dagOrdered != null) return finish(dagOrdered, diagnostics, budget, started, graph, target, amount, session);
         CraftPlan<K> ranked = null;
         for (boolean stockSeeded : new boolean[] {true, false}) {
             if (firstPlanner.cutOutputs.isEmpty()) break;
@@ -612,16 +695,17 @@ public final class CraftPlannerV2<K> {
             if (!budget.tryConsume(orientationCharge)) break;
             CraftPlan<K> candidate = producibilityRankedRun(
                     graph, target, amount, visitCap, budget, lowWidthWorkBudget, diagnostics,
-                    objectiveDistances, preparedByOrientation, stockSeeded);
+                    objectiveDistances, preparedByOrientation,
+                    firstPlanner.uncutPositiveFeedbackOutputs, stockSeeded);
             if (candidate.feasible()) {
-                return finish(candidate, diagnostics, budget, started, graph, target, amount);
+                return finish(candidate, diagnostics, budget, started, graph, target, amount, session);
             }
             if (!candidate.budgetExhausted()) {
                 ranked = ranked == null ? candidate : betterPlan(ranked, candidate, objectiveDistances);
             }
         }
         if (first.budgetExhausted()) {
-            return finish(firstPlanner.guaranteeReplenishment(first, target, amount), diagnostics, budget, started, graph, target, amount);
+            return finish(firstPlanner.guaranteeReplenishment(first, target, amount), diagnostics, budget, started, graph, target, amount, session);
         }
         CraftPlan<K> bestIncomplete = ranked == null ? first : betterPlan(first, ranked, objectiveDistances);
 
@@ -651,12 +735,12 @@ public final class CraftPlannerV2<K> {
                 if (orientationAttempts >= MAX_CONVERSION_ORIENTATION_RETRIES) {
                     diagnostics.recordSearchCutoff();
                     return finish(firstPlanner.guaranteeReplenishment(
-                            markBudgetExhausted(bestIncomplete), target, amount), diagnostics, budget, started, graph, target, amount);
+                            markBudgetExhausted(bestIncomplete), target, amount), diagnostics, budget, started, graph, target, amount, session);
                 }
                 List<K> orientation = frontier.removeFirst();
                 if (!budget.tryConsume(orientationCharge)) {
                     return finish(firstPlanner.guaranteeReplenishment(
-                            markBudgetExhausted(bestIncomplete), target, amount), diagnostics, budget, started, graph, target, amount);
+                            markBudgetExhausted(bestIncomplete), target, amount), diagnostics, budget, started, graph, target, amount, session);
                 }
                 orientationAttempts++;
                 PreparedGraph<K> prepared = preparedByOrientation.get(new Orientation<>(orientation, explicitCuts));
@@ -675,17 +759,18 @@ public final class CraftPlannerV2<K> {
                                 diagnostics);
                 planner.objectiveDistances = objectiveDistances;
                 planner.explicitCuts = explicitCuts;
+                planner.uncutPositiveFeedbackOutputs = firstPlanner.uncutPositiveFeedbackOutputs;
                 CraftPlan<K> candidate = UnorderedByproductSafety.protect(
                         graph, planner.run(target, amount, orientation), target, amount);
                 preparedByOrientation.putIfAbsent(new Orientation<>(orientation, explicitCuts), planner.preparedGraph);
                 if (candidate.feasible()) {
-                    return finish(candidate, diagnostics, budget, started, graph, target, amount);
+                    return finish(candidate, diagnostics, budget, started, graph, target, amount, session);
                 }
                 if (candidate.budgetExhausted()) {
                     return finish(
                             firstPlanner.guaranteeReplenishment(markBudgetExhausted(betterPlan(
                                     bestIncomplete, candidate, objectiveDistances)), target, amount),
-                            diagnostics, budget, started, graph, target, amount);
+                            diagnostics, budget, started, graph, target, amount, session);
                 }
                 bestIncomplete = betterPlan(bestIncomplete, candidate, objectiveDistances);
                 // Keep this attempt's other component choices while repairing its remaining shortfall.
@@ -701,7 +786,7 @@ public final class CraftPlannerV2<K> {
             diagnostics.recordSearchCutoff();
             bestIncomplete = markBudgetExhausted(bestIncomplete);
         }
-        return finish(firstPlanner.guaranteeReplenishment(bestIncomplete, target, amount), diagnostics, budget, started, graph, target, amount);
+        return finish(firstPlanner.guaranteeReplenishment(bestIncomplete, target, amount), diagnostics, budget, started, graph, target, amount, session);
     }
 
     /**
@@ -714,6 +799,7 @@ public final class CraftPlannerV2<K> {
             CraftGraph<K> graph, K target, long amount, int visitCap, SearchBudget budget,
             BoundedIntegerLinearSolver.WorkBudget lowWidthWorkBudget, DiagnosticsCollector diagnostics,
             Map<K, Integer> objectiveDistances, Map<Orientation<K>, PreparedGraph<K>> preparedByOrientation,
+            Map<CraftPattern<K>, Set<K>> uncutPositiveFeedbackOutputs,
             boolean stockSeeded) {
         Orientation<K> key = new Orientation<>(List.of(), false, stockSeeded ? 1 : 2);
         PreparedGraph<K> prepared = preparedByOrientation.get(key);
@@ -723,6 +809,7 @@ public final class CraftPlannerV2<K> {
         planner.objectiveDistances = objectiveDistances;
         planner.producibilityRanked = true;
         planner.producibilityStockSeeded = stockSeeded;
+        planner.uncutPositiveFeedbackOutputs = uncutPositiveFeedbackOutputs;
         CraftPlan<K> plan = UnorderedByproductSafety.protect(
                 graph, planner.run(target, amount, List.of()), target, amount);
         preparedByOrientation.putIfAbsent(key, planner.preparedGraph);
@@ -1135,8 +1222,9 @@ public final class CraftPlannerV2<K> {
             CraftPlan<K> plan,
             DiagnosticsCollector diagnostics,
             SearchBudget budget,
-            long started, CraftGraph<K> graph, K target, long amount) {
+            long started, CraftGraph<K> graph, K target, long amount, PlanningSession<K> session) {
         plan = UnorderedByproductSafety.protect(graph, plan, target, amount);
+        if (!plan.feasible() && session.primaryFallback != null) plan = session.primaryFallback;
         return new PlanningResult<>(plan, diagnostics.finish(started, budget));
     }
 
@@ -1337,7 +1425,13 @@ public final class CraftPlannerV2<K> {
         Set<K> items;
         if (preparedGraph == null) {
             long compileStarted = System.nanoTime();
-            identifyPositiveFeedbackByproducts(target, false);
+            if (uncutPositiveFeedbackOutputs == null) {
+                identifyPositiveFeedbackByproducts(target, false);
+                uncutPositiveFeedbackOutputs = snapshotPatternValues(
+                        suppressedPositiveFeedbackOutputs, Set::copyOf);
+            } else {
+                suppressedPositiveFeedbackOutputs.putAll(uncutPositiveFeedbackOutputs);
+            }
 
             // Build an acyclic view of the reachable recipe graph: a DFS from the target drops any
             // recipe whose input is an ancestor still being expanded (a back-edge), i.e. AE2's
@@ -1855,6 +1949,7 @@ public final class CraftPlannerV2<K> {
                 Set.copyOf(items),
                 Set.copyOf(cutOutputs),
                 patternsByOutput,
+                uncutPositiveFeedbackOutputs,
                 frozenSuppressed,
                 frozenContainerReserves,
                 frozenBootstraps,
@@ -1886,6 +1981,7 @@ public final class CraftPlannerV2<K> {
     private void loadPreparedGraph(PreparedGraph<K> prepared) {
         cutOutputs.addAll(prepared.cutOutputs);
         patternsByOutput = prepared.patternsByOutput;
+        uncutPositiveFeedbackOutputs = prepared.uncutPositiveFeedbackOutputs;
         suppressedPositiveFeedbackOutputs.putAll(prepared.suppressedPositiveFeedbackOutputs);
         linearContainerBootstrapReserves.putAll(prepared.linearContainerBootstrapReserves);
         feedbackSeedBootstraps.putAll(prepared.feedbackSeedBootstraps);
@@ -2375,6 +2471,15 @@ public final class CraftPlannerV2<K> {
         // Each output's refill inputs are indexed once for this exact uncut/cut projection.
         // Unrelated alternatives must not be rescanned for every consumer/byproduct pair.
         Map<K, Map<K, List<FeedbackRefill>>> refillsByInput = new HashMap<>();
+        if (compiled && uncutPositiveFeedbackOutputs != null) {
+            // A cut only removes refill alternatives. A consumer without a growing return in
+            // the original graph cannot acquire one here; recheck only the original witnesses.
+            for (CraftPattern<K> consumer : uncutPositiveFeedbackOutputs.keySet()) {
+                PlanningCancellation.check();
+                identifyPositiveFeedbackReturns(consumer, true, refillsByInput);
+            }
+            return;
+        }
         Set<K> seen = new LinkedHashSet<>();
         Deque<K> queue = new ArrayDeque<>();
         seen.add(target);
@@ -2391,45 +2496,58 @@ public final class CraftPlannerV2<K> {
                     if (seen.add(byproduct.key())) queue.add(byproduct.key());
                 }
 
-                if (consumer.byproducts().isEmpty()) continue;
-                // Aggregate once: scanning the whole input list again for every key makes a wide
-                // root quadratic, even when there is no feedback edge to inspect.
-                Map<K, Long> ordinaryInputs = new LinkedHashMap<>();
-                for (CraftInput<K> input : consumer.inputs()) {
-                    if (!input.returned() && input.remainder() == null)
-                        ordinaryInputs.merge(input.key(), input.amount(), Sat::add);
-                }
-                Map<K, Long> returnedOutputs = new LinkedHashMap<>();
-                for (CraftOutput<K> outputEntry : consumer.byproducts())
-                    returnedOutputs.merge(outputEntry.key(), outputEntry.amount(), Sat::add);
-                for (var consumed : ordinaryInputs.entrySet()) {
-                    K consumedKey = consumed.getKey();
-                    long consumedAmount = consumed.getValue();
-                    if (consumedAmount <= 0) continue;
-                    Map<K, List<FeedbackRefill>> refills = refillsByInput.computeIfAbsent(
-                            consumedKey, key -> feedbackRefills(key, compiled));
-                    // Join only the smaller key set. Wide multi-output recipes often have few
-                    // actual refill edges; walking every side output per input is quadratic.
-                    // Suppression is a membership set, so intersection traversal order is immaterial.
-                    if (refills.isEmpty()) continue;
-                    Set<K> possibleReturns = refills.size() < returnedOutputs.size()
-                            ? refills.keySet() : returnedOutputs.keySet();
-                    for (K byproduct : possibleReturns) {
-                        long returnedAmount = returnedOutputs.getOrDefault(byproduct, 0L);
-                        if (returnedAmount <= 0) continue;
-                        for (FeedbackRefill refill : refills.getOrDefault(byproduct, List.of())) {
-                            long refillInput = refill.inputAmount();
-                            long common = gcd(returnedAmount, refillInput);
-                            long consumerBatch = refillInput / common;
-                            long refillBatch = returnedAmount / common;
-                            long consumedPerRound = Sat.mul(consumedAmount, consumerBatch);
-                            long recoveredPerRound = Sat.mul(refill.outputAmount(), refillBatch);
-                            if (recoveredPerRound > consumedPerRound) {
-                                suppressedPositiveFeedbackOutputs
-                                        .computeIfAbsent(consumer, ignored -> new LinkedHashSet<>())
-                                        .add(byproduct);
-                            }
-                        }
+                identifyPositiveFeedbackReturns(consumer, compiled, refillsByInput);
+            }
+        }
+    }
+
+    private void identifyPositiveFeedbackReturns(CraftPattern<K> consumer, boolean compiled,
+            Map<K, Map<K, List<FeedbackRefill>>> refillsByInput) {
+        if (consumer.byproducts().isEmpty()) return;
+        // Aggregate once: scanning the whole input list again for every key makes a wide
+        // root quadratic, even when there is no feedback edge to inspect.
+        Map<K, Long> ordinaryInputs = new LinkedHashMap<>();
+        for (CraftInput<K> input : consumer.inputs()) {
+            if (!input.returned() && input.remainder() == null)
+                ordinaryInputs.merge(input.key(), input.amount(), Sat::add);
+        }
+        Map<K, Long> returnedOutputs = new LinkedHashMap<>();
+        for (CraftOutput<K> outputEntry : consumer.byproducts())
+            returnedOutputs.merge(outputEntry.key(), outputEntry.amount(), Sat::add);
+        for (var consumed : ordinaryInputs.entrySet()) {
+            K consumedKey = consumed.getKey();
+            long consumedAmount = consumed.getValue();
+            if (consumedAmount <= 0) continue;
+            Map<K, List<FeedbackRefill>> refills = refillsByInput.computeIfAbsent(
+                    consumedKey, key -> feedbackRefills(key, compiled));
+            // Join only the smaller key set. Wide multi-output recipes often have few
+            // actual refill edges; walking every side output per input is quadratic.
+            // Suppression is a membership set, so intersection traversal order is immaterial.
+            if (refills.isEmpty()) continue;
+            Set<K> possibleReturns = refills.size() < returnedOutputs.size()
+                    ? refills.keySet() : returnedOutputs.keySet();
+            for (K byproduct : possibleReturns) {
+                long returnedAmount = returnedOutputs.getOrDefault(byproduct, 0L);
+                if (returnedAmount <= 0) continue;
+                List<FeedbackRefill> candidates = refills.get(byproduct);
+                if (candidates == null) continue;
+                FeedbackRefill bestRatio = candidates.getFirst();
+                // Saturating a common-factor round cannot turn a non-gain into a gain.
+                // The largest exact output/input ratio proves all refills non-growing at once.
+                if (!positiveProductGreater(bestRatio.outputAmount(), returnedAmount,
+                        consumedAmount, bestRatio.inputAmount())) continue;
+                for (FeedbackRefill refill : candidates) {
+                    long refillInput = refill.inputAmount();
+                    long common = gcd(returnedAmount, refillInput);
+                    long consumerBatch = refillInput / common;
+                    long refillBatch = returnedAmount / common;
+                    long consumedPerRound = Sat.mul(consumedAmount, consumerBatch);
+                    long recoveredPerRound = Sat.mul(refill.outputAmount(), refillBatch);
+                    if (recoveredPerRound > consumedPerRound) {
+                        suppressedPositiveFeedbackOutputs
+                                .computeIfAbsent(consumer, ignored -> new LinkedHashSet<>())
+                                .add(byproduct);
+                        break; // This is an existence predicate, not a count of gain routes.
                     }
                 }
             }
@@ -2448,14 +2566,28 @@ public final class CraftPlannerV2<K> {
                     amounts.merge(input.key(), Sat.add(0L, input.amount()), Sat::add);
             }
             amounts.forEach((key, amount) -> {
-                if (amount > 0) index.computeIfAbsent(key, ignored -> new ArrayList<>())
-                        .add(new FeedbackRefill(amount, pattern.outputAmount()));
+                if (amount <= 0) return;
+                var refills = index.computeIfAbsent(key, ignored -> new ArrayList<>());
+                var refill = new FeedbackRefill(amount, pattern.outputAmount());
+                // Only the maximum ratio must be first. Retain every other batch size: the
+                // maximum-ratio round can saturate while a smaller round remains a strict gain.
+                if (!refills.isEmpty() && positiveProductGreater(refill.outputAmount(),
+                        refills.getFirst().inputAmount(), refills.getFirst().outputAmount(), amount)) {
+                    refills.add(refills.set(0, refill));
+                } else refills.add(refill);
             });
         }
         return index;
     }
 
     private record FeedbackRefill(long inputAmount, long outputAmount) {}
+
+    /** Exact unsigned 128-bit product comparison for non-negative long factors. */
+    private static boolean positiveProductGreater(long a, long b, long c, long d) {
+        long leftHigh = Math.multiplyHigh(a, b), rightHigh = Math.multiplyHigh(c, d);
+        return leftHigh > rightHigh || leftHigh == rightHigh
+                && Long.compareUnsigned(a * b, c * d) > 0;
+    }
 
     private static <K> long byproductAmount(CraftPattern<K> pattern, K key) {
         long result = 0L;
@@ -6570,6 +6702,7 @@ public final class CraftPlannerV2<K> {
         private final Set<K> items;
         private final Set<K> cutOutputs;
         private final Map<K, List<CraftPattern<K>>> patternsByOutput;
+        private final Map<CraftPattern<K>, Set<K>> uncutPositiveFeedbackOutputs;
         private final Map<CraftPattern<K>, Set<K>> suppressedPositiveFeedbackOutputs;
         private final Map<CraftPattern<K>, Map<K, Long>> linearContainerBootstrapReserves;
         private final Map<CraftPattern<K>, List<FeedbackSeedBootstrap<K>>> feedbackSeedBootstraps;
@@ -6595,6 +6728,7 @@ public final class CraftPlannerV2<K> {
                 Set<K> items,
                 Set<K> cutOutputs,
                 Map<K, List<CraftPattern<K>>> patternsByOutput,
+                Map<CraftPattern<K>, Set<K>> uncutPositiveFeedbackOutputs,
                 Map<CraftPattern<K>, Set<K>> suppressedPositiveFeedbackOutputs,
                 Map<CraftPattern<K>, Map<K, Long>> linearContainerBootstrapReserves,
                 Map<CraftPattern<K>, List<FeedbackSeedBootstrap<K>>> feedbackSeedBootstraps,
@@ -6617,6 +6751,7 @@ public final class CraftPlannerV2<K> {
             this.items = items;
             this.cutOutputs = cutOutputs;
             this.patternsByOutput = patternsByOutput;
+            this.uncutPositiveFeedbackOutputs = uncutPositiveFeedbackOutputs;
             this.suppressedPositiveFeedbackOutputs = suppressedPositiveFeedbackOutputs;
             this.linearContainerBootstrapReserves = linearContainerBootstrapReserves;
             this.feedbackSeedBootstraps = feedbackSeedBootstraps;
@@ -6711,6 +6846,31 @@ public final class CraftPlannerV2<K> {
             cycleCuts = Math.max(cycleCuts, prepared.cutOutputs.size());
             seedOrdered |= prepared.seedOrdered;
             graphCompileNanos = addNanos(graphCompileNanos, nanos);
+        }
+
+        private void recordPrimaryCompilation(FeasibleConsumptionOptimizer.PrimaryResult<?> primary) {
+            compiledOrientations = increment(compiledOrientations);
+            planRuns = increment(planRuns);
+            reachableItems = Math.max(reachableItems, primary.keys());
+            reachablePatterns = Math.max(reachablePatterns, primary.patterns());
+            inputEdges = Math.max(inputEdges, primary.inputs());
+            contendedOutputs = Math.max(contendedOutputs, primary.choices());
+        }
+
+        private void recordRegionalWork(PlanningDiagnostics regional) {
+            planRuns = add(planRuns, regional.planRuns());
+            compiledOrientations = add(compiledOrientations, regional.compiledOrientations());
+            reusedCompilations = add(reusedCompilations, regional.reusedCompilations());
+            lowWidthAttempts = add(lowWidthAttempts, regional.lowWidthAttempts());
+            lowWidthSolved = add(lowWidthSolved, regional.lowWidthSolved());
+            lowWidthInfeasible = add(lowWidthInfeasible, regional.lowWidthInfeasible());
+            lowWidthCutoffs = add(lowWidthCutoffs, regional.lowWidthCutoffs());
+            lowWidthIntegerNodes = add(lowWidthIntegerNodes, regional.lowWidthIntegerNodes());
+            separatorWidthPeak = Math.max(separatorWidthPeak, regional.separatorWidthPeak());
+            consumedResolutionBudget = add(consumedResolutionBudget, regional.consumedResolutionBudget());
+            consumedFallbackBudget = add(consumedFallbackBudget, regional.consumedFallbackBudget());
+            resolutionCutoff |= regional.resolutionCutoff();
+            fallbackCutoff |= regional.fallbackCutoff();
         }
 
         private void recordCompilationReuse() {

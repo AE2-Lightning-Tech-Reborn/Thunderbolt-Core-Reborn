@@ -12,6 +12,42 @@ import org.junit.jupiter.api.Test;
 
 class PositiveFeedbackIndexTest {
     @Test
+    void ratioBoundUsesExactProductsAcrossTheEntireNonnegativeLongRange() throws Exception {
+        var method = CraftPlannerV2.class.getDeclaredMethod("positiveProductGreater",
+                long.class, long.class, long.class, long.class);
+        method.setAccessible(true);
+        long[] edges = {0, 1, 2, Integer.MAX_VALUE, 1L << 32, Sat.SAT, Long.MAX_VALUE};
+        for (long a : edges) for (long b : edges) for (long c : edges) for (long d : edges)
+            assertEquals(BigInteger.valueOf(a).multiply(BigInteger.valueOf(b))
+                            .compareTo(BigInteger.valueOf(c).multiply(BigInteger.valueOf(d))) > 0,
+                    method.invoke(null, a, b, c, d));
+        var random = new Random(2026101523L);
+        for (int i = 0; i < 10000; i++) {
+            long a = random.nextLong() & Long.MAX_VALUE, b = random.nextLong() & Long.MAX_VALUE;
+            long c = random.nextLong() & Long.MAX_VALUE, d = random.nextLong() & Long.MAX_VALUE;
+            assertEquals(BigInteger.valueOf(a).multiply(BigInteger.valueOf(b))
+                            .compareTo(BigInteger.valueOf(c).multiply(BigInteger.valueOf(d))) > 0,
+                    method.invoke(null, a, b, c, d));
+        }
+    }
+
+    @Test
+    void aSaturatedMaximumRatioCannotHideAGainThroughASmallerBatch() throws Exception {
+        var consumer = new CraftPattern<>("T", 1, List.of(CraftInput.of("A", Sat.SAT / 2)),
+                List.of(CraftOutput.of("B", 1)), "consumer");
+        var small = new CraftPattern<>("A", Sat.SAT - 1, List.of(CraftInput.of("B", 1)), "small");
+        var largestRatio = new CraftPattern<>("A", Long.MAX_VALUE,
+                List.of(CraftInput.of("B", 4)), "largest-ratio");
+        var onlyLargest = CraftGraph.<String>builder().pattern(consumer).pattern(largestRatio).build();
+        assertTrue(suppressed(onlyLargest, Map.of(), "T", false).isEmpty());
+        for (var alternatives : List.of(List.of(small, largestRatio), List.of(largestRatio, small))) {
+            var builder = CraftGraph.<String>builder().pattern(consumer);
+            alternatives.forEach(builder::pattern);
+            assertEquals(Set.of("B"), suppressed(builder.build(), Map.of(), "T", false).get(consumer));
+        }
+    }
+
+    @Test
     void wideRecipesVisitSparseFeedbackEdgesWithoutAnInputByproductCrossProduct() throws Exception {
         long small = sparseFeedbackWork(128), large = sparseFeedbackWork(512);
         assertTrue(large <= small * 5, () -> "key lookups grew from " + small + " to " + large);
@@ -99,6 +135,16 @@ class PositiveFeedbackIndexTest {
     }
 
     @Test
+    void aCutConsumerRetainsFeedbackMetadataWhileItsRefillSurvives() throws Exception {
+        var consumer = new CraftPattern<>("T", 1, List.of(CraftInput.of("A", 1)),
+                List.of(CraftOutput.of("B", 1)), "consumer");
+        var refill = new CraftPattern<>("A", 2, List.of(CraftInput.of("B", 1)), "refill");
+        var graph = CraftGraph.<String>builder().pattern(consumer).pattern(refill).build();
+        var selected = Map.of("T", List.<CraftPattern<String>>of(), "A", List.of(refill));
+        assertEquals(Map.of(consumer, Set.of("B")), suppressed(graph, selected, "T", true));
+    }
+
+    @Test
     void buildingAnInputIndexPropagatesExternalCancellation() {
         var graph = CraftGraph.<String>builder().pattern("T", 1, List.of(CraftInput.of("A", 1)),
                 List.of(CraftOutput.of("B", 1))).pattern("A", 2, List.of(CraftInput.of("B", 1))).build();
@@ -165,13 +211,22 @@ class PositiveFeedbackIndexTest {
         ((Map<K, List<CraftPattern<K>>>) patterns.get(planner)).putAll(selected);
         var method = CraftPlannerV2.class.getDeclaredMethod("identifyPositiveFeedbackByproducts", Object.class, boolean.class);
         method.setAccessible(true);
+        var result = CraftPlannerV2.class.getDeclaredField("suppressedPositiveFeedbackOutputs"); result.setAccessible(true);
+        if (compiled) {
+            method.invoke(planner, target, false);
+            var raw = new IdentityHashMap<CraftPattern<K>, Set<K>>();
+            var mutable = (Map<CraftPattern<K>, Set<K>>) result.get(planner);
+            mutable.forEach((pattern, keys) -> raw.put(pattern, Set.copyOf(keys)));
+            var facts = CraftPlannerV2.class.getDeclaredField("uncutPositiveFeedbackOutputs"); facts.setAccessible(true);
+            facts.set(planner, Collections.unmodifiableMap(raw));
+            mutable.clear();
+        }
         try { method.invoke(planner, target, compiled); }
         catch (InvocationTargetException e) {
             if (e.getCause() instanceof RuntimeException cause) throw cause;
             if (e.getCause() instanceof Error cause) throw cause;
             throw e;
         }
-        var result = CraftPlannerV2.class.getDeclaredField("suppressedPositiveFeedbackOutputs"); result.setAccessible(true);
         return (Map<CraftPattern<K>, Set<K>>) result.get(planner);
     }
 }
