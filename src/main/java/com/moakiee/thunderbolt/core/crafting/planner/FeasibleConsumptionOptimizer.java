@@ -71,7 +71,24 @@ final class FeasibleConsumptionOptimizer {
     static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
             int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache,
             IntPredicate spendWork) {
-        var state = new Search<>(graph, target, amount, initial, probeLimit, oracle, cache, spendWork);
+        try (var budget = new FeasibleOptimizationBudget(MAX_NANOS)) {
+            return optimize(graph, target, amount, initial, probeLimit, oracle, cache, spendWork, budget);
+        } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            return new Result<>(initial, 0, 0, 0);
+        }
+    }
+
+    static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
+            int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache,
+            IntPredicate spendWork, FeasibleOptimizationBudget budget) {
+        return optimize(graph, target, amount, initial, probeLimit, oracle, cache, spendWork, budget, false);
+    }
+
+    static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
+            int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache,
+            IntPredicate spendWork, FeasibleOptimizationBudget budget, boolean batchFirst) {
+        var state = new Search<>(graph, target, amount, initial, probeLimit, oracle, cache, spendWork, budget);
+        state.batchFirst = batchFirst;
         try {
             state.run();
             state.mixSmallBatches();
@@ -130,6 +147,10 @@ final class FeasibleConsumptionOptimizer {
     static <K> boolean targetOnlyBound(CraftGraph<K> graph, K target, long amount, CraftPlan<K> best) {
         if (graph.hasByproducts() || graph.hasTagConversions()
                 || graph.stock(target) != 0 || best.firings().isEmpty()) return false;
+        for (var pattern : best.firings().keySet()) {
+            PlanningCancellation.check();
+            if (!pattern.output().equals(target)) return false;
+        }
         BigInteger largestOutput = BigInteger.ZERO;
         BigInteger smallestDraw = null;
         for (var pattern : graph.patternsFor(target)) {
@@ -148,7 +169,6 @@ final class FeasibleConsumptionOptimizer {
         var needed = BigInteger.valueOf(amount);
         var lowerExecutions = needed.add(largestOutput).subtract(BigInteger.ONE).divide(largestOutput);
         if (!executions(best).equals(lowerExecutions)) return false;
-        for (var pattern : best.firings().keySet()) if (!pattern.output().equals(target)) return false;
         BigInteger used = BigInteger.ZERO;
         for (long value : best.usedStock().values()) used = used.add(BigInteger.valueOf(value));
         return smallestDraw.multiply(lowerExecutions).compareTo(used) >= 0;
@@ -167,9 +187,10 @@ final class FeasibleConsumptionOptimizer {
         private int probes;
         private int improvements;
         private int pruned;
-        private long lastGain;
+        private final FeasibleOptimizationBudget budget;
         private boolean exhausted;
         private boolean targetOptimal;
+        private boolean batchFirst;
 
         private Index<K> index;
         private long[] limits;
@@ -200,7 +221,8 @@ final class FeasibleConsumptionOptimizer {
         private boolean regionExtensible;
 
         Search(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial, int limit,
-                Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache, IntPredicate spendWork) {
+                Function<CraftGraph<K>, CraftPlan<K>> oracle, IndexCache<K> cache, IntPredicate spendWork,
+                FeasibleOptimizationBudget budget) {
             this.graph = graph;
             this.target = target;
             this.amount = amount;
@@ -209,6 +231,7 @@ final class FeasibleConsumptionOptimizer {
             this.oracle = oracle;
             this.cache = cache;
             this.spendWork = spendWork;
+            this.budget = budget;
         }
 
         private boolean spend(int work) {
@@ -227,6 +250,10 @@ final class FeasibleConsumptionOptimizer {
 
         /** Finish small ordinary DAGs with integer batch mixes under the same budgets. */
         private void mixSmallBatches() {
+            mixSmallBatches(false);
+        }
+
+        private void mixSmallBatches(boolean executionsOnly) {
             if (targetOptimal || index == null || !index.choices || index.patterns.size() > MAX_MIXED_PATTERNS
                     || exhausted || probes >= limit)
                 return;
@@ -238,6 +265,13 @@ final class FeasibleConsumptionOptimizer {
                 PlanningCancellation.check();
                 var ordinary = OrdinaryBatchOptimizer.startSearch(graph, target, amount, best, charge, reserve);
                 var candidate = ordinary.tryWhole(index.keys);
+                // Keep the early slice bounded to the cheap whole-output execution proof.
+                // Larger upstream neighborhoods retain their place after route proposals.
+                if (executionsOnly) {
+                    if (candidate == null || executionCount(candidate) >= executionCount(best)
+                            || !accept(candidate)) break;
+                    continue;
+                }
                 UpstreamBatchOptimizer.Search<K> upstream = null;
                 if (candidate == null && !exhausted && probes < limit) {
                     upstream = UpstreamBatchOptimizer.startSearch(graph, target, amount, best, index.keys,
@@ -250,16 +284,11 @@ final class FeasibleConsumptionOptimizer {
                 // Keep the same upstream allowance after the earlier local neighborhoods finish.
                 if (candidate == null && upstream != null && !exhausted && probes < limit)
                     candidate = upstream.tryAdditional();
-                if (candidate == null || !improves(best, candidate)) break;
-                best = candidate;
-                improvements++;
+                if (!accept(candidate)) break;
             }
-            if (!exhausted && probes < limit) {
+            if (!executionsOnly && !exhausted && probes < limit) {
                 var normalized = OrdinaryBatchOptimizer.normalizeStock(graph, target, amount, best, charge, reserve);
-                if (normalized != null && improves(best, normalized)) {
-                    best = normalized;
-                    improvements++;
-                }
+                accept(normalized);
             }
         }
 
@@ -269,10 +298,7 @@ final class FeasibleConsumptionOptimizer {
                     || exhausted || probes >= limit) return;
             var candidate = TerminalBatchOptimizer.tryImprove(graph, target, amount, best, index.patterns,
                     this::spend, this::reserveProbe);
-            if (candidate != null && improves(best, candidate)) {
-                best = candidate;
-                improvements++;
-            }
+            accept(candidate);
             mixTerminalFixedDepthBatches();
         }
 
@@ -281,10 +307,7 @@ final class FeasibleConsumptionOptimizer {
             if (exhausted || probes >= limit) return;
             var candidate = TerminalFixedDepthOptimizer.tryImprove(graph, target, amount, best,
                     this::spend, this::reserveProbe);
-            if (candidate != null && improves(best, candidate)) {
-                best = candidate;
-                improvements++;
-            }
+            accept(candidate);
         }
 
         void run() {
@@ -311,6 +334,9 @@ final class FeasibleConsumptionOptimizer {
             }
             if (proven()) return;
 
+            int beforeBatches = improvements;
+            if (batchFirst) mixSmallBatches(true);
+            if (improvements != beforeBatches) propagateStock();
             probePolicy();
             if (targetOnlyBound()) {
                 targetOptimal = true;
@@ -322,9 +348,6 @@ final class FeasibleConsumptionOptimizer {
             availableStock = false;
             propagateStock();
             if (!proven()) probePolicy();
-            // The stall clock times withdrawals only. Indexing, bounds and the policy proposal
-            // are paid once and grow with the pack; a slow machine must still get to reroute.
-            lastGain = System.nanoTime();
             var tried = new HashSet<Integer>();
             while (!exhausted && probes < limit && !stalled()) {
                 PlanningCancellation.check();
@@ -377,7 +400,7 @@ final class FeasibleConsumptionOptimizer {
         }
 
         private boolean stalled() {
-            return STALL_NANOS != 0 && System.nanoTime() - lastGain >= STALL_NANOS;
+            return budget.stalled();
         }
 
         private boolean proven() {
@@ -844,7 +867,11 @@ final class FeasibleConsumptionOptimizer {
             PlanningCancellation.check();
             if (exhausted || probes >= limit) return false;
             probes++;
-            CraftPlan<K> candidate = oracle.apply(candidateGraph);
+            CraftPlan<K> candidate;
+            try (var ignored = PlanningCancellation.limitOptionalWork(budget.remainingNanos())) {
+                candidate = oracle.apply(candidateGraph);
+                PlanningCancellation.check();
+            }
             lastCandidate = null;
             if (candidate == null) {
                 exhausted = true;
@@ -853,12 +880,12 @@ final class FeasibleConsumptionOptimizer {
             for (var entry : candidate.usedStock().entrySet())
                 if (entry.getValue() < 0 || entry.getValue() > candidateGraph.stock(entry.getKey())) return false;
             lastCandidate = candidate;
-            if (!improves(best, candidate)) return false;
-            BigInteger before = executions(best);
-            BigInteger gain = before.subtract(executions(candidate));
-            // Stock-only tie-breaks and sub-percent gains do not restart the stall clock.
-            if (gain.signum() > 0 && gain.multiply(BigInteger.valueOf(100))
-                    .compareTo(before.multiply(BigInteger.valueOf(MIN_GAIN_PERCENT))) >= 0) lastGain = System.nanoTime();
+            return accept(candidate);
+        }
+
+        private boolean accept(CraftPlan<K> candidate) {
+            if (candidate == null || !improves(best, candidate)) return false;
+            budget.improved(best, candidate);
             best = candidate;
             improvements++;
             region = null;
@@ -874,6 +901,7 @@ final class FeasibleConsumptionOptimizer {
          * bounds executions; a second potential that also prices limited stock subtracts it.
          */
         private Prop propagate(int[] patterns, boolean keepChoices) {
+            PlanningCancellation.check();
             int n = index.keys.size(), m = patterns.length;
             var prop = new Prop();
             prop.patterns = patterns;

@@ -124,16 +124,63 @@ final class ConservativeFeedbackAnalysis<K> {
         List<Component<K>> result = new ArrayList<>();
         List<FallbackComponent<K>> fallbacks = new ArrayList<>();
         List<Set<K>> cyclicComponents = cyclicComponents(patterns);
-        for (Set<K> states : cyclicComponents) {
-            Component<K> component = classify(states, patterns, itemRank);
+        var localPatterns = patternsByComponent(cyclicComponents, patterns);
+        for (int i = 0; i < cyclicComponents.size(); i++) {
+            PlanningCancellation.check();
+            Set<K> states = cyclicComponents.get(i);
+            Component<K> component = classify(states, localPatterns.get(i), itemRank);
             if (component != null) {
                 result.add(component);
             } else {
-                FallbackComponent<K> fallback = classifyFallback(states, patterns, itemRank);
+                FallbackComponent<K> fallback = classifyFallback(states, localPatterns.get(i), itemRank);
                 if (fallback != null) fallbacks.add(fallback);
             }
         }
         return new Analysis<>(result, fallbacks, cyclicComponents);
+    }
+
+    /** Only incident arcs are needed, including on a wide consumer shared by many SCCs. */
+    private record ComponentPattern<K>(CraftPattern<K> pattern,
+            List<CraftInput<K>> inputs, List<CraftOutput<K>> outputs) {
+        ComponentPattern(CraftPattern<K> pattern) {
+            this(pattern, new ArrayList<>(), new ArrayList<>());
+        }
+    }
+
+    private static <K> List<List<ComponentPattern<K>>> patternsByComponent(
+            List<Set<K>> components, List<CraftPattern<K>> patterns) {
+        Map<K, Integer> owner = new HashMap<>();
+        List<List<ComponentPattern<K>>> indexed = new ArrayList<>(components.size());
+        for (int i = 0; i < components.size(); i++) {
+            PlanningCancellation.check();
+            indexed.add(new ArrayList<>());
+            for (K key : components.get(i)) owner.put(key, i);
+        }
+        // Stable pattern order is part of the bounded fallback's search order. A pattern may
+        // touch several SCCs, but repeated inputs/outputs add it only once to each local list.
+        // Filter its arcs too: rescanning a wide root per SCC would remain quadratic.
+        Map<Integer, ComponentPattern<K>> touched = new HashMap<>();
+        for (CraftPattern<K> pattern : patterns) {
+            PlanningCancellation.check();
+            touched.clear();
+            Integer primary = owner.get(pattern.output());
+            if (primary != null) touched.put(primary, new ComponentPattern<>(pattern));
+            int visits = 0;
+            for (var input : pattern.inputs()) {
+                if ((++visits & 255) == 0) PlanningCancellation.check();
+                Integer component = owner.get(input.key());
+                if (component != null) touched.computeIfAbsent(component,
+                        ignored -> new ComponentPattern<>(pattern)).inputs().add(input);
+            }
+            for (var output : pattern.byproducts()) {
+                if ((++visits & 255) == 0) PlanningCancellation.check();
+                Integer component = owner.get(output.key());
+                if (component != null) touched.computeIfAbsent(component,
+                        ignored -> new ComponentPattern<>(pattern)).outputs().add(output);
+            }
+            touched.forEach((component, local) -> indexed.get(component).add(local));
+        }
+        return indexed;
     }
 
     /**
@@ -251,15 +298,15 @@ final class ConservativeFeedbackAnalysis<K> {
 
     private static <K> Component<K> classify(
             Set<K> states,
-            List<CraftPattern<K>> patterns,
+            List<ComponentPattern<K>> patterns,
             Map<K, Integer> itemRank) {
         List<Transition<K>> transitions = new ArrayList<>();
         boolean hasExternalProducer = false;
-        for (CraftPattern<K> pattern : patterns) {
+        for (var local : patterns) {
+            CraftPattern<K> pattern = local.pattern();
             Map<K, Long> inputs = new LinkedHashMap<>();
             boolean invalidInternalInput = false;
-            for (CraftInput<K> input : pattern.inputs()) {
-                if (!states.contains(input.key())) continue;
+            for (CraftInput<K> input : local.inputs()) {
                 if (!isConsumedArc(input)) {
                     invalidInternalInput = true;
                     break;
@@ -273,9 +320,8 @@ final class ConservativeFeedbackAnalysis<K> {
                     && !mergeExact(outputs, pattern.output(), pattern.outputAmount())) {
                 return null;
             }
-            for (CraftOutput<K> byproduct : pattern.byproducts()) {
-                if (states.contains(byproduct.key())
-                        && !mergeExact(outputs, byproduct.key(), byproduct.amount())) {
+            for (CraftOutput<K> byproduct : local.outputs()) {
+                if (!mergeExact(outputs, byproduct.key(), byproduct.amount())) {
                     return null;
                 }
             }
@@ -354,15 +400,15 @@ final class ConservativeFeedbackAnalysis<K> {
      */
     private static <K> FallbackComponent<K> classifyFallback(
             Set<K> states,
-            List<CraftPattern<K>> patterns,
+            List<ComponentPattern<K>> patterns,
             Map<K, Integer> itemRank) {
         List<CraftPattern<K>> internalPatterns = new ArrayList<>();
-        for (CraftPattern<K> pattern : patterns) {
+        for (var local : patterns) {
+            CraftPattern<K> pattern = local.pattern();
             boolean hasConsumedInput = false;
             boolean hasReadInput = false;
             boolean hasOutput = states.contains(pattern.output());
-            for (CraftInput<K> input : pattern.inputs()) {
-                if (!states.contains(input.key())) continue;
+            for (CraftInput<K> input : local.inputs()) {
                 if (isConsumedArc(input)) {
                     hasConsumedInput = true;
                 } else if (isReadArc(input)) {
@@ -371,9 +417,7 @@ final class ConservativeFeedbackAnalysis<K> {
                     return null;
                 }
             }
-            for (CraftOutput<K> output : pattern.byproducts()) {
-                hasOutput |= states.contains(output.key());
-            }
+            hasOutput |= !local.outputs().isEmpty();
             if (!hasOutput || (!hasConsumedInput && !hasReadInput)) continue;
             // A read arc cannot pay for newly produced state. Such a transition is a catalytic gain
             // source and belongs to the positive-feedback path, not this conservative certificate.
@@ -643,10 +687,11 @@ final class ConservativeFeedbackAnalysis<K> {
                 MAX_FALLBACK_PATTERN_PROBES / starts / active.size()));
         List<ScheduleOption<K>> result = new ArrayList<>(starts);
         Set<Map<K, BigInteger>> seen = new HashSet<>();
+        Map<K, BigInteger> delta = fallbackDelta(states, active, fired);
         for (int start = 0; start < starts; start++) {
             PlanningCancellation.check();
             ScheduleOption<K> option = replayFallback(
-                    states, active, fired, start, replaySteps);
+                    states, active, fired, start, replaySteps, delta);
             if (seen.add(option.required())) result.add(option);
         }
         return List.copyOf(result);
@@ -657,7 +702,8 @@ final class ConservativeFeedbackAnalysis<K> {
             List<CraftPattern<K>> patterns,
             Map<CraftPattern<K>, Long> fired,
             int start,
-            int replaySteps) {
+            int replaySteps,
+            Map<K, BigInteger> delta) {
         long[] remaining = new long[patterns.size()];
         for (int i = 0; i < patterns.size(); i++) {
             remaining[i] = fired.getOrDefault(patterns.get(i), 0L);
@@ -726,7 +772,7 @@ final class ConservativeFeedbackAnalysis<K> {
                 remaining[index] = 0L;
             }
         }
-        return new ScheduleOption<>(required, fallbackDelta(states, patterns, fired));
+        return new ScheduleOption<>(required, delta);
     }
 
     private static <K> FallbackReplayState<K> fallbackReplayState(

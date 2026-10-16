@@ -2,6 +2,8 @@ package com.moakiee.thunderbolt.core.crafting.planner;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext;
+import com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,7 +24,7 @@ class FeasiblePolicyAlternativesTest {
             assertEquals(8, executions(initial));
             assertEquals(Map.of("ore", 6L), initial.usedStock());
 
-            var result = CraftPlannerV2.plan(graph, "machine", 9);
+            var result = optimizeQuality(graph, 9, initial);
             // Three small assemblies + two plate batches + one directly stocked-dust coil batch.
             assertEquals(6, executions(result));
             assertEquals(Map.of("ore", 4L, "dust", 2L), result.usedStock());
@@ -38,12 +40,40 @@ class FeasiblePolicyAlternativesTest {
             assertEquals(8, executions(initial));
             assertEquals(Map.of("ore", 1L, "dust", 1L), initial.usedStock());
 
-            var result = CraftPlannerV2.plan(graph, "machine", 2);
+            var result = optimizeQuality(graph, 2, initial);
             // One six-wire batch supplies both plates and coils: 1 + 2 + 2 + 2 firings.
             assertEquals(7, executions(result));
             assertEquals(Map.of("ore", 2L), result.usedStock());
             assertExecutable(graph, result, 2);
         }
+    }
+
+    @Test
+    void defaultEntryKeepsTheExecutableSharedSupplierPlanWhenOptimizationExpires() throws Exception {
+        var graph = sharedSupplier(false);
+        var initial = firstPlan(graph, 2);
+        var field = PlanningCancellation.class.getDeclaredField("OPTIONAL_DEADLINE");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        var deadline = (ThreadLocal<Long>) field.get(null);
+        boolean[] expired = {false};
+        var context = new PlanningAttemptContext() {
+            public long deadlineNanos() { return Long.MAX_VALUE; }
+            public void report(PlanningDiagnosticSnapshot snapshot) {}
+            public void checkpoint() {
+                if (expired[0] || deadline.get() == null) return;
+                expired[0] = true;
+                deadline.set(System.nanoTime() - 1L);
+            }
+        };
+        try (var bound = PlanningCancellation.bind(context)) {
+            var result = CraftPlannerV2.plan(graph, "machine", 2);
+            assertTrue(expired[0], "exercise the default entry's optional optimization cutoff");
+            assertEquals(initial.firings(), result.firings());
+            assertEquals(initial.usedStock(), result.usedStock());
+            assertExecutable(graph, result, 2);
+        }
+        assertNull(deadline.get());
     }
 
     @Test
@@ -291,6 +321,16 @@ class FeasiblePolicyAlternativesTest {
         var session = new CraftPlannerV2.PlanningSession<String>();
         session.optimizeFeasible = false;
         return CraftPlannerV2.planDetailed(graph, "machine", amount, session).plan();
+    }
+
+    /** Quality and deadline fallback have separate contracts; retain the production probe limit. */
+    private static CraftPlan<String> optimizeQuality(CraftGraph<String> graph, long amount,
+            CraftPlan<String> initial) {
+        try (var budget = new FeasibleOptimizationBudget(30_000_000_000L, 0L)) {
+            return FeasibleConsumptionOptimizer.optimize(graph, "machine", amount, initial,
+                    FeasibleConsumptionOptimizer.MAX_PROBES, candidate -> firstPlan(candidate, amount),
+                    new FeasibleConsumptionOptimizer.IndexCache<>(), work -> true, budget, true).plan();
+        }
     }
 
     private static long executions(CraftPlan<?> plan) {

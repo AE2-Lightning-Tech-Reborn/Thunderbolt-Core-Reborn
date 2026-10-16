@@ -682,8 +682,10 @@ public final class CraftPlannerV2<K> {
         long available = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
         long remaining = session.remainingMaterialDagNanos(available);
         if (remaining <= 0) return null;
-        long started = System.nanoTime();
-        try (var ignored = PlanningCancellation.limitOptionalWork(remaining)) {
+        // Match the independent-component portfolio: unbound Java proof work is charged
+        // for CPU consumed, while a caller or enclosing optional stage keeps its wall cutoff.
+        long started = PlanningCancellation.witnessClockNanos();
+        try (var ignored = PlanningCancellation.limitWitnessWork(remaining)) {
             if (session.materialDagOrders == null) {
                 if (session.materialDagOrderTemplates == null) {
                     // Discovery and replay share one allowance. Evaluating complete supports as
@@ -711,7 +713,7 @@ public final class CraftPlannerV2<K> {
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             // Only this optional portfolio stopped; retain the ordinary cut/search fallback.
         } finally {
-            session.materialDagOrderNanos += Math.max(0L, System.nanoTime() - started);
+            session.materialDagOrderNanos += Math.max(0L, PlanningCancellation.witnessClockNanos() - started);
         }
         if (session.materialDagOrderTemplates != null) {
             // The original portfolio may have stopped before reaching a support enabled by
@@ -889,14 +891,18 @@ public final class CraftPlannerV2<K> {
                 PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 4L);
         if (remaining <= 0L) return false;
         long started = System.nanoTime();
-        try (var ignored = PlanningCancellation.limitOptionalWork(remaining)) {
+        long workStarted = PlanningCancellation.witnessClockNanos();
+        // This replan is a pure Java witness. Without a caller deadline, scheduling pauses
+        // must not discard a valid supplement in favor of the conservative policy.
+        try (var ignored = PlanningCancellation.limitWitnessWork(remaining)) {
             CraftPlan<K> ready = probeReplenishment(candidate.missing(), target, amount);
             return ready != null && ready.feasible();
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             return false;
         } finally {
             long elapsed = Math.max(0L, System.nanoTime() - started);
-            session.missingRefinementNanos += elapsed;
+            session.missingRefinementNanos += Math.max(0L,
+                    PlanningCancellation.witnessClockNanos() - workStarted);
             diagnostics.missingRefinementNanos += elapsed;
         }
     }
@@ -1707,7 +1713,7 @@ public final class CraftPlannerV2<K> {
             return null;
         }
         Map<CraftPattern<K>, Long> counts;
-        try (var ignored = PlanningCancellation.limitOptionalWork(limit)) {
+        try (var ignored = PlanningCancellation.limitWitnessWork(limit)) {
             var relaxed = analyzeLowWidthComponents(schedule, target, amount, baseline, true);
             if (relaxed == null || relaxed.components().size() <= coupledComponents
                     || relaxed.components().stream().anyMatch(c -> !c.exactSolverEligible()

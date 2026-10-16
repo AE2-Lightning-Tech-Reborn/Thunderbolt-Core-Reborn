@@ -310,6 +310,19 @@ public final class CpSatBridge {
             }
         }
 
+        if (java.util.Arrays.stream(reusableItems).anyMatch(item -> item < 0 || item >= itemCount)) {
+            return new long[] {MODEL_INVALID, 0L};
+        }
+        long[] fixed = itemCount >= 1_000 ? fixedRanks(consumed, produced, catalysts, finiteUseAmounts,
+                reusableCatalysts, reusableItems, outputItems, rankGroups, firingUpperBounds, deadline) : null;
+        if (fixed != null) for (int item = 0; item < itemCount; item++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return new long[] {UNKNOWN, 0};
+            // The union-order proof covers every enabled recipe. A singleton domain avoids
+            // sending one equality plus each redundant conditional edge to native presolve.
+            model.getBuilder().getVariablesBuilder(ranks[item].getIndex())
+                    .clearDomain().addDomain(fixed[item]).addDomain(fixed[item]);
+        }
+
         var cycleStarts = new BoolVar[cycleRecipes.length][];
         for (int cycle = 0; cycle < cycleRecipes.length; cycle++) {
             int size = cycleRecipes[cycle].length;
@@ -377,7 +390,7 @@ public final class CpSatBridge {
             model.addEquality(firings[recipe], 0L).onlyEnforceIf(active[recipe].not());
             int output = outputItems[recipe];
             for (int input : SparseLongMatrix.unionRow(recipe, consumed, catalysts, finiteUseAmounts)) {
-                if ((consumed.get(recipe, input) > 0L
+                if (fixed == null && (consumed.get(recipe, input) > 0L
                                 || catalysts.get(recipe, input) > 0L
                                 || finiteUseAmounts.get(recipe, input) > 0L)
                         && rankGroups[input] != rankGroups[output]) {
@@ -403,7 +416,7 @@ public final class CpSatBridge {
                 if (amount < 0L || input < 0 || input >= itemCount) {
                     return new long[] {MODEL_INVALID, 0L};
                 }
-                if (amount > 0L && rankGroups[input] != rankGroups[output]) {
+                if (fixed == null && amount > 0L && rankGroups[input] != rankGroups[output]) {
                     model.addLessThan(ranks[input], ranks[output])
                             .onlyEnforceIf(active[recipe]);
                 }
@@ -412,7 +425,7 @@ public final class CpSatBridge {
             // become visible later unless it belongs to the same contracted SCC; otherwise a
             // byproduct consumer could be ranked before the recipe that creates it.
             for (int producedItem : produced.rowKeys(recipe)) {
-                if (produced.get(recipe, producedItem) > 0L
+                if (fixed == null && produced.get(recipe, producedItem) > 0L
                         && rankGroups[producedItem] != rankGroups[output]) {
                     model.addLessThan(ranks[output], ranks[producedItem])
                             .onlyEnforceIf(active[recipe]);
@@ -601,10 +614,9 @@ public final class CpSatBridge {
                 firings,
                 DecisionStrategyProto.VariableSelectionStrategy.CHOOSE_FIRST,
                 DecisionStrategyProto.DomainReductionStrategy.SELECT_MIN_VALUE);
-        String validation = model.validate();
-        if (!validation.isEmpty()) {
-            throw new IllegalArgumentException("invalid CP-SAT ranked model: " + validation);
-        }
+        // CpSolver validates the model in native code immediately before solving. A second
+        // Java-side validation is unbounded and can consume the complete caller deadline on
+        // large cyclic models without adding a stronger certificate here.
         var allUsed = new java.util.ArrayList<IntVar>();
         for (int item = 0; item < itemCount; item++) if (stocks[item] > 0L) allUsed.add(used[item]);
         allUsed.addAll(reusableUsed);
@@ -668,6 +680,68 @@ public final class CpSatBridge {
     }
 
     private record RankedOptimum(SolveAttempt attempt, long status, long branches) { }
+
+    // A union DAG gives every possible active support the same valid order. Fixing that order
+    // removes rank search without excluding firing vectors; union cycles keep conditional ranks.
+    static long[] fixedRanks(SparseLongMatrix consumed, SparseLongMatrix produced,
+            SparseLongMatrix catalysts, SparseLongMatrix finite, SparseLongMatrix reusable,
+            int[] reusableItems, int[] outputs, int[] groups, long[] upper, long deadline) {
+        int n = groups.length;
+        var representatives = new java.util.HashMap<Integer, Integer>();
+        int[] owner = new int[n], indegree = new int[n];
+        var edges = new java.util.ArrayList<java.util.List<Integer>>(n);
+        for (int i = 0; i < n; i++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return null;
+            owner[i] = representatives.computeIfAbsent(groups[i], ignored -> representatives.size());
+            edges.add(new java.util.ArrayList<>());
+        }
+        int work = 0;
+        for (int r = 0; r < outputs.length; r++) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return null;
+            if (upper[r] == 0) continue;
+            int output = owner[outputs[r]];
+            for (int i : SparseLongMatrix.unionRow(r, consumed, catalysts, finite)) {
+                if ((++work & 255) == 0
+                        && (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted())) return null;
+                if (consumed.get(r, i) > 0 || catalysts.get(r, i) > 0 || finite.get(r, i) > 0)
+                    rankEdge(edges, indegree, owner[i], output);
+            }
+            for (int g : reusable.rowKeys(r)) {
+                if ((++work & 255) == 0
+                        && (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted())) return null;
+                if (reusable.get(r, g) > 0) rankEdge(edges, indegree, owner[reusableItems[g]], output);
+            }
+            for (int i : produced.rowKeys(r)) {
+                if ((++work & 255) == 0
+                        && (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted())) return null;
+                if (produced.get(r, i) > 0) rankEdge(edges, indegree, output, owner[i]);
+            }
+        }
+        var ready = new java.util.ArrayDeque<Integer>();
+        for (int i = 0; i < representatives.size(); i++) if (indegree[i] == 0) ready.addLast(i);
+        long[] rank = new long[representatives.size()];
+        int visited = 0;
+        while (!ready.isEmpty()) {
+            if (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted()) return null;
+            int group = ready.removeFirst();
+            rank[group] = visited++;
+            for (int next : edges.get(group)) {
+                if ((++work & 255) == 0
+                        && (System.nanoTime() >= deadline || Thread.currentThread().isInterrupted())) return null;
+                if (--indegree[next] == 0) ready.addLast(next);
+            }
+        }
+        if (visited != representatives.size()) return null;
+        long[] result = new long[n];
+        for (int i = 0; i < n; i++) result[i] = rank[owner[i]];
+        return result;
+    }
+
+    private static void rankEdge(java.util.List<java.util.List<Integer>> edges, int[] indegree, int from, int to) {
+        if (from == to) return;
+        edges.get(from).add(to);
+        indegree[to]++;
+    }
 
     private static boolean validExecutionCosts(int[] costs, int count) {
         if (costs == null || costs.length != count) return false;
@@ -1076,9 +1150,9 @@ public final class CpSatBridge {
         }
         var solver = new CpSolver();
         solver.getParameters().setMaxTimeInSeconds(remaining / 1_000_000_000.0D);
-        if (cyclic) {
-            // OR-Tools 9.15's default propagation can remain inside a large-domain cyclic
-            // fixpoint past its wall-clock limit. This combination yields on deficient SCCs.
+        if (cyclic || model.getBuilder().getVariablesCount() >= 1_000) {
+            // Large finite-use models also overrun in native propagation/probing despite a
+            // wall-clock limit. Keep the yielding settings used for large-domain cyclic nets.
             solver.getParameters().setNewLinearPropagation(false);
             solver.getParameters().setCpModelProbingLevel(0);
         }

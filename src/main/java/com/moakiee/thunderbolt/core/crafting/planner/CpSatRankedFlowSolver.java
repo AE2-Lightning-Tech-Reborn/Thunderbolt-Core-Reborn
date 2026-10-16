@@ -128,6 +128,23 @@ public final class CpSatRankedFlowSolver<K> {
         Compilation<K> compilation = compile();
         if (compilation == null) return Result.status(Status.UNSUPPORTED);
         Candidate<K> first = solveCandidate(compilation, new long[0], List.of(), false);
+        // Cold model construction can leave no incumbent. Retry once from the shared
+        // refinement allowance; neither a retry nor its witness proves optimality.
+        if (first.status == Status.UNKNOWN && session.remainingCalls > 0 && session.remainingNanos > 0L) {
+            long started = System.nanoTime();
+            session.remainingCalls--;
+            session.refinementCalls++;
+            try (var ignored = PlanningCancellation.limitOptionalWork(session.remainingNanos)) {
+                Candidate<K> retried = solveCandidate(compilation, new long[0], List.of(), false);
+                first = new Candidate<>(retried.status, retried.plan == null ? null : withBudget(retried.plan),
+                        Sat.add(first.branches, retried.branches), retried.firings, retried.missing,
+                        retried.ranks, true);
+            } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+                session.incomplete = true;
+            } finally {
+                session.remainingNanos = Math.max(0L, session.remainingNanos - (System.nanoTime() - started));
+            }
+        }
         if (first.status != Status.SOLVED) return new Result<>(first.status, null, first.branches);
         if (first.plan != null && first.plan.feasible()) return new Result<>(Status.SOLVED, first.plan, first.branches);
         boolean ordinary = !compilation.conversionCycles.isEmpty() || !compilation.feedbackMacros.isEmpty();
@@ -166,9 +183,21 @@ public final class CpSatRankedFlowSolver<K> {
         // Direct callers have no router deadline. Never let a native proof run without a bound.
         long remainingNanos = PlanningCancellation.remainingNanos(
                 PlanningCancellation.checkpointIfBound() ? Long.MAX_VALUE : 3_000_000_000L);
-        remainingNanos -= remainingNanos / 4L; // Leave time to certify the native incumbent.
         if (remainingNanos <= 0L) return Candidate.status(Status.UNKNOWN);
 
+        try (var cutoff = PlanningCancellation.limitOptionalWork(remainingNanos)) {
+            // Keep the certification reserve inside the full caller cutoff. The native solver
+            // may use its entire slice and still return an incumbent that needs independent replay.
+            return solveCandidateBounded(compilation, missingCaps, cuts, enforceStartup, blocks,
+                    witnessBounds, remainingNanos - remainingNanos / 4L);
+        } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            return Candidate.status(Status.UNKNOWN);
+        }
+    }
+
+    private Candidate<K> solveCandidateBounded(Compilation<K> compilation, long[] missingCaps,
+            List<long[]> cuts, boolean enforceStartup, List<PetriBlockCatalog.Block> blocks,
+            long[] witnessBounds, long remainingNanos) {
         long[] raw;
         try {
             raw = CpSatRuntime.solveRankedPlan(
@@ -203,7 +232,10 @@ public final class CpSatRankedFlowSolver<K> {
                     PetriBlockCatalog.STAGES,
                     compilation.patterns.stream().mapToInt(CraftPattern::executionCost).toArray(),
                     remainingNanos / 1_000_000_000.0D);
+        } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            return Candidate.status(Status.UNKNOWN);
         } catch (RuntimeException | LinkageError failure) {
+            PlanningCancellation.check();
             return Candidate.status(Status.INVALID);
         }
         PlanningCancellation.check();
@@ -300,15 +332,15 @@ public final class CpSatRankedFlowSolver<K> {
         if (best == null) return Result.status(Status.INVALID);
         if (best.feasible()) return new Result<>(Status.SOLVED, best, first.branches);
         long branches = first.branches;
-        long started = System.nanoTime();
         boolean incomplete = false;
         if (session.remainingCalls <= 0 || session.remainingNanos <= 0L) {
             session.incomplete = true;
             return new Result<>(Status.SOLVED, withBudget(best), branches);
         }
+        long started = PlanningCancellation.witnessClockNanos();
         long allowed = Math.min(session.remainingNanos,
                 PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
-        try (var ignored = PlanningCancellation.limitOptionalWork(allowed)) {
+        try (var ignored = PlanningCancellation.limitWitnessWork(allowed)) {
             CraftPlan<K> compressed = compressedSeedWitness(c, first.firings);
             if (compressed != null && better(c, compressed, best)) {
                 best = compressed;
@@ -321,6 +353,19 @@ public final class CpSatRankedFlowSolver<K> {
                 session.improvements++;
                 if (best.feasible()) return new Result<>(Status.SOLVED, best, branches);
             }
+        } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+            incomplete = true;
+        } finally {
+            session.remainingNanos = Math.max(0L, session.remainingNanos
+                    - Math.max(0L, PlanningCancellation.witnessClockNanos() - started));
+        }
+        if (session.remainingNanos <= 0L) {
+            session.incomplete = true;
+            return new Result<>(Status.SOLVED, withBudget(best), branches);
+        }
+        started = System.nanoTime();
+        allowed = Math.min(session.remainingNanos, PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
+        try (var ignored = PlanningCancellation.limitOptionalWork(allowed)) {
             // A small ordinary non-growing graph can have an inexpensive all-orders witness
             // even when aggregate cyclic replay needs extra seed. Try it before the costly
             // native block model; debit the same verifier budget and preserve outer deadlines.

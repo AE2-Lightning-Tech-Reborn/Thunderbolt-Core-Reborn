@@ -251,8 +251,14 @@ class MaterialDagSupplyTest {
     private record IndependentProbeGraph(CraftGraph<Object> graph, Object target) {}
 
     private static IndependentProbeGraph independentProbeGraph(IndependentCertificateProbe probe, long shortage) {
+        var fixture = independentProbeGraph(probe::observeTarget, shortage);
+        probe.armed = true;
+        return fixture;
+    }
+
+    private static IndependentProbeGraph independentProbeGraph(Runnable observer, long shortage) {
         Object target = new Object() {
-            @Override public int hashCode() { probe.observeTarget(); return 84; }
+            @Override public int hashCode() { observer.run(); return 84; }
         };
         var builder = CraftGraph.<Object>builder().stock("raw", 128-shortage);
         var root = new ArrayList<CraftInput<Object>>();
@@ -266,8 +272,29 @@ class MaterialDagSupplyTest {
             root.add(CraftInput.of(a, 2)); root.add(CraftInput.of(b, 2));
         }
         var graph = builder.pattern(target, 1, root).build();
-        probe.armed = true;
         return new IndependentProbeGraph(graph, target);
+    }
+
+    @Test
+    void unboundIndependentComponentsSurviveASchedulingPause() {
+        var threads = java.lang.management.ManagementFactory.getThreadMXBean();
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+                threads.isCurrentThreadCpuTimeSupported() && threads.isThreadCpuTimeEnabled());
+        boolean[] paused = {false};
+        var fixture = independentProbeGraph(() -> {
+            if (paused[0]) return;
+            if (StackWalker.getInstance().walk(frames -> frames.anyMatch(frame ->
+                    frame.getClassName().equals(CraftPlannerV2.class.getName())
+                            && frame.getMethodName().equals("tryIndependentRawStock")))) {
+                paused[0] = true;
+                assertDoesNotThrow(() -> Thread.sleep(350));
+            }
+        }, 0);
+        var plan = CraftPlannerV2.plan(fixture.graph(), fixture.target(), 1);
+        assertTrue(paused[0]);
+        assertTrue(plan.feasible(), () -> plan.missing().toString());
+        assertEquals(128L, plan.usedStock().get("raw"));
+        assertTrue(MaterialDagReplay.hasCertificate(fixture.graph(), plan, fixture.target(), 1));
     }
 
     @Test

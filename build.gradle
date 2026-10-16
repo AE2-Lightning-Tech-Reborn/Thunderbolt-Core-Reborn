@@ -243,6 +243,9 @@ sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
 test {
     useJUnitPlatform()
     exclude 'com/moakiee/thunderbolt/core/crafting/planner/ExternalPlannerBoundaryCompatibilityTest.class'
+    filter {
+        excludeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MaterialDagSupplyTest.linearSideOutputSchedulingCoversGraphsBeyondTheFormerSixteenThousandWorkCap'
+    }
     dependsOn 'prepareOptionalModShapeArtifacts'
     systemProperty 'thunderbolt.optionalModShapeDir',
             layout.buildDirectory.dir('optional-mod-shapes').get().asFile.absolutePath
@@ -250,6 +253,10 @@ test {
     def batchTestMods = providers.gradleProperty('thunderboltBatchTestMods').getOrElse('').trim()
     if (!batchTestMods.isEmpty()) {
         classpath += files(batchTestMods.split(java.io.File.pathSeparator))
+    }
+    def neoEcoProtocolPath = providers.gradleProperty('neoecoProtocolPath').getOrElse('').trim()
+    if (!neoEcoProtocolPath.isEmpty()) {
+        systemProperty 'thunderbolt.neoecoProtocolPath', neoEcoProtocolPath
     }
     testLogging {
         events "passed", "skipped", "failed"
@@ -271,6 +278,23 @@ def externalPlannerBoundaryTest = tasks.register('externalPlannerBoundaryTest', 
     testLogging { events 'passed', 'failed' }
 }
 tasks.named('test') { dependsOn externalPlannerBoundaryTest }
+
+// Keep the three-second large-DAG regression independent of earlier native solves and JIT
+// history. Its graph size and assertions are unchanged, and ordinary test/check still run it.
+def materialDagLargeGraphTest = tasks.register('materialDagLargeGraphTest', Test) {
+    group = 'verification'
+    description = 'Checks the 4096-branch material DAG within its original three-second limit in a fresh JVM.'
+    dependsOn 'testClasses'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs '-XX:ActiveProcessorCount=4'
+    filter {
+        includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MaterialDagSupplyTest.linearSideOutputSchedulingCoversGraphsBeyondTheFormerSixteenThousandWorkCap'
+    }
+    testLogging { events 'passed', 'failed' }
+}
+tasks.named('test') { dependsOn materialDagLargeGraphTest }
 
 tasks.register("referenceCapabilityTest", Test) {
     description = "Runs the planner capability reference kit and prints its auditable result rows."

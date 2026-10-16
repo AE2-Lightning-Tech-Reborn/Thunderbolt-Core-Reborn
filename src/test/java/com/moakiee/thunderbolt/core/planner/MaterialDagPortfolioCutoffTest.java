@@ -15,8 +15,9 @@ import org.junit.jupiter.api.Test;
 class MaterialDagPortfolioCutoffTest {
     @Test
     void partialIndependentPortfolioReportsCutoffAndTheNextAmountProbeCanFinish() {
-        // Inject the cutoff in a small portfolio so runtime speed cannot preempt the injection.
-        int branchCount = 128;
+        // Its coupled width (50) exceeds the validated separator cap (36), so 48 branches
+        // exercise the independent portfolio without spending its slice on observer overhead.
+        int branchCount = 48;
         var fixture = branches(branchCount);
         assertNotNull(MaterialDagReplay.tryPlan(fixture.graph(), fixture.witness(), "T", 1),
                 "an independently supplied count vector proves the original inventory is sufficient");
@@ -84,7 +85,7 @@ class MaterialDagPortfolioCutoffTest {
 
     @Test
     void callerCancellationInsideAPartialPortfolioStillPropagates() {
-        var fixture = branches(128);
+        var fixture = branches(48);
         var exit = new PlanningExitException("cancel inside independent material solving");
         var probe = new PortfolioProbe(exit);
         try (var ignored = PlanningCancellation.bind(probe)) {
@@ -97,7 +98,7 @@ class MaterialDagPortfolioCutoffTest {
 
     @Test
     void cachedComponentReuseStillPropagatesCallerCancellation() {
-        var fixture = branches(128);
+        var fixture = branches(48);
         var session = new CraftPlannerV2.PlanningSession<String>();
         session.refineMissing = false;
         session.optimizeFeasible = false;
@@ -109,9 +110,11 @@ class MaterialDagPortfolioCutoffTest {
             @Override public long deadlineNanos() { return Long.MAX_VALUE; }
             @Override public void report(PlanningDiagnosticSnapshot snapshot) {}
             @Override public void checkpoint() {
-                boolean reusing = callers.walk(frames -> frames.skip(2).findFirst().map(frame ->
+                // Cancel on entering the cached portfolio. Waiting for its final loop makes
+                // StackWalker observation itself compete with the bound caller's wall slice.
+                boolean reusing = callers.walk(frames -> frames.anyMatch(frame ->
                         frame.getDeclaringClass() == CraftPlannerV2.class
-                                && frame.getMethodName().equals("tryIndependentRawStock")).orElse(false));
+                                && frame.getMethodName().equals("tryIndependentRawStock")));
                 if (reusing) {
                     triggered[0] = true;
                     throw exit;

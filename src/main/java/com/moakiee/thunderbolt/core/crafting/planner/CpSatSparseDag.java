@@ -85,13 +85,63 @@ final class CpSatSparseDag {
         }
         var ready = new ArrayDeque<Integer>();
         for (int i = 0; i < itemCount; i++) if (indegree[i] == 0) ready.add(i);
+        int[] topological = new int[itemCount];
         int visited = 0;
         while (!ready.isEmpty()) {
             PlanningCancellation.check();
-            int item = ready.removeFirst(); visited++;
+            int item = ready.removeFirst();
+            topological[visited++] = item;
             for (int output : consumers.get(item)) if (--indegree[output] == 0) ready.add(output);
         }
         if (visited != itemCount) return null;
+
+        // A DAG with one producer per material has no allocation choice. Propagate the demand
+        // once from the target, consuming stock before scheduling the unique producer. This keeps
+        // long chains and wide fan-outs linear even when a native CP-SAT solve would spend its
+        // entire bounded budget constructing a large model.
+        int[] uniqueProducer = new int[itemCount];
+        java.util.Arrays.fill(uniqueProducer, -1);
+        boolean unique = true;
+        for (int r = 0; r < recipeCount; r++) {
+            int output = outputs.get(r);
+            if (uniqueProducer[output] >= 0) {
+                unique = false;
+                break;
+            }
+            uniqueProducer[output] = r;
+        }
+        if (unique) {
+            var counts = new IdentityHashMap<CraftPattern<K>, Long>();
+            long[] demand = new long[itemCount];
+            demand[0] = amount;
+            for (int cursor = itemCount - 1; cursor >= 0; cursor--) {
+                PlanningCancellation.check();
+                int item = topological[cursor];
+                long needed = demand[item];
+                long available = Math.min(Math.max(0L, graph.stock(keys.get(item))), needed);
+                long toCraft = needed - available;
+                if (toCraft == 0L) continue;
+                int producer = uniqueProducer[item];
+                if (producer < 0) continue;
+                long producerBatches = Sat.ceilDiv(toCraft, patterns.get(producer).outputAmount());
+                if (producerBatches > upper[producer] || Sat.isSaturated(producerBatches))
+                    return status(CpSatRankedFlowSolver.Status.UNKNOWN);
+                counts.put(patterns.get(producer), producerBatches);
+                for (Map.Entry<Integer, Long> input : inputs.get(producer).entrySet()) {
+                    long added = Sat.mul(input.getValue(), producerBatches);
+                    long total = Sat.add(demand[input.getKey()], added);
+                    if (Sat.isSaturated(total)) return status(CpSatRankedFlowSolver.Status.UNKNOWN);
+                    demand[input.getKey()] = total;
+                }
+            }
+            var plan = MaterialDagReplay.tryLeafMissingPlan(graph, counts, target, amount);
+            if (plan == null) return status(CpSatRankedFlowSolver.Status.INVALID);
+            if (weightedDomainLimited) plan = new CraftPlan<>(plan.supported(), plan.feasible(), plan.firings(),
+                    plan.usedStock(), plan.usedReusableStock(), plan.missing(), plan.grossDemand(),
+                    plan.itemsProcessed(), true);
+            return new CpSatRankedFlowSolver.Result<>(
+                    CpSatRankedFlowSolver.Status.SOLVED, plan, 0L);
+        }
         int[][] variables = new int[itemCount][], producerIds = new int[itemCount][];
         long[][] coefficients = new long[itemCount][];
         long[] stocks = new long[itemCount];

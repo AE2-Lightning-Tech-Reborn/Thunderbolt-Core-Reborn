@@ -8,6 +8,57 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class CpSatSeedPortfolioRegressionTest {
+    @Test void anUnknownInitialAttemptRecoversWithinTheExistingSessionBudget() {
+        assertTrue(CpSatIntegerLinearSolver.initializeFromTestClasspath());
+        var graph = CraftGraph.<String>builder().stock("S", 2).stock("R", 6)
+                .pattern("A0", 1, List.of(CraftInput.of("S", 1)))
+                .pattern("B0", 1, List.of(CraftInput.of("A0", 1), CraftInput.of("R", 1)))
+                .pattern("P0", 1, List.of(CraftInput.of("B0", 1)), List.of(CraftOutput.of("A0", 1)))
+                .pattern("A1", 1, List.of(CraftInput.of("S", 1)))
+                .pattern("B1", 1, List.of(CraftInput.of("A1", 1), CraftInput.of("R", 1)))
+                .pattern("P1", 1, List.of(CraftInput.of("B1", 1)), List.of(CraftOutput.of("A1", 1)))
+                .pattern("T", 1, List.of(CraftInput.of("P0", 1), CraftInput.of("P1", 1))).build();
+        assertEquals(CpSatRankedFlowSolver.Status.SOLVED, CpSatRankedFlowSolver.solve(graph, "T", 3).status());
+        int trial = 0;
+        for (var session : List.of(new CpSatRankedFlowSolver.PlanningSession(),
+                new CpSatRankedFlowSolver.PlanningSession(0, 4096, 250_000_000L),
+                new CpSatRankedFlowSolver.PlanningSession(16, 4096, 0))) {
+            boolean[] expired = {false};
+            var context = new com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext() {
+                @Override public long deadlineNanos() {
+                    if (!expired[0] && StackWalker.getInstance().walk(frames -> frames.anyMatch(frame ->
+                            frame.getClassName().equals(CpSatRankedFlowSolver.class.getName())
+                                    && frame.getMethodName().equals("solveCandidate")))) {
+                        expired[0] = true;
+                        return System.nanoTime() - 1L;
+                    }
+                    return Long.MAX_VALUE;
+                }
+                @Override public void checkpoint() {}
+                @Override public void report(com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot snapshot) {}
+            };
+            boolean mayRetry = trial++ == 0;
+            CpSatRankedFlowSolver.Result<String> result;
+            try (var bound = PlanningCancellation.bind(context)) {
+                result = CpSatRankedFlowSolver.solve(graph, "T", 3, session);
+            }
+            assertTrue(expired[0]);
+            if (!mayRetry) {
+                assertEquals(0, session.refinementCalls());
+                assertEquals(CpSatRankedFlowSolver.Status.UNKNOWN, result.status());
+                assertNull(result.plan());
+            } else {
+                assertEquals(1, session.refinementCalls());
+                assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
+                assertTrue(result.plan().feasible());
+                assertTrue(result.plan().budgetExhausted());
+                assertEquals(Map.of("S", 2L, "R", 6L), result.plan().usedStock());
+                assertEquals(1, session.compressedSeedAttempts());
+            }
+            assertDoesNotThrow(PlanningCancellation::check);
+        }
+    }
+
     @Test void freshDefaultSessionsReplanTheSharedSeedSupplement() {
         assertTrue(CpSatIntegerLinearSolver.initializeFromTestClasspath());
         for (int trial = 0; trial < 8; trial++) {

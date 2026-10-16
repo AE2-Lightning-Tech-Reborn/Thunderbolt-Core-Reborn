@@ -15,6 +15,53 @@ import org.junit.jupiter.api.Test;
 
 class MaterialDagBudgetTest {
     @Test
+    void unboundMaterialDagPortfolioDoesNotChargeASchedulingPause() {
+        var threads = java.lang.management.ManagementFactory.getThreadMXBean();
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+                threads.isCurrentThreadCpuTimeSupported() && threads.isThreadCpuTimeEnabled());
+        boolean[] paused = {false};
+        var observer = new Runnable() {
+            public void run() {
+                if (paused[0]) return;
+                boolean inPortfolio = StackWalker.getInstance().walk(frames -> frames.anyMatch(frame ->
+                        frame.getClassName().equals(CraftPlannerV2.class.getName())
+                                && frame.getMethodName().equals("tryMaterialDagOrders")));
+                if (!inPortfolio) return;
+                paused[0] = true;
+                assertDoesNotThrow(() -> Thread.sleep(350));
+            }
+        };
+        var original = batchCycle().withAdditionalStock(Map.of("M0", 1L));
+        var builder = CraftGraph.<PausedKey>builder();
+        var keys = new ArrayList<PausedKey>();
+        for (int i = 0; i < 7; i++) keys.add(new PausedKey("M" + i, observer));
+        var byName = new HashMap<String, PausedKey>();
+        for (var key : keys) byName.put(key.name(), key);
+        for (var key : keys) {
+            builder.stock(key, original.stock(key.name()));
+            for (var pattern : original.patternsFor(key.name())) {
+                builder.pattern(key, pattern.outputAmount(), pattern.inputs().stream()
+                                .map(input -> CraftInput.of(byName.get(input.key()), input.amount())).toList(),
+                        pattern.byproducts().stream()
+                                .map(output -> CraftOutput.of(byName.get(output.key()), output.amount())).toList());
+            }
+        }
+        var graph = builder.build();
+        var target = byName.get("M6");
+        var result = CraftPlannerV2.planDetailed(graph, target, 2, 1, 1);
+        assertTrue(paused[0], "pause inside the actual optional portfolio");
+        assertTrue(result.plan().feasible(), () -> result.diagnostics().toString());
+        assertTrue(result.diagnostics().consumedSearchBudget() <= 1);
+        assertTrue(MaterialDagReplay.hasCertificate(graph, result.plan(), target, 2));
+        assertDoesNotThrow(PlanningCancellation::check);
+    }
+
+    private record PausedKey(String name, Runnable observer) {
+        @Override public int hashCode() { observer.run(); return name.hashCode(); }
+        @Override public String toString() { return name; }
+    }
+
+    @Test
     void theSameDagCertificateWorksWithMinimalRecursiveSearch() {
         for (var graph : List.of(batchCycle().withAdditionalStock(Map.of("M0", 1L)),
                 sharedCycle().withAdditionalStock(Map.of("M2", 5L)))) {

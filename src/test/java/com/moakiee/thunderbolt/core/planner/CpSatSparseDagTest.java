@@ -107,6 +107,23 @@ class CpSatSparseDagTest {
         assertEquals(Map.of(p,2L),result.plan().firings());
     }
 
+    @Test void uniqueProducerAggregatesSharedDemandBeforeUsingIntermediateStock() {
+        var graph = CraftGraph.<String>builder()
+                .pattern("T", 1, List.of(CraftInput.of("X", 1), CraftInput.of("B", 1)))
+                .pattern("B", 1, List.of(CraftInput.of("C", 1)))
+                .pattern("C", 1, List.of(CraftInput.of("X", 1)))
+                .pattern("X", 2, List.of(CraftInput.of("raw", 3)))
+                .stock("X", 2).stock("raw", 2).build();
+        var result = CpSatSparseDag.trySolve(graph, "T", 2, 0);
+        assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
+        assertFalse(result.plan().feasible());
+        assertEquals(Map.of("raw", 1L), result.plan().missing());
+        assertEquals(1L, result.plan().firings().get(graph.patternsFor("X").get(0)));
+        assertEquals(Map.of("X", 2L, "raw", 2L), result.plan().usedStock());
+        var refilled = CpSatSparseDag.trySolve(graph.withAdditionalStock(result.plan().missing()), "T", 2, 0);
+        assertTrue(refilled.plan().feasible());
+    }
+
     @Test void cancellationIsNotReportedAsMissingOrInfeasible() {
         var context = new PlanningAttemptContext() {
             public long deadlineNanos() { return System.nanoTime()-1; }

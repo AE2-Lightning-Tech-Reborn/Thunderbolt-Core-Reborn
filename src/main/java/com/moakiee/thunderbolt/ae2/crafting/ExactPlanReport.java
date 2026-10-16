@@ -8,11 +8,15 @@ import java.util.Objects;
 import appeng.api.stacks.AEKey;
 import net.minecraft.network.FriendlyByteBuf;
 
-/** Display data for a non-executable exact calculation. All quantities are in AEKey base units. */
-public record ExactPlanReport(BigInteger bytes, Map<AEKey, Amounts> entries, boolean incomplete) {
+/** Exact display data. Only previewOnly reports prohibit submission of the associated plan. */
+public record ExactPlanReport(BigInteger bytes, Map<AEKey, Amounts> entries, boolean incomplete, boolean previewOnly) {
     public static final int MAX_AMOUNT_BYTES = 4097;
     private static final int MAX_ENTRIES = 8192;
     private static final int MAX_PACKET_BYTES = 512 * 1024;
+
+    public ExactPlanReport(BigInteger bytes, Map<AEKey, Amounts> entries, boolean incomplete) {
+        this(bytes, entries, incomplete, true);
+    }
 
     public ExactPlanReport {
         positive(bytes);
@@ -30,6 +34,7 @@ public record ExactPlanReport(BigInteger bytes, Map<AEKey, Amounts> entries, boo
     public void write(FriendlyByteBuf buffer) {
         writeAmount(buffer, bytes);
         buffer.writeBoolean(incomplete);
+        buffer.writeBoolean(previewOnly);
         buffer.writeVarInt(entries.size());
         int start = buffer.writerIndex();
         if (entries.size() > MAX_ENTRIES) throw new IllegalArgumentException("Too many exact report entries");
@@ -47,6 +52,7 @@ public record ExactPlanReport(BigInteger bytes, Map<AEKey, Amounts> entries, boo
     public static ExactPlanReport read(FriendlyByteBuf buffer) {
         BigInteger bytes = readAmount(buffer);
         boolean incomplete = buffer.readBoolean();
+        boolean previewOnly = buffer.readBoolean();
         int count = buffer.readVarInt();
         if (count < 0 || count > MAX_ENTRIES) throw new IllegalArgumentException("Invalid exact entry count");
         int start = buffer.readerIndex();
@@ -59,7 +65,7 @@ public record ExactPlanReport(BigInteger bytes, Map<AEKey, Amounts> entries, boo
                 throw new IllegalArgumentException("Exact report exceeds packet budget");
             }
         }
-        return new ExactPlanReport(bytes, entries, incomplete);
+        return new ExactPlanReport(bytes, entries, incomplete, previewOnly);
     }
 
     public static long project(BigInteger amount) {

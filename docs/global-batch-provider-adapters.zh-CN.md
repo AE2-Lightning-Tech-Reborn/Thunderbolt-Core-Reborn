@@ -35,7 +35,7 @@ BatchProviderAdapters.register(
 
 | 对象 | 路径与边界 |
 | --- | --- |
-| NeoECO | `ECOFastPathDispatchProvider` + `ECOFastPathFacade.prepareAllocated`。只使用已分配材料的无状态协议；不支持的配方回退单份，下一 tick 可重新尝试。保留原 API 的原料返还/状态配方限制。 |
+| NeoECO | Forge 20.5 的 `ECOBatchCapacityProvider` + 单份 `ECOBatchDispatchContext`，以及 `ECOParallelCraftingProviders` 的总量输入协议。识别早期布尔式原子接收和新版 `ECOBatchAdmission` 部分接收回执；状态配方回退普通单份。旧 allocated 协议桥保留为后备。 |
 | EAEP | 超级装配矩阵提供器及其子类，使用 `ScaledMolecularAssemblerPattern`。通过全局适配取代给矩阵注入 TB 接口，保留矩阵的配置批量上限。 |
 | AppliedE | TB 已有 EMC 模块原生批量 Mixin，直接命中 `IBatchCraftingProvider`，无需二次包装。 |
 | LT / LTPP | 已有原生批量接口，继续优先直接调用。 |
@@ -60,6 +60,28 @@ BatchProviderAdapters.register(
   实际样板类测试不能替代完整游戏内多方块执行验证。
 - AppliedE Forge `0.14.3` 的 `TransmutationPattern` 位于 `me.misc`，不是 1.21 的
   `me.service`。原生 EMC 模块 Mixin 按本版本类型识别，额外对发行 JAR 字段/方法锁定回归。
+
+### NeoECO Forge 20.5 源码协议（2026-10-15）
+
+已核对 NeoECO `1.20.1` 的 `a6b3d776` 最终源码，以及官方 CI `aa0dba02` 的 20.5.0 JAR。
+前者增加接收回执及普通并行注册表，后者使用布尔式原子接收；按实际存在的 API 选择协议。
+这不改变 `20.3.0` / `20.4.2` 缺少公开批处理能力时的普通派发行为。
+
+CPU 在提取前准备上下文，提交前再次检查容量。容量协议的输入、产物和容器返还均为
+单份数量；普通并行协议只接收适配器复制后的整批输入，并传递当前 crafting job UUID。
+输入同键跨槽合计、产物和容器返还均纳入 long 溢出上限。
+已知部分接收仅结算接受部分；`canContinue=false` 在当前 tick 停止该端点的批处理。
+回执不确定、格式非法或提交异常交给 CPU 停机，不退款或自动重放不确定输入。
+
+只对 `NORMAL` 分类使用线性批处理。可复用材料、耐久变化等状态配方保留普通单份，
+不将其非线性材料/返还协议转换为线性模板。并行注册可能动态变化，解析不跨 tick 缓存。
+
+真实源码编译类或已映射官方 JAR 可通过
+`test --tests '*NeoEcoBatchProtocolTest' -PneoecoProtocolPath=<路径>` 运行协议契约测试。
+多路径使用平台路径分隔符；生产 JAR 不包含这些测试依赖。LT 的
+`scripts/neoeco-batch-test.init.gradle` 以 Forge 47.4.20 和实际 NeoECO 开发 JAR 验证自动注册、
+真实 BatchExecutor 及 LT 超大订单的部分接收、不确定归属结算；13 项原生测试使用受控提供器，
+不代表完整多方块实机验证。服务端运行可加 `-x downloadAssets` 跳过无关的客户端资源下载。
 
 ## 验证
 

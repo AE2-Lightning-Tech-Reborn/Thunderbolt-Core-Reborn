@@ -30,6 +30,8 @@ public final class NeoEcoFastPathCompat {
     }
 
     static @Nullable BatchProviderAdapter loadAdapter(ClassLoader loader) {
+        var forgeApi = NeoEcoBatchApi.load(loader);
+        if (forgeApi != null) return new NeoEcoBatchAdapter(forgeApi);
         try {
             // Constructing the adapter alone does not force lazy API references to link.
             // Probe before registration so old NeoECO releases retain ordinary dispatch.

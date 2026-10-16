@@ -76,7 +76,7 @@ final class OptionalPlanningStages {
         FeasibleConsumptionOptimizer.Result<K> optimized;
         CraftPlan<K> seed = initial.plan();
         int mixedProbes = 0, mixedImprovements = 0;
-        try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
+        try (var budget = new FeasibleOptimizationBudget(allowance)) {
             // Apply the established lower-bound certificate before allocating a mixed-batch search.
             // Keep this extra check restricted to the small portfolios accepted by those helpers.
             int targetRoutes = graph.patternsFor(target).size();
@@ -90,6 +90,7 @@ final class OptionalPlanningStages {
                         session.searchWorkBudget::tryConsume);
             }
             if (mixed.plan() != seed) {
+                budget.improved(seed, mixed.plan());
                 seed = mixed.plan();
                 mixedProbes = 1;
                 mixedImprovements = 1;
@@ -116,7 +117,7 @@ final class OptionalPlanningStages {
                             // the incumbent's larger stock. Patterns and all work limits remain shared.
                             return planCore(candidateGraph, target, amount, visitCap, searchWorkBudget,
                                     localWork, probe).plan();
-                        }, session.consumptionIndex, session.searchWorkBudget::tryConsume);
+                        }, session.consumptionIndex, session.searchWorkBudget::tryConsume, budget, true);
             }
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             // The bounded mixed-batch stage may expire before the general optimizer starts.
