@@ -218,10 +218,10 @@ final class FeasibleConsumptionOptimizer {
 
         // Trace
         private String stop = "none";
-        private final long started = System.nanoTime();
+        private final long started = TRACE ? System.nanoTime() : 0;
         private long indexNanos, propagationNanos;
         private long initialExecutions, initialStock;
-        private final List<Long> oracleNanos = new ArrayList<>();
+        private final List<Long> oracleNanos = TRACE ? new ArrayList<>() : null;
         private int regionSize;
 
         Search(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial, int limit,
@@ -243,20 +243,8 @@ final class FeasibleConsumptionOptimizer {
                 return;
             for (var pattern : index.patterns)
                 if (stateful(pattern) || !pattern.byproducts().isEmpty()) return;
-            IntPredicate charge = work -> {
-                if (exhausted || !spendWork.test(work)) {
-                    exhausted = true;
-                    stop = "budget";
-                    return false;
-                }
-                return true;
-            };
-            BooleanSupplier reserve = () -> {
-                if (exhausted || probes >= limit) return false;
-                probes++;
-                mixedProbes++;
-                return true;
-            };
+            IntPredicate charge = this::chargeMixedWork;
+            BooleanSupplier reserve = this::reserveMixedProbe;
             while (!exhausted && probes < limit) {
                 PlanningCancellation.check();
                 var ordinary = OrdinaryBatchOptimizer.startSearch(graph, target, amount, best, charge, reserve);
@@ -291,19 +279,7 @@ final class FeasibleConsumptionOptimizer {
             if (targetOptimal || index == null || !TerminalBatchOptimizer.acceptsRouteCount(index.patterns.size())
                     || exhausted || probes >= limit) return;
             var candidate = TerminalBatchOptimizer.tryImprove(graph, target, amount, best, index.patterns,
-                    work -> {
-                        if (exhausted || !spendWork.test(work)) {
-                            exhausted = true;
-                            stop = "budget";
-                            return false;
-                        }
-                        return true;
-                    }, () -> {
-                        if (exhausted || probes >= limit) return false;
-                        probes++;
-                        mixedProbes++;
-                        return true;
-                    });
+                    this::chargeMixedWork, this::reserveMixedProbe);
             if (candidate != null && improves(best, candidate)) {
                 best = candidate;
                 improvements++;
@@ -315,23 +291,27 @@ final class FeasibleConsumptionOptimizer {
         private void mixTerminalFixedDepthBatches() {
             if (exhausted || probes >= limit) return;
             var candidate = TerminalFixedDepthOptimizer.tryImprove(graph, target, amount, best,
-                    work -> {
-                        if (exhausted || !spendWork.test(work)) {
-                            exhausted = true;
-                            stop = "budget";
-                            return false;
-                        }
-                        return true;
-                    }, () -> {
-                        if (exhausted || probes >= limit) return false;
-                        probes++;
-                        mixedProbes++;
-                        return true;
-                    });
+                    this::chargeMixedWork, this::reserveMixedProbe);
             if (candidate != null && improves(best, candidate)) {
                 best = candidate;
                 improvements++;
             }
+        }
+
+        private boolean chargeMixedWork(int work) {
+            if (exhausted || !spendWork.test(work)) {
+                exhausted = true;
+                stop = "budget";
+                return false;
+            }
+            return true;
+        }
+
+        private boolean reserveMixedProbe() {
+            if (exhausted || probes >= limit) return false;
+            probes++;
+            mixedProbes++;
+            return true;
         }
 
         void run() {
@@ -345,15 +325,15 @@ final class FeasibleConsumptionOptimizer {
             // Optional bounds use a saturating long. A weighted objective can saturate even
             // when every individual firing count is executable; do not turn that into a proof.
             if (Sat.isSaturated(initialExecutions)) return;
-            initialStock = stockCount(best);
+            if (TRACE) initialStock = stockCount(best);
             if (targetOnlyBound()) {
                 targetOptimal = true;
                 stop = "target-lb";
                 return;
             }
-            long indexStarted = System.nanoTime();
+            long indexStarted = TRACE ? System.nanoTime() : 0;
             index = cache.get(graph, target);
-            indexNanos = System.nanoTime() - indexStarted;
+            if (TRACE) indexNanos = System.nanoTime() - indexStarted;
             if (index == null) {
                 stop = "saturated";
                 return;
@@ -416,7 +396,7 @@ final class FeasibleConsumptionOptimizer {
         }
 
         private void propagateStock() {
-            long propagationStarted = System.nanoTime();
+            long propagationStarted = TRACE ? System.nanoTime() : 0;
             limits = new long[index.keys.size()];
             var limitedKeys = new IntBuf();
             for (int id = 0; id < index.keys.size(); id++) {
@@ -445,7 +425,7 @@ final class FeasibleConsumptionOptimizer {
                     break;
                 }
             }
-            propagationNanos += System.nanoTime() - propagationStarted;
+            if (TRACE) propagationNanos += System.nanoTime() - propagationStarted;
         }
 
         private boolean stalled() {
@@ -918,9 +898,9 @@ final class FeasibleConsumptionOptimizer {
             PlanningCancellation.check();
             if (exhausted || probes >= limit) return false;
             probes++;
-            long probeStarted = System.nanoTime();
+            long probeStarted = TRACE ? System.nanoTime() : 0;
             CraftPlan<K> candidate = oracle.apply(candidateGraph);
-            oracleNanos.add(System.nanoTime() - probeStarted);
+            if (TRACE) oracleNanos.add(System.nanoTime() - probeStarted);
             lastCandidate = null;
             if (candidate == null) {
                 exhausted = true;

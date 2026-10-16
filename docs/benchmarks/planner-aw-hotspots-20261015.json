@@ -1,0 +1,1017 @@
+{
+  "baseline": "0d8985dae80fb62881ddf8f55bcc8f0c58d58929",
+  "candidate": "0d8985d+hotspots:b267f5a7817e",
+  "datasetVersion": 3,
+  "targetStock": "additional",
+  "queries": 192,
+  "warmupPassesPerJVM": 1,
+  "formalPassesPerJVM": 1,
+  "ordering": "ABBA per dataset, fresh single-processor JVM per arm",
+  "scope": "Original supplied manifests: 8 targets x 2 amounts x 3 stock profiles per dataset; full v3 graphs, not all producible targets. TB before/after comparison, not a new AW-solver comparison.",
+  "measurement": "Planning call only; excludes input normalization, graph construction and independent replay. Allocation is cumulative bytes allocated by the planning thread, not peak or retained memory.",
+  "limitations": "Two formal samples per query per version. Wall time and allocation can vary with JVM compilation; differences outside changed optimizer paths do not establish algorithmic causality. Missing or budget-cutoff results are not proofs of infeasibility.",
+  "datasets": {
+    "recipes-vanilla": {
+      "baseline": {
+        "statusPerPass": {
+          "missing": 28,
+          "ok": 20
+        },
+        "cutoffsPerPass": 10,
+        "meanTotalMsPerPass": 105.349102,
+        "meanAllocatedBytesPerPass": 65519524.0,
+        "meanQueryMs": 2.194772958333333,
+        "medianQueryMs": 0.999187,
+        "p95QueryMs": 10.289292,
+        "maxQueryMs": 11.796833,
+        "slowest": {
+          "target_name": "minecraft:black_carpet",
+          "amount": 1,
+          "stock": "none",
+          "status": "missing",
+          "budget_exhausted": true,
+          "plan_ms": 11.796833
+        },
+        "optionalOptimizationMsPerPass": 12.7076875,
+        "optionalProbesPerPass": 33.0,
+        "rawArmTotalsMs": [
+          104.698706,
+          105.999498
+        ],
+        "rawArmAllocatedBytes": [
+          65148552,
+          65890496
+        ],
+        "missingWithoutCutoffPerPass": 18,
+        "entryRejectedPerPass": 0
+      },
+      "candidate": {
+        "statusPerPass": {
+          "missing": 28,
+          "ok": 20
+        },
+        "cutoffsPerPass": 10,
+        "meanTotalMsPerPass": 105.08800049999999,
+        "meanAllocatedBytesPerPass": 65145620.0,
+        "meanQueryMs": 2.18933334375,
+        "medianQueryMs": 0.9875205,
+        "p95QueryMs": 10.15825,
+        "maxQueryMs": 10.707708,
+        "slowest": {
+          "target_name": "minecraft:black_carpet",
+          "amount": 100000,
+          "stock": "none",
+          "status": "missing",
+          "budget_exhausted": true,
+          "plan_ms": 10.707708
+        },
+        "optionalOptimizationMsPerPass": 12.9100005,
+        "optionalProbesPerPass": 33.0,
+        "rawArmTotalsMs": [
+          105.57796,
+          104.598041
+        ],
+        "rawArmAllocatedBytes": [
+          65356728,
+          64934512
+        ],
+        "missingWithoutCutoffPerPass": 18,
+        "entryRejectedPerPass": 0
+      },
+      "timeChangePercent": -0.24784406800165693,
+      "allocationChangePercent": -0.5706756966060933
+    },
+    "recipes-small": {
+      "baseline": {
+        "statusPerPass": {
+          "missing": 46,
+          "ok": 2
+        },
+        "cutoffsPerPass": 42,
+        "meanTotalMsPerPass": 7788.168145,
+        "meanAllocatedBytesPerPass": 7728188452.0,
+        "meanQueryMs": 162.25350302083334,
+        "medianQueryMs": 143.6672505,
+        "p95QueryMs": 388.872583,
+        "maxQueryMs": 435.9805,
+        "slowest": {
+          "target_name": "mekanism:combiner",
+          "amount": 100000,
+          "stock": "none",
+          "status": "missing",
+          "budget_exhausted": true,
+          "plan_ms": 435.9805
+        },
+        "optionalOptimizationMsPerPass": 6.198938,
+        "optionalProbesPerPass": 0.0,
+        "rawArmTotalsMs": [
+          7878.369335,
+          7697.966955
+        ],
+        "rawArmAllocatedBytes": [
+          7695892248,
+          7760484656
+        ],
+        "missingWithoutCutoffPerPass": 4,
+        "entryRejectedPerPass": 0
+      },
+      "candidate": {
+        "statusPerPass": {
+          "missing": 46,
+          "ok": 2
+        },
+        "cutoffsPerPass": 42,
+        "meanTotalMsPerPass": 5440.160875,
+        "meanAllocatedBytesPerPass": 8047780576.0,
+        "meanQueryMs": 113.33668489583333,
+        "medianQueryMs": 133.4933335,
+        "p95QueryMs": 168.233417,
+        "maxQueryMs": 187.864708,
+        "slowest": {
+          "target_name": "mekanism:chemical_oxidizer",
+          "amount": 100000,
+          "stock": "random20",
+          "status": "missing",
+          "budget_exhausted": true,
+          "plan_ms": 187.864708
+        },
+        "optionalOptimizationMsPerPass": 6.416604,
+        "optionalProbesPerPass": 0.0,
+        "rawArmTotalsMs": [
+          5486.568455,
+          5393.7532949999995
+        ],
+        "rawArmAllocatedBytes": [
+          8084095720,
+          8011465432
+        ],
+        "missingWithoutCutoffPerPass": 4,
+        "entryRejectedPerPass": 0
+      },
+      "timeChangePercent": -30.148389535059273,
+      "allocationChangePercent": 4.135408006481667
+    },
+    "recipes-nast": {
+      "baseline": {
+        "statusPerPass": {
+          "missing": 22,
+          "ok": 26
+        },
+        "cutoffsPerPass": 16,
+        "meanTotalMsPerPass": 26265.296688,
+        "meanAllocatedBytesPerPass": 22762338592.0,
+        "meanQueryMs": 547.193681,
+        "medianQueryMs": 80.32568749999999,
+        "p95QueryMs": 2957.631833,
+        "maxQueryMs": 3071.478542,
+        "slowest": {
+          "target_name": "enderio_evolution:crystalline_alloy_nugget",
+          "amount": 100000,
+          "stock": "none",
+          "status": "missing",
+          "budget_exhausted": true,
+          "plan_ms": 3071.478542
+        },
+        "optionalOptimizationMsPerPass": 597.4387275,
+        "optionalProbesPerPass": 530.0,
+        "rawArmTotalsMs": [
+          26053.859419,
+          26476.733957
+        ],
+        "rawArmAllocatedBytes": [
+          21976784688,
+          23547892496
+        ],
+        "missingWithoutCutoffPerPass": 6,
+        "entryRejectedPerPass": 0
+      },
+      "candidate": {
+        "statusPerPass": {
+          "missing": 22,
+          "ok": 26
+        },
+        "cutoffsPerPass": 16,
+        "meanTotalMsPerPass": 11345.1954145,
+        "meanAllocatedBytesPerPass": 21041379728.0,
+        "meanQueryMs": 236.35823780208332,
+        "medianQueryMs": 63.8844165,
+        "p95QueryMs": 738.649625,
+        "maxQueryMs": 787.781958,
+        "slowest": {
+          "target_name": "sophisticatedstorage:blasting_upgrade",
+          "amount": 100000,
+          "stock": "none",
+          "status": "missing",
+          "budget_exhausted": true,
+          "plan_ms": 787.781958
+        },
+        "optionalOptimizationMsPerPass": 644.2547275,
+        "optionalProbesPerPass": 530.0,
+        "rawArmTotalsMs": [
+          11254.6115,
+          11435.779329
+        ],
+        "rawArmAllocatedBytes": [
+          21014730200,
+          21068029256
+        ],
+        "missingWithoutCutoffPerPass": 6,
+        "entryRejectedPerPass": 0
+      },
+      "timeChangePercent": -56.805378788341066,
+      "allocationChangePercent": -7.560553837841799
+    },
+    "recipes-atm": {
+      "baseline": {
+        "statusPerPass": {
+          "missing": 35,
+          "ok": 13
+        },
+        "cutoffsPerPass": 11,
+        "meanTotalMsPerPass": 233688.160669,
+        "meanAllocatedBytesPerPass": 618507865572.0,
+        "meanQueryMs": 4868.503347270834,
+        "medianQueryMs": 1624.6494795,
+        "p95QueryMs": 25201.292292,
+        "maxQueryMs": 31240.418042,
+        "slowest": {
+          "target_name": "mcwroofs:crimson_planks_lower_roof",
+          "amount": 1,
+          "stock": "none",
+          "status": "missing",
+          "budget_exhausted": true,
+          "plan_ms": 31240.418042
+        },
+        "optionalOptimizationMsPerPass": 4108.2520835,
+        "optionalProbesPerPass": 323.0,
+        "rawArmTotalsMs": [
+          258378.005669,
+          208998.315669
+        ],
+        "rawArmAllocatedBytes": [
+          1214300937888,
+          22714793256
+        ],
+        "missingWithoutCutoffPerPass": 24,
+        "entryRejectedPerPass": 0
+      },
+      "candidate": {
+        "statusPerPass": {
+          "missing": 35,
+          "ok": 13
+        },
+        "cutoffsPerPass": 11,
+        "meanTotalMsPerPass": 17062.9418325,
+        "meanAllocatedBytesPerPass": 30889708192.0,
+        "meanQueryMs": 355.47795484375,
+        "medianQueryMs": 212.07527100000001,
+        "p95QueryMs": 1109.692583,
+        "maxQueryMs": 1389.652166,
+        "slowest": {
+          "target_name": "not_enough_glyphs:glyph_contingency_fall",
+          "amount": 1,
+          "stock": "random20",
+          "status": "ok",
+          "budget_exhausted": false,
+          "plan_ms": 1389.652166
+        },
+        "optionalOptimizationMsPerPass": 4019.158979,
+        "optionalProbesPerPass": 329.0,
+        "rawArmTotalsMs": [
+          17216.069581,
+          16909.814084
+        ],
+        "rawArmAllocatedBytes": [
+          30817060480,
+          30962355904
+        ],
+        "missingWithoutCutoffPerPass": 24,
+        "entryRejectedPerPass": 0
+      },
+      "timeChangePercent": -92.6984140815468,
+      "allocationChangePercent": -95.00576954450968
+    }
+  },
+  "planDifferences": [
+    {
+      "dataset": "recipes-atm",
+      "arm": 1,
+      "key": [
+        "leaves",
+        15303,
+        100000
+      ],
+      "target_name": "mcwroofs:crimson_planks_lower_roof",
+      "fields": [
+        "cost",
+        "recipe_exec",
+        "tag_exec",
+        "firings"
+      ],
+      "reference_cost": 121087,
+      "observed_cost": 120421,
+      "reference_optional_probes": 22,
+      "observed_optional_probes": 27
+    },
+    {
+      "dataset": "recipes-atm",
+      "arm": 2,
+      "key": [
+        "leaves",
+        15303,
+        100000
+      ],
+      "target_name": "mcwroofs:crimson_planks_lower_roof",
+      "fields": [
+        "cost",
+        "recipe_exec",
+        "tag_exec",
+        "firings"
+      ],
+      "reference_cost": 121087,
+      "observed_cost": 120421,
+      "reference_optional_probes": 22,
+      "observed_optional_probes": 27
+    }
+  ],
+  "repeatDifferences": [],
+  "validationErrors": [],
+  "qualityByQuery": [
+    {
+      "dataset": "recipes-atm",
+      "key": [
+        "leaves",
+        15303,
+        100000
+      ],
+      "target_name": "mcwroofs:crimson_planks_lower_roof",
+      "fields": [
+        "cost",
+        "firings",
+        "recipe_exec",
+        "tag_exec"
+      ],
+      "costsABBA": [
+        121087,
+        120421,
+        120421,
+        121087
+      ],
+      "statusesABBA": [
+        "ok",
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "optionalProbesABBA": [
+        22,
+        27,
+        27,
+        22
+      ]
+    }
+  ],
+  "totals": {
+    "baseline": {
+      "meanTotalMsPerPass": 267846.974604,
+      "meanAllocatedBytesPerPass": 649063912140.0,
+      "feasiblePerPass": 61,
+      "cutoffsPerPass": 79,
+      "missingWithoutCutoffPerPass": 52,
+      "entryRejectedPerPass": 0
+    },
+    "candidate": {
+      "meanTotalMsPerPass": 33953.3861225,
+      "meanAllocatedBytesPerPass": 60044014116.0,
+      "feasiblePerPass": 61,
+      "cutoffsPerPass": 79,
+      "missingWithoutCutoffPerPass": 52,
+      "entryRejectedPerPass": 0
+    },
+    "timeChangePercent": -87.3235879655917,
+    "allocationChangePercent": -90.74913687343492
+  },
+  "baselineJarSha256": "16894c74ed395e01d92c22f2ea29e3f43035256a6b3f743dae84aa24b9827837",
+  "candidateJarSha256": "2dd678421ca960a6054b088561d5e7e55491ba309ffca6c7ad11843df6761c3e",
+  "changedProductionSource": {
+    "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.java",
+    "sha256": "b267f5a7817eddcb52a0858a3db37173ab0583dde58fea2fb207071b7d68fc9e"
+  },
+  "normalizedInputs": {
+    "recipes-vanilla": {
+      "awr": {
+        "sha256": "d9697536cda9473d2dae5d8d976d60d619aa6332b2832c614f48aa4834464277"
+      },
+      "metadata": {
+        "sha256": "f6097bb7f3d4b31388eea1981ccf9f28e315d0829016f9f0ebd33423b49565a8"
+      },
+      "targets": {
+        "sha256": "dab94ecf83ebc0af9d6785fe92d57e50335b1b9ce2f065932342db402f5a5b64"
+      },
+      "stocks": {
+        "none": {
+          "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+        },
+        "leaves": {
+          "sha256": "9c584cb49422c5024d0af012522f49f0de27dc0db5aea448a19a66a24ae6d12c"
+        },
+        "random20": {
+          "sha256": "a77b8a5014c754c31ad0d278aebf0fe9838b8cc252f7f687dca0a412e5d22ced"
+        }
+      },
+      "normalized": {
+        "sha256": "94829a7a3d0a61167d2f73a53d58068d3ad5181eeac741a4a07c67a35b710401"
+      },
+      "counts": {
+        "n_real": 1335,
+        "n_item": 1418,
+        "n_recipe": 2236,
+        "n_recipe_raw": 2282,
+        "n_tag_recipe": 998,
+        "n_produced": 840,
+        "n_leaf": 495,
+        "r2i_edges": 2816,
+        "r2o_edges": 2236,
+        "ws_edges": 1289
+      }
+    },
+    "recipes-small": {
+      "awr": {
+        "sha256": "b9bfe1992f1e4f39d0a91097983de0a4eec0e258a3307cb7126fe4aa26b34478"
+      },
+      "metadata": {
+        "sha256": "950a97550cf0548b5853bd24eddd4cab8ad58af4cccbefd5e327d3a26e7e42e3"
+      },
+      "targets": {
+        "sha256": "9434ed94c9a04f2860f542ed7872bdb8b587e387ecd8c35e16a101aaec8d746e"
+      },
+      "stocks": {
+        "none": {
+          "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+        },
+        "leaves": {
+          "sha256": "2ecb0ee7ecf42740be33c7a13c8cf3298648604b6ff2d5b00b074984f4fc4088"
+        },
+        "random20": {
+          "sha256": "ea49be99c3662831f2a0d8c343090909ae620e80782332dc6026dc065be1e16b"
+        }
+      },
+      "normalized": {
+        "sha256": "b0c07d786fe2fc7491c5d548ea688b2847fa613b2ba8bc5b9fd302a9a6854f20"
+      },
+      "counts": {
+        "n_real": 2260,
+        "n_item": 2522,
+        "n_recipe": 6626,
+        "n_recipe_raw": 6890,
+        "n_tag_recipe": 3102,
+        "n_produced": 1862,
+        "n_leaf": 398,
+        "r2i_edges": 9240,
+        "r2o_edges": 6826,
+        "ws_edges": 19323
+      }
+    },
+    "recipes-nast": {
+      "awr": {
+        "sha256": "8ba03047c532c234987bcb9d61a1d384bd8fbb685bb49f5e499477b527ec2fdb"
+      },
+      "metadata": {
+        "sha256": "0fff41a3400fe738b2efc3cf660f61e3ae7660da6d64bc3c5a5777cb00cc148d"
+      },
+      "targets": {
+        "sha256": "b485f078a3605382aeb151e3a9ab0c870b809eb256b56ae12826f7969b7cabd7"
+      },
+      "stocks": {
+        "none": {
+          "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+        },
+        "leaves": {
+          "sha256": "b393bb7fccb99d00cf83373c474fb415237a77471fc308c6125473f16a377d3a"
+        },
+        "random20": {
+          "sha256": "59be70d796c57a91af190c4ec307dfd28159eb744cc21346440d0e2b289c15a9"
+        }
+      },
+      "normalized": {
+        "sha256": "8a879103a488bc7db75711a781ba185065e640a9d6172732f7a067837de908b3"
+      },
+      "counts": {
+        "n_real": 12027,
+        "n_item": 12717,
+        "n_recipe": 25880,
+        "n_recipe_raw": 41338,
+        "n_tag_recipe": 8907,
+        "n_produced": 10005,
+        "n_leaf": 2022,
+        "r2i_edges": 43113,
+        "r2o_edges": 28283,
+        "ws_edges": 183483
+      }
+    },
+    "recipes-atm": {
+      "awr": {
+        "sha256": "162637c8e484d325c01356e55d986cc9b512309dbe16737b63ffe37193fbba62"
+      },
+      "metadata": {
+        "sha256": "a84353b032ee1b32e23d34099c2255c4dbbb274e56a0c3aaa77b4ab6c26ad07b"
+      },
+      "targets": {
+        "sha256": "3eb4b311f2ee7706bc092063539d9cbc034fb5672eb528c95e89d5eedc2e6dd7"
+      },
+      "stocks": {
+        "none": {
+          "sha256": "a0057ac280a2833b30f26cf7c53b6880ce38fa57c0e44537befcd61de18d28df"
+        },
+        "leaves": {
+          "sha256": "ee1fe682f9cc91ca545f28b1c43e70376db3f498b66458ad60511a569512b2bd"
+        },
+        "random20": {
+          "sha256": "fc306accd38c3f980e15439ffef168d85801f7c8f908a152ae14e14c3f8b1e55"
+        }
+      },
+      "normalized": {
+        "sha256": "ed93bc11bbcb6b57fc57de94b88f7ed054412118b66c2585565dcfc87e74ff09"
+      },
+      "counts": {
+        "n_real": 65115,
+        "n_item": 67232,
+        "n_recipe": 276991,
+        "n_recipe_raw": 396096,
+        "n_tag_recipe": 191328,
+        "n_produced": 46043,
+        "n_leaf": 19072,
+        "r2i_edges": 339885,
+        "r2o_edges": 287132,
+        "ws_edges": 1010354
+      }
+    }
+  },
+  "normalizerSha256": "fad9dd9e1cb61cab886882544c79f5df3690e3e88a80708883fc5779904b4ae2",
+  "measuredHarnessSha256": "6975f5a15ed0fd7dacd91ca19eb3a2cd90c09dc9e638b1dbc4e69a333e3e4bd1",
+  "unitTests": {
+    "tests": 1299,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2
+  },
+  "publicCorpus": {
+    "cases": 3339,
+    "changed": [],
+    "regressions": []
+  },
+  "aggregateTraversalCheckpoints": {
+    "baseline": {
+      "128": 36298,
+      "512": 538191
+    },
+    "candidate": {
+      "128": 3915,
+      "512": 15440
+    }
+  },
+  "aggregateShapeTiming": [
+    {
+      "arm": 0,
+      "variant": "baseline",
+      "rows": [
+        {
+          "shape": "dense",
+          "n": 128,
+          "meanMs": 1.01433834
+        },
+        {
+          "shape": "dense",
+          "n": 512,
+          "meanMs": 1.8356775
+        },
+        {
+          "shape": "dense",
+          "n": 2048,
+          "meanMs": 4.60643584
+        },
+        {
+          "shape": "sparse",
+          "n": 128,
+          "meanMs": 0.61732582
+        },
+        {
+          "shape": "sparse",
+          "n": 512,
+          "meanMs": 3.22638166
+        },
+        {
+          "shape": "sparse",
+          "n": 2048,
+          "meanMs": 32.7942325
+        }
+      ]
+    },
+    {
+      "arm": 1,
+      "variant": "candidate",
+      "rows": [
+        {
+          "shape": "dense",
+          "n": 128,
+          "meanMs": 1.055345
+        },
+        {
+          "shape": "dense",
+          "n": 512,
+          "meanMs": 1.83745834
+        },
+        {
+          "shape": "dense",
+          "n": 2048,
+          "meanMs": 4.931915
+        },
+        {
+          "shape": "sparse",
+          "n": 128,
+          "meanMs": 0.27311916
+        },
+        {
+          "shape": "sparse",
+          "n": 512,
+          "meanMs": 1.45934168
+        },
+        {
+          "shape": "sparse",
+          "n": 2048,
+          "meanMs": 4.5224125
+        }
+      ]
+    },
+    {
+      "arm": 2,
+      "variant": "candidate",
+      "rows": [
+        {
+          "shape": "dense",
+          "n": 128,
+          "meanMs": 1.02322082
+        },
+        {
+          "shape": "dense",
+          "n": 512,
+          "meanMs": 1.8367375
+        },
+        {
+          "shape": "dense",
+          "n": 2048,
+          "meanMs": 4.82617416
+        },
+        {
+          "shape": "sparse",
+          "n": 128,
+          "meanMs": 0.27201834
+        },
+        {
+          "shape": "sparse",
+          "n": 512,
+          "meanMs": 1.45920084
+        },
+        {
+          "shape": "sparse",
+          "n": 2048,
+          "meanMs": 4.626725
+        }
+      ]
+    },
+    {
+      "arm": 3,
+      "variant": "baseline",
+      "rows": [
+        {
+          "shape": "dense",
+          "n": 128,
+          "meanMs": 1.033385
+        },
+        {
+          "shape": "dense",
+          "n": 512,
+          "meanMs": 1.7926025
+        },
+        {
+          "shape": "dense",
+          "n": 2048,
+          "meanMs": 4.569745
+        },
+        {
+          "shape": "sparse",
+          "n": 128,
+          "meanMs": 0.61527668
+        },
+        {
+          "shape": "sparse",
+          "n": 512,
+          "meanMs": 3.23898334
+        },
+        {
+          "shape": "sparse",
+          "n": 2048,
+          "meanMs": 32.90149416
+        }
+      ]
+    }
+  ],
+  "allocationCaveat": "ATM baseline arms allocated 1214.301 GB and 22.715 GB, despite identical planner and harness bytecode and settings; candidate arms allocated 30.817 GB and 30.962 GB. These are cumulative planning-thread allocations, not peak memory. The unstable baseline mean does not establish a general allocation improvement. Small allocation increased 4.14%, and the candidate ATM allocation exceeded the lower-allocation baseline arm.",
+  "profiles": {
+    "before": {
+      "formalCpuSamples": 4678,
+      "nearestPlannerExcludingCancellation": {
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtainAggregate": 3982,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.ordinaryInputAmount": 373,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.identifyPositiveFeedbackByproducts": 196,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtain": 20,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.analyzeLowWidthComponents": 11,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2$SharedCounterBudget.tryConsume": 8,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.classify": 7,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.hasProvenDirectConsumableShortfall": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.reserveSelfSeed": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.classifyFallback": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.get": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.inputAcquisitionOrder": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lowWidthByproductSchedule": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.reserveFeedbackSeedOutput": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftGraph.patternsFor": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lambda$bumpFiring$79": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.capacityOrder": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.reachableWorkEstimate": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.fire": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintIndex.build": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.stableTopologicalOrder": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.frameFor": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2$ConsumableProofState.equals": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.shortestInputDistances": 2
+      },
+      "inclusive": {
+        "com.moakiee.thunderbolt.core.crafting.planner.AwrBench.run": 4678,
+        "com.moakiee.thunderbolt.core.crafting.planner.AwrBench.main": 4678,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planDetailed": 4678,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planCore": 4675,
+        "com.moakiee.thunderbolt.core.crafting.planner.OptionalPlanningStages.planDetailed": 4675,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.run": 4674,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtain": 4055,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.fire": 4055,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtainAggregate": 3986,
+        "com.moakiee.thunderbolt.core.crafting.planner.PlanningCancellation.check": 3830,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtainHot": 720,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.identifyPositiveFeedbackByproducts": 573,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.ordinaryInputAmount": 373,
+        "java.util.ImmutableCollections$ListItr.next": 143,
+        "java.lang.ThreadLocal.get": 98,
+        "java.util.HashMap.getNode": 37,
+        "java.util.HashMap.containsKey": 17,
+        "java.util.HashSet.contains": 16,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.analyzeLowWidthComponents": 15,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.analyzeAll": 14,
+        "java.util.Collections$UnmodifiableMap.getOrDefault": 13,
+        "java.util.HashMap.getOrDefault": 13,
+        "java.util.HashMap.put": 12,
+        "java.util.HashSet.add": 10
+      },
+      "recordingSha256": "cb115b9a74c774713835e1b69f9e2bbd9112b95e678d95856b5f1dd7d2dd77a2"
+    },
+    "aggregateOnly": {
+      "formalCpuSamples": 828,
+      "nearestPlannerExcludingCancellation": {
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.identifyPositiveFeedbackByproducts": 365,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.ordinaryInputAmount": 357,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.reserveSelfSeed": 8,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lowWidthByproductSchedule": 7,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.classifyFallback": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.reachableWorkEstimate": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.analyzeLowWidthComponents": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.inputAcquisitionOrder": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.distinctMaterialBranches": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtain": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.gcd": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2$SharedCounterBudget.tryConsume": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.classify": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.frameFor": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.stronglyConnectedComponents": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftGraph.patternsFor": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lambda$bumpFiring$79": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.unionItemOwner": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeReplenishment.compile": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.fire": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.hasProvenDirectConsumableShortfall": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.rollback": 1,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.linearPassState": 1,
+        "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintIndex$MaterialRecipe.hashCode": 1
+      },
+      "inclusive": {
+        "com.moakiee.thunderbolt.core.crafting.planner.AwrBench.run": 828,
+        "com.moakiee.thunderbolt.core.crafting.planner.AwrBench.main": 828,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planDetailed": 828,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planCore": 822,
+        "com.moakiee.thunderbolt.core.crafting.planner.OptionalPlanningStages.planDetailed": 822,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.run": 819,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.identifyPositiveFeedbackByproducts": 730,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.ordinaryInputAmount": 357,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtain": 42,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.fire": 42,
+        "java.util.HashMap.put": 18,
+        "java.util.HashMap.getNode": 18,
+        "java.util.HashMap.putVal": 17,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.analyzeAll": 15,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.analyzeLowWidthComponents": 14,
+        "java.util.HashSet.add": 14,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lowWidthByproductSchedule": 11,
+        "java.util.HashMap.containsKey": 11,
+        "java.util.HashSet.contains": 11,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.reserveSelfSeed": 8,
+        "com.moakiee.thunderbolt.core.crafting.planner.PlanningCancellation.check": 8,
+        "java.util.HashMap.getOrDefault": 8,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.distinctMaterialBranches": 8,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.tryIndependentRawStock": 6
+      },
+      "recordingSha256": "3b12108784f5e79a3ea837678e0c65bd50cacce369fc9c65258e769e49571fae"
+    },
+    "optimized": {
+      "formalCpuSamples": 112,
+      "nearestPlannerExcludingCancellation": {
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.identifyPositiveFeedbackByproducts": 20,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtain": 10,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.classifyFallback": 7,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.capacityOrder": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2$SharedCounterBudget.tryConsume": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.fire": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.analyzeLowWidthComponents": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lowWidthByproductSchedule": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtainAggregate": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.classify": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.hasProvenDirectConsumableShortfall": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.frameFor": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.inputAcquisitionOrder": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.distinctMaterialBranches": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.rollback": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.reachableWorkEstimate": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintIndex$MaterialTerm.equals": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.cyclicComponents": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.stronglyConnectedComponents": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.put": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.unionItemOwner": 1,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.isAggregable": 1,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.hotRouteOrder": 1,
+        "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintIndex$MaterialRecipe.equals": 1
+      },
+      "inclusive": {
+        "com.moakiee.thunderbolt.core.crafting.planner.AwrBench.run": 110,
+        "com.moakiee.thunderbolt.core.crafting.planner.AwrBench.main": 110,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planDetailed": 110,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planCore": 108,
+        "com.moakiee.thunderbolt.core.crafting.planner.OptionalPlanningStages.planDetailed": 108,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.run": 107,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtain": 45,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.fire": 45,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.identifyPositiveFeedbackByproducts": 21,
+        "java.util.HashMap.getNode": 19,
+        "com.moakiee.thunderbolt.core.crafting.planner.PlanningCancellation.check": 17,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.analyzeAll": 15,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.analyzeLowWidthComponents": 13,
+        "java.util.HashMap.putVal": 11,
+        "java.util.HashSet.add": 10,
+        "java.util.Collections$UnmodifiableMap.getOrDefault": 9,
+        "java.util.HashMap.put": 9,
+        "java.util.HashMap.getOrDefault": 9,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lowWidthByproductSchedule": 7,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.classifyFallback": 7,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.tryIndependentRawStock": 6,
+        "java.util.HashMap.resize": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.distinctMaterialBranches": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2$SharedCounterBudget.tryConsume": 5
+      },
+      "recordingSha256": "8c10401170fbc78e71eca8c84e3550c164aab40679b3182d6d9e8ac007fc92b5"
+    },
+    "smallOptimized": {
+      "formalCpuSamples": 132,
+      "nearestPlannerExcludingCancellation": {
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lowWidthByproductSchedule": 18,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.analyzeLowWidthComponents": 15,
+        "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintIndex.build": 7,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.classifyFallback": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtainAggregate": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtain": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.stronglyConnectedComponents": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.buildDagRoot": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2$SharedCounterBudget.tryConsume": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.hasProvenDirectConsumableShortfall": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.identifyPositiveFeedbackByproducts": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.reserveSelfSeed": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.byproductFeedableKeys": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.bumpFiring": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.PrimaryInputIndex.build": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintIndex.materialFootprint": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.producibleVia": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.stableTopologicalOrder": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.snapshotPreparedGraph": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.distinctMaterialBranches": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CycleAnalysis.directlyReorientable": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.fire": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.classify": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.frameFor": 2
+      },
+      "inclusive": {
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planCore": 130,
+        "com.moakiee.thunderbolt.core.crafting.planner.OptionalPlanningStages.planDetailed": 130,
+        "com.moakiee.thunderbolt.core.crafting.planner.AwrBench.run": 130,
+        "com.moakiee.thunderbolt.core.crafting.planner.AwrBench.main": 130,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planDetailed": 130,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.run": 126,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtain": 35,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtainAggregate": 32,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.fire": 31,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.analyzeLowWidthComponents": 28,
+        "com.moakiee.thunderbolt.core.crafting.planner.PlanningCancellation.check": 28,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lowWidthByproductSchedule": 27,
+        "java.util.HashMap.getNode": 25,
+        "java.util.HashMap.get": 21,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.distinctMaterialBranches": 13,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.analyzeAll": 12,
+        "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintIndex.build": 11,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.isContendedOutput": 11,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2$PreparedGraph.materialFootprints": 11,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.tryIndependentRawStock": 10,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.commitBestEffort": 10,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.buildDag": 9,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.buildDagRoot": 6,
+        "java.util.HashMap.put": 6
+      },
+      "recordingSha256": "1341bfe9728500d572b29c0758975d1dab72675c4dbd4382ae195b2faf1a699d"
+    },
+    "smallBefore": {
+      "formalCpuSamples": 579,
+      "nearestPlannerExcludingCancellation": {
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtainAggregate": 403,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtain": 16,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.analyzeLowWidthComponents": 16,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.identifyPositiveFeedbackByproducts": 11,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lowWidthByproductSchedule": 11,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2$SharedCounterBudget.tryConsume": 8,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.hasProvenDirectConsumableShortfall": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.fire": 6,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.reserveSelfSeed": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.frameFor": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.inputAcquisitionOrder": 5,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.isAggregable": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintIndex.build": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.stronglyConnectedComponents": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.distinctMaterialBranches": 4,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.capacityOrder": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.indexLinearContainerBootstrapReserves": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.cyclicComponents": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.snapshotPreparedGraph": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.diagnosticUnitCosts": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.stronglyConnectedComponents": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.bumpFiring": 3,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeReplenishment.compile": 2,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.producibleVia": 2
+      },
+      "inclusive": {
+        "com.moakiee.thunderbolt.core.crafting.planner.AwrBench.run": 579,
+        "com.moakiee.thunderbolt.core.crafting.planner.AwrBench.main": 579,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planDetailed": 579,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.planCore": 578,
+        "com.moakiee.thunderbolt.core.crafting.planner.OptionalPlanningStages.planDetailed": 578,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.run": 567,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtain": 471,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.fire": 470,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtainAggregate": 464,
+        "com.moakiee.thunderbolt.core.crafting.planner.PlanningCancellation.check": 405,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.commitBestEffort": 137,
+        "java.util.HashMap.getNode": 36,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.analyzeLowWidthComponents": 24,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.lowWidthByproductSchedule": 21,
+        "java.util.HashMap.put": 20,
+        "java.util.HashMap.putVal": 18,
+        "java.util.HashSet.add": 16,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.obtainHot": 16,
+        "java.util.HashMap.get": 15,
+        "java.util.HashMap.containsKey": 13,
+        "java.util.HashSet.contains": 13,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.identifyPositiveFeedbackByproducts": 12,
+        "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackAnalysis.analyzeAll": 11,
+        "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2.tryIndependentRawStock": 10
+      },
+      "recordingSha256": "5c7d751572fe02ed55cd0d5664f526db2655a079b6f99c7e3918e8bffc182914"
+    }
+  },
+  "profileCaveat": "JFR runs are separate diagnostics on selected slow queries, not the full-corpus timing measurement. Formal query spans include independent replay; planner frames are reported separately. CPU samples and weighted allocation samples are not exact time or peak-memory measures.",
+  "previousSmallAtmRegression": "The selected Small and ATM slow queries have zero consumption-optimization work and unchanged consumed search budgets. The previous 6.1%/4.3% before/after wall-time differences do not establish a causal slowdown in the integer optimizer; dominant repeated scans were independently profiled and optimized here.",
+  "complexity": {
+    "aggregateBefore": "O(V + E_active) per local aggregate, including scanning every unrelated topological row",
+    "aggregateAfter": "One lazy O(V) rank index per active replay order; O((V_active + E_active) log V_active) per local aggregate, visiting only positive demand rows",
+    "feedbackBefore": "For each consumer ordinary input and byproduct pair, rescan every producer alternative and its input slots",
+    "feedbackAfter": "Per invocation and raw/cut projection, index producer ordinary inputs once per consumed output; inspect only refills that actually consume the returned key",
+    "spaceTradeoff": "Demand TreeMap entries are removed as visited; the reused lazy replay rank map is O(V). The invocation-local feedback index is O(E_indexed) and is discarded after the guard. Thread allocation is measured separately from asymptotic live space.",
+    "productionDiff": {
+      "files": 1,
+      "addedLines": 59,
+      "deletedLines": 30,
+      "netLines": 29
+    }
+  }
+}

@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
@@ -1405,6 +1406,7 @@ public final class CraftPlannerV2<K> {
         ByproductSchedule<K> byproductSchedule = preparedGraph.byproductSchedule;
         List<K> replayOrder = byproductSchedule.order();
         activeReplayOrder = replayOrder;
+        activeReplayRanks = null;
 
         CraftPlan<K> linearDiagnosis = null;
         // 1) Linear backbone (v2-memo-deps / v2-lazy-deduct): one topological aggregation pass,
@@ -2365,11 +2367,14 @@ public final class CraftPlannerV2<K> {
      * member recipes visible, but do not let the growing feedback byproduct enter the shared pool.
      * Existing stock of the returned state remains usable, so finite non-feedback crafts still work.
      *
-     * <p>This is a linear, deliberately local guard matching the local feedback optimization below;
-     * arbitrary SCC coefficient solving remains exclusively in the closed-loop analyzer.
+     * <p>This deliberately local guard indexes actual feedback edges; arbitrary SCC coefficient
+     * solving remains exclusively in the closed-loop analyzer.
      */
     private void identifyPositiveFeedbackByproducts(K target, boolean compiled) {
         if (!graph.hasByproducts()) return;
+        // Each output's refill inputs are indexed once for this exact uncut/cut projection.
+        // Unrelated alternatives must not be rescanned for every consumer/byproduct pair.
+        Map<K, Map<K, List<FeedbackRefill>>> refillsByInput = new HashMap<>();
         Set<K> seen = new LinkedHashSet<>();
         Deque<K> queue = new ArrayDeque<>();
         seen.add(target);
@@ -2401,14 +2406,13 @@ public final class CraftPlannerV2<K> {
                     K consumedKey = consumed.getKey();
                     long consumedAmount = consumed.getValue();
                     if (consumedAmount <= 0) continue;
+                    Map<K, List<FeedbackRefill>> refills = refillsByInput.computeIfAbsent(
+                            consumedKey, key -> feedbackRefills(key, compiled));
                     for (var byproduct : returnedOutputs.entrySet()) {
                         long returnedAmount = byproduct.getValue();
                         if (returnedAmount <= 0) continue;
-                        for (CraftPattern<K> refill : compiled
-                                ? patternsByOutput.getOrDefault(consumedKey, List.of())
-                                : graph.patternsFor(consumedKey)) {
-                            long refillInput = ordinaryInputAmount(refill, byproduct.getKey());
-                            if (refillInput <= 0) continue;
+                        for (FeedbackRefill refill : refills.getOrDefault(byproduct.getKey(), List.of())) {
+                            long refillInput = refill.inputAmount();
                             long common = gcd(returnedAmount, refillInput);
                             long consumerBatch = refillInput / common;
                             long refillBatch = returnedAmount / common;
@@ -2426,15 +2430,26 @@ public final class CraftPlannerV2<K> {
         }
     }
 
-    private static <K> long ordinaryInputAmount(CraftPattern<K> pattern, K key) {
-        long result = 0L;
-        for (CraftInput<K> input : pattern.inputs()) {
-            if (!input.returned() && input.remainder() == null && key.equals(input.key())) {
-                result = Sat.add(result, input.amount());
+    private Map<K, List<FeedbackRefill>> feedbackRefills(K output, boolean compiled) {
+        var index = new HashMap<K, List<FeedbackRefill>>();
+        for (CraftPattern<K> pattern : compiled
+                ? patternsByOutput.getOrDefault(output, List.of()) : graph.patternsFor(output)) {
+            PlanningCancellation.check();
+            var amounts = new HashMap<K, Long>();
+            for (CraftInput<K> input : pattern.inputs()) {
+                if (!input.returned() && input.remainder() == null)
+                    // The former per-key scan saturated from zero, including its first slot.
+                    amounts.merge(input.key(), Sat.add(0L, input.amount()), Sat::add);
             }
+            amounts.forEach((key, amount) -> {
+                if (amount > 0) index.computeIfAbsent(key, ignored -> new ArrayList<>())
+                        .add(new FeedbackRefill(amount, pattern.outputAmount()));
+            });
         }
-        return result;
+        return index;
     }
+
+    private record FeedbackRefill(long inputAmount, long outputAmount) {}
 
     private static <K> long byproductAmount(CraftPattern<K> pattern, K key) {
         long result = 0L;
@@ -5544,20 +5559,23 @@ public final class CraftPlannerV2<K> {
      * calling {@link #obtain}.
      */
     private long obtainAggregate(K x, long d, boolean commitFailure) {
-        Map<K, Long> need = new HashMap<>();
-        need.put(x, d);
-        long unmet = 0L;
-        boolean reached = false;
         List<K> aggregateOrder = activeReplayOrder.isEmpty()
                 ? preparedGraph.order
                 : activeReplayOrder;
-        for (K y : aggregateOrder) {
+        Map<K, Integer> ranks = replayRanks();
+        Integer root = ranks.get(x);
+        if (root == null) return 0L;
+        var need = new TreeMap<Integer, Long>();
+        need.put(root, d);
+        long unmet = 0L;
+        // Visit only demanded rows, in exactly the same order as the full sweep. All parents
+        // still contribute before their shared input is expanded; unrelated rows cost no work.
+        while (!need.isEmpty()) {
             PlanningCancellation.check();
-            if (!reached) {
-                if (!y.equals(x)) continue;
-                reached = true;
-            }
-            long dy = need.getOrDefault(y, 0L);
+            var entry = need.pollFirstEntry();
+            int rank = entry.getKey();
+            K y = aggregateOrder.get(rank);
+            long dy = entry.getValue();
             if (dy <= 0) {
                 continue;
             }
@@ -5594,7 +5612,9 @@ public final class CraftPlannerV2<K> {
             long times = Sat.ceilDiv(dy, r.outputAmount());
             bumpFiring(r, times);
             for (CraftInput<K> in : r.inputs()) {
-                need.merge(in.key(), in.unitsFor(times), Sat::add);
+                Integer next = ranks.get(in.key());
+                // Match the ordered sweep: earlier or omitted rows cannot be revisited.
+                if (next != null && next > rank) need.merge(next, in.unitsFor(times), Sat::add);
             }
             long surplus = Sat.mul(times, r.outputAmount()) - dy;
             if (surplus > 0) {
@@ -5602,6 +5622,19 @@ public final class CraftPlannerV2<K> {
             }
         }
         return unmet;
+    }
+
+    private Map<K, Integer> replayRanks() {
+        if (activeReplayRanks == null) {
+            List<K> order = activeReplayOrder.isEmpty() ? preparedGraph.order : activeReplayOrder;
+            var ranks = new HashMap<K, Integer>();
+            for (int i = 0; i < order.size(); i++) {
+                PlanningCancellation.check();
+                ranks.put(order.get(i), i);
+            }
+            activeReplayRanks = ranks;
+        }
+        return activeReplayRanks;
     }
 
     private long commitBudgetFallback(K x, long d) {
@@ -5678,13 +5711,9 @@ public final class CraftPlannerV2<K> {
             // The compiled byproduct schedule also includes supplies produced deeper in a sibling
             // cone. A direct-sibling scan alone misses those when exact quotas deliberately keep
             // that cone active despite already stocked intermediate outputs.
-            if (activeReplayRanks == null) {
-                activeReplayRanks = new HashMap<>();
-                for (int i = 0; i < activeReplayOrder.size(); i++)
-                    activeReplayRanks.put(activeReplayOrder.get(i), i);
-            }
+            Map<K, Integer> ranks = replayRanks();
             baseOrder.sort(java.util.Comparator.comparingInt(key ->
-                    activeReplayRanks.getOrDefault(key, Integer.MAX_VALUE)));
+                    ranks.getOrDefault(key, Integer.MAX_VALUE)));
         } else if (indegree.isEmpty()) return pattern.inputs();
         Deque<K> ready = new ArrayDeque<>();
         for (K key : baseOrder) if (!indegree.containsKey(key)) ready.addLast(key);

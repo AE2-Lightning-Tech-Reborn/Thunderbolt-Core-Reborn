@@ -1,0 +1,12 @@
+allprojects {
+    afterEvaluate {
+        def classpath = sourceSets.test.runtimeClasspath
+        def destination = providers.gradleProperty('plannerAuditClasspath')
+        tasks.register('writePlannerAuditClasspath') {
+            dependsOn 'testClasses'
+            doLast {
+                new File(destination.get()).text = classpath.asPath
+            }
+        }
+    }
+}
