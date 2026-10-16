@@ -12,6 +12,39 @@ import org.junit.jupiter.api.Test;
 
 class PositiveFeedbackIndexTest {
     @Test
+    void wideRecipesVisitSparseFeedbackEdgesWithoutAnInputByproductCrossProduct() throws Exception {
+        long small = sparseFeedbackWork(128), large = sparseFeedbackWork(512);
+        assertTrue(large <= small * 5, () -> "key lookups grew from " + small + " to " + large);
+    }
+
+    private static long sparseFeedbackWork(int width) throws Exception {
+        var builder = CraftGraph.<CountingKey>builder();
+        var inputs = new ArrayList<CraftInput<CountingKey>>();
+        var sides = new ArrayList<CraftOutput<CountingKey>>();
+        for (int i = 0; i < width; i++) {
+            var input = new CountingKey(i);
+            var side = new CountingKey(width + i);
+            inputs.add(CraftInput.of(input, 1));
+            sides.add(CraftOutput.of(side, 1));
+            builder.pattern(input, 2, List.of(CraftInput.of(side, 1)));
+        }
+        var root = new CountingKey(width * 2);
+        var consumer = new CraftPattern<>(root, 1, inputs, sides, null);
+        var graph = builder.pattern(consumer).build();
+        CountingKey.lookups = 0;
+        var actual = suppressed(graph, Map.of(), root, false);
+        long work = CountingKey.lookups;
+        assertEquals(1, actual.size());
+        assertEquals(width, actual.get(consumer).size());
+        return work;
+    }
+
+    private record CountingKey(int id) {
+        static long lookups;
+        @Override public int hashCode() { lookups++; return id; }
+    }
+
+    @Test
     void indexedPairsMatchIndependentSaturatedRoundArithmetic() throws Exception {
         var random = new Random(2026101509L);
         long[] quantities = {1, 2, 7, Sat.SAT - 1, Sat.SAT, Long.MAX_VALUE};

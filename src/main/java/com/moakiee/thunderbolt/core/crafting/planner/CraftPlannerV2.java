@@ -2408,10 +2408,16 @@ public final class CraftPlannerV2<K> {
                     if (consumedAmount <= 0) continue;
                     Map<K, List<FeedbackRefill>> refills = refillsByInput.computeIfAbsent(
                             consumedKey, key -> feedbackRefills(key, compiled));
-                    for (var byproduct : returnedOutputs.entrySet()) {
-                        long returnedAmount = byproduct.getValue();
+                    // Join only the smaller key set. Wide multi-output recipes often have few
+                    // actual refill edges; walking every side output per input is quadratic.
+                    // Suppression is a membership set, so intersection traversal order is immaterial.
+                    if (refills.isEmpty()) continue;
+                    Set<K> possibleReturns = refills.size() < returnedOutputs.size()
+                            ? refills.keySet() : returnedOutputs.keySet();
+                    for (K byproduct : possibleReturns) {
+                        long returnedAmount = returnedOutputs.getOrDefault(byproduct, 0L);
                         if (returnedAmount <= 0) continue;
-                        for (FeedbackRefill refill : refills.getOrDefault(byproduct.getKey(), List.of())) {
+                        for (FeedbackRefill refill : refills.getOrDefault(byproduct, List.of())) {
                             long refillInput = refill.inputAmount();
                             long common = gcd(returnedAmount, refillInput);
                             long consumerBatch = refillInput / common;
@@ -2421,7 +2427,7 @@ public final class CraftPlannerV2<K> {
                             if (recoveredPerRound > consumedPerRound) {
                                 suppressedPositiveFeedbackOutputs
                                         .computeIfAbsent(consumer, ignored -> new LinkedHashSet<>())
-                                        .add(byproduct.getKey());
+                                        .add(byproduct);
                             }
                         }
                     }
@@ -3834,10 +3840,8 @@ public final class CraftPlannerV2<K> {
             scheduleNodes.add(itemNode.get(item));
         }
 
-        Map<ScheduleNode<K>, LinkedHashSet<ScheduleNode<K>>> normalEdges = new HashMap<>();
         Map<ScheduleNode<K>, LinkedHashSet<ScheduleNode<K>>> allEdges = new HashMap<>();
         for (ScheduleNode<K> node : scheduleNodes) {
-            normalEdges.put(node, new LinkedHashSet<>());
             allEdges.put(node, new LinkedHashSet<>());
         }
         for (K output : order) {
@@ -3847,7 +3851,6 @@ public final class CraftPlannerV2<K> {
                 for (CraftInput<K> input : pattern.inputs()) {
                     ScheduleItem<K> to = itemNode.get(input.key());
                     if (to != null && !output.equals(input.key())) {
-                        normalEdges.get(from).add(to);
                         allEdges.get(from).add(to);
                     }
                 }
@@ -3892,6 +3895,9 @@ public final class CraftPlannerV2<K> {
                     unsafeItems.addAll(itemsByScc.getOrDefault(producerScc, Set.of()));
                 speculative.computeIfAbsent(candidate.pattern(), ignored -> new HashSet<>())
                         .add(candidate.key());
+                // Normal dependencies end at item nodes, so removing an unsafe barrier edge
+                // leaves them intact and preserves the insertion order of all remaining edges.
+                allEdges.get(itemNode.get(candidate.output())).remove(barrierNode.get(candidate.key()));
                 continue;
             }
             reusable.computeIfAbsent(candidate.pattern(), ignored -> new HashSet<>())
@@ -3904,27 +3910,13 @@ public final class CraftPlannerV2<K> {
                     Set.copyOf(unsafeItems));
         }
 
-        Map<ScheduleNode<K>, LinkedHashSet<ScheduleNode<K>>> replayEdges = new HashMap<>();
-        for (ScheduleNode<K> node : scheduleNodes) {
-            replayEdges.put(node, new LinkedHashSet<>(normalEdges.get(node)));
-        }
-        for (K key : acceptedKeys) {
+        for (var entry : barrierNode.entrySet()) {
             PlanningCancellation.check();
-            ByproductBarrier<K> barrier = barrierNode.get(key);
-            replayEdges.get(barrier).add(itemNode.get(key));
-            for (K consumer : consumersByInput.getOrDefault(key, new LinkedHashSet<>())) {
-                replayEdges.get(barrier).add(itemNode.get(consumer));
-            }
-        }
-        for (ByproductLink<K> candidate : candidates) {
-            PlanningCancellation.check();
-            if (reusable.getOrDefault(candidate.pattern(), Set.of()).contains(candidate.key())) {
-                replayEdges.get(itemNode.get(candidate.output())).add(barrierNode.get(candidate.key()));
-            }
+            if (!acceptedKeys.contains(entry.getKey())) allEdges.get(entry.getValue()).clear();
         }
 
         List<ScheduleNode<K>> scheduled = stableTopologicalOrder(
-                scheduleNodes, freezeAdjacency(scheduleNodes, replayEdges));
+                scheduleNodes, freezeAdjacency(scheduleNodes, allEdges));
         if (scheduled.size() != scheduleNodes.size()) {
             // Defensive fail-closed path. Normal edges are already acyclic and inter-SCC candidate
             // edges cannot form a cycle, so this should be unreachable unless graph equality changed.
@@ -3960,7 +3952,7 @@ public final class CraftPlannerV2<K> {
             List<K> nodes, Map<K, LinkedHashSet<K>> mutable) {
         Map<K, List<K>> frozen = new HashMap<>(nodes.size() * 2);
         for (K node : nodes) {
-            frozen.put(node, List.copyOf(mutable.getOrDefault(node, new LinkedHashSet<>())));
+            frozen.put(node, List.copyOf(mutable.get(node)));
         }
         return frozen;
     }
@@ -5657,11 +5649,18 @@ public final class CraftPlannerV2<K> {
 
     /** Acquire a sibling producer before the inputs supplied by its reusable side outputs. */
     private List<CraftInput<K>> inputAcquisitionOrder(CraftPattern<K> pattern) {
-        if (pattern.inputs().size() < 2 || reachableByproductKeys.isEmpty()
-                || pattern.inputs().stream().anyMatch(input -> input.returned()
-                        || input.reusableStockSource() != null || input.remainder() != null)) {
+        if (pattern.inputs().size() < 2 || reachableByproductKeys.isEmpty()) {
             return pattern.inputs();
         }
+        boolean relevant = false;
+        for (CraftInput<K> input : pattern.inputs()) {
+            if (input.returned() || input.reusableStockSource() != null || input.remainder() != null)
+                return pattern.inputs();
+            relevant |= reachableByproductKeys.contains(input.key())
+                    || fixedByproductReplayItems.contains(input.key());
+        }
+        // Neither a sibling-precedence destination nor a solved replay item can occur here.
+        if (!relevant) return pattern.inputs();
         Map<K, List<CraftInput<K>>> groups = new LinkedHashMap<>();
         for (CraftInput<K> input : pattern.inputs()) {
             groups.computeIfAbsent(input.key(), ignored -> new ArrayList<>()).add(input);
