@@ -29,6 +29,7 @@ public final class ExactPlanReports {
     }
 
     public static boolean isPreview(Object plan) {
-        return get(plan) != null;
+        var report = get(plan);
+        return report != null && report.previewOnly();
     }
 }

@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = CraftConfirmPlanPacket.class, remap = false)
 public abstract class ExactCraftConfirmPacketMixin {
     @Unique
-    private static final int THUNDERBOLT_EXACT_MAGIC = 0x54424531;
+    private static final int THUNDERBOLT_EXACT_MAGIC = 0x54424532;
 
     @Inject(method = "write", at = @At("RETURN"))
     private void thunderbolt$writeExactReport(RegistryFriendlyByteBuf buffer, CallbackInfo ci) {
