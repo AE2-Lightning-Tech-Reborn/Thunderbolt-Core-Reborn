@@ -10,6 +10,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class MultiRouteBatchOptimizerTest {
+    @Test void eliminatingTheFinalIntegerDimensionCompletesInsideTheExistingWorkCeiling() {
+        var graph = CraftGraph.<String>builder().stock("iron", 120).stock("diamond", 120)
+                .pattern("T", 1, List.of(CraftInput.of("iron", 3), CraftInput.of("diamond", 3)))
+                .pattern("T", 8, List.of(CraftInput.of("iron", 31), CraftInput.of("diamond", 30)))
+                .pattern("T", 1, List.of(CraftInput.of("iron", 2), CraftInput.of("diamond", 2)))
+                .pattern("T", 3, List.of(CraftInput.of("iron", 5), CraftInput.of("diamond", 27))).build();
+        var initial = initial(graph, new long[] {40, 0, 0, 0}, 40);
+        var work = new AtomicInteger();
+        var result = MultiRouteBatchOptimizer.solve(graph, "T", 40, initial, n -> { work.addAndGet(n); return true; });
+        assertEquals(BatchOptimizationResult.Status.COMPLETE, result.status());
+        assertEquals(26, executions(result.plan()));
+        assertTrue(work.get() <= MultiRouteBatchOptimizer.MAX_WORK);
+        balance(graph, result.plan(), 40);
+    }
+
     @Test void threeDistinctRoutesAreNeededToUseBothScarceResources() {
         for (long scale : new long[] {1, 1_000_000_000_000L}) {
             var graph = CraftGraph.<String>builder().stock("iron", 100 * scale).stock("diamond", 100 * scale)
@@ -26,10 +41,10 @@ class MultiRouteBatchOptimizerTest {
         }
     }
 
-    @Test void randomThreeAndFourRoutesMatchIndependentExhaustiveStockLimitedOracle() {
+    @Test void randomThreeThroughSixRoutesMatchIndependentExhaustiveStockLimitedOracle() {
         var random = new Random(20261005);
-        for (int sample = 0; sample < 400; sample++) {
-            int size = sample % 2 + 3, amount = 1 + random.nextInt(8);
+        for (int sample = 0; sample < 1200; sample++) {
+            int size = sample % 4 + 3, amount = 1 + random.nextInt(8);
             var builder = CraftGraph.<String>builder().stock("iron", 10000).stock("diamond", 10000);
             int[] outputs = new int[size], iron = new int[size], diamond = new int[size];
             for (int r = 0; r < size; r++) {

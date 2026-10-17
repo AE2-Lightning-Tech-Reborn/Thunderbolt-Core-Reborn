@@ -134,6 +134,30 @@ class ByproductScheduleMetadataTest {
         return new CraftPattern<>("P", 1, List.of(CraftInput.of("full", 1)), "ordinary");
     }
 
+    @Test
+    void pruningUnsafeLinksKeepsSharedSafeBarriersAndOrdinaryDependencies() throws Exception {
+        var safe = new CraftPattern<>("P", 1, List.of(CraftInput.of("R", 1)),
+                List.of(CraftOutput.of("B", 1)), "safe");
+        var duplicate = new CraftPattern<>("P", 1, List.of(CraftInput.of("R", 1)),
+                List.of(CraftOutput.of("B", 1)), "safe");
+        var unsafe = new CraftPattern<>("U", 1, List.of(CraftInput.of("B", 1)),
+                List.of(CraftOutput.of("B", 1)), "unsafe");
+        var rejected = new CraftPattern<>("V", 1, List.of(CraftInput.of("D", 1)),
+                List.of(CraftOutput.of("D", 1)), "rejected");
+        var graph = CraftGraph.<String>builder().pattern(safe).pattern(duplicate)
+                .pattern(unsafe).pattern(rejected).build();
+        var result = schedule(graph, List.of("B", "U", "D", "V", "P", "R"));
+        assertEquals(Set.of("B"), result.reusable().get(safe));
+        assertEquals(Set.of("B"), result.reusable().get(duplicate));
+        assertEquals(Set.of("B"), result.speculative().get(unsafe));
+        assertEquals(Set.of("D"), result.speculative().get(rejected));
+        assertEquals(Set.of("U", "V"), result.unsafe());
+        assertTrue(result.order().indexOf("P") < result.order().indexOf("U"));
+        assertTrue(result.order().indexOf("U") < result.order().indexOf("B"));
+        assertTrue(result.order().indexOf("V") < result.order().indexOf("D"));
+        assertTrue(result.order().indexOf("P") < result.order().indexOf("R"));
+    }
+
     private static CraftPattern<String> container() {
         return new CraftPattern<>("P", 1,
                 List.of(CraftInput.consumedReturning("full", 1, "empty")), "drain");

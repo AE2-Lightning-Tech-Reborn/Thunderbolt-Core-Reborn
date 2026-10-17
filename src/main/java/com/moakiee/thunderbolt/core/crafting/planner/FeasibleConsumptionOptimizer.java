@@ -53,6 +53,109 @@ final class FeasibleConsumptionOptimizer {
 
     private FeasibleConsumptionOptimizer() {}
 
+    /** Ordinary candidates are optional; all quantity probes of a calculation share these limits. */
+    static final long PRIMARY_MAX_NANOS = 150_000_000L;
+    static final int PRIMARY_MAX_WORK = 1_048_576;
+    private static final int PRIMARY_MAX_SCAN_ROWS = 4_194_304;
+    static final int PRIMARY_MIN_GRAPH_WORK = 4_096;
+    static final int PRIMARY_MAX_REGION_WORK = 32_768;
+
+    record PrimaryResult<K>(CraftPlan<K> plan, CraftGraph<K> graph,
+            int keys, int patterns, int inputs, int choices, boolean directStock) {
+        PrimaryResult<K> withPlan(CraftPlan<K> candidate) {
+            return new PrimaryResult<>(candidate, graph, keys, patterns, inputs, choices, false);
+        }
+    }
+
+    /**
+     * A cheap ordinary witness before compiling the full feedback graph. The pricing model uses
+     * primary outputs only: a free byproduct is a valid dual relaxation, never a promised input.
+     * Each proposed DAG is counted exactly against the original inventory and certified before use.
+     * The normal planner still handles stateful recipes, mixed allocations and rejected proposals.
+     */
+    static <K> PrimaryResult<K> primaryPlan(CraftGraph<K> graph, K target, long amount,
+            IndexCache<K> cache, IntPredicate spendWork) {
+        if (amount <= 0 || amount >= Sat.SAT) return null;
+        var empty = new CraftPlan<K>(true, true, Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), 0, false);
+        var state = new Search<K>(graph, target, amount, empty, 0, ignored -> null, cache, spendWork, null);
+        state.primaryWork = true;
+        CraftPlan<K> best = null;
+        boolean directStock = false;
+        var union = new HashMap<K, List<CraftPattern<K>>>();
+        try {
+            state.index = cache.get(graph, target);
+            if (state.index == null) return null;
+            state.propagateStock();
+            long netDemand = Math.max(1L, amount - graph.stock(target));
+            for (int phase = 0; phase < 3; phase++) {
+                int stockMode = phase;
+                if (phase != 0) {
+                    // Repricing may expose another scarce intermediate on every round. Keep a
+                    // raw-stock-only and a source-only policy as bounded alternatives; exact replay
+                    // still draws any useful real inventory, including partially stocked items.
+                    var limited = new IntBuf();
+                    for (int key = 0; key < state.limits.length; key++) {
+                        if ((key & 255) == 0) PlanningCancellation.check();
+                        state.limits[key] = graph.stock(state.index.keys.get(key));
+                        if (stockMode == 2 || stockMode == 1
+                                && state.index.producerStart[key] != state.index.producerStart[key + 1]) state.limits[key] = 0;
+                        if (state.limits[key] > 0) limited.add(key);
+                    }
+                    state.limited = limited.toArray();
+                    state.global = state.propagate(state.index.fullTopology().patterns(), true);
+                }
+                for (boolean cap : new boolean[] {false, true}) {
+                    // Spend the second heuristic on requests whose current witness actually
+                    // fires an oversized batch. This is candidate selection, not an optimality proof.
+                    if (cap && (best == null || best.firings().keySet().stream()
+                            .allMatch(p -> p.outputAmount() <= netDemand))) continue;
+                    state.policyCap = cap ? netDemand : Double.POSITIVE_INFINITY;
+                    double[] price = new double[state.index.keys.size()];
+                    int rounds = POLICY_ROUNDS;
+                    for (int round = 0; round < rounds; round++) {
+                        PlanningCancellation.check();
+                        var policy = state.policy(price);
+                        if (policy == null) break;
+                        var selected = policy.selected();
+                        var order = policy.order() == null ? dagOrder(selected) : policy.order();
+                        if (order.isEmpty()) break;
+                        state.chargePrimary(order.size() + selected.size());
+                        for (var entry : selected.entrySet()) {
+                            var routes = union.computeIfAbsent(entry.getKey(), ignored -> new ArrayList<>());
+                            for (var pattern : entry.getValue()) if (!routes.contains(pattern)) routes.add(pattern);
+                        }
+                        var fixed = ConservativeReplenishment.compileIgnoringByproducts(graph, order, selected);
+                        var proposal = fixed == null ? null : fixed.plan(target, amount, Map.of());
+                        if (proposal == null) break;
+                        if (proposal.feasible()) {
+                            proposal = UnorderedByproductSafety.protect(graph, proposal, target, amount);
+                            if (proposal.feasible() && (best == null || improves(best, proposal))) {
+                                best = proposal;
+                                directStock = phase == 0 && round == 0;
+                            }
+                            break;
+                        }
+                        if (!state.raise(price, proposal.missing().keySet(), round)) break;
+                    }
+                }
+                if (best != null || phase == 0 && state.limited.length == 0) break;
+            }
+        } catch (PrimaryWorkLimit | PlanningCancellation.OptionalWorkLimit exhausted) {
+            // A completed witness survives optional exhaustion; external cancellation propagates.
+        }
+        if (state.index == null || best == null && union.values().stream().noneMatch(routes -> routes.size() > 1))
+            return null; // A rejected single policy adds no alternative for the regional search.
+        int choices = 0;
+        for (int key = 0; key < state.index.keys.size(); key++)
+            if (state.index.producerStart[key + 1] - state.index.producerStart[key] > 1) choices++;
+        return new PrimaryResult<>(best, graph.withPatterns(union), state.index.keys.size(),
+                state.index.patterns.size(), state.index.needKey.length, choices, directStock);
+    }
+
+    private static final class PrimaryWorkLimit extends RuntimeException {
+        PrimaryWorkLimit() { super(null, null, false, false); }
+    }
+
     static <K> Result<K> optimize(CraftGraph<K> graph, K target, long amount, CraftPlan<K> initial,
             int probeLimit, Function<CraftGraph<K>, CraftPlan<K>> oracle) {
         return optimize(graph, target, amount, initial, probeLimit, oracle, new IndexCache<>(), work -> true);
@@ -102,6 +205,10 @@ final class FeasibleConsumptionOptimizer {
 
     /** Calculation-owned recipe index. Stock limits and propagation remain private to each probe. */
     static final class IndexCache<K> {
+        private final boolean primaryOnly;
+        private int primaryScanRemaining = PRIMARY_MAX_SCAN_ROWS;
+        IndexCache() { this(false); }
+        IndexCache(boolean primaryOnly) { this.primaryOnly = primaryOnly; }
         private CraftGraph<K> graph;
         private K target;
         private Index<K> index;
@@ -128,7 +235,8 @@ final class FeasibleConsumptionOptimizer {
                 // Publish only a completed scan, so cancellation cannot leave a partial index.
                 boolean sized = sizedGraph == candidate && java.util.Objects.equals(sizedTarget, key);
                 var prepared = sized ? Index.build(candidate, key,
-                        expectedKeys, expectedPatterns, expectedInputs, expectedSides) : Index.build(candidate, key);
+                        expectedKeys, expectedPatterns, expectedInputs, primaryOnly ? 0 : expectedSides, primaryOnly)
+                        : Index.build(candidate, key, 0, 0, 0, 0, primaryOnly);
                 graph = candidate;
                 target = key;
                 index = prepared;
@@ -196,6 +304,18 @@ final class FeasibleConsumptionOptimizer {
         private long[] limits;
         private int[] limited;
         private boolean availableStock = true;
+        private double policyCap = Double.POSITIVE_INFINITY;
+        private boolean primaryWork;
+
+        private void chargePrimary(int work) {
+            if (primaryWork && !spendWork.test(Math.max(1, work))) throw new PrimaryWorkLimit();
+        }
+
+        private void chargePrimaryScan(int work) {
+            if (!primaryWork) return;
+            if (cache.primaryScanRemaining < work) throw new PrimaryWorkLimit();
+            cache.primaryScanRemaining -= work;
+        }
         private Prop global;
         /** Scratch for sequential cost passes; never retained by a propagation result. */
         private int[] relaxationRing;
@@ -548,12 +668,12 @@ final class FeasibleConsumptionOptimizer {
             for (double value : price) free &= value == 0;
             // The zero-price first round has already been relaxed for the execution bound.
             int[] choice;
-            if (free) choice = global.freeArgmin.clone();
+            if (free && Double.isInfinite(policyCap)) choice = global.freeArgmin.clone();
             else {
                 double[] cost = stockCost(price);
                 choice = new int[n];
                 Arrays.fill(choice, -1);
-                relax(global, 1, cost, choice);
+                relax(global, 1, cost, choice, policyCap);
             }
             var selected = select(choice);
             if (selected != null) {
@@ -561,6 +681,7 @@ final class FeasibleConsumptionOptimizer {
                 if (!order.isEmpty()) return new Policy<>(selected, order);
             }
             // Reachability assigns dense, unique ranks in discovery order.
+            chargePrimaryScan(n + index.patterns.size() + index.needKey.length);
             int[] byRank = new int[n];
             int count = 0;
             for (int k = 0; k < n; k++) if (global.rank[k] >= 0) {
@@ -583,7 +704,7 @@ final class FeasibleConsumptionOptimizer {
                     double value = index.executionCost[p];
                     for (int i = index.useStart[p]; i < index.useStart[p + 1]; i++)
                         value += cost[index.useKey[i]] * index.useAmount[i];
-                    value /= index.outAmount[p];
+                    value /= Math.min(index.outAmount[p], policyCap);
                     if (value < cost[key]) {
                         cost[key] = value;
                         choice[key] = p;
@@ -903,6 +1024,10 @@ final class FeasibleConsumptionOptimizer {
         private Prop propagate(int[] patterns, boolean keepChoices) {
             PlanningCancellation.check();
             int n = index.keys.size(), m = patterns.length;
+            // The fixed linear scan belongs to admitted graph compilation, like the core's
+            // initial DAG pass. Like the existing optimizer, shared search work charges proposed
+            // regions; the calculation-owned scan cap separately bounds every relaxed row.
+            chargePrimary(1);
             var prop = new Prop();
             prop.patterns = patterns;
             Topology topology = index.fullTopology;
@@ -997,6 +1122,12 @@ final class FeasibleConsumptionOptimizer {
                 Arrays.fill(prop.freeArgmin, -1);
             }
             relax(prop, 1, free, prop.freeArgmin);
+            if (primaryWork) {
+                // This restricted graph proposes witnesses; it proves no bound on the full graph.
+                prop.cost = free;
+                prop.argmin = prop.freeArgmin;
+                return prop;
+            }
             double scale = settle(prop, free);
             double freeBound = Double.isInfinite(scale) ? 0 : amount * free[t] / scale;
             if (availableStock) {
@@ -1057,6 +1188,9 @@ final class FeasibleConsumptionOptimizer {
 
         /** Label-correcting shortest costs over reached patterns; false when the work cap stops it. */
         private boolean relax(Prop prop, double work, double[] cost, int[] argmin) {
+            return relax(prop, work, cost, argmin, Double.POSITIVE_INFINITY);
+        }
+        private boolean relax(Prop prop, double work, double[] cost, int[] argmin, double cap) {
             int m = prop.patterns.length;
             int ringLength = prop.firedCount + 1;
             if (relaxationRing == null || relaxationRing.length < ringLength) relaxationRing = new int[ringLength];
@@ -1077,8 +1211,10 @@ final class FeasibleConsumptionOptimizer {
                 queued[li] = true;
             }
             long budget = 8L * prop.firedCount + 1024;
+            int primarySteps = 0;
             while (size > 0 && budget-- > 0) {
                 if ((budget & 4095) == 0) PlanningCancellation.check();
+                if (primaryWork && (primarySteps++ & 255) == 0) chargePrimaryScan(256);
                 int li = ring[head];
                 head = head + 1 == ringLength ? 0 : head + 1;
                 size--;
@@ -1091,7 +1227,7 @@ final class FeasibleConsumptionOptimizer {
                 if (inputEnd - from == 1) {
                     value += cost[useKey[from]] * useAmount[from];
                 } else if (inputEnd != from) {
-                    double cutoff = Math.min(Double.MAX_VALUE, threshold * outAmount[p]);
+                    double cutoff = Math.min(Double.MAX_VALUE, threshold * Math.min(outAmount[p], cap));
                     // Remaining terms are non-negative. Strictly exceeding the rounded product
                     // also exceeds its exact value, so the final quotient cannot beat threshold.
                     // Equality still takes the original division; infinity remains rejected.
@@ -1100,8 +1236,12 @@ final class FeasibleConsumptionOptimizer {
                     if (value > cutoff) continue;
                 }
                 if (Double.isInfinite(value)) continue;
-                value /= outAmount[p];
-                if (!(value < threshold)) continue;
+                value /= Math.min(outAmount[p], cap);
+                if (!(value < threshold)) {
+                    if (Double.isFinite(cap) && argmin != null && argmin[out] >= 0
+                            && value == cost[out] && outAmount[p] > outAmount[argmin[out]]) argmin[out] = p;
+                    continue;
+                }
                 cost[out] = value;
                 if (argmin != null) argmin[out] = p;
                 for (int j = consumerStart[out], end = consumerStart[out + 1]; j < end; j++) {
@@ -1238,6 +1378,10 @@ final class FeasibleConsumptionOptimizer {
 
         static <K> Index<K> build(CraftGraph<K> graph, K target,
                 int keysHint, int patternsHint, int inputsHint, int sidesHint) {
+            return build(graph, target, keysHint, patternsHint, inputsHint, sidesHint, false);
+        }
+        static <K> Index<K> build(CraftGraph<K> graph, K target,
+                int keysHint, int patternsHint, int inputsHint, int sidesHint, boolean primary) {
             var index = new Index<K>(keysHint, patternsHint);
             var sat = BigInteger.valueOf(Sat.SAT);
             var outs = new IntBuf(patternsHint);
@@ -1265,19 +1409,21 @@ final class FeasibleConsumptionOptimizer {
                 index.choices |= routes.size() > 1;
                 for (int route = 0; route < routes.size(); route++) {
                     var pattern = routes.get(route);
+                    if (primary && pattern.hasStatefulInputs()) continue;
                     // Repeated registration does not add another firing variable. Keep the
                     // first identity in graph order, including distinct fuzzy expansions.
                     if (index.patternIds.containsKey(pattern)) continue;
                     if (pattern.exactOutputAmount().compareTo(sat) >= 0) return null;
                     long produced = pattern.exactOutputAmount().longValueExact();
                     int sideFrom = sideKey.size;
-                    var wideSide = pattern.byproducts().size() > LINEAR_SLOT_LIMIT ? new HashSet<Integer>() : null;
+                    var wideSide = !primary && pattern.byproducts().size() > LINEAR_SLOT_LIMIT ? new HashSet<Integer>() : null;
                     int checkedSides = 0;
                     var byproducts = pattern.byproducts();
                     for (int slot = 0; slot < byproducts.size(); slot++) {
                         var side = byproducts.get(slot);
                         if ((++checkedSides & 255) == 0) PlanningCancellation.check();
                         if (side.exactAmount().compareTo(sat) >= 0) return null;
+                        if (primary) continue; // Harmless surplus is checked but never priced as supply.
                         long value = side.exactAmount().longValueExact();
                         int sideId = index.id(side.key());
                         if (sideId == keyId) {

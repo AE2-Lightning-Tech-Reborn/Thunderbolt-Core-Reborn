@@ -240,6 +240,11 @@ dependencies {
 sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
 sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
 
+// Keep GC/JIT scheduling and native cold-start budgets comparable across test JVMs.
+tasks.withType(Test).configureEach {
+    jvmArgs '-XX:ActiveProcessorCount=4'
+}
+
 test {
     useJUnitPlatform()
     exclude 'com/moakiee/thunderbolt/core/crafting/planner/ExternalPlannerBoundaryCompatibilityTest.class'
@@ -288,7 +293,6 @@ def materialDagLargeGraphTest = tasks.register('materialDagLargeGraphTest', Test
     useJUnitPlatform()
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    jvmArgs '-XX:ActiveProcessorCount=4'
     filter {
         includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MaterialDagSupplyTest.linearSideOutputSchedulingCoversGraphsBeyondTheFormerSixteenThousandWorkCap'
     }

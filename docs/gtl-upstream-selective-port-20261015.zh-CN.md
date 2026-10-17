@@ -27,12 +27,14 @@
 
 | 验证 | 结果 |
 | --- | --- |
-| JUnit 与隔离回归任务 | 1,893 通过，0 失败，13 跳过 |
+| JUnit 与隔离回归任务 | 1,467 通过，0 失败，13 跳过 |
 | `test` | 1,407 通过，0 失败，13 跳过 |
 | 规划边界与冷启动回归 | 38 边界、1 CP-SAT 冷启动、20 DAG 回放、1 大图回归均通过 |
 | `verifyReleaseJar` | 通过，包含重映射 JarJar 与发行 refmap 校验 |
 | `git diff --check` | 通过 |
 
 13 项跳过中，12 项 NeoECO 协议测试需要通过 `neoecoProtocolPath` 提供实际 20.5 JAR；本机缓存只有 20.3、20.4.1 和 20.4.2。另有 1 项 EAEP 实际协议测试缺少可选 JAR。专服 `runGameTestServer` 成功启动，但此工作树未注册 GameTest，运行结果为 0 项，因此不计作运行时覆盖。
+
+2026-10-17 更正汇总计数：只统计该次执行的 `test`、`externalPlannerBoundaryTest`、`cpSatColdRefinementTest`、`materialDagColdReplayTest` 和 `materialDagLargeGraphTest` 五个任务，排除旧审计与重复边界任务遗留的 XML；各任务结果未变。
 
 ForgeGradle 的 HTTPS 连通性预检在当前环境的 Java TLS 握手处停滞；重跑时使用 `--system-prop net.minecraftforge.gradle.check.certs=false` 跳过该预检，Gradle 依赖解析、完整测试和发行包检查随后完成。原始运行输出保留在仓库外，没有纳入提交。
