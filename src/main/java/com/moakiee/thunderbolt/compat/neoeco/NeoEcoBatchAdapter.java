@@ -15,6 +15,14 @@ import org.jetbrains.annotations.Nullable;
 
 /** Forge NeoECO's native capacity and ordinary-parallel protocols, with CPU-owned extraction. */
 final class NeoEcoBatchAdapter implements BatchProviderResolver {
+    private static boolean supportsExternalPush(IPatternDetails pattern) {
+        try {
+            return Boolean.TRUE.equals(pattern.getClass().getMethod("supportsPushInputsToExternalInventory").invoke(pattern));
+        } catch (ReflectiveOperationException unavailable) {
+            return false;
+        }
+    }
+
     private final NeoEcoBatchApi api;
 
     NeoEcoBatchAdapter(NeoEcoBatchApi api) { this.api = api; }
@@ -58,7 +66,7 @@ final class NeoEcoBatchAdapter implements BatchProviderResolver {
                             if (count > 0) return capacityBatch(pattern, context, count);
                         }
                         var parallel = api.parallel(delegate);
-                        if (parallel != null && pattern.supportsPushInputsToExternalInventory()) {
+                        if (parallel != null && supportsExternalPush(pattern)) {
                             long count = Math.min(Math.min(maxCraft, context.limit()), Math.max(0, api.parallelCapacity(parallel)));
                             if (count > 0) return prepared(count, offered -> {
                                 long live;

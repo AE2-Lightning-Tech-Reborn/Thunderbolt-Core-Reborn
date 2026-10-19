@@ -23,6 +23,7 @@ import appeng.me.pathfinding.IPathItem;
 @Mixin(value = GridNode.class, remap = false)
 public abstract class GridNodeMaxChannelsMixin implements HighCapacitySubtreeNode {
 
+    // AE2 12 nodes accumulate in usedChannels; connections accumulate in lastUsedChannels.
     @Shadow int usedChannels;
 
     @Unique
@@ -43,7 +44,7 @@ public abstract class GridNodeMaxChannelsMixin implements HighCapacitySubtreeNod
      */
     @Inject(method = "setControllerRoute", at = @At("HEAD"))
     private void thunderbolt$propagateSubtreeFlag(IPathItem route, CallbackInfo ci) {
-        var parentPathItem = route.getControllerRoute();
+        var parentPathItem = route == null ? null : route.getControllerRoute();
         if (!(parentPathItem instanceof GridNode parent)) {
             thunderbolt$inHighCapacitySubtree = false;
             return;
@@ -57,23 +58,6 @@ public abstract class GridNodeMaxChannelsMixin implements HighCapacitySubtreeNod
         } else {
             thunderbolt$inHighCapacitySubtree = false;
         }
-    }
-
-    /**
-     * During the DFS pass, cancel AE2's bottom-up channel accumulation and
-     * return the max-flow value instead. The actual usedChannels field is
-     * set by Phase 4 (force-apply) after the DFS completes.
-     */
-    @Inject(method = "propagateChannelsUpwards", at = @At("HEAD"), cancellable = true)
-    private void thunderbolt$useFlowForPropagation(boolean consumesChannel, CallbackInfoReturnable<Integer> cir) {
-        var networkNodes = BorrowedCapacityCalculator.activeNetworkNodes;
-        if (networkNodes == null) return;
-        var self = (IGridNode) (GridNode) (Object) this;
-        if (!networkNodes.contains(self)) return;
-
-        var nodeFlow = BorrowedCapacityCalculator.activeNodeFlow;
-        int flow = nodeFlow.getInt(self);
-        cir.setReturnValue(flow);
     }
 
     @Inject(method = "getMaxChannels", at = @At("HEAD"), cancellable = true)

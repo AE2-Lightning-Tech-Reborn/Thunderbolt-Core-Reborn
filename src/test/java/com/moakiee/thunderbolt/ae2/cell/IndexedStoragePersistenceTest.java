@@ -240,7 +240,7 @@ class IndexedStoragePersistenceTest {
         return root;
     }
 
-    private static AEKey decode(CompoundTag tag, net.minecraft.core.HolderLookup.Provider ignored) {
+    private static AEKey decode(CompoundTag tag, net.minecraft.core.RegistryAccess ignored) {
         String name = tag.getString("name");
         if (name.equals("broken")) {
             throw new IllegalArgumentException("synthetic malformed key");

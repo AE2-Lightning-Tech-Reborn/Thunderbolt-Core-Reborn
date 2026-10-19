@@ -318,16 +318,8 @@ class PlannedInputDispatchTest {
         forgeRegistry.register(new ResourceLocation("ae2lt_test", "key"), TestKey.TYPE);
         appeng.api.stacks.AEKeyTypesInternal.setRegistry(() -> forgeRegistry);
         try {
-            net.minecraft.core.HolderLookup.Provider lookups =
-                    new net.minecraft.core.HolderLookup.Provider() {
-                        @Override
-                        public <T>
-                                java.util.Optional<net.minecraft.core.HolderLookup.RegistryLookup<T>> lookup(
-                                        net.minecraft.resources.ResourceKey<? extends net.minecraft.core.Registry<? extends T>>
-                                                key) {
-                            return java.util.Optional.empty();
-                        }
-                    };
+            net.minecraft.core.RegistryAccess lookups =
+                    net.minecraft.core.RegistryAccess.fromRegistryOfRegistries(net.minecraft.core.Registry.REGISTRY);
             var source = pattern(input(3, B, A));
             var planned = new PlannedInputPattern(source, List.of(Map.of(A, 1L, B, 2L)));
             var tag = new CompoundTag();

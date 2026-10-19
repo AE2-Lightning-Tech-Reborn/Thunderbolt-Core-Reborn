@@ -11,7 +11,7 @@ import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.cells.CellState;
 import appeng.api.storage.cells.ISaveProvider;
 import appeng.api.storage.cells.StorageCell;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -23,7 +23,7 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 public final class IndexedStorageCellInventory implements StorageCell, com.moakiee.thunderbolt.api.storage.BigMEStorage {
     private final ItemStack stack;
     private final IIndexedStorageCellItem definition;
-    private final @Nullable HolderLookup.Provider explicitRegistries;
+    private final @Nullable RegistryAccess explicitRegistries;
     private final @Nullable ISaveProvider saveProvider;
     private final ResourceLocation storageType;
     private final String cellIdTag;
@@ -38,7 +38,7 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
     public IndexedStorageCellInventory(
             ItemStack stack,
             IIndexedStorageCellItem definition,
-            @Nullable HolderLookup.Provider registries,
+            @Nullable RegistryAccess registries,
             @Nullable ISaveProvider saveProvider) {
         this.stack = stack;
         this.definition = definition;
@@ -116,7 +116,6 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
 
     @Override public double getIdleDrain() { return definition.idleDrain(stack); }
 
-    @Override
     public boolean canFitInsideCell() {
         ensureSync();
         return storage.getTotalTypes() == 0;
@@ -231,7 +230,7 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
         stack.getOrCreateTag().remove(cellIdTag);
     }
 
-    private HolderLookup.Provider resolveRegistries() {
+    private RegistryAccess resolveRegistries() {
         if (explicitRegistries != null) return explicitRegistries;
         var server = ServerLifecycleHooks.getCurrentServer();
         if (server != null) return server.registryAccess();

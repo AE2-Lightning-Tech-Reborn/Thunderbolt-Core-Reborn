@@ -54,7 +54,7 @@ public final class CraftingPlanningService implements ICraftingPlanningService, 
     }
 
     @Override
-    public void addNode(IGridNode node, CompoundTag savedData) {
+    public void addNode(IGridNode node) {
         var provider = node.getService(CraftingAlgorithmProvider.class);
         if (provider != null) {
             providers.put(node, provider);

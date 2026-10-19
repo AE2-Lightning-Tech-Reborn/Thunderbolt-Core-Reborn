@@ -1,20 +1,22 @@
 package com.moakiee.thunderbolt.mixin.ae2.channel;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
-
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.moakiee.thunderbolt.core.channel.BorrowedCapacityCalculator;
+import appeng.api.networking.GridFlags;
+import appeng.api.networking.IGrid;
+import appeng.api.networking.IGridMultiblock;
+import appeng.api.networking.IGridNode;
+import appeng.api.networking.pathing.ChannelMode;
+import appeng.me.GridConnection;
+import appeng.me.pathfinding.IPathItem;
+import appeng.me.pathfinding.PathingCalculation;
 import com.moakiee.thunderbolt.api.channel.ChannelSourceRegistry;
+import com.moakiee.thunderbolt.config.ThunderboltCommonConfig;
+import com.moakiee.thunderbolt.core.channel.BorrowedCapacityCalculator;
 import com.moakiee.thunderbolt.core.channel.HighCapacityChannelSupport;
 import com.moakiee.thunderbolt.core.channel.HighCapacitySubtreeNode;
-import com.moakiee.thunderbolt.config.ThunderboltCommonConfig;
+import com.moakiee.thunderbolt.core.channel.PendingChannelConnection;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -23,225 +25,69 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import appeng.api.networking.GridFlags;
-import appeng.api.networking.IGrid;
-import appeng.api.networking.IGridMultiblock;
-import appeng.api.networking.IGridNode;
-import appeng.api.networking.pathing.ChannelMode;
-import appeng.blockentity.networking.ControllerBlockEntity;
-import appeng.me.GridConnection;
-import appeng.me.GridNode;
-import appeng.me.pathfinding.IPathItem;
-import appeng.me.pathfinding.PathingCalculation;
-
-/**
- * Applies max-flow to controller networks selected by config; ad-hoc and infinite mode stay vanilla.
- * Unifies capacity-source roots, suppresses vanilla assignments, then applies flow winners and
- * cable/node usage around AE2's propagation pass.
- */
-// AE2 classes have no obfuscation mappings in the Forge dev environment — remap must be off.
+/** Runs max-flow after AE2 12's incremental BFS, before its native ChannelFinalizer. */
 @Mixin(value = PathingCalculation.class, remap = false)
 public abstract class PathingCalculationCapMixin {
-
-    @Shadow @Final private IGrid grid;
-    @Shadow @Final private Set<IPathItem> visited;
-    @Shadow @Final private Queue<IPathItem>[] queues;
-    @Shadow @Final private Set<GridNode> channelNodes;
-    @Shadow @Final private Set<GridNode> multiblocksWithChannel;
-
+    @Shadow private List<IPathItem> queue;
+    @Shadow private int channelsInUse;
+    @Shadow private int channelsByBlocks;
+    @Unique private IGrid thunderbolt$grid;
     @Unique private List<IGridNode> thunderbolt$capacitySources;
     @Unique private boolean thunderbolt$useMaxFlow;
-    @Unique private BorrowedCapacityCalculator.Result thunderbolt$flowResult;
-    // -1 = not applicable, fall through to vanilla channelsInUse
-    @Unique private int thunderbolt$maxFlowChannelsInUse;
+    @Unique private boolean thunderbolt$applied;
 
     @Inject(method = "<init>", at = @At("TAIL"))
-    private void thunderbolt$unifyCapacitySources(IGrid grid, CallbackInfo ci) {
-        thunderbolt$maxFlowChannelsInUse = -1;
-        var allControllers = HighCapacityChannelSupport.getAllControllerNodes(grid);
-
-        List<IGridNode> capacitySources = new ArrayList<>();
-        for (var node : allControllers) {
-            if (ChannelSourceRegistry.isChannelSource(node.getOwner())) {
-                capacitySources.add(node);
-            }
-        }
-
-        thunderbolt$capacitySources = capacitySources;
-        boolean hasControllers = !allControllers.isEmpty();
-        var channelMode = grid.getPathingService().getChannelMode();
-        thunderbolt$useMaxFlow = channelMode != ChannelMode.INFINITE
-                && ThunderboltCommonConfig.useMaxFlow(grid, hasControllers);
-
-        // Controller-root unification is part of our max-flow path. In infinite
-        // mode AE2's own allocator already has unbounded capacity, so it must
-        // keep its native multi-root routing tree intact. Applying only this
-        // preprocessing step while falling back to vanilla assignment can drop
-        // one of two adjacent devices from the final propagation tree.
-        if (!thunderbolt$useMaxFlow || capacitySources.size() <= 1) {
-            return;
-        }
-
-        IGridNode source = capacitySources.get(0);
-        Set<IGridNode> nonSource = new ReferenceOpenHashSet<>(capacitySources.subList(1, capacitySources.size()));
-
-        for (var node : nonSource) {
-            if (node instanceof IPathItem p) {
-                visited.remove(p);
-            }
-        }
-
-        Queue<IPathItem> q0 = queues[0];
-        var keep = new ArrayDeque<IPathItem>();
-        while (!q0.isEmpty()) {
-            var item = q0.poll();
-            if (item instanceof GridConnection gc
-                    && (nonSource.contains(gc.a()) || nonSource.contains(gc.b()))) {
-                visited.remove((IPathItem) gc);
-                gc.setControllerRoute(null);
-                continue;
-            }
-            keep.add(item);
-        }
-        q0.addAll(keep);
-
-        // BFS from source through ALL controllers (vanilla and high-capacity) to reach non-source capacity controllers.
-        // This handles cases where high-capacity controllers are separated by vanilla
-        // controllers in the multiblock (e.g. OC_A — Vanilla_B — OC_C).
-        Queue<IGridNode> bfs = new ArrayDeque<>();
-        Set<IGridNode> bfsVisited = new ReferenceOpenHashSet<>();
-        bfs.add(source);
-        bfsVisited.add(source);
-        while (!bfs.isEmpty()) {
-            var cur = bfs.poll();
-            for (var conn : cur.getConnections()) {
-                if (!(conn instanceof GridConnection gc)) continue;
-                var neighbor = gc.getOtherSide(cur);
-                if (!bfsVisited.add(neighbor)) continue;
-                if (!(neighbor.getOwner() instanceof ControllerBlockEntity)) continue;
-                if (nonSource.remove(neighbor)) {
-                    if (!visited.contains((IPathItem) gc)) {
-                        gc.setControllerRoute((IPathItem) cur);
-                        visited.add((IPathItem) gc);
-                        q0.add((IPathItem) gc);
-                    }
-                }
-                bfs.add(neighbor);
-            }
-        }
+    private void thunderbolt$initialize(IGrid grid, CallbackInfo ci) {
+        thunderbolt$grid = grid;
+        var controllers = HighCapacityChannelSupport.getAllControllerNodes(grid);
+        thunderbolt$capacitySources = controllers.stream()
+                .filter(node -> ChannelSourceRegistry.isChannelSource(node.getOwner())).toList();
+        thunderbolt$useMaxFlow = grid.getPathingService().getChannelMode() != ChannelMode.INFINITE
+                && ThunderboltCommonConfig.useMaxFlow(grid, !controllers.isEmpty());
     }
 
     @Inject(method = "tryUseChannel", at = @At("HEAD"), cancellable = true)
-    private void thunderbolt$skipAllDevices(GridNode node, CallbackInfoReturnable<Boolean> cir) {
-        if (thunderbolt$useMaxFlow) {
-            cir.setReturnValue(false);
-        }
+    private void thunderbolt$deferAllocation(IPathItem node, CallbackInfoReturnable<Boolean> cir) {
+        if (thunderbolt$useMaxFlow) cir.setReturnValue(false);
     }
 
-    // Publish flow for GridNode.propagateChannelsUpwards during AE2's DFS.
-    @Inject(method = "compute",
-            at = @At(value = "INVOKE",
-                     target = "Lappeng/me/pathfinding/PathingCalculation;propagateAssignments()V"))
-    private void thunderbolt$runMaxFlowBeforeDFS(CallbackInfo ci) {
-        BorrowedCapacityCalculator.clearActiveData();
-
-        if (!thunderbolt$useMaxFlow) {
-            return;
+    @Inject(method = "step", at = @At("TAIL"))
+    private void thunderbolt$applyFlow(CallbackInfo ci) {
+        if (!thunderbolt$useMaxFlow || thunderbolt$applied || !queue.isEmpty()) return;
+        var flow = BorrowedCapacityCalculator.assignChannels(thunderbolt$grid, thunderbolt$capacitySources);
+        if (flow == null) return;
+        thunderbolt$applied = true;
+        Set<GridConnection> seen = new ReferenceOpenHashSet<>();
+        long usage = 0;
+        for (var node : flow.networkNodes()) {
+            int count = flow.nodeFlow().getInt(node);
+            ((HighCapacitySubtreeNode) node).thunderbolt$setUsedChannels(count);
+            usage += count;
+            for (var connection : node.getConnections()) {
+                if (connection instanceof GridConnection gc && seen.add(gc)) {
+                    int connectionCount = flow.connectionFlow().getInt(gc);
+                    ((PendingChannelConnection) gc).thunderbolt$setPendingChannels(connectionCount);
+                    usage += connectionCount;
+                }
+            }
         }
-
-        thunderbolt$flowResult = BorrowedCapacityCalculator.assignChannels(grid, thunderbolt$capacitySources);
-        if (thunderbolt$flowResult == null) {
-            return;
-        }
-
-        channelNodes.addAll(thunderbolt$flowResult.channelNodes());
-
-        for (var winner : thunderbolt$flowResult.channelNodes()) {
+        // Each winning multiblock consumes one route but all of its nodes must be active.
+        Set<IGridNode> siblings = new ReferenceOpenHashSet<>();
+        for (var winner : flow.channelNodes()) {
             if (!winner.hasFlag(GridFlags.MULTIBLOCK)) continue;
-            var multiblock = ((IGridNode) winner).getService(IGridMultiblock.class);
+            var multiblock = winner.getService(IGridMultiblock.class);
             if (multiblock == null) continue;
-            var siblings = multiblock.getMultiblockNodes();
-            while (siblings.hasNext()) {
-                var sibling = siblings.next();
-                if (sibling != null && sibling != winner) {
-                    multiblocksWithChannel.add((GridNode) sibling);
+            var iterator = multiblock.getMultiblockNodes();
+            while (iterator.hasNext()) {
+                var sibling = iterator.next();
+                if (sibling != winner && flow.networkNodes().contains(sibling)
+                        && !flow.channelNodes().contains(sibling) && siblings.add(sibling)) {
+                    ((IPathItem) sibling).incrementChannelCount(1);
+                    usage++;
                 }
             }
         }
-
-        BorrowedCapacityCalculator.activeNodeFlow = thunderbolt$flowResult.nodeFlow();
-        BorrowedCapacityCalculator.activeNetworkNodes = thunderbolt$flowResult.networkNodes();
-        BorrowedCapacityCalculator.activeConnectionFlow = thunderbolt$flowResult.connectionFlow();
-    }
-
-    // TAIL does not run on propagation failure; finally clears active flow and preserves the exception.
-    @WrapOperation(method = "compute",
-            at = @At(value = "INVOKE",
-                     target = "Lappeng/me/pathfinding/PathingCalculation;propagateAssignments()V"))
-    private void ae2lt$guardPropagateAssignments(PathingCalculation instance, Operation<Void> op) {
-        try {
-            op.call(instance);
-        } finally {
-            BorrowedCapacityCalculator.clearActiveData();
-        }
-    }
-
-    @Inject(method = "compute", at = @At("TAIL"))
-    private void thunderbolt$applyFlowAndCleanup(CallbackInfo ci) {
-        if (thunderbolt$flowResult != null) {
-            // AE2's exact controller-class lookup may skip DFS for high-capacity-only networks;
-            // clear stale usage before applying the new flow.
-            Set<GridConnection> resetSeen = new ReferenceOpenHashSet<>();
-            Set<IGridNode> networkNodes = thunderbolt$flowResult.networkNodes();
-            for (var node : networkNodes) {
-                for (var conn : node.getConnections()) {
-                    if (conn instanceof GridConnection gc && resetSeen.add(gc)) {
-                        gc.setAdHocChannels(0);
-                    }
-                }
-                if (node instanceof HighCapacitySubtreeNode osn) {
-                    osn.thunderbolt$setUsedChannels(0);
-                }
-            }
-
-            var nodeFlow = thunderbolt$flowResult.nodeFlow();
-            for (var node : networkNodes) {
-                if (node instanceof HighCapacitySubtreeNode osn) {
-                    int flow = nodeFlow.getInt(node);
-                    osn.thunderbolt$setUsedChannels(flow);
-                }
-            }
-
-            // Vanilla AE2 gives every non-winner multiblock sibling +1 via
-            // incrementChannelCount at the end of propagateAssignments, so that
-            // meetsChannelRequirements() is true for the entire cluster.
-            // We overwrote usedChannels above, so re-apply the bonus here for
-            // siblings we manage. Without this, the cluster's core block may
-            // end up with usedChannels=0 and the whole multiblock (e.g. a
-            // crafting CPU) reports isActive()=false even though the flow
-            // reservation succeeded.
-            for (var sibling : multiblocksWithChannel) {
-                if (networkNodes.contains(sibling)) {
-                    sibling.incrementChannelCount(1);
-                }
-            }
-
-            var connFlow = thunderbolt$flowResult.connectionFlow();
-            for (var entry : connFlow.reference2IntEntrySet()) {
-                entry.getKey().setAdHocChannels(entry.getIntValue());
-            }
-
-            // High-capacity-only networks may skip vanilla counting; winners count once per device/cluster.
-            thunderbolt$maxFlowChannelsInUse = thunderbolt$flowResult.channelNodes().size();
-        }
-        BorrowedCapacityCalculator.clearActiveData();
-        thunderbolt$flowResult = null;
-    }
-
-    @Inject(method = "getChannelsInUse", at = @At("HEAD"), cancellable = true)
-    private void thunderbolt$overrideChannelsInUse(CallbackInfoReturnable<Integer> cir) {
-        if (thunderbolt$maxFlowChannelsInUse >= 0) {
-            cir.setReturnValue(thunderbolt$maxFlowChannelsInUse);
-        }
+        channelsInUse = flow.channelNodes().size();
+        channelsByBlocks = (int) Math.min(Integer.MAX_VALUE, usage);
     }
 }

@@ -16,7 +16,7 @@ import appeng.crafting.inv.ICraftingInventory;
 import com.moakiee.thunderbolt.core.crafting.batch.BatchCopyLimitPattern;
 import com.moakiee.thunderbolt.core.crafting.batch.SharedBatchInputPattern;
 import com.moakiee.thunderbolt.core.crafting.loop.CraftingTaskPersistenceDefinition;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -104,7 +104,7 @@ public final class PlannedInputPattern implements IPatternDetails, IProviderLook
         return true;
     }
 
-    public void writeToTag(CompoundTag task, HolderLookup.Provider registries) {
+    public void writeToTag(CompoundTag task, RegistryAccess registries) {
         var list = new ListTag();
         for (var slot : slots) {
             var slotTag = new CompoundTag();
@@ -119,7 +119,7 @@ public final class PlannedInputPattern implements IPatternDetails, IProviderLook
     }
 
     public static IPatternDetails readFromTag(IPatternDetails delegate, CompoundTag task,
-                                               HolderLookup.Provider registries) {
+                                               RegistryAccess registries) {
         if (!task.contains(NBT_INPUTS)) return delegate; // Legacy tasks retain their original semantics.
         if (!task.contains(NBT_INPUTS, Tag.TAG_LIST)) throw new IllegalArgumentException("invalid planned inputs");
         var list = task.getList(NBT_INPUTS, Tag.TAG_COMPOUND);

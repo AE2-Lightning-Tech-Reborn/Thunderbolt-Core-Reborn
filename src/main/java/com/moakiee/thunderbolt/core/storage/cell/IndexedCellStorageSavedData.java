@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -39,7 +39,7 @@ public final class IndexedCellStorageSavedData extends SavedData {
     public IndexedStorage getOrCreateStorage(
             ResourceLocation type,
             UUID id,
-            HolderLookup.Provider registries) {
+            RegistryAccess registries) {
         var key = new StorageKey(type, id);
         var cached = storageCache.get(key);
         if (cached != null) return cached;
@@ -60,7 +60,7 @@ public final class IndexedCellStorageSavedData extends SavedData {
             ResourceLocation type,
             UUID id,
             IndexedStorage storage,
-            HolderLookup.Provider registries) {
+            RegistryAccess registries) {
         if (storage == null) return;
         var key = new StorageKey(type, id);
         storageCache.put(key, storage);

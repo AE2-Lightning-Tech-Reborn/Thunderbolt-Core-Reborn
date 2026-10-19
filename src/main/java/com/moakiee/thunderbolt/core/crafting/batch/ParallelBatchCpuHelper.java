@@ -274,9 +274,6 @@ public final class ParallelBatchCpuHelper {
     @Nullable
     public static KeyCounter[] extractPatternInputs(IPatternDetails details, ICraftingInventory inventory,
                                                     Level level, KeyCounter outputs, KeyCounter containers) {
-        if (!(details instanceof PlannedInputPattern)) {
-            return CraftingCpuHelper.extractPatternInputs(details, inventory, level, outputs, containers);
-        }
         var resolved = extractOneCopy(details, inventory, false, level);
         if (resolved == null) return null;
         for (var output : details.getOutputs()) outputs.add(output.what(), output.amount());

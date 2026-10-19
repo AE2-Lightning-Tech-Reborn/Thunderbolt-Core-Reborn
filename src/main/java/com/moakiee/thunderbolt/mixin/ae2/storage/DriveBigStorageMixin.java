@@ -16,10 +16,8 @@ import java.math.BigInteger;
 import java.util.*;
 
 @Mixin(remap = false, value = DriveWatcher.class)
-public abstract class DriveBigStorageMixin implements BigMEStorage {
-    @Shadow
-    public abstract StorageCell getCell();
-
+public abstract class DriveBigStorageMixin extends appeng.me.storage.MEInventoryHandler implements BigMEStorage {
+    protected DriveBigStorageMixin(appeng.api.storage.MEStorage delegate) { super(delegate); }
     @Shadow @Final private Runnable activityCallback;
 
     @Override
@@ -28,7 +26,7 @@ public abstract class DriveBigStorageMixin implements BigMEStorage {
         var self = (DriveWatcher) (Object) this;
         if (n.signum() == 0 || self.insert(key, 1, Actionable.SIMULATE, source) == 0)
             return BigInteger.ZERO;
-        var result = BigStorageOps.insert(getCell(), key, n, mode, source);
+        var result = BigStorageOps.insert(getDelegate(), key, n, mode, source);
         if (mode == Actionable.MODULATE && result.signum() > 0) activityCallback.run();
         return result;
     }
@@ -39,7 +37,7 @@ public abstract class DriveBigStorageMixin implements BigMEStorage {
         var self = (DriveWatcher) (Object) this;
         if (n.signum() == 0 || self.extract(key, 1, Actionable.SIMULATE, source) == 0)
             return BigInteger.ZERO;
-        var result = BigStorageOps.extract(getCell(), key, n, mode, source);
+        var result = BigStorageOps.extract(getDelegate(), key, n, mode, source);
         if (mode == Actionable.MODULATE && result.signum() > 0) activityCallback.run();
         return result;
     }
@@ -48,7 +46,7 @@ public abstract class DriveBigStorageMixin implements BigMEStorage {
     public Map<AEKey, BigInteger> snapshotBig(IActionSource source) {
         var self = (DriveWatcher) (Object) this;
         var result = new LinkedHashMap<AEKey, BigInteger>();
-        BigStorageOps.snapshot(getCell(), source)
+        BigStorageOps.snapshot(getDelegate(), source)
                 .forEach(
                         (key, n) -> {
                             if (self.extract(key, 1, Actionable.SIMULATE, source) > 0)

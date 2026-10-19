@@ -16,7 +16,7 @@ public abstract class CraftingServiceAccessor
 
     @Override
     public long thunderbolt$getCraftingProvidersLastModifiedOnTick() {
-        return thunderbolt$getCraftingProviders().getLastModifiedOnTick();
+        return ((CraftingProviderChangeTracker.ProviderStateView) thunderbolt$getCraftingProviders()).thunderbolt$getCraftingProvidersLastModifiedOnTick();
     }
 
     @Override

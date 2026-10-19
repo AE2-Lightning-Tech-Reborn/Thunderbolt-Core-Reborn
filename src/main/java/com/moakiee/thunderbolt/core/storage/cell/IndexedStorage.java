@@ -6,7 +6,7 @@ import appeng.api.config.Actionable;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.KeyCounter;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.nbt.CompoundTag;
@@ -349,11 +349,11 @@ public final class IndexedStorage {
 
     //  Persist — queue-driven, O(changed). Split layout:
     //  ListTag<CompoundTag> for keys, LongArrayTag for lo/hi.
-    public CompoundTag persist(@Nullable CompoundTag lastRoot, HolderLookup.Provider registries) {
+    public CompoundTag persist(@Nullable CompoundTag lastRoot, RegistryAccess registries) {
         return persist(lastRoot, (key, reg) -> key.toTagGeneric(), registries);
     }
 
-    public CompoundTag persist(@Nullable CompoundTag lastRoot, KeySerializer keySerializer, HolderLookup.Provider registries) {
+    public CompoundTag persist(@Nullable CompoundTag lastRoot, KeySerializer keySerializer, RegistryAccess registries) {
         if (needsCompact) {
             compact();
             lastRoot = null;
@@ -406,7 +406,7 @@ public final class IndexedStorage {
         return lastRoot;
     }
 
-    private CompoundTag persistFull(KeySerializer keySerializer, HolderLookup.Provider registries) {
+    private CompoundTag persistFull(KeySerializer keySerializer, RegistryAccess registries) {
         // Clear dirty state — everything is being written
         for (int i = 0; i < dirtyCount; i++) {
             int id = dirtyQueue[i];
@@ -485,23 +485,23 @@ public final class IndexedStorage {
 
     @FunctionalInterface
     public interface KeySerializer {
-        CompoundTag toTag(AEKey key, HolderLookup.Provider registries);
+        CompoundTag toTag(AEKey key, RegistryAccess registries);
     }
 
     @FunctionalInterface
     public interface KeyDeserializer {
-        @Nullable AEKey fromTag(CompoundTag tag, HolderLookup.Provider registries);
+        @Nullable AEKey fromTag(CompoundTag tag, RegistryAccess registries);
     }
 
     //  Load
-    public void load(CompoundTag root, HolderLookup.Provider registries) {
+    public void load(CompoundTag root, RegistryAccess registries) {
         load(root, (tag, reg) -> AEKey.fromTagGeneric(tag), registries);
     }
 
     public void load(
             CompoundTag root,
             KeyDeserializer keyDeserializer,
-            HolderLookup.Provider registries) {
+            RegistryAccess registries) {
         java.util.Objects.requireNonNull(root, "root");
         java.util.Objects.requireNonNull(keyDeserializer, "keyDeserializer");
         wideAmounts.clear();

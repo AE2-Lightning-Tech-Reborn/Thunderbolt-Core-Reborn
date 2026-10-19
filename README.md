@@ -6,16 +6,16 @@ Thunderbolt Core Reborn is the shared AE2 optimization and infrastructure layer 
 AE2 Lightning Tech Reborn. It can also be installed as a standalone AE2 autocrafting
 accelerator.
 
-This is the **Minecraft Forge 1.20.1** branch. For Minecraft 1.21.1 and
+This is the **Minecraft Forge 1.19.2** branch. For Minecraft 1.21.1 and
 NeoForge, see the [`main`](https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/tree/main)
 branch.
 
 ## Requirements
 
-- Minecraft `1.20.1`
-- Forge `47.1.3` or newer (not NeoForge)
+- Minecraft `1.19.2`
+- Forge `43.5.2` (43.x) (not NeoForge)
 - Java `17`
-- Applied Energistics 2 `15.4.10`–`15.x`
+- Applied Energistics 2 `12.9.12`–`12.x`
 
 Install Thunderbolt Core Reborn and AE2 in the `mods` directory on both the client and
 server.
@@ -95,12 +95,24 @@ Publish it to the local Maven repository:
 
 - Version: `2.0.0-beta.5`
 - Maven coordinate:
-  `com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.5`
+  `com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.19.2:2.0.3-beta3`
 - Distributable JAR:
-  `build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.5.jar`
+  `build/libs/thunderbolt-forge-1.19.2-2.0.3-beta3.jar`
 
 The `-slim.jar` artifact does not contain the required MixinExtras jar-in-jar
 dependency and is only an intermediate development artifact.
 
 Issues: [GitHub Issues](https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/issues) ·
 License: [GNU LGPL 3.0](LICENSE)
+
+## 1.19.2 port validation
+
+The AE2 12 port adapts incremental channel pathfinding, crafting-provider revisions,
+string crafting-link IDs, long storage, execution tracking and the PoseStack UI.
+`./gradlew build` runs the unit suite and verifies the production JAR; `./gradlew
+runGameTestServer` checks transformed NBT operations. LT's `Legacy119RuntimeGameTests`
+additionally exercise a real 40-device high-capacity grid through AE2's channel finalizer.
+
+Optional 1.20.1 protocol JARs used by shape tests are test fixtures only. They are
+not loaded or distributed in the 1.19.2 runtime. AdvancedAE-specific sources are
+excluded on this branch because its supported API is unavailable on 1.19.2.

@@ -6,7 +6,7 @@ import appeng.api.config.Actionable;
 import appeng.api.stacks.AEItemKey;
 
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
 import net.minecraft.world.item.Items;
 
 import org.junit.jupiter.api.*;
@@ -28,8 +28,8 @@ class BigIndexedStorageTest {
 
     private static appeng.api.stacks.AEKey decodeItemKey(
             net.minecraft.nbt.CompoundTag tag,
-            net.minecraft.core.HolderLookup.Provider ignored) {
-        var item = BuiltInRegistries.ITEM.get(
+            net.minecraft.core.RegistryAccess ignored) {
+        var item = Registry.ITEM.get(
                 new net.minecraft.resources.ResourceLocation(tag.getString("id")));
         return AEItemKey.of(item);
     }
@@ -56,7 +56,7 @@ class BigIndexedStorageTest {
         var store = new IndexedStorage();
         var maximum = BigInteger.ONE.shiftLeft(126).subtract(BigInteger.ONE);
         store.load(legacyRoot(new long[]{Long.MAX_VALUE - 3}, new long[]{Long.MAX_VALUE}),
-                (tag, ignored) -> key, RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY));
+                (tag, ignored) -> key, RegistryAccess.fromRegistryOfRegistries(Registry.REGISTRY));
 
         assertEquals(3, store.insert(key, 10, Actionable.SIMULATE));
         assertEquals(3, store.insert(key, 10, Actionable.MODULATE));
@@ -75,7 +75,7 @@ class BigIndexedStorageTest {
         var iron = AEItemKey.of(Items.IRON_INGOT);
         var gold = AEItemKey.of(Items.GOLD_INGOT);
         var diamond = AEItemKey.of(Items.DIAMOND);
-        var registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+        var registries = RegistryAccess.fromRegistryOfRegistries(Registry.REGISTRY);
         var maximum = BigInteger.ONE.shiftLeft(126).subtract(BigInteger.ONE);
         var store = new IndexedStorage();
         store.load(legacyRoot(new long[] {Long.MAX_VALUE, 1}, new long[] {1, 0}),
@@ -144,7 +144,7 @@ class BigIndexedStorageTest {
         var store = new IndexedStorage();
         store.enableArbitraryPrecision();
         var boundary = BigInteger.valueOf(Long.MAX_VALUE);
-        var registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+        var registries = RegistryAccess.fromRegistryOfRegistries(Registry.REGISTRY);
         for (var initial : List.of(boundary.add(BigInteger.ONE), BigInteger.ONE.shiftLeft(200))) {
             store.insertExact(key, initial, Actionable.MODULATE);
             assertEquals(initial.min(BigInteger.ONE.shiftLeft(126).subtract(BigInteger.ONE)), typeTotal(store, key));
@@ -175,7 +175,7 @@ class BigIndexedStorageTest {
         store.load(legacyRoot(new long[]{Long.MAX_VALUE - 10, 20},
                         new long[]{Long.MAX_VALUE, 0}),
                 (tag, ignored) -> tag.getInt("index") == 0 ? iron : gold,
-                RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY));
+                RegistryAccess.fromRegistryOfRegistries(Registry.REGISTRY));
         BigInteger ironAmount = maximum.subtract(BigInteger.TEN);
         BigInteger goldAmount = BigInteger.valueOf(20);
         var random = new Random(20260926);
@@ -265,7 +265,7 @@ class BigIndexedStorageTest {
                 new IndexedStorageCellInventory(
                         new net.minecraft.world.item.ItemStack(Items.PAPER),
                         definition,
-                        RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY),
+                        RegistryAccess.fromRegistryOfRegistries(Registry.REGISTRY),
                         null);
         var key = AEItemKey.of(Items.IRON_INGOT);
         var source = appeng.api.networking.security.IActionSource.empty();
@@ -295,7 +295,7 @@ class BigIndexedStorageTest {
     @Test
     void exactAndLegacyViewsShareOneInventoryAcrossSaveAndLoad() {
         var key = AEItemKey.of(Items.IRON_INGOT);
-        var registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+        var registries = RegistryAccess.fromRegistryOfRegistries(Registry.REGISTRY);
         var store = new IndexedStorage();
         store.enableArbitraryPrecision();
         var n = BigInteger.TEN.pow(100);
@@ -326,7 +326,7 @@ class BigIndexedStorageTest {
         var old = new IndexedStorage();
         old.insert(key, Long.MAX_VALUE, Actionable.MODULATE);
         old.insert(key, Long.MAX_VALUE, Actionable.MODULATE);
-        var registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+        var registries = RegistryAccess.fromRegistryOfRegistries(Registry.REGISTRY);
         var upgraded = new IndexedStorage();
         upgraded.load(
                 old.persist(null, registries), BigIndexedStorageTest::decodeItemKey, registries);
@@ -367,7 +367,7 @@ class BigIndexedStorageTest {
     @Test
     void compactionAndReloadOnAnExistingObjectDoNotReuseOldKeyAmounts() {
         var keys =
-                BuiltInRegistries.ITEM.stream()
+                Registry.ITEM.stream()
                         .filter(i -> i != Items.AIR)
                         .limit(240)
                         .map(AEItemKey::of)
@@ -380,7 +380,7 @@ class BigIndexedStorageTest {
             store.insertExact(keys.get(i), n, Actionable.MODULATE);
             expected.put(keys.get(i), n);
         }
-        var registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+        var registries = RegistryAccess.fromRegistryOfRegistries(Registry.REGISTRY);
         var old = store.persist(null, registries);
         for (int i = 0; i < 200; i++) {
             store.extractExact(keys.get(i), BigInteger.TEN.pow(101), Actionable.MODULATE);

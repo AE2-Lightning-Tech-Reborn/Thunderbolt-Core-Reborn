@@ -87,7 +87,7 @@ public final class ThunderboltCraftingPlanSummary {
             entries.add(new CraftingPlanSummaryEntry(
                     entry.getKey(), value.missing, value.stored, value.crafting));
         }
-        Collections.sort(entries);
+        entries.sort(java.util.Comparator.comparing(entry -> entry.getWhat().getDisplayName().getString(), String.CASE_INSENSITIVE_ORDER));
 
         var summary = new CraftingPlanSummary(
                 plan.bytes(), plan.simulation(), List.copyOf(entries));

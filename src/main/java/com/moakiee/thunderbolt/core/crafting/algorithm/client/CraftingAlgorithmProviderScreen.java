@@ -1,6 +1,6 @@
 package com.moakiee.thunderbolt.core.crafting.algorithm.client;
 
-import net.minecraft.client.gui.GuiGraphics;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
@@ -49,18 +49,18 @@ public final class CraftingAlgorithmProviderScreen
         widgets.add("previousAlgorithm", new TabButton(
                 Icon.ARROW_LEFT,
                 Component.translatable("gui.thunderbolt.algorithm_provider.previous"),
-                ignored -> sendButton(CraftingAlgorithmProviderMenu.PREVIOUS_ALGORITHM)));
+                itemRenderer, ignored -> sendButton(CraftingAlgorithmProviderMenu.PREVIOUS_ALGORITHM)));
         widgets.add("nextAlgorithm", new TabButton(
                 Icon.ARROW_RIGHT,
                 Component.translatable("gui.thunderbolt.algorithm_provider.next"),
-                ignored -> sendButton(CraftingAlgorithmProviderMenu.NEXT_ALGORITHM)));
+                itemRenderer, ignored -> sendButton(CraftingAlgorithmProviderMenu.NEXT_ALGORITHM)));
 
         AESubScreen.addBackButton(menu, "back", widgets);
 
         widgets.add("openPriority", new TabButton(
                 Icon.WRENCH,
                 Component.translatable("gui.thunderbolt.algorithm_provider.selection_priority"),
-                ignored -> NetworkHandler.instance().sendToServer(
+                itemRenderer, ignored -> NetworkHandler.instance().sendToServer(
                         SwitchGuisPacket.openSubMenu(PriorityMenu.TYPE))));
     }
 
@@ -71,7 +71,7 @@ public final class CraftingAlgorithmProviderScreen
     }
 
     @Override
-    public void drawBG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY,
+    public void drawBG(PoseStack guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY,
             float partialTicks) {
         super.drawBG(guiGraphics, offsetX, offsetY, mouseX, mouseY, partialTicks);
 
@@ -81,15 +81,15 @@ public final class CraftingAlgorithmProviderScreen
         int left = offsetX + FIELD_LEFT;
         int right = offsetX + FIELD_RIGHT;
         int top = offsetY + FIELD_TOP;
-        NAME_FIELD.src(0, FIELD_VARIANT_V, 1, FIELD_HEIGHT).dest(left, top).blit(guiGraphics);
+        NAME_FIELD.src(0, FIELD_VARIANT_V, 1, FIELD_HEIGHT).dest(left, top).blit(guiGraphics, 0);
         NAME_FIELD.src(1, FIELD_VARIANT_V, 1, FIELD_HEIGHT)
                 .dest(left + 1, top, right - left - 2, FIELD_HEIGHT)
-                .blit(guiGraphics);
-        NAME_FIELD.src(127, FIELD_VARIANT_V, 1, FIELD_HEIGHT).dest(right - 1, top).blit(guiGraphics);
+                .blit(guiGraphics, 0);
+        NAME_FIELD.src(127, FIELD_VARIANT_V, 1, FIELD_HEIGHT).dest(right - 1, top).blit(guiGraphics, 0);
     }
 
     @Override
-    public void drawFG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY) {
+    public void drawFG(PoseStack guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY) {
         // Note: the pose is already translated by (leftPos, topPos) here, so draw in dialog-local coordinates
         var name = menu.selectedAlgorithmName().getString();
         int maxWidth = FIELD_RIGHT - FIELD_LEFT - 2 * FIELD_PADDING;
@@ -107,11 +107,11 @@ public final class CraftingAlgorithmProviderScreen
         // Keep the (possibly scaled) name vertically centered inside the 12px field
         float textY = FIELD_TOP + 2 + (font.lineHeight * (1.0f - scale)) / 2.0f;
 
-        var pose = guiGraphics.pose();
+        var pose = guiGraphics;
         pose.pushPose();
         pose.translate(centerX, textY, 0);
         pose.scale(scale, scale, 1.0f);
-        guiGraphics.drawCenteredString(font, name, 0, 0, color);
+        drawCenteredString(guiGraphics, font, name, 0, 0, color);
         pose.popPose();
     }
 

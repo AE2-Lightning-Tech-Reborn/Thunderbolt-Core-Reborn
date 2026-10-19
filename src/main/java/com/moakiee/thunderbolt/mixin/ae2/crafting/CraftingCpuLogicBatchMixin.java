@@ -93,7 +93,7 @@ public abstract class CraftingCpuLogicBatchMixin {
         }
 
         var jobAccessor = (ExecutingCraftingJobAccessor) job;
-        var timeTracker = (ElapsedTimeTrackerAccessor) jobAccessor.getTimeTracker();
+        var timeTracker = (com.moakiee.thunderbolt.core.crafting.batch.ContainerOutputTracker) jobAccessor.getTimeTracker();
         var batchResult = BatchExecutor.runBatchOnly(
                 remainingOps,
                 BatchCpuAccounting.Mode.LINEAR,
@@ -101,14 +101,14 @@ public abstract class CraftingCpuLogicBatchMixin {
                 energyService,
                 new DefaultBatchJobView(
                         level,
-                        jobAccessor.getLink().getCraftingID(),
+                        com.moakiee.thunderbolt.core.crafting.batch.LegacyCraftingIds.toUuid(jobAccessor.getLink().getCraftingID()),
                         jobAccessor.getTasks(),
                         jobAccessor.getWaitingFor(),
                         task -> ((TaskProgressAccessor) task).getValue(),
                         (task, value) -> ((TaskProgressAccessor) task).setValue(value),
                         timeTracker,
-                        (tracker, count, type) -> ((ElapsedTimeTrackerAccessor) tracker)
-                                .invokeAddMaxItems(count, type)).onDispatchFailure(() -> {
+                        (tracker, count, type) -> ((com.moakiee.thunderbolt.core.crafting.batch.ContainerOutputTracker) tracker)
+                                .thunderbolt$addMaxItems(count, type)).onDispatchFailure(() -> {
                                     jobAccessor.getLink().cancel();
                                     cluster.markDirty();
                                 }),

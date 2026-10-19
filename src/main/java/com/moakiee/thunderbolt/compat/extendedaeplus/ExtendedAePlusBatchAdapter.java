@@ -4,7 +4,7 @@ import java.util.List;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderResolver;
 import org.jetbrains.annotations.Nullable;
 
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 import appeng.api.crafting.IPatternDetails;
@@ -79,7 +79,7 @@ public final class ExtendedAePlusBatchAdapter implements BatchProviderResolver {
             var rules = CoreConfig.batchCopyLimitRules();
             if (batchLimitRulesVersion != rules.version()) {
                 var self = (BlockEntity) delegate;
-                var blockId = BuiltInRegistries.BLOCK.getKey(self.getBlockState().getBlock());
+                var blockId = Registry.BLOCK.getKey(self.getBlockState().getBlock());
                 batchCopyLimit = blockId != null
                         ? rules.limit(blockId.toString())
                         : Long.MAX_VALUE;

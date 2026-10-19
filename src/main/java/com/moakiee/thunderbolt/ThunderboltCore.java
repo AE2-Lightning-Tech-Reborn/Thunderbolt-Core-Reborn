@@ -62,8 +62,7 @@ public final class ThunderboltCore {
 
     private void onConfigEvent(ModConfigEvent event) {
         if (event.getConfig().getSpec() == ThunderboltCommonConfig.SPEC) {
-            NbtCopyOptions.configure(!(event instanceof ModConfigEvent.Unloading)
-                    && ThunderboltCommonConfig.fastNbtCopies());
+            NbtCopyOptions.configure(ThunderboltCommonConfig.fastNbtCopies());
         }
     }
 

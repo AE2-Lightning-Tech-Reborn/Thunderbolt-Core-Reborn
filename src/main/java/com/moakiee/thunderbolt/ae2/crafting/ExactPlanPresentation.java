@@ -3,7 +3,7 @@ package com.moakiee.thunderbolt.ae2.crafting;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import appeng.api.client.AEKeyRendering;
+import appeng.api.client.AEStackRendering;
 import appeng.core.localization.GuiText;
 import appeng.menu.me.crafting.CraftingPlanSummaryEntry;
 import net.minecraft.network.chat.Component;
@@ -15,7 +15,7 @@ public final class ExactPlanPresentation {
     public static List<Component> describe(CraftingPlanSummaryEntry entry, boolean full) {
         var amounts = ExactPlanReports.amounts(entry);
         if (amounts == null) return null;
-        List<Component> lines = full ? new ArrayList<>(AEKeyRendering.getTooltip(entry.getWhat()))
+        List<Component> lines = full ? new ArrayList<>(AEStackRendering.getTooltip(entry.getWhat()))
                 : new ArrayList<>();
         long units = entry.getWhat().getAmountPerUnit();
         append(lines, GuiText.FromStorage, amounts.stored(), units, full);

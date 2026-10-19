@@ -79,8 +79,6 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
     @Shadow
     private boolean updateList;
 
-    @Shadow
-    private long lastProcessedCraftingLogicChangeTick;
 
     @Shadow
     public abstract void addLink(CraftingLink link);
@@ -105,11 +103,7 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
 
     @Inject(
             method = "onServerEndTick",
-            at = @At(
-                    value = "FIELD",
-                    target = "Lappeng/me/service/CraftingService;lastProcessedCraftingLogicChangeTick:J",
-                    opcode = Opcodes.GETFIELD,
-                    ordinal = 0))
+            at = @At("HEAD"))
     private void thunderbolt$tickExtendedCpuClusters(CallbackInfo ci) {
         thunderbolt$refreshExtendedCpuClusters();
         long latest = Long.MIN_VALUE;
@@ -125,16 +119,15 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
             this.thunderbolt$lastExtendedCraftingLogicChangeTickInitialized = true;
             this.thunderbolt$lastExtendedCraftingLogicChangeTick = latest;
             // Force AE2's normal waiting-key refresh without capturing its latestChange local.
-            this.lastProcessedCraftingLogicChangeTick = -1L;
+            // AE2 12 rebuilds its waiting-key set every tick.
         }
     }
 
     @Inject(
             method = "onServerEndTick",
             at = @At(
-                    value = "FIELD",
-                    target = "Lappeng/me/service/CraftingService;interests:Lcom/google/common/collect/Multimap;",
-                    opcode = Opcodes.GETFIELD,
+                    value = "INVOKE",
+                    target = "Lcom/google/common/collect/Sets;difference(Ljava/util/Set;Ljava/util/Set;)Lcom/google/common/collect/Sets$SetView;",
                     ordinal = 0))
     private void thunderbolt$addExtendedWaitingKeys(CallbackInfo ci) {
         for (var cluster : thunderbolt$getExtendedCpuClusters()) {
@@ -150,7 +143,7 @@ public abstract class ExtendedCraftingCpuServiceMixin implements ExtendedCraftin
     }
 
     @Inject(method = "addNode", at = @At("TAIL"))
-    private void thunderbolt$onAddNode(IGridNode gridNode, CompoundTag savedData, CallbackInfo ci) {
+    private void thunderbolt$onAddNode(IGridNode gridNode, CallbackInfo ci) {
         if (thunderbolt$getExtendedCpuClusterProvider(gridNode) != null) {
             thunderbolt$getExtendedCpuClusterIndex().addProvider(gridNode);
             thunderbolt$refreshExtendedCpuClusters();

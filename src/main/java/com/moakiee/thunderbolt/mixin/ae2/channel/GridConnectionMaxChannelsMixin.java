@@ -13,9 +13,11 @@ import appeng.me.GridConnection;
 
 // AE2 classes have no obfuscation mappings in the Forge dev environment — remap must be off.
 @Mixin(value = GridConnection.class, remap = false)
-public abstract class GridConnectionMaxChannelsMixin {
+public abstract class GridConnectionMaxChannelsMixin implements com.moakiee.thunderbolt.core.channel.PendingChannelConnection {
 
-    @Shadow int usedChannels;
+    @Shadow int lastUsedChannels;
+
+    @Override public void thunderbolt$setPendingChannels(int channels) { lastUsedChannels = channels; }
 
     @Inject(method = "getMaxChannels", at = @At("HEAD"), cancellable = true)
     private void thunderbolt$use128ChannelsForOwnConnections(CallbackInfoReturnable<Integer> cir) {
@@ -36,24 +38,4 @@ public abstract class GridConnectionMaxChannelsMixin {
         cir.setReturnValue(Integer.MAX_VALUE / 2);
     }
 
-    /**
-     * During the DFS pass, cancel AE2's routing-tree-based channel propagation
-     * and return the exact per-connection flow from Dinic's max-flow result.
-     * The actual usedChannels field is set by Phase 4 (force-apply) after the
-     * DFS completes. Only intercepts connections belonging to the max-flow network.
-     */
-    @Inject(method = "propagateChannelsUpwards()I", at = @At("HEAD"), cancellable = true)
-    private void thunderbolt$useFlowForConnectionPropagation(CallbackInfoReturnable<Integer> cir) {
-        var connFlow = BorrowedCapacityCalculator.activeConnectionFlow;
-        if (connFlow == null) return;
-
-        var networkNodes = BorrowedCapacityCalculator.activeNetworkNodes;
-        if (networkNodes == null) return;
-
-        var self = (GridConnection) (Object) this;
-        if (!networkNodes.contains(self.a()) && !networkNodes.contains(self.b())) return;
-
-        int flow = connFlow.getInt(self);
-        cir.setReturnValue(flow);
-    }
 }
