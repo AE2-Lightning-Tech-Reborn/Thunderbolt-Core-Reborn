@@ -54,6 +54,7 @@ public final class ThunderboltCraftingPlanSummary {
             var summary = new CraftingPlanSummary(ExactPlanReport.project(exact.bytes()), true, List.copyOf(entries));
             ExactPlanReports.attach(summary, exact);
             Ae2CraftingTreeSummaryBridge.attach(summary, plan);
+            GtlCraftingPlanSummaryBridge.attach(summary, plan);
             return summary;
         }
         var stats = new HashMap<AEKey, KeyStats>();
@@ -92,6 +93,7 @@ public final class ThunderboltCraftingPlanSummary {
         var summary = new CraftingPlanSummary(
                 plan.bytes(), plan.simulation(), List.copyOf(entries));
         Ae2CraftingTreeSummaryBridge.attach(summary, plan);
+        GtlCraftingPlanSummaryBridge.attach(summary, plan);
         return summary;
     }
 

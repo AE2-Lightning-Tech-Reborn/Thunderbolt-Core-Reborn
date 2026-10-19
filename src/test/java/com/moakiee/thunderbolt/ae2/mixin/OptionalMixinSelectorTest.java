@@ -7,6 +7,12 @@ import org.junit.jupiter.api.Test;
 
 class OptionalMixinSelectorTest {
     @Test
+    void craftingTreeTailAdaptationOnlyRunsWithTheAddon() {
+        assertFalse(OptionalMixinSelector.shouldApply("Ae2CraftingTreeCompatibilityMixin", ignored -> false));
+        assertTrue(OptionalMixinSelector.shouldApply("Ae2CraftingTreeCompatibilityMixin", "ae2ct"::equals));
+    }
+
+    @Test
     void skipsAdvancedAeTargetsWhenAddonIsMissing() {
         assertFalse(OptionalMixinSelector.shouldApply(
                 "com.moakiee.thunderbolt.mixin.compat.advancedae.AdvCraftingCpuLogicBatchMixin",

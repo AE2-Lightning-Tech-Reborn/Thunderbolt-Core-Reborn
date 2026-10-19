@@ -7,13 +7,13 @@ import appeng.crafting.CraftingPlan;
 import appeng.menu.me.crafting.CraftingPlanSummary;
 
 /** Keeps AE2 Crafting Tree's optional summary payload initialized on Thunderbolt summaries. */
-final class Ae2CraftingTreeSummaryBridge {
+public final class Ae2CraftingTreeSummaryBridge {
     private static final String API_PACKAGE = "com.neuvillette.ae2ct.api";
 
     private Ae2CraftingTreeSummaryBridge() {
     }
 
-    static void attach(CraftingPlanSummary summary, ICraftingPlan plan) {
+    public static void attach(CraftingPlanSummary summary, ICraftingPlan plan) {
         attachSupportedIntegration(summary, plan, CraftingPlanSummary.class.getClassLoader());
     }
 
@@ -31,6 +31,10 @@ final class Ae2CraftingTreeSummaryBridge {
         }
 
         try {
+            // A third-party summary factory may already have attached its own tree.
+            if (summaryView.getMethod("getJob").invoke(summary) != null) {
+                return true;
+            }
             Object tree = recipeHelper
                     .getMethod("fromCraftingPlan", CraftingPlan.class)
                     .invoke(null, CraftingPlanSummaryAdapter.adapt(plan));

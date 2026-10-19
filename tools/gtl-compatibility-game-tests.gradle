@@ -1,0 +1,52 @@
+// Opt-in Forge integration fixtures; never package them in a release artifact.
+if (gradle.startParameter.taskNames.any { it.tokenize(':').last() in ['build', 'jar', 'jarJar', 'verifyReleaseJar'] }) {
+    throw new GradleException('Run compatibility fixtures separately from release packaging')
+}
+allprojects {
+    afterEvaluate {
+        dependencies.add('runtimeOnly', fg.deobf('curse.maven:ae2-crafting-tree-1086241:7182165'))
+        sourceSets.create('compatibilityVerification') {
+            java.srcDir rootProject.file('src/compatibilityGameTest/java')
+            resources.srcDir rootProject.file('src/compatibilityGameTest/resources')
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += output + sourceSets.main.runtimeClasspath
+        }
+        tasks.named('processResources') {
+            outputs.upToDateWhen { false }
+            doLast {
+                def configFile = rootProject.file('build/resources/main/thunderbolt.mixins.json')
+                def config = new groovy.json.JsonSlurper().parse(configFile)
+                config.mixins.addAll(['compatfixture.LongAmountMenuMixin', 'compatfixture.CustomSummaryMixin', 'compatfixture.GtlEntryMixin'])
+                configFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(config))
+            }
+        }
+        minecraft.runs.gameTestServer {
+            workingDirectory rootProject.file('build/gtl-compat-fix-20261019/run')
+            property 'forge.logging.console.level', 'info'
+            property 'forge.enabledGameTestNamespaces', 'thunderbolt'
+            property 'thunderbolt.gtlCompat', 'always'
+            property 'fml.doNotBackup', 'true'
+            property 'fml.doNotConfirm', 'true'
+            property 'mixin.debug.export', 'true'
+            property 'thunderbolt.mixinAudit', 'false'
+            mods { thunderbolt { source sourceSets.compatibilityVerification } }
+        }
+        tasks.register('restoreCompatibilityMixinConfig') {
+            doLast {
+                rootProject.file('build/resources/main/thunderbolt.mixins.json').bytes =
+                        rootProject.file('src/main/resources/thunderbolt.mixins.json').bytes
+            }
+        }
+        tasks.named('compileCompatibilityVerificationJava') {
+            outputs.upToDateWhen { false }
+            options.incremental = false
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            dependsOn 'compatibilityVerificationClasses'
+            finalizedBy 'restoreCompatibilityMixinConfig'
+        }
+        tasks.matching { it.name == 'downloadMCMeta' }.configureEach {
+            onlyIf { !rootProject.file('build/downloadMCMeta/version.json').isFile() }
+        }
+    }
+}

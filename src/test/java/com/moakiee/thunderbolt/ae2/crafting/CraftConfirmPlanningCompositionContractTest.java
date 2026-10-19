@@ -26,5 +26,7 @@ final class CraftConfirmPlanningCompositionContractTest {
                 "tracking must not bypass another planner by calling the service directly");
         assertTrue(source.contains("if (com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(result)) ci.cancel();"),
                 "startJob must refuse exact previews instead of auto-starting them");
+        assertTrue(source.split("\"gtlcore\\$planLongAmountJob\"", -1).length == 3,
+                "GTL long-amount entry must reset the old job and wrap the new calculation");
     }
 }

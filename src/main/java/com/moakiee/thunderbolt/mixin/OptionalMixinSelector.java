@@ -11,6 +11,7 @@ import com.moakiee.thunderbolt.compat.gtl.GtlCompat;
 /** Early selection by addon presence and GTL batch ownership. */
 public final class OptionalMixinSelector {
     private static final Map<String, String> REQUIRED_MODS = Map.ofEntries(
+            Map.entry("Ae2CraftingTreeCompatibilityMixin", "ae2ct"),
             Map.entry("AdvCraftingCpuLogicBatchMixin", "advanced_ae"),
             Map.entry("AdvCraftingCpuAccessor", "advanced_ae"),
             Map.entry("AaeExecutingCraftingJobAccessor", "advanced_ae"),
