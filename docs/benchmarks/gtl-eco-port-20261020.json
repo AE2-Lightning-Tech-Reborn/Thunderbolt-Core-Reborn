@@ -1,0 +1,125 @@
+{
+  "date": "2026-10-20",
+  "recorded_utc": "2026-10-20T15:50:25.418147+00:00",
+  "baseline_commit": "fdd766c07e4352e60516f4f0c75aa279f6113f49",
+  "upstream_source_commit": "9cb676b9a3d78a9cb4539c3f9603cb227b9bb6c7",
+  "platform": {
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10",
+    "java": 17,
+    "mod_version": "2.0.0"
+  },
+  "features": [
+    "ECO job-aware ordinary fallback",
+    "optional exact allocated preparation and submit",
+    "optional job cancellation notice",
+    "Forge legacy fallback captures current UUID without retaining borrowed job view"
+  ],
+  "validation": {
+    "targeted": {
+      "tests": 90,
+      "passed": 78,
+      "skipped": 12,
+      "failed": 0,
+      "new_contract_fixture_tests": 14
+    },
+    "real_forge_protocol": {
+      "tests": 12,
+      "passed": 9,
+      "skipped": 3,
+      "failed": 0,
+      "artifact": {
+        "version": "20.5.0",
+        "kind": "Existing Mojang-mapped development jar",
+        "sha256": "a413167fb8041c1e3387ddce08884d7da141df759f391aec41695ea573978ee5",
+        "new_facade_present": false
+      },
+      "skips": "Three receipt/parallel protocol cases unavailable in the atomic boolean 20.5.0 artifact"
+    },
+    "full_check": {
+      "test": {
+        "tests": 1519,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 4,
+        "passed": 1515
+      },
+      "externalPlannerBoundaryTest": {
+        "tests": 38,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 38
+      },
+      "materialDagLargeGraphTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 1
+      },
+      "cpSatColdRefinementTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 1
+      },
+      "materialDagColdReplayTest": {
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 20
+      }
+    },
+    "full_check_total": {
+      "passed": 1575,
+      "skipped": 4,
+      "failed": 0,
+      "test_tasks_executed": 5,
+      "test_cache_reused": false
+    },
+    "game_tests": {
+      "required": 9,
+      "passed": 9,
+      "failed": 0,
+      "scope": "Existing Forge GTL compatibility/storage server GameTests; not a real new-ECO runtime integration"
+    },
+    "release": {
+      "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+      "size_bytes": 5419343,
+      "sha256": "3ce9516198a051540ac76ca08337ea0aae28e73b069003c49b1df6e161ff9458",
+      "main_classes": 532,
+      "main_class_major": 61,
+      "nested": [
+        {
+          "entry": "META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+          "max_class_major": 61
+        },
+        {
+          "entry": "META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar",
+          "max_class_major": 52
+        },
+        {
+          "entry": "META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar",
+          "max_class_major": 52
+        }
+      ],
+      "fixture_entries": [],
+      "refmap_matches": true,
+      "mixin_config_matches": true,
+      "checked_after_game_tests": true
+    }
+  },
+  "boundaries": [
+    "New public ECO methods validated with isolated contract fixtures, not a real new-ECO machine",
+    "Exact batch extraction, energy and settlement remain caller responsibilities",
+    "20.5.0 development artifact validates the older Forge protocol only",
+    "Four full-suite skips: three unsupported NeoECO receipt/parallel cases and one missing SuperMatrix runtime contract",
+    "Previous Java 17 timeout evidence is preserved; planner algorithms and test budgets were not changed"
+  ],
+  "evidence": "Ignored build/gtl-eco-port-20261020 directory and its owned scratch/evidence location",
+  "setup_attempt": "Initial real-protocol invocation used the wrong property casing and skipped all 12 tests; corrected invocation executed nine tests and explicitly skipped three unsupported protocol cases. Both records preserved."
+}

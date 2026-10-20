@@ -76,8 +76,9 @@ final class NeoEcoBatchAdapter implements BatchProviderResolver {
             }
             ordinary.add(pattern);
             var owned = NeoEcoBatchApi.cloneInputs(inputs, 1);
+            var craftingId = job.craftingId();
             return prepared(1, offered -> delegate.isBusy() ? offered
-                    : delegate.pushPattern(pattern, owned) ? offered - 1 : offered);
+                    : NeoEcoFastPathCompat.pushPattern(delegate, pattern, owned, craftingId) ? offered - 1 : offered);
         }
 
         private PreparedBatch capacityBatch(IPatternDetails pattern, NeoEcoBatchApi.Context context, long count) {
