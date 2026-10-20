@@ -4,6 +4,20 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 class NeoEcoFastPathCompatTest {
+    @Test void unrelatedProvidersKeepTheDirectOrdinaryCall() {
+        int[] calls = {0};
+        var provider = new appeng.api.networking.crafting.ICraftingProvider() {
+            public java.util.List<appeng.api.crafting.IPatternDetails> getAvailablePatterns() { return java.util.List.of(); }
+            public boolean isBusy() { return false; }
+            public boolean pushPattern(appeng.api.crafting.IPatternDetails pattern, appeng.api.stacks.KeyCounter[] inputs) {
+                calls[0]++;
+                return true;
+            }
+        };
+        assertTrue(NeoEcoFastPathCompat.pushPattern(provider, null,
+                new appeng.api.stacks.KeyCounter[0], java.util.UUID.randomUUID()));
+        assertEquals(1, calls[0]);
+    }
     @Test void currentPublicApiLoadsWithoutAnLtDependency() {
         assertNotNull(NeoEcoFastPathCompat.loadAdapter(getClass().getClassLoader()));
     }

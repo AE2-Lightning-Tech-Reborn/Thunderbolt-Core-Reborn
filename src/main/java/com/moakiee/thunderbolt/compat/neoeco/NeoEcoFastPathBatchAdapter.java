@@ -80,7 +80,7 @@ public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
             var prepared = ECOFastPathFacade.prepareAllocated(
                     delegate, details, oneCopy, maxCraft, job.level(), job.craftingId());
             if (prepared == null) {
-                return pushSingleCopy(details, oneCopy, maxCraft);
+                return pushSingleCopy(details, oneCopy, maxCraft, job.craftingId());
             }
 
             long offered = prepared.craftCount();
@@ -98,10 +98,11 @@ public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
             if (accepted) {
                 return maxCraft - offered;
             }
-            return pushSingleCopy(details, oneCopy, maxCraft);
+            return pushSingleCopy(details, oneCopy, maxCraft, job.craftingId());
         }
 
-        private long pushSingleCopy(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft) {
+        private long pushSingleCopy(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft,
+                java.util.UUID craftingId) {
             // Do not extract and refund a full batch again for every subsequent single copy.
             // Capacity 1 sends later visits through the CPU's ordinary bulk-extraction path.
             ordinaryPatterns.add(details);
@@ -113,7 +114,8 @@ public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
                 inputs[slot] = new KeyCounter();
                 inputs[slot].addAll(oneCopy[slot]);
             }
-            return delegate.pushPattern(details, inputs) ? maxCraft - 1L : maxCraft;
+            return NeoEcoFastPathCompat.pushPattern(delegate, details, inputs, craftingId)
+                    ? maxCraft - 1L : maxCraft;
         }
     }
 }

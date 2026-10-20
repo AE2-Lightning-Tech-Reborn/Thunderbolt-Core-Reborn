@@ -26,6 +26,7 @@ import appeng.api.stacks.KeyCounter;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOBatchDispatchContext;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class NeoEcoFastPathBatchAdapterTest {
@@ -50,9 +51,51 @@ class NeoEcoFastPathBatchAdapterTest {
         assertEquals(Long.MAX_VALUE, endpoint.getBatchCapacity(null));
     }
 
+    private final UUID jobId = UUID.randomUUID();
     private final BatchJobView job = (BatchJobView) Proxy.newProxyInstance(
             BatchJobView.class.getClassLoader(), new Class<?>[] {BatchJobView.class},
-            (proxy, method, args) -> null);
+            (proxy, method, args) -> method.getName().equals("craftingId") ? jobId : null);
+
+    @Test
+    void fallbackAndLaterOrdinaryVisitKeepTheSameJobIdentity() {
+        var original = new NativeProvider();
+        UUID[] received = {null};
+        var provider = aware(original, id -> received[0] = id);
+        var adapter = new NeoEcoFastPathBatchAdapter.AdaptedProvider(provider);
+        assertEquals(4, adapter.pushBatch(null, new KeyCounter[] {new KeyCounter()}, 5, job));
+        assertEquals(jobId, received[0]);
+        assertEquals(1, adapter.getBatchCapacity(null));
+        assertTrue(NeoEcoFastPathCompat.pushPattern(provider, null,
+                new KeyCounter[] {new KeyCounter()}, jobId));
+        assertEquals(jobId, received[0]);
+        assertEquals(2, ((OrdinaryProvider) original).calls);
+    }
+
+    @Test
+    void rejectedContextualFallbackKeepsIdentityWithoutTakingTheBorrowedInputs() {
+        var original = new OrdinaryProvider(false);
+        UUID[] received = {null};
+        var provider = aware(original, id -> received[0] = id);
+        var adapter = new NeoEcoFastPathBatchAdapter.AdaptedProvider(provider);
+        var inputs = new KeyCounter[] {new KeyCounter()};
+        assertEquals(5, adapter.pushBatch(null, inputs, 5, job));
+        assertEquals(jobId, received[0]);
+        assertEquals(1, original.calls);
+        assertNotNull(inputs[0]);
+    }
+
+    @Test
+    void contextualSubmissionFailurePropagatesWithoutRetryingTheProvider() {
+        int[] calls = {0};
+        var failure = new IllegalStateException("ambiguous ownership");
+        var provider = aware(new OrdinaryProvider(true), id -> {
+            calls[0]++;
+            throw failure;
+        });
+        assertSame(failure, assertThrows(IllegalStateException.class,
+                () -> NeoEcoFastPathCompat.pushPattern(provider, null, new KeyCounter[0], jobId)));
+        assertEquals(1, calls[0]);
+    }
 
     @Test
     void declinedFastPathFallbackKeepsThePlannedMaterialAndRefundsOnlyUnacceptedCopies() {
@@ -176,6 +219,26 @@ class NeoEcoFastPathBatchAdapterTest {
         assertEquals(2L, adapter.pushBatch(pattern, new KeyCounter[] {new KeyCounter()}, 3L, job));
         assertEquals(1, ((OrdinaryProvider) provider).calls);
         assertEquals(1L, adapter.getBatchCapacity(pattern));
+    }
+
+    private static ICraftingProvider aware(ICraftingProvider original, java.util.function.Consumer<UUID> received) {
+        Class<?> contract;
+        try {
+            contract = Class.forName("cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider");
+        } catch (ClassNotFoundException oldApi) {
+            org.junit.jupiter.api.Assumptions.abort("Requires the current optional ECO job-aware API");
+            throw new AssertionError(oldApi);
+        }
+        Class<?>[] contracts = original instanceof ECOFastPathDispatchProvider
+                ? new Class<?>[] {contract, ECOFastPathDispatchProvider.class} : new Class<?>[] {contract};
+        return (ICraftingProvider) Proxy.newProxyInstance(contract.getClassLoader(), contracts, (proxy, method, args) -> {
+            if (method.getName().equals("pushPattern") && method.getParameterCount() == 3) {
+                received.accept((UUID) args[2]);
+                return original.pushPattern((IPatternDetails) args[0], (KeyCounter[]) args[1]);
+            }
+            try { return method.invoke(original, args); }
+            catch (java.lang.reflect.InvocationTargetException failed) { throw failed.getCause(); }
+        });
     }
 
     private static class OrdinaryProvider implements ICraftingProvider {
