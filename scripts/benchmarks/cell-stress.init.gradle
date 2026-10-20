@@ -1,0 +1,10 @@
+allprojects {
+    afterEvaluate {
+        tasks.named('test') {
+            maxHeapSize = '2g'
+            systemProperty 'cellStress.operations', providers.gradleProperty('cellStressOperations').getOrElse('250000')
+            systemProperty 'cellStress.keys', providers.gradleProperty('cellStressKeys').getOrElse('1024')
+            testLogging.showStandardStreams = true
+        }
+    }
+}

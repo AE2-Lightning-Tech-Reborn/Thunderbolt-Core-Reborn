@@ -1,0 +1,13 @@
+allprojects {
+    afterEvaluate {
+        tasks.register('writeCellBenchmarkClasspaths') {
+            dependsOn 'testClasses'
+            doLast {
+                def output = file(providers.gradleProperty('cellBenchmarkDirectory').get())
+                new File(output, 'runtime.txt').text = sourceSets.test.runtimeClasspath.asPath
+                new File(output, 'compile.txt').text =
+                        (sourceSets.test.runtimeClasspath + sourceSets.test.compileClasspath).asPath
+            }
+        }
+    }
+}

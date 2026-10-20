@@ -1,0 +1,1115 @@
+{
+  "baseline": "fd3db3f0bebb904dd4318cad6c214435dc5ac5b6",
+  "candidate_cell_sources": {
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/ByteTracker.java": "655f4d84deea19a00086eedab61485f7f3b8306d4d77f6a68f12189229e0f3db",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/CellNbtSnapshot.java": "e3a820c579769dfde9e46d6f8fa48b44d86f26f67427c5076b6af274225be8e0",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/DualLong126.java": "7cf9ec3f750a5eae43b2f919dea407a992077efd0216ce4c378779adf3c520b1",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/ExactCellSnapshot.java": "f5af30ef90616570543fc4723b1c5b5ed417ea31795244a1a4f3f41720197f74",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IIndexedStorageCellItem.java": "f25ad6288a1c1450c5cb14065b36fbba561dc0e7ececd3e44cbcc5004a937a92",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IndexedCellStorageRegistry.java": "569ac150ec80988d17af697bc4574464ec221c8e013da56da1e8adc21d348d55",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IndexedCellStorageSavedData.java": "e1791cdcd36812f92318b2170368e92958a5db61fbaff971d9743a9c5d127baa",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IndexedCellSummary.java": "9fccf24863237ae695edf7b0d30db682c061f6a8da66db35c34be5e9e5468e2d",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IndexedStorage.java": "74b5e01e650299a814a3b8a176589eb2c139ad4b688fa4400dbcb7f8c1a583fa",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IndexedStorageCellHandler.java": "81b5a22767fdf882107ca2cb9ab3906c06abce2e40d7eb4f3538d02979fa3503",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IndexedStorageCellInventory.java": "d107b6aeae3be9f3d5aebd1ce2f81a71cc6fb1393a20edef212b82f519ee7b9a"
+  },
+  "harness_sha256": "40dff64e23be5475ff7494af6edc16b658a7c079002fda484a4757977f961972",
+  "environment": [
+    "java=17.0.20+8 arch=amd64"
+  ],
+  "warmups": 3,
+  "samples_per_jvm": 7,
+  "jvms_per_variant": 2,
+  "notes": [
+    "Two reversed-order JVM pairs; median/min/max per workload per JVM.",
+    "Pair metrics include one insertion and one extraction.",
+    "world_save_sync includes Forge synchronous encoding, compression and disk write; validation is outside timing.",
+    "Allocation counters cover only the calling thread.",
+    "Baseline replaces only the four changed storage classes, using the same dependencies and test harness.",
+    "This is a microbenchmark, not an in-game TPS measurement."
+  ],
+  "results": [
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "inventory_long_pair",
+      "median_ns": 475.87,
+      "min_ns": 376.183,
+      "max_ns": 840.918,
+      "median_allocated_bytes": 2632.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "engine_long_pair",
+      "median_ns": 193.173,
+      "min_ns": 183.319,
+      "max_ns": 214.062,
+      "median_allocated_bytes": 2360.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "simulate_pair",
+      "median_ns": 207.58,
+      "min_ns": 184.093,
+      "max_ns": 224.202,
+      "median_allocated_bytes": 2232.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "exact_snapshot",
+      "median_ns": 32.193,
+      "min_ns": 30.543,
+      "max_ns": 52.85,
+      "median_allocated_bytes": 272.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "enumeration",
+      "median_ns": 81.203,
+      "min_ns": 75.69,
+      "max_ns": 140.687,
+      "median_allocated_bytes": 912.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 448.93,
+      "min_ns": 357.44,
+      "max_ns": 472.79,
+      "median_allocated_bytes": 2448.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "world_save_sync",
+      "median_ns": 363100.0,
+      "min_ns": 323700.0,
+      "max_ns": 389500.0,
+      "median_allocated_bytes": 13432.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "inventory_empty_pair",
+      "median_ns": 188.165,
+      "min_ns": 174.454,
+      "max_ns": 441.543,
+      "median_allocated_bytes": 80.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 602.657,
+      "min_ns": 582.939,
+      "max_ns": 627.229,
+      "median_allocated_bytes": 2816.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "inventory_long_pair",
+      "median_ns": 448.746,
+      "min_ns": 432.315,
+      "max_ns": 459.291,
+      "median_allocated_bytes": 2712.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "engine_long_pair",
+      "median_ns": 274.891,
+      "min_ns": 260.531,
+      "max_ns": 281.986,
+      "median_allocated_bytes": 2616.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "simulate_pair",
+      "median_ns": 177.957,
+      "min_ns": 167.159,
+      "max_ns": 197.332,
+      "median_allocated_bytes": 2232.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "exact_snapshot",
+      "median_ns": 27493.333,
+      "min_ns": 27036.667,
+      "max_ns": 30283.333,
+      "median_allocated_bytes": 123952.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "enumeration",
+      "median_ns": 101130.0,
+      "min_ns": 76260.0,
+      "max_ns": 112113.333,
+      "median_allocated_bytes": 49584.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 31448.0,
+      "min_ns": 29515.0,
+      "max_ns": 50075.0,
+      "median_allocated_bytes": 334936.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "world_save_sync",
+      "median_ns": 2193700.0,
+      "min_ns": 2029000.0,
+      "max_ns": 2894100.0,
+      "median_allocated_bytes": 136448.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "inventory_empty_pair",
+      "median_ns": 195.622,
+      "min_ns": 183.521,
+      "max_ns": 206.738,
+      "median_allocated_bytes": 80.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 786.55,
+      "min_ns": 776.17,
+      "max_ns": 791.099,
+      "median_allocated_bytes": 3272.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "inventory_long_pair",
+      "median_ns": 569.529,
+      "min_ns": 531.797,
+      "max_ns": 593.136,
+      "median_allocated_bytes": 2744.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "engine_long_pair",
+      "median_ns": 369.535,
+      "min_ns": 340.809,
+      "max_ns": 399.293,
+      "median_allocated_bytes": 2616.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "simulate_pair",
+      "median_ns": 243.279,
+      "min_ns": 229.797,
+      "max_ns": 300.054,
+      "median_allocated_bytes": 2232.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "exact_snapshot",
+      "median_ns": 1181760.0,
+      "min_ns": 1024956.667,
+      "max_ns": 1285706.667,
+      "median_allocated_bytes": 2028288.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "enumeration",
+      "median_ns": 1566313.333,
+      "min_ns": 1519410.0,
+      "max_ns": 1676716.667,
+      "median_allocated_bytes": 787056.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 30457.0,
+      "min_ns": 29650.0,
+      "max_ns": 125265.0,
+      "median_allocated_bytes": 334952.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "world_save_sync",
+      "median_ns": 21288400.0,
+      "min_ns": 20215900.0,
+      "max_ns": 22938400.0,
+      "median_allocated_bytes": 13344.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "inventory_empty_pair",
+      "median_ns": 209.476,
+      "min_ns": 196.77,
+      "max_ns": 233.434,
+      "median_allocated_bytes": 80.0,
+      "round": 1
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 963.401,
+      "min_ns": 886.282,
+      "max_ns": 1002.436,
+      "median_allocated_bytes": 3304.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "inventory_long_pair",
+      "median_ns": 35.118,
+      "min_ns": 32.693,
+      "max_ns": 47.231,
+      "median_allocated_bytes": 48.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "engine_long_pair",
+      "median_ns": 7.697,
+      "min_ns": 7.404,
+      "max_ns": 12.515,
+      "median_allocated_bytes": 0.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "simulate_pair",
+      "median_ns": 4.397,
+      "min_ns": 4.224,
+      "max_ns": 6.143,
+      "median_allocated_bytes": 0.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "exact_snapshot",
+      "median_ns": 37.7,
+      "min_ns": 26.983,
+      "max_ns": 41.04,
+      "median_allocated_bytes": 224.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "enumeration",
+      "median_ns": 84.293,
+      "min_ns": 73.8,
+      "max_ns": 125.81,
+      "median_allocated_bytes": 928.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 119.27,
+      "min_ns": 114.48,
+      "max_ns": 157.4,
+      "median_allocated_bytes": 0.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "world_save_sync",
+      "median_ns": 424800.0,
+      "min_ns": 337700.0,
+      "max_ns": 1081600.0,
+      "median_allocated_bytes": 13632.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "inventory_empty_pair",
+      "median_ns": 82.965,
+      "min_ns": 77.155,
+      "max_ns": 106.348,
+      "median_allocated_bytes": 32.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 541.883,
+      "min_ns": 448.013,
+      "max_ns": 669.452,
+      "median_allocated_bytes": 1792.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "inventory_long_pair",
+      "median_ns": 57.621,
+      "min_ns": 54.494,
+      "max_ns": 73.184,
+      "median_allocated_bytes": 96.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "engine_long_pair",
+      "median_ns": 22.104,
+      "min_ns": 21.78,
+      "max_ns": 24.957,
+      "median_allocated_bytes": 0.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "simulate_pair",
+      "median_ns": 15.213,
+      "min_ns": 14.849,
+      "max_ns": 17.292,
+      "median_allocated_bytes": 0.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "exact_snapshot",
+      "median_ns": 12013.333,
+      "min_ns": 11796.667,
+      "max_ns": 14093.333,
+      "median_allocated_bytes": 86208.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "enumeration",
+      "median_ns": 135670.0,
+      "min_ns": 30450.0,
+      "max_ns": 199833.333,
+      "median_allocated_bytes": 49600.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 3971.0,
+      "min_ns": 3878.0,
+      "max_ns": 4339.0,
+      "median_allocated_bytes": 0.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "world_save_sync",
+      "median_ns": 2213700.0,
+      "min_ns": 2162600.0,
+      "max_ns": 2639300.0,
+      "median_allocated_bytes": 142536.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "inventory_empty_pair",
+      "median_ns": 60.451,
+      "min_ns": 57.762,
+      "max_ns": 86.038,
+      "median_allocated_bytes": 80.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 487.162,
+      "min_ns": 475.24,
+      "max_ns": 525.542,
+      "median_allocated_bytes": 1792.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "inventory_long_pair",
+      "median_ns": 103.158,
+      "min_ns": 99.864,
+      "max_ns": 128.714,
+      "median_allocated_bytes": 128.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "engine_long_pair",
+      "median_ns": 69.395,
+      "min_ns": 56.855,
+      "max_ns": 88.067,
+      "median_allocated_bytes": 0.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "simulate_pair",
+      "median_ns": 46.339,
+      "min_ns": 43.294,
+      "max_ns": 52.702,
+      "median_allocated_bytes": 0.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "exact_snapshot",
+      "median_ns": 158113.333,
+      "min_ns": 143263.333,
+      "max_ns": 197710.0,
+      "median_allocated_bytes": 1376448.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "enumeration",
+      "median_ns": 1140060.0,
+      "min_ns": 1087873.333,
+      "max_ns": 1354443.333,
+      "median_allocated_bytes": 787072.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 2686.0,
+      "min_ns": 2431.0,
+      "max_ns": 4871.0,
+      "median_allocated_bytes": 16.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "world_save_sync",
+      "median_ns": 22153900.0,
+      "min_ns": 21755000.0,
+      "max_ns": 26122000.0,
+      "median_allocated_bytes": 142312.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "inventory_empty_pair",
+      "median_ns": 169.786,
+      "min_ns": 149.126,
+      "max_ns": 179.01,
+      "median_allocated_bytes": 80.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 934.706,
+      "min_ns": 772.564,
+      "max_ns": 1084.795,
+      "median_allocated_bytes": 1856.0,
+      "round": 1
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "inventory_long_pair",
+      "median_ns": 43.276,
+      "min_ns": 33.987,
+      "max_ns": 49.42,
+      "median_allocated_bytes": 48.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "engine_long_pair",
+      "median_ns": 8.223,
+      "min_ns": 7.366,
+      "max_ns": 11.57,
+      "median_allocated_bytes": 0.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "simulate_pair",
+      "median_ns": 8.911,
+      "min_ns": 4.574,
+      "max_ns": 13.402,
+      "median_allocated_bytes": 0.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "exact_snapshot",
+      "median_ns": 40.097,
+      "min_ns": 30.813,
+      "max_ns": 57.393,
+      "median_allocated_bytes": 224.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "enumeration",
+      "median_ns": 108.583,
+      "min_ns": 91.1,
+      "max_ns": 172.657,
+      "median_allocated_bytes": 928.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 195.14,
+      "min_ns": 130.5,
+      "max_ns": 257.32,
+      "median_allocated_bytes": 0.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "world_save_sync",
+      "median_ns": 551200.0,
+      "min_ns": 429700.0,
+      "max_ns": 700400.0,
+      "median_allocated_bytes": 13632.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "inventory_empty_pair",
+      "median_ns": 68.307,
+      "min_ns": 61.104,
+      "max_ns": 74.322,
+      "median_allocated_bytes": 32.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 560.512,
+      "min_ns": 507.82,
+      "max_ns": 726.227,
+      "median_allocated_bytes": 1792.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "inventory_long_pair",
+      "median_ns": 63.765,
+      "min_ns": 56.764,
+      "max_ns": 98.127,
+      "median_allocated_bytes": 96.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "engine_long_pair",
+      "median_ns": 24.448,
+      "min_ns": 22.681,
+      "max_ns": 33.401,
+      "median_allocated_bytes": 0.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "simulate_pair",
+      "median_ns": 15.375,
+      "min_ns": 14.142,
+      "max_ns": 20.457,
+      "median_allocated_bytes": 0.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "exact_snapshot",
+      "median_ns": 11936.667,
+      "min_ns": 11833.333,
+      "max_ns": 13033.333,
+      "median_allocated_bytes": 86208.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "enumeration",
+      "median_ns": 139953.333,
+      "min_ns": 90896.667,
+      "max_ns": 216473.333,
+      "median_allocated_bytes": 49600.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 3091.0,
+      "min_ns": 2879.0,
+      "max_ns": 4970.0,
+      "median_allocated_bytes": 0.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "world_save_sync",
+      "median_ns": 2206500.0,
+      "min_ns": 1967600.0,
+      "max_ns": 3607400.0,
+      "median_allocated_bytes": 142536.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "inventory_empty_pair",
+      "median_ns": 69.806,
+      "min_ns": 59.718,
+      "max_ns": 98.81,
+      "median_allocated_bytes": 80.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 1024,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 631.004,
+      "min_ns": 552.66,
+      "max_ns": 690.96,
+      "median_allocated_bytes": 1792.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "inventory_long_pair",
+      "median_ns": 151.74,
+      "min_ns": 118.207,
+      "max_ns": 196.207,
+      "median_allocated_bytes": 128.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "engine_long_pair",
+      "median_ns": 71.955,
+      "min_ns": 58.353,
+      "max_ns": 107.648,
+      "median_allocated_bytes": 0.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "simulate_pair",
+      "median_ns": 78.623,
+      "min_ns": 47.076,
+      "max_ns": 89.0,
+      "median_allocated_bytes": 0.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "exact_snapshot",
+      "median_ns": 190516.667,
+      "min_ns": 149916.667,
+      "max_ns": 428256.667,
+      "median_allocated_bytes": 1376448.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "enumeration",
+      "median_ns": 1594600.0,
+      "min_ns": 1386293.333,
+      "max_ns": 1775873.333,
+      "median_allocated_bytes": 787072.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 4227.0,
+      "min_ns": 2451.0,
+      "max_ns": 5606.0,
+      "median_allocated_bytes": 16.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "world_save_sync",
+      "median_ns": 28376200.0,
+      "min_ns": 25559100.0,
+      "max_ns": 32580300.0,
+      "median_allocated_bytes": 142312.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "inventory_empty_pair",
+      "median_ns": 122.872,
+      "min_ns": 84.264,
+      "max_ns": 190.289,
+      "median_allocated_bytes": 80.0,
+      "round": 2
+    },
+    {
+      "variant": "candidate",
+      "keys": 16384,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 706.301,
+      "min_ns": 656.35,
+      "max_ns": 836.695,
+      "median_allocated_bytes": 1856.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "inventory_long_pair",
+      "median_ns": 746.908,
+      "min_ns": 451.577,
+      "max_ns": 1029.65,
+      "median_allocated_bytes": 2632.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "engine_long_pair",
+      "median_ns": 243.192,
+      "min_ns": 226.599,
+      "max_ns": 305.918,
+      "median_allocated_bytes": 2360.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "simulate_pair",
+      "median_ns": 353.718,
+      "min_ns": 298.668,
+      "max_ns": 406.605,
+      "median_allocated_bytes": 2232.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "exact_snapshot",
+      "median_ns": 48.473,
+      "min_ns": 43.923,
+      "max_ns": 71.177,
+      "median_allocated_bytes": 272.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "enumeration",
+      "median_ns": 192.82,
+      "min_ns": 102.107,
+      "max_ns": 353.823,
+      "median_allocated_bytes": 912.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 805.26,
+      "min_ns": 454.29,
+      "max_ns": 1215.66,
+      "median_allocated_bytes": 2448.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "world_save_sync",
+      "median_ns": 1234400.0,
+      "min_ns": 918900.0,
+      "max_ns": 5932300.0,
+      "median_allocated_bytes": 13432.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "inventory_empty_pair",
+      "median_ns": 461.057,
+      "min_ns": 365.863,
+      "max_ns": 473.417,
+      "median_allocated_bytes": 80.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 1520.72,
+      "min_ns": 1218.531,
+      "max_ns": 3655.793,
+      "median_allocated_bytes": 2736.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "inventory_long_pair",
+      "median_ns": 2020.629,
+      "min_ns": 1435.956,
+      "max_ns": 2980.196,
+      "median_allocated_bytes": 2712.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "engine_long_pair",
+      "median_ns": 1327.649,
+      "min_ns": 1029.764,
+      "max_ns": 2455.263,
+      "median_allocated_bytes": 2616.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "simulate_pair",
+      "median_ns": 1048.349,
+      "min_ns": 578.586,
+      "max_ns": 2108.86,
+      "median_allocated_bytes": 2232.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "exact_snapshot",
+      "median_ns": 250530.0,
+      "min_ns": 83636.667,
+      "max_ns": 660046.667,
+      "median_allocated_bytes": 127368.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "enumeration",
+      "median_ns": 292170.0,
+      "min_ns": 198763.333,
+      "max_ns": 479870.0,
+      "median_allocated_bytes": 49584.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 117239.0,
+      "min_ns": 106375.0,
+      "max_ns": 243418.0,
+      "median_allocated_bytes": 334936.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "world_save_sync",
+      "median_ns": 7956600.0,
+      "min_ns": 4346500.0,
+      "max_ns": 13778700.0,
+      "median_allocated_bytes": 136448.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "inventory_empty_pair",
+      "median_ns": 514.855,
+      "min_ns": 460.346,
+      "max_ns": 999.569,
+      "median_allocated_bytes": 80.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 1024,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 2133.066,
+      "min_ns": 1868.795,
+      "max_ns": 3041.313,
+      "median_allocated_bytes": 3272.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "inventory_long_pair",
+      "median_ns": 1254.369,
+      "min_ns": 817.703,
+      "max_ns": 1733.024,
+      "median_allocated_bytes": 2744.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "engine_long_pair",
+      "median_ns": 874.31,
+      "min_ns": 620.222,
+      "max_ns": 1293.481,
+      "median_allocated_bytes": 2616.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "simulate_pair",
+      "median_ns": 823.039,
+      "min_ns": 558.96,
+      "max_ns": 1224.817,
+      "median_allocated_bytes": 2232.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "exact_snapshot",
+      "median_ns": 2082780.0,
+      "min_ns": 1816143.333,
+      "max_ns": 2774326.667,
+      "median_allocated_bytes": 2045320.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "enumeration",
+      "median_ns": 6015070.0,
+      "min_ns": 3139886.667,
+      "max_ns": 9770920.0,
+      "median_allocated_bytes": 787056.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "amount_persist_128_pairs",
+      "median_ns": 53911.0,
+      "min_ns": 37260.0,
+      "max_ns": 166339.0,
+      "median_allocated_bytes": 334952.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "world_save_sync",
+      "median_ns": 27204900.0,
+      "min_ns": 23781300.0,
+      "max_ns": 39913000.0,
+      "median_allocated_bytes": 13344.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "inventory_empty_pair",
+      "median_ns": 328.189,
+      "min_ns": 290.039,
+      "max_ns": 359.157,
+      "median_allocated_bytes": 80.0,
+      "round": 2
+    },
+    {
+      "variant": "baseline",
+      "keys": 16384,
+      "metric": "inventory_exact_512_pair",
+      "median_ns": 1278.253,
+      "min_ns": 1124.761,
+      "max_ns": 1402.786,
+      "median_allocated_bytes": 3304.0,
+      "round": 2
+    }
+  ],
+  "candidate_base_commit": "fd3db3f0bebb904dd4318cad6c214435dc5ac5b6",
+  "candidate_description": "Verified working tree on this base commit; candidate_cell_sources identify the tested port"
+}

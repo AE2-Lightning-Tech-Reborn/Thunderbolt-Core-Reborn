@@ -71,6 +71,39 @@ class BigIndexedStorageTest {
     }
 
     @Test
+    void finiteInventorySimulationRespectsTheLegacy126BitKeyBoundary() {
+        var registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+        var base = IndexedCellTestFixtures.definition();
+        var definition = new IIndexedStorageCellItem() {
+            public net.minecraft.resources.ResourceLocation storageType(net.minecraft.world.item.ItemStack stack) {
+                return base.storageType(stack);
+            }
+            public double idleDrain(net.minecraft.world.item.ItemStack stack) { return 0; }
+            public ByteTracker createByteTracker(net.minecraft.world.item.ItemStack stack, IndexedStorage storage) {
+                var tracker = new ByteTracker(storage::getTotalTypes);
+                tracker.configure(8, Integer.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
+                return tracker;
+            }
+        };
+        var stack = new net.minecraft.world.item.ItemStack(Items.PAPER);
+        var inventory = new IndexedStorageCellInventory(stack, definition, registries, null);
+        var key = AEItemKey.of(Items.IRON_INGOT);
+        var source = appeng.api.networking.security.IActionSource.empty();
+        inventory.storage().load(legacyRoot(new long[] {Long.MAX_VALUE - 3}, new long[] {Long.MAX_VALUE}),
+                (tag, ignored) -> key, registries);
+        long before = inventory.storage().getModCount();
+        assertEquals(3, inventory.insert(key, 10, Actionable.SIMULATE, source));
+        assertEquals(before, inventory.storage().getModCount());
+        assertFalse(stack.hasTag());
+        assertEquals(3, inventory.insert(key, 10, Actionable.MODULATE, source));
+        assertEquals(BigInteger.ONE.shiftLeft(126).subtract(BigInteger.ONE), inventory.storage().getAmountExact(key));
+        assertEquals(0, inventory.insert(key, 1, Actionable.SIMULATE, source));
+        assertEquals(7, inventory.extract(key, 7, Actionable.MODULATE, source));
+        assertEquals(7, inventory.insert(key, 10, Actionable.SIMULATE, source));
+        assertEquals(7, inventory.insert(key, 10, Actionable.MODULATE, source));
+    }
+
+    @Test
     void legacyLoadedTypeTotalCarriesAndRecoversAcrossThe126BitLimit() {
         var iron = AEItemKey.of(Items.IRON_INGOT);
         var gold = AEItemKey.of(Items.GOLD_INGOT);
