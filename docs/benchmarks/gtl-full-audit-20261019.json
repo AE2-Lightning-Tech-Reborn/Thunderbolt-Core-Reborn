@@ -1,0 +1,3170 @@
+{
+  "schema_version": 1,
+  "audit_started": "2026-10-19",
+  "exported_utc": "2026-10-19T16:32:30.092040+00:00",
+  "baseline_commit": "a305f6fbe8f118dc780e0d215dc53d9536fbda0e",
+  "tested_worktree": "local changes against baseline; see accompanying audit document",
+  "environment": {
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10",
+    "java": "17.0.20"
+  },
+  "confirmed_repairs": [
+    "ByteTracker finite capacity and 63-bit limb carry/borrow",
+    "Eject registration handle removes unrelated persistence",
+    "CP-SAT pure Java preflight uses witness clock consistently"
+  ],
+  "phases": {
+    "preflight-before": {
+      "exit_code": 1,
+      "seconds": 203.006
+    },
+    "preflight-after": {
+      "exit_code": 1,
+      "seconds": 136.036
+    },
+    "broad-pressure": {
+      "exit_code": 0,
+      "seconds": 1284.247
+    },
+    "final-game": {
+      "exit_code": 0,
+      "seconds": 275.448
+    },
+    "lifecycle-game-auto": {
+      "exit_code": 0,
+      "seconds": 211.325
+    },
+    "lifecycle-game-always": {
+      "exit_code": 0,
+      "seconds": 128.385
+    },
+    "last-check": {
+      "exit_code": 0,
+      "seconds": 202.952
+    }
+  },
+  "junit_rounds": {
+    "before-preflight-fix": {
+      "totals": {
+        "tests": 1537,
+        "passed": 1519,
+        "skipped": 13,
+        "failures": 5,
+        "errors": 0
+      },
+      "tasks": {
+        "test": {
+          "tests": 1477,
+          "passed": 1460,
+          "skipped": 13,
+          "failures": 4,
+          "errors": 0,
+          "failures_detail": [
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.ByproductReplaySafetyTest",
+              "test": "competingRoutesBelowAWrapperStillProduceTheRequiredSiblingSideOutput()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: execution timed out after 1000 ms"
+            },
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.ReferenceCapabilityRunnerTest",
+              "test": "refillStartsASecondPassWithAFreshDeadline()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: expected: <SUPPORTED> but was: <ENGINE_TIMEOUT>"
+            },
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.TerminalBatchRecoveryTest",
+              "test": "publicMultiUnitRecoveryRefusalMarksCutoffAndPreservesTheCoreMissingWitness()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: one unit remains: the two-unit input admission was refused atomically ==> expected: <1> but was: <0>"
+            },
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.WideOrdinaryAllocationTest",
+              "test": "actualMatrixSizeAllowsWidthSixteenTwoInputAssignments()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: execution timed out after 3000 ms"
+            }
+          ],
+          "skipped_tests": [
+            "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest.realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.arithmeticLimitIncludesOutputs()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.nativeContextIsPerCopyAndLiveCapacityCanShrinkBeforeCommit()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.oneCopyCapacityStillUsesNativeJobAwareBatchContract()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.zeroFastPathCapacityUsesAnOwnedSingleCopyAndRetriesBatchingNextTick()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.exceptionAfterNativeCallPropagatesWithoutRefundOrRetry()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.indeterminateReceiptStopsDispatchWithoutOrdinaryRetry()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.reusableMaterialUsesOrdinaryDispatchWithoutMultiplyingItsReturnedSeed()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.arithmeticLimitAggregatesTheSameKeyAcrossInputSlots()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.partialReceiptRetainsOnlyAcceptedCopiesAndHonorsStopUntilNextTick()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.rejectionReturnsAllCopiesAndNeverRetriesAnOrdinaryPushInsideTheTransaction()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.failedLiveProbeReturnsAllCopiesBeforeNativeOwnershipChanges()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.parallelProtocolGetsOwnedBatchTotalsAndJobIdentity()"
+          ]
+        },
+        "externalPlannerBoundaryTest": {
+          "tests": 38,
+          "passed": 38,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        },
+        "materialDagLargeGraphTest": {
+          "tests": 1,
+          "passed": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        },
+        "cpSatColdRefinementTest": {
+          "tests": 1,
+          "passed": 0,
+          "skipped": 0,
+          "failures": 1,
+          "errors": 0,
+          "failures_detail": [
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.CpSatPetriRefinementTest",
+              "test": "repeatedFreshDeadlockAlternativesUseBoundedPreflightAndRemainExecutable()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: trial=0 ==> expected: <true> but was: <false>"
+            }
+          ],
+          "skipped_tests": []
+        },
+        "materialDagColdReplayTest": {
+          "tests": 20,
+          "passed": 20,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        }
+      }
+    },
+    "scheduling-probe-original-solver": {
+      "totals": {
+        "tests": 1537,
+        "passed": 1518,
+        "skipped": 13,
+        "failures": 6,
+        "errors": 0
+      },
+      "tasks": {
+        "test": {
+          "tests": 1477,
+          "passed": 1460,
+          "skipped": 13,
+          "failures": 4,
+          "errors": 0,
+          "failures_detail": [
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.ByproductReplaySafetyTest",
+              "test": "competingRoutesBelowAWrapperStillProduceTheRequiredSiblingSideOutput()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: execution timed out after 1000 ms"
+            },
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.ReferenceCapabilityRunnerTest",
+              "test": "refillStartsASecondPassWithAFreshDeadline()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: expected: <SUPPORTED> but was: <ENGINE_TIMEOUT>"
+            },
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.TerminalBatchRecoveryTest",
+              "test": "publicMultiUnitRecoveryRefusalMarksCutoffAndPreservesTheCoreMissingWitness()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: one unit remains: the two-unit input admission was refused atomically ==> expected: <1> but was: <0>"
+            },
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.WideOrdinaryAllocationTest",
+              "test": "actualMatrixSizeAllowsWidthSixteenTwoInputAssignments()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: execution timed out after 3000 ms"
+            }
+          ],
+          "skipped_tests": [
+            "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest.realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.arithmeticLimitIncludesOutputs()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.nativeContextIsPerCopyAndLiveCapacityCanShrinkBeforeCommit()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.oneCopyCapacityStillUsesNativeJobAwareBatchContract()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.zeroFastPathCapacityUsesAnOwnedSingleCopyAndRetriesBatchingNextTick()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.exceptionAfterNativeCallPropagatesWithoutRefundOrRetry()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.indeterminateReceiptStopsDispatchWithoutOrdinaryRetry()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.reusableMaterialUsesOrdinaryDispatchWithoutMultiplyingItsReturnedSeed()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.arithmeticLimitAggregatesTheSameKeyAcrossInputSlots()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.partialReceiptRetainsOnlyAcceptedCopiesAndHonorsStopUntilNextTick()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.rejectionReturnsAllCopiesAndNeverRetriesAnOrdinaryPushInsideTheTransaction()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.failedLiveProbeReturnsAllCopiesBeforeNativeOwnershipChanges()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.parallelProtocolGetsOwnedBatchTotalsAndJobIdentity()"
+          ]
+        },
+        "externalPlannerBoundaryTest": {
+          "tests": 38,
+          "passed": 38,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        },
+        "materialDagLargeGraphTest": {
+          "tests": 1,
+          "passed": 0,
+          "skipped": 0,
+          "failures": 1,
+          "errors": 0,
+          "failures_detail": [
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagSupplyTest",
+              "test": "linearSideOutputSchedulingCoversGraphsBeyondTheFormerSixteenThousandWorkCap()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: execution timed out after 3000 ms"
+            }
+          ],
+          "skipped_tests": []
+        },
+        "cpSatColdRefinementTest": {
+          "tests": 1,
+          "passed": 0,
+          "skipped": 0,
+          "failures": 1,
+          "errors": 0,
+          "failures_detail": [
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.CpSatPetriRefinementTest",
+              "test": "repeatedFreshDeadlockAlternativesUseBoundedPreflightAndRemainExecutable()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: trial=0 ==> expected: <true> but was: <false>"
+            }
+          ],
+          "skipped_tests": []
+        },
+        "materialDagColdReplayTest": {
+          "tests": 20,
+          "passed": 20,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        }
+      }
+    },
+    "targeted-final-code": {
+      "totals": {
+        "tests": 84,
+        "passed": 83,
+        "skipped": 0,
+        "failures": 1,
+        "errors": 0
+      },
+      "tasks": {
+        "test": {
+          "tests": 24,
+          "passed": 24,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        },
+        "externalPlannerBoundaryTest": {
+          "tests": 38,
+          "passed": 38,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        },
+        "materialDagLargeGraphTest": {
+          "tests": 1,
+          "passed": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        },
+        "cpSatColdRefinementTest": {
+          "tests": 1,
+          "passed": 0,
+          "skipped": 0,
+          "failures": 1,
+          "errors": 0,
+          "failures_detail": [
+            {
+              "classname": "com.moakiee.thunderbolt.core.crafting.planner.CpSatPetriRefinementTest",
+              "test": "repeatedFreshDeadlockAlternativesUseBoundedPreflightAndRemainExecutable()",
+              "status": "failure",
+              "message": "org.opentest4j.AssertionFailedError: trial=2 ==> expected: <false> but was: <true>"
+            }
+          ],
+          "skipped_tests": []
+        },
+        "materialDagColdReplayTest": {
+          "tests": 20,
+          "passed": 20,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        }
+      }
+    },
+    "last-check": {
+      "totals": {
+        "tests": 1538,
+        "passed": 1525,
+        "skipped": 13,
+        "failures": 0,
+        "errors": 0
+      },
+      "tasks": {
+        "test": {
+          "tests": 1478,
+          "passed": 1465,
+          "skipped": 13,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": [
+            "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest.realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.arithmeticLimitIncludesOutputs()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.nativeContextIsPerCopyAndLiveCapacityCanShrinkBeforeCommit()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.oneCopyCapacityStillUsesNativeJobAwareBatchContract()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.zeroFastPathCapacityUsesAnOwnedSingleCopyAndRetriesBatchingNextTick()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.exceptionAfterNativeCallPropagatesWithoutRefundOrRetry()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.indeterminateReceiptStopsDispatchWithoutOrdinaryRetry()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.reusableMaterialUsesOrdinaryDispatchWithoutMultiplyingItsReturnedSeed()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.arithmeticLimitAggregatesTheSameKeyAcrossInputSlots()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.partialReceiptRetainsOnlyAcceptedCopiesAndHonorsStopUntilNextTick()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.rejectionReturnsAllCopiesAndNeverRetriesAnOrdinaryPushInsideTheTransaction()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.failedLiveProbeReturnsAllCopiesBeforeNativeOwnershipChanges()",
+            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest.parallelProtocolGetsOwnedBatchTotalsAndJobIdentity()"
+          ]
+        },
+        "externalPlannerBoundaryTest": {
+          "tests": 38,
+          "passed": 38,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        },
+        "materialDagLargeGraphTest": {
+          "tests": 1,
+          "passed": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        },
+        "cpSatColdRefinementTest": {
+          "tests": 1,
+          "passed": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        },
+        "materialDagColdReplayTest": {
+          "tests": 20,
+          "passed": 20,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "failures_detail": [],
+          "skipped_tests": []
+        }
+      }
+    }
+  },
+  "junit_snapshot_note": "Per-task XML report snapshots; UP-TO-DATE tasks may reuse earlier reports for unchanged inputs. Do not sum snapshots as new executions.",
+  "final_task_outcomes": {
+    "cpSatColdRefinementTest": "executed",
+    "materialDagColdReplayTest": "executed",
+    "externalPlannerBoundaryTest": "UP-TO-DATE",
+    "materialDagLargeGraphTest": "UP-TO-DATE",
+    "test": "executed",
+    "verifyReleaseJar": "executed"
+  },
+  "stress": {
+    "ordinary": {
+      "summary": {
+        "exit_code": 0,
+        "seconds": 72.852,
+        "expected": 3,
+        "executed": 3,
+        "passed": 3,
+        "valid": true
+      },
+      "runs": [
+        {
+          "label": "plannerstress-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 5.448,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "chain-10000",
+                "samples": 12,
+                "probes_per_sample": 1,
+                "queries": 12,
+                "p50_ms": 22.643,
+                "p95_ms": 31.121,
+                "max_ms": 31.121,
+                "alloc_mib": 6.933,
+                "gc_ms": 31,
+                "budget_exits": 0,
+                "status": "PASS"
+              },
+              {
+                "scenario": "wide-16000",
+                "samples": 12,
+                "probes_per_sample": 1,
+                "queries": 12,
+                "p50_ms": 40.427,
+                "p95_ms": 53.29,
+                "max_ms": 53.29,
+                "alloc_mib": 13.97,
+                "gc_ms": 14,
+                "budget_exits": 0,
+                "status": "PASS"
+              },
+              {
+                "scenario": "session-wide-4096-8probes",
+                "samples": 12,
+                "probes_per_sample": 8,
+                "queries": 96,
+                "p50_ms": 17.652,
+                "p95_ms": 32.429,
+                "max_ms": 32.429,
+                "alloc_mib": 11.019,
+                "gc_ms": 7,
+                "budget_exits": 0,
+                "status": "PASS"
+              },
+              {
+                "scenario": "session-chain-2000-8probes",
+                "samples": 12,
+                "probes_per_sample": 8,
+                "queries": 96,
+                "p50_ms": 4.665,
+                "p95_ms": 6.364,
+                "max_ms": 6.364,
+                "alloc_mib": 4.858,
+                "gc_ms": 0,
+                "budget_exits": 0,
+                "status": "PASS"
+              },
+              {
+                "scenario": "wide-256-unrelated-100000",
+                "samples": 12,
+                "probes_per_sample": 1,
+                "queries": 12,
+                "p50_ms": 0.239,
+                "p95_ms": 0.264,
+                "max_ms": 0.264,
+                "alloc_mib": 0.226,
+                "gc_ms": 0,
+                "budget_exits": 0,
+                "status": "PASS"
+              },
+              {
+                "scenario": "admission-wide-18000",
+                "samples": 12,
+                "probes_per_sample": 1,
+                "queries": 12,
+                "p50_ms": 2.57,
+                "p95_ms": 3.424,
+                "max_ms": 3.424,
+                "alloc_mib": 1.529,
+                "gc_ms": 0,
+                "budget_exits": 12,
+                "status": "PASS"
+              }
+            ]
+          }
+        },
+        {
+          "label": "sidestress-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 63.939,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "side-4096-quantity-1",
+                "samples": 12,
+                "warmup": 1,
+                "p50_ms": 2300.263,
+                "p95_ms": 6273.48,
+                "alloc_mib": 165.449,
+                "budget_exits": 0,
+                "incomplete": 0,
+                "status": "PASS",
+                "incomplete_records": []
+              },
+              {
+                "scenario": "side-4096-quantity-1000000000000",
+                "samples": 12,
+                "warmup": 1,
+                "p50_ms": 2158.474,
+                "p95_ms": 3439.826,
+                "alloc_mib": 169.017,
+                "budget_exits": 0,
+                "incomplete": 0,
+                "status": "PASS",
+                "incomplete_records": []
+              }
+            ]
+          }
+        },
+        {
+          "label": "certificatestress-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 3.022,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "certificate-4096-quantity-1",
+                "samples": 12,
+                "warmup": 3,
+                "p50_ms": 25.157,
+                "p95_ms": 39.577,
+                "alloc_mib": 9.02,
+                "status": "PASS"
+              },
+              {
+                "scenario": "certificate-4096-quantity-1000000000000",
+                "samples": 12,
+                "warmup": 3,
+                "p50_ms": 27.656,
+                "p95_ms": 49.762,
+                "alloc_mib": 12.958,
+                "status": "PASS"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "allocation": {
+      "summary": {
+        "exit_code": 0,
+        "seconds": 88.315,
+        "expected": 2,
+        "executed": 2,
+        "passed": 2,
+        "valid": true
+      },
+      "runs": [
+        {
+          "label": "allocation-v2",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 3.583,
+          "validation_errors": [],
+          "result": {
+            "solver": "v2",
+            "cases": 1476,
+            "feasible": 898,
+            "incomplete": 0,
+            "replenishments": 578,
+            "failures": []
+          }
+        },
+        {
+          "label": "allocation-cpsat",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 84.27,
+          "validation_errors": [],
+          "result": {
+            "solver": "cp_sat",
+            "cases": 1476,
+            "feasible": 898,
+            "incomplete": 0,
+            "replenishments": 578,
+            "failures": []
+          }
+        }
+      ]
+    },
+    "batch": {
+      "summary": {
+        "exit_code": 0,
+        "seconds": 22.089,
+        "expected": 3,
+        "executed": 3,
+        "passed": 3,
+        "valid": true
+      },
+      "runs": [
+        {
+          "label": "batch-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 15.098,
+          "validation_errors": [],
+          "result": {
+            "elapsed_ms": 3650.0863,
+            "cases": 20000,
+            "limiter_calls": 4425,
+            "rejected_or_unavailable": 17747,
+            "status": "PASS",
+            "trillion_quantity_cases": 2858,
+            "preparation_exceptions": 713,
+            "provider_cases": 2000,
+            "seed": 20261101
+          }
+        },
+        {
+          "label": "batch-1",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 3.432,
+          "validation_errors": [],
+          "result": {
+            "seed": 20261102,
+            "provider_cases": 2000,
+            "preparation_exceptions": 728,
+            "trillion_quantity_cases": 2858,
+            "status": "PASS",
+            "rejected_or_unavailable": 17755,
+            "limiter_calls": 4504,
+            "cases": 20000,
+            "elapsed_ms": 447.4296
+          }
+        },
+        {
+          "label": "batch-2",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 3.154,
+          "validation_errors": [],
+          "result": {
+            "preparation_exceptions": 774,
+            "trillion_quantity_cases": 2858,
+            "status": "PASS",
+            "rejected_or_unavailable": 17804,
+            "limiter_calls": 4441,
+            "cases": 20000,
+            "elapsed_ms": 489.1382,
+            "seed": 20261103,
+            "provider_cases": 2000
+          }
+        }
+      ]
+    },
+    "channel": {
+      "summary": {
+        "exit_code": 0,
+        "seconds": 818.926,
+        "expected": 9,
+        "executed": 9,
+        "passed": 9,
+        "valid": true
+      },
+      "runs": [
+        {
+          "label": "channel-tree-136192-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 148.002,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "high-tree",
+                "nodes": 226898,
+                "edges": 226897,
+                "max_degree": 6,
+                "sources": 266,
+                "demand": 136192,
+                "flow": 136192,
+                "winners": 136192,
+                "cold_ms": 3896.621,
+                "p50_ms": 5970.621,
+                "p95_ms": 11448.444,
+                "max_ms": 11448.444,
+                "alloc_mib": 73.728,
+                "graph_heap_mib": 159.415,
+                "heap_peak_pools_mib": 221.393,
+                "gc_ms": 160,
+                "status": "PASS"
+              }
+            ]
+          }
+        },
+        {
+          "label": "channel-dense-136192-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 163.198,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "dense-tree",
+                "nodes": 226898,
+                "edges": 226897,
+                "max_degree": 6,
+                "sources": 266,
+                "demand": 136192,
+                "flow": 136192,
+                "winners": 136192,
+                "cold_ms": 4308.346,
+                "p50_ms": 1729.459,
+                "p95_ms": 4125.636,
+                "max_ms": 4125.636,
+                "alloc_mib": 73.728,
+                "graph_heap_mib": 159.04,
+                "heap_peak_pools_mib": 238.521,
+                "gc_ms": 99,
+                "status": "PASS"
+              }
+            ]
+          }
+        },
+        {
+          "label": "channel-mesh-136192-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 120.007,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "mesh",
+                "nodes": 272650,
+                "edges": 408368,
+                "max_degree": 6,
+                "sources": 266,
+                "demand": 136192,
+                "flow": 136192,
+                "winners": 136192,
+                "cold_ms": 9673.597,
+                "p50_ms": 3810.155,
+                "p95_ms": 6782.674,
+                "max_ms": 6782.674,
+                "alloc_mib": 99.09,
+                "graph_heap_mib": 185.696,
+                "heap_peak_pools_mib": 282.517,
+                "gc_ms": 156,
+                "status": "PASS"
+              }
+            ]
+          }
+        },
+        {
+          "label": "channel-weighted-512-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 25.925,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "weighted",
+                "nodes": 532,
+                "edges": 531,
+                "max_degree": 3,
+                "sources": 266,
+                "demand": 136192,
+                "flow": 136192,
+                "winners": 266,
+                "cold_ms": 498.247,
+                "p50_ms": 11.348,
+                "p95_ms": 25.209,
+                "max_ms": 25.209,
+                "alloc_mib": 0.183,
+                "graph_heap_mib": 90.596,
+                "heap_peak_pools_mib": 93.596,
+                "gc_ms": 0,
+                "status": "PASS"
+              }
+            ]
+          }
+        },
+        {
+          "label": "channel-chain-50000-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 146.642,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "chain",
+                "nodes": 50267,
+                "edges": 50266,
+                "max_degree": 2,
+                "sources": 266,
+                "demand": 1,
+                "flow": 1,
+                "winners": 1,
+                "cold_ms": 7088.09,
+                "p50_ms": 824.226,
+                "p95_ms": 5281.607,
+                "max_ms": 5281.607,
+                "alloc_mib": 16.332,
+                "graph_heap_mib": 105.688,
+                "heap_peak_pools_mib": 138.467,
+                "gc_ms": 54,
+                "status": "PASS"
+              }
+            ]
+          }
+        },
+        {
+          "label": "channel-comb-100000-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 90.697,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "comb",
+                "nodes": 200266,
+                "edges": 200265,
+                "max_degree": 3,
+                "sources": 266,
+                "demand": 100000,
+                "flow": 100000,
+                "winners": 100000,
+                "cold_ms": 3460.765,
+                "p50_ms": 440.547,
+                "p95_ms": 815.777,
+                "max_ms": 815.777,
+                "alloc_mib": 66.742,
+                "graph_heap_mib": 151.126,
+                "heap_peak_pools_mib": 268.682,
+                "gc_ms": 53,
+                "status": "PASS"
+              }
+            ]
+          }
+        },
+        {
+          "label": "channel-vanilla-136192-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 18.387,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "vanilla-faces",
+                "nodes": 226898,
+                "edges": 226897,
+                "max_degree": 6,
+                "sources": 0,
+                "demand": 136192,
+                "flow": 136192,
+                "winners": 136192,
+                "cold_ms": 961.7,
+                "p50_ms": 260.581,
+                "p95_ms": 356.49,
+                "max_ms": 356.49,
+                "alloc_mib": 74.025,
+                "graph_heap_mib": 159.083,
+                "heap_peak_pools_mib": 408.067,
+                "gc_ms": 32,
+                "status": "PASS"
+              }
+            ]
+          }
+        },
+        {
+          "label": "channel-tree-200000-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 24.751,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "high-tree",
+                "nodes": 290706,
+                "edges": 290705,
+                "max_degree": 6,
+                "sources": 266,
+                "demand": 200000,
+                "flow": 136192,
+                "winners": 136192,
+                "cold_ms": 1292.347,
+                "p50_ms": 698.931,
+                "p95_ms": 1365.149,
+                "max_ms": 1365.149,
+                "alloc_mib": 90.463,
+                "graph_heap_mib": 180.024,
+                "heap_peak_pools_mib": 329.213,
+                "gc_ms": 86,
+                "status": "PASS"
+              }
+            ]
+          }
+        },
+        {
+          "label": "channel-oracle-20000",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 80.148,
+          "validation_errors": [],
+          "result": {
+            "rows": []
+          },
+          "oracle_pass": 20000
+        }
+      ]
+    },
+    "storage": {
+      "summary": {
+        "exit_code": 0,
+        "seconds": 36.418,
+        "expected": 1,
+        "executed": 1,
+        "passed": 1,
+        "valid": true
+      },
+      "runs": [
+        {
+          "label": "storage-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 35.979,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "legacy-long",
+                "keys": 10000,
+                "measured_operations": 120000,
+                "operation_p50_ns": 1830.0,
+                "operation_p95_ns": 5817.4,
+                "bytes_per_operation_with_oracle": 127.0,
+                "persist_p50_ms": 0.284,
+                "persist_p95_ms": 23.835,
+                "load_p50_ms": 84.41,
+                "load_p95_ms": 202.322,
+                "compaction_reinsertion": "PASS",
+                "status": "PASS"
+              },
+              {
+                "scenario": "exact-150digits",
+                "keys": 10000,
+                "measured_operations": 120000,
+                "operation_p50_ns": 5930.4,
+                "operation_p95_ns": 29814.7,
+                "bytes_per_operation_with_oracle": 1922.0,
+                "persist_p50_ms": 25.631,
+                "persist_p95_ms": 126.768,
+                "load_p50_ms": 141.554,
+                "load_p95_ms": 381.082,
+                "compaction_reinsertion": "PASS",
+                "status": "PASS"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "cpsat": {
+      "summary": {
+        "exit_code": 0,
+        "seconds": 79.362,
+        "expected": 1,
+        "executed": 1,
+        "passed": 1,
+        "valid": true
+      },
+      "runs": [
+        {
+          "label": "cpsat-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 78.897,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "cycles-2-quantity-3",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 1909.755,
+                "p50_ms": 71.9788,
+                "p95_ms": 148.8698,
+                "max_ms": 148.8698,
+                "alloc_mib": 0.5363616943359375,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 0,
+                "warmup_replans": 0,
+                "successful_replans": 0,
+                "successful_warmup_replans": 0,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 1909.755,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 100.9318,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 100.9018,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 130.3446,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 102.7108,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 71.9788,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 77.043,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 97.1764,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 49.3866,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 70.4684,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 148.8698,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 73.3195,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 50.6145,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 48.7578,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 51.6247,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-2-quantity-3-short-seed",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 409.6533,
+                "p50_ms": 333.0655,
+                "p95_ms": 427.5668,
+                "max_ms": 427.5668,
+                "alloc_mib": 3.82354736328125,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 12,
+                "warmup_replans": 3,
+                "successful_replans": 12,
+                "successful_warmup_replans": 3,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 409.6533,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 367.8292,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 365.5416,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 355.6762,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 336.5276,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 333.0655,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 427.5668,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 306.2813,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 287.7427,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 317.1382,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 341.835,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 316.8927,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 339.2685,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 302.1716,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 377.3523,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-2-quantity-1000000000000",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 52.1962,
+                "p50_ms": 68.2062,
+                "p95_ms": 266.3993,
+                "max_ms": 266.3993,
+                "alloc_mib": 0.532196044921875,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 0,
+                "warmup_replans": 0,
+                "successful_replans": 0,
+                "successful_warmup_replans": 0,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 52.1962,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 47.2584,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 61.912,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 156.9738,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 68.2062,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 266.3993,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 52.5962,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 37.1878,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 38.2314,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 43.1781,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 34.1449,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 112.2354,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 233.2146,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 200.462,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 168.6978,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-2-quantity-1000000000000-short-seed",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 349.7591,
+                "p50_ms": 329.8984,
+                "p95_ms": 667.4529,
+                "max_ms": 667.4529,
+                "alloc_mib": 3.1736068725585938,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 12,
+                "warmup_replans": 3,
+                "successful_replans": 12,
+                "successful_warmup_replans": 3,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 349.7591,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 364.1239,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 333.7115,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 329.8984,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 320.1874,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 372.6846,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 522.2646,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 334.1814,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 305.4967,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 667.4529,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 304.4819,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 310.9462,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 542.6597,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 312.8031,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 333.1983,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-4-quantity-3",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 50.3069,
+                "p50_ms": 101.443,
+                "p95_ms": 258.2622,
+                "max_ms": 258.2622,
+                "alloc_mib": 1.0805206298828125,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 0,
+                "warmup_replans": 0,
+                "successful_replans": 0,
+                "successful_warmup_replans": 0,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 50.3069,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 83.0937,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 106.4254,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 258.2622,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 108.1168,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 225.1011,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 101.443,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 55.1136,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 65.7354,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 132.475,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 162.6535,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 145.5627,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 66.604,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 49.9321,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 89.084,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-4-quantity-3-short-seed",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 896.0425,
+                "p50_ms": 334.7407,
+                "p95_ms": 448.5411,
+                "max_ms": 448.5411,
+                "alloc_mib": 7.160179138183594,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 12,
+                "warmup_replans": 3,
+                "successful_replans": 12,
+                "successful_warmup_replans": 3,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 896.0425,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 663.6517,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 349.9217,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 364.0113,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 297.7465,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 288.3782,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 351.9608,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 334.7407,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 320.2778,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 380.4194,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 343.6451,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 448.5411,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 349.3676,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 326.2827,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 299.6689,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-4-quantity-1000000000000",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 231.8198,
+                "p50_ms": 23.993,
+                "p95_ms": 74.4243,
+                "max_ms": 74.4243,
+                "alloc_mib": 1.0903701782226562,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 0,
+                "warmup_replans": 0,
+                "successful_replans": 0,
+                "successful_warmup_replans": 0,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 231.8198,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 78.0884,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 77.8251,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 74.4243,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 43.8413,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 57.2576,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 23.993,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 21.0387,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 19.3897,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 20.2997,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 17.6661,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 27.2347,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 22.8323,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 31.5072,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 32.4567,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-4-quantity-1000000000000-short-seed",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 306.2335,
+                "p50_ms": 334.2546,
+                "p95_ms": 410.3997,
+                "max_ms": 410.3997,
+                "alloc_mib": 6.668190002441406,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 12,
+                "warmup_replans": 3,
+                "successful_replans": 12,
+                "successful_warmup_replans": 3,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 306.2335,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 324.5505,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 340.6413,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 410.3997,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 297.3501,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 334.2546,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 367.8895,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 320.2472,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 395.6928,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 308.0129,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 328.3919,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 392.2878,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 390.3097,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 331.0246,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 372.8203,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-8-quantity-3",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 111.6345,
+                "p50_ms": 80.3799,
+                "p95_ms": 183.9937,
+                "max_ms": 183.9937,
+                "alloc_mib": 2.5452804565429688,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 0,
+                "warmup_replans": 0,
+                "successful_replans": 0,
+                "successful_warmup_replans": 0,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 111.6345,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 338.1065,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 231.0711,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 163.6134,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 79.5077,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 79.8921,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 102.5616,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 80.3799,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 58.9628,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 54.7903,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 92.2653,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 54.3489,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 121.2206,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 165.6254,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 183.9937,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-8-quantity-3-short-seed",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 494.6131,
+                "p50_ms": 429.3696,
+                "p95_ms": 906.1317,
+                "max_ms": 906.1317,
+                "alloc_mib": 12.353782653808594,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 12,
+                "warmup_replans": 3,
+                "successful_replans": 12,
+                "successful_warmup_replans": 3,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 494.6131,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 977.0462,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 322.2503,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 429.3696,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 906.1317,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 741.9553,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 491.7551,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 392.4316,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 330.3376,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 321.6623,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 705.8294,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 520.1713,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 458.1647,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 386.957,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 424.6484,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-8-quantity-1000000000000",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 281.794,
+                "p50_ms": 128.9206,
+                "p95_ms": 1168.577,
+                "max_ms": 1168.577,
+                "alloc_mib": 2.5877761840820312,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 0,
+                "warmup_replans": 0,
+                "successful_replans": 0,
+                "successful_warmup_replans": 0,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 281.794,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 541.526,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 537.8957,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 175.5572,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 715.9186,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 110.3303,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 109.7886,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 127.793,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 128.9206,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 100.0893,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 78.076,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 1168.577,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 739.4357,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 234.705,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 232.057,
+                    "status": "SOLVED",
+                    "feasible": true,
+                    "budget_exhausted": true,
+                    "missing": {}
+                  }
+                ]
+              },
+              {
+                "scenario": "cycles-8-quantity-1000000000000-short-seed",
+                "samples": 12,
+                "warmup": 3,
+                "cold_ms": 764.2461,
+                "p50_ms": 428.6925,
+                "p95_ms": 1058.1011,
+                "max_ms": 1058.1011,
+                "alloc_mib": 15.14959716796875,
+                "budget_exits": 12,
+                "incomplete": 0,
+                "failures": 0,
+                "status": "CUTOFF",
+                "replans": 12,
+                "warmup_replans": 3,
+                "successful_replans": 12,
+                "successful_warmup_replans": 3,
+                "anomalies": [
+                  {
+                    "iteration": -3,
+                    "elapsed_ms": 764.2461,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -2,
+                    "elapsed_ms": 515.8957,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": -1,
+                    "elapsed_ms": 712.2708,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 0,
+                    "elapsed_ms": 564.4091,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 1,
+                    "elapsed_ms": 1058.1011,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 2,
+                    "elapsed_ms": 505.4179,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 3,
+                    "elapsed_ms": 396.7162,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 4,
+                    "elapsed_ms": 509.5803,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 5,
+                    "elapsed_ms": 423.8046,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 6,
+                    "elapsed_ms": 389.5516,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 7,
+                    "elapsed_ms": 533.2087,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 8,
+                    "elapsed_ms": 417.1762,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 9,
+                    "elapsed_ms": 379.3442,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 10,
+                    "elapsed_ms": 428.6925,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  },
+                  {
+                    "iteration": 11,
+                    "elapsed_ms": 442.0628,
+                    "status": "SOLVED",
+                    "feasible": false,
+                    "budget_exhausted": true,
+                    "missing": {
+                      "S": 1
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "soak": {
+      "summary": {
+        "exit_code": 0,
+        "seconds": 95.196,
+        "expected": 1,
+        "executed": 1,
+        "passed": 1,
+        "valid": true
+      },
+      "runs": [
+        {
+          "label": "soak-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 93.72,
+          "validation_errors": [],
+          "result": {
+            "rows": [
+              {
+                "scenario": "four-workers-independent-session-soak",
+                "workers": 4,
+                "queries": 1600,
+                "warmup_queries": 320,
+                "rounds": [
+                  {
+                    "round": 0,
+                    "heap_after_gc_mib": 12.953529357910156,
+                    "completed_queries": 320
+                  },
+                  {
+                    "round": 1,
+                    "heap_after_gc_mib": 13.01824951171875,
+                    "completed_queries": 640
+                  },
+                  {
+                    "round": 2,
+                    "heap_after_gc_mib": 13.022041320800781,
+                    "completed_queries": 960
+                  },
+                  {
+                    "round": 3,
+                    "heap_after_gc_mib": 13.038536071777344,
+                    "completed_queries": 1280
+                  },
+                  {
+                    "round": 4,
+                    "heap_after_gc_mib": 13.045486450195312,
+                    "completed_queries": 1600
+                  }
+                ],
+                "budget_exits": 800,
+                "incomplete": 0,
+                "anomalies": [],
+                "p50_ms": 76.9075,
+                "p95_ms": 454.408,
+                "max_ms": 2174.1389,
+                "v2_p50_ms": 58.3359,
+                "v2_p95_ms": 316.4879,
+                "cp_sat_p50_ms": 104.577,
+                "cp_sat_p95_ms": 577.9012,
+                "elapsed_ms_with_warmup_gc_validation": 76509.9607,
+                "heap_after_gc_mib": [
+                  12.936904907226562,
+                  12.953529357910156,
+                  13.01824951171875,
+                  13.022041320800781,
+                  13.038536071777344,
+                  13.045486450195312
+                ],
+                "heap_growth_mib": 0.10858154296875,
+                "status": "PASS"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "isolated": {
+      "summary": {
+        "exit_code": 0,
+        "seconds": 24.111,
+        "expected": 6,
+        "executed": 6,
+        "passed": 6,
+        "valid": true
+      },
+      "runs": [
+        {
+          "label": "isolated-feedback-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 3.545,
+          "validation_errors": [],
+          "result": {
+            "class": "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test",
+            "method": "weightedFeedbackKeepsExternalConsumablesOutsideTheStateCycle",
+            "found": 1,
+            "passed": 1,
+            "failed": 0,
+            "elapsed_ms": 180,
+            "failures": []
+          }
+        },
+        {
+          "label": "isolated-portfolio-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 5.392,
+          "validation_errors": [],
+          "result": {
+            "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+            "method": "replenishmentPortfolioUsesTheExistingRefinementDeadlineWithoutQuarteringItAgain",
+            "found": 1,
+            "passed": 1,
+            "failed": 0,
+            "elapsed_ms": 97,
+            "failures": []
+          }
+        },
+        {
+          "label": "isolated-quality-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 3.108,
+          "validation_errors": [],
+          "result": {
+            "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+            "method": "refinementKeepsTheSmallerSupplementAndItStillReplansWithMinimalSearch",
+            "found": 1,
+            "passed": 1,
+            "failed": 0,
+            "elapsed_ms": 442,
+            "failures": []
+          }
+        },
+        {
+          "label": "isolated-default-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 3.149,
+          "validation_errors": [],
+          "result": {
+            "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+            "method": "boundedSharedCycleKeepsAnExecutableSupplement",
+            "found": 1,
+            "passed": 1,
+            "failed": 0,
+            "elapsed_ms": 463,
+            "failures": []
+          }
+        },
+        {
+          "label": "isolated-expiry-initial-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 3.456,
+          "validation_errors": [],
+          "result": {
+            "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+            "method": "anExpiredRefinementDeadlineKeepsTheLastExecutableSupplement",
+            "found": 1,
+            "passed": 1,
+            "failed": 0,
+            "elapsed_ms": 307,
+            "failures": []
+          }
+        },
+        {
+          "label": "isolated-expiry-improved-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 3.74,
+          "validation_errors": [],
+          "result": {
+            "class": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest",
+            "method": "anExpiredRefinementAfterAnImprovementKeepsItsCertifiedSupplement",
+            "found": 1,
+            "passed": 1,
+            "failed": 0,
+            "elapsed_ms": 261,
+            "failures": []
+          }
+        }
+      ]
+    },
+    "boundary": {
+      "summary": {
+        "exit_code": 0,
+        "seconds": 4.461,
+        "expected": 1,
+        "executed": 1,
+        "passed": 1,
+        "valid": true
+      },
+      "runs": [
+        {
+          "label": "boundary-0",
+          "exit_code": 0,
+          "timed_out": false,
+          "elapsed_seconds": 4.082,
+          "validation_errors": [],
+          "result": {
+            "found": 38,
+            "passed": 38,
+            "failed": 0,
+            "elapsed_ms": 830,
+            "failures": []
+          }
+        }
+      ]
+    }
+  },
+  "stress_all_valid": true,
+  "stress_sources_unchanged": true,
+  "original_solver_control": {
+    "exit_code": 1,
+    "tests": 1,
+    "failures": 1,
+    "messages": [
+      "org.opentest4j.AssertionFailedError: expected: <true> but was: <false>"
+    ],
+    "valid": true
+  },
+  "game_tests": {
+    "final-game": {
+      "exit_code": 0,
+      "expected": 7,
+      "passed": 7,
+      "valid": true
+    },
+    "lifecycle-game-auto": {
+      "exit_code": 0,
+      "expected": 11,
+      "passed": 11,
+      "valid": true
+    },
+    "lifecycle-game-always": {
+      "exit_code": 0,
+      "expected": 11,
+      "passed": 11,
+      "valid": true
+    }
+  },
+  "release": {
+    "file": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "bytes": 5401695,
+    "sha256": "388285ecaf1e964378b9d34371dd5f879647bde77015b7bc01f17fe306182a37",
+    "main": {
+      "classes": 523,
+      "max_major": 61,
+      "min_major": 61,
+      "java_17_compatible": true
+    },
+    "nested": {
+      "META-INF/jarjar/mixinextras-forge-0.4.1.jar": {
+        "classes": 2,
+        "max_major": 61,
+        "min_major": 61,
+        "java_17_compatible": true
+      },
+      "META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar": {
+        "classes": 850,
+        "max_major": 52,
+        "min_major": 52,
+        "java_17_compatible": true
+      },
+      "META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar": {
+        "classes": 755,
+        "max_major": 52,
+        "min_major": 52,
+        "java_17_compatible": true
+      }
+    },
+    "fixture_entries": [],
+    "mixin_config_matches_source": true,
+    "mixin_refmap_matches_generated": true,
+    "valid": true
+  },
+  "auxiliary": {
+    "release_contract": {
+      "passed": 12
+    },
+    "awr_adapter": {
+      "passed": 3,
+      "skipped": 1
+    },
+    "gtl_accessor_scan": "no definitive generated-method collision"
+  },
+  "limits": [
+    "Full GTLCore/AE2LT modpack not run",
+    "Client rendering not tested",
+    "Whole-pack TPS not measured",
+    "Finite tests cannot prove absence of all defects"
+  ],
+  "final_validation_passed": true,
+  "all_final_code_validation_passed": false
+}

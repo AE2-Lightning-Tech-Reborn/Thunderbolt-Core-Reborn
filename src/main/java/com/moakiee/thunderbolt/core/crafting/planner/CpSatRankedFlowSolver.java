@@ -353,6 +353,30 @@ public final class CpSatRankedFlowSolver<K> {
                 session.improvements++;
                 if (best.feasible()) return new Result<>(Status.SOLVED, best, branches);
             }
+            // A small ordinary non-growing graph can have an inexpensive all-orders witness
+            // even when aggregate cyclic replay needs extra seed. Try it before the costly
+            // native block model; debit the same verifier budget and preserve outer deadlines.
+            if (c.items.size() <= 12 && c.patterns.size() <= 16
+                    && targetAmount <= 256 && session.verifier.remainingNodes() > 0) {
+                session.smallRecoveryAttempts++;
+                CraftPlan<K> recovered = null;
+                // Keep this pure-Java search on the same witness clock as seed recovery.
+                // Unbound calls use CPU time; caller and enclosing wall deadlines still apply.
+                // Reserve at least half the remaining allowance for native fallback.
+                long recoveryNanos = Math.min(100_000_000L,
+                        PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
+                try (var recovery = PlanningCancellation.limitWitnessWork(recoveryNanos)) {
+                    recovered = SmallConservativeSearch.tryPlan(graph, target, targetAmount,
+                            Math.min(256, session.verifier.remainingNodes()),
+                            () -> session.verifier.take(1L));
+                } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
+                    // Only the preflight expired: native refinement may use its remaining budget.
+                }
+                if (recovered != null) {
+                    session.improvements++;
+                    return new Result<>(Status.SOLVED, first.partial ? withBudget(recovered) : recovered, branches);
+                }
+            }
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             incomplete = true;
         } finally {
@@ -366,30 +390,6 @@ public final class CpSatRankedFlowSolver<K> {
         started = System.nanoTime();
         allowed = Math.min(session.remainingNanos, PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
         try (var ignored = PlanningCancellation.limitOptionalWork(allowed)) {
-            // A small ordinary non-growing graph can have an inexpensive all-orders witness
-            // even when aggregate cyclic replay needs extra seed. Try it before the costly
-            // native block model; debit the same verifier budget and preserve outer deadlines.
-            if (c.items.size() <= 12 && c.patterns.size() <= 16
-                    && targetAmount <= 256 && session.verifier.remainingNodes() > 0) {
-                session.smallRecoveryAttempts++;
-                CraftPlan<K> recovered = null;
-                // A fixed 10ms sub-limit expires during cold class loading even for a tiny
-                // witness. Reserve at least half the remaining refinement time for native
-                // fallback, without enlarging the session's overall optional allowance.
-                long recoveryNanos = Math.min(100_000_000L,
-                        PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
-                try (var recovery = PlanningCancellation.limitOptionalWork(recoveryNanos)) {
-                    recovered = SmallConservativeSearch.tryPlan(graph, target, targetAmount,
-                            Math.min(256, session.verifier.remainingNodes()),
-                            () -> session.verifier.take(1L));
-                } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
-                    // Only the preflight expired: native refinement may use its remaining budget.
-                }
-                if (recovered != null) {
-                    session.improvements++;
-                    return new Result<>(Status.SOLVED, first.partial ? withBudget(recovered) : recovered, branches);
-                }
-            }
             // Optimize route, seed and repetitions together. A bounded witness family is only an
             // under-approximation: failure here must never add an exclusion to the master model.
             // Certify the compact exact-round family before optional permutation discovery.

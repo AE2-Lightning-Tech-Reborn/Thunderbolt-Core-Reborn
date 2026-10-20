@@ -42,28 +42,29 @@ public final class ByteTracker {
     }
     //  Hot-path: capacity check
     public long computeMaxInsertable(AEKeyType type, boolean isNewKey) {
-        int apb = type.getAmountPerByte();
-
-        if (capacityHi == usedBytesHi) {
-            if (capacityLo <= usedBytesLo) return 0;
-            return maxFromFreeBytes(capacityLo - usedBytesLo, apb, type, isNewKey);
+        if (isNewKey && totalTypesGetter.getAsInt() >= maxTypes) return 0;
+        long freeLo = capacityLo - usedBytesLo;
+        long freeHi = capacityHi - usedBytesHi;
+        if (freeLo < 0) {
+            freeLo &= Long.MAX_VALUE;
+            freeHi--;
         }
-        if (capacityHi < usedBytesHi) return 0;
-        return Long.MAX_VALUE;
-    }
-
-    private long maxFromFreeBytes(long freeBytes, int apb, AEKeyType type, boolean isNewKey) {
-        int totalTypes = totalTypesGetter.getAsInt();
+        if (freeHi < 0) return 0;
         if (isNewKey) {
-            if (totalTypes >= maxTypes) return 0;
-            if (freeBytes < bytesPerType) return 0;
-            freeBytes -= bytesPerType;
+            freeLo -= bytesPerType;
+            if (freeLo < 0) {
+                freeLo &= Long.MAX_VALUE;
+                freeHi--;
+            }
         }
+        if (freeHi < 0) return 0;
+        if (freeHi > 0) return Long.MAX_VALUE;
+
+        int apb = type.getAmountPerByte();
         long r = keyTypeRemainders.getLong(type);
         long freeInPartial = (r > 0) ? (apb - r) : 0;
-        if (freeBytes > Long.MAX_VALUE / apb) return Long.MAX_VALUE;
-        long result = freeBytes * apb + freeInPartial;
-        return result < 0 ? Long.MAX_VALUE : result;
+        if (freeLo > (Long.MAX_VALUE - freeInPartial) / apb) return Long.MAX_VALUE;
+        return freeLo * apb + freeInPartial;
     }
     //  Hot-path: insert delta
     public void onInsert(AEKeyType type, long amount, boolean isNewKey) {
@@ -84,7 +85,9 @@ public final class ByteTracker {
             keyTypeCounts.addTo(type, 1);
         }
 
-        usedBytesLo += byteDelta;
+        // The amount and a new type's metadata can together exceed one 63-bit limb.
+        usedBytesHi += byteDelta < 0 ? 1L : 0L;
+        usedBytesLo += byteDelta & Long.MAX_VALUE;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
     }
     //  Hot-path: extract delta
@@ -119,7 +122,8 @@ public final class ByteTracker {
             keyTypeRemainders.put(type, newR);
         }
 
-        usedBytesLo -= bytesFreed;
+        usedBytesHi -= bytesFreed < 0 ? 1L : 0L;
+        usedBytesLo -= bytesFreed & Long.MAX_VALUE;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi--; }
     }
     //  Queries

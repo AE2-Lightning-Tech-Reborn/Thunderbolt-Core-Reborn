@@ -80,6 +80,10 @@ public final class EjectRegistrationSavedData extends SavedData {
         }
     }
 
+    public void remove(PersistentRegistration registration) {
+        if (entries.remove(registration)) setDirty();
+    }
+
     public void removeByIntercept(ResourceKey<Level> dimension, BlockPos pos, Direction face) {
         long packedPos = pos.asLong();
         if (entries.removeIf(entry -> entry.interceptDimension().equals(dimension)

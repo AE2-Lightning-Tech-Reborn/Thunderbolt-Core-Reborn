@@ -102,6 +102,44 @@ class CpSatPetriRefinementTest {
         assertEquals(0, session.learnedCuts());
     }
 
+    @Test void unboundPureJavaPreflightDoesNotSpendItsCpuBudgetWhileDescheduled() {
+        var paused = new java.util.concurrent.atomic.AtomicBoolean();
+        record Key(String id, java.util.concurrent.atomic.AtomicBoolean paused) {
+            @Override public int hashCode() {
+                if (!paused.get() && StackWalker.getInstance().walk(frames -> frames.anyMatch(frame ->
+                        frame.getClassName().equals(SmallConservativeSearch.class.getName())))
+                        && paused.compareAndSet(false, true)) {
+                    java.util.concurrent.locks.LockSupport.parkNanos(200_000_000L);
+                }
+                return id.hashCode();
+            }
+        }
+        var keys = new java.util.HashMap<String, Key>();
+        java.util.function.Function<String, Key> key = id -> keys.computeIfAbsent(id, value -> new Key(value, paused));
+        var graph = CraftGraph.<Key>builder()
+                .pattern(new CraftPattern<>(key.apply("A"), 1, List.of(CraftInput.of(key.apply("R"), 1)), "ra"))
+                .pattern(new CraftPattern<>(key.apply("B"), 1, List.of(CraftInput.of(key.apply("A"), 2)),
+                        List.of(CraftOutput.of(key.apply("C"), 1)), "ab"))
+                .pattern(new CraftPattern<>(key.apply("C"), 1, List.of(CraftInput.of(key.apply("B"), 2)),
+                        List.of(CraftOutput.of(key.apply("A"), 1)), "bc"))
+                .pattern(new CraftPattern<>(key.apply("A"), 1, List.of(CraftInput.of(key.apply("C"), 2)),
+                        List.of(CraftOutput.of(key.apply("B"), 1)), "ca"))
+                .pattern(new CraftPattern<>(key.apply("U"), 1, List.of(CraftInput.of(key.apply("R"), 1)), "ru"))
+                .pattern(new CraftPattern<>(key.apply("V"), 1, List.of(CraftInput.of(key.apply("U"), 1)), "uv"))
+                .pattern(new CraftPattern<>(key.apply("W"), 1, List.of(CraftInput.of(key.apply("V"), 1)), "vw"))
+                .pattern(new CraftPattern<>(key.apply("C"), 1, List.of(CraftInput.of(key.apply("W"), 1)), "wc"))
+                .stock(key.apply("R"), 1).stock(key.apply("B"), 1).build();
+        var session = new CpSatRankedFlowSolver.PlanningSession();
+
+        var result = CpSatRankedFlowSolver.solve(graph, key.apply("C"), 1, session);
+
+        assertTrue(paused.get(), "the test must pause inside the Java preflight");
+        assertEquals(CpSatRankedFlowSolver.Status.SOLVED, result.status());
+        assertTrue(result.plan().feasible());
+        assertEquals(1, session.smallRecoveryAttempts());
+        assertEquals(0, session.blockSolves(), "a scheduling pause must not force native fallback");
+    }
+
     @Test void amountProbesShareNativeRefinementAndVerificationBudgets() {
         var graph = CpSatExecutionBlocksTest.seedFromStock(12);
         var session = new CpSatRankedFlowSolver.PlanningSession(1, 4096, 1_000_000_000L);
