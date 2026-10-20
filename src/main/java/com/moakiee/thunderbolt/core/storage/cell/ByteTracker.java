@@ -5,6 +5,7 @@ import java.util.function.IntSupplier;
 import appeng.api.stacks.AEKeyType;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 
 /**
  * Tracks byte-level capacity consumption for the infinite cell using
@@ -18,8 +19,62 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
  */
 public final class ByteTracker {
 
-    private final Object2LongOpenHashMap<AEKeyType> keyTypeRemainders = new Object2LongOpenHashMap<>();
-    private final Object2IntOpenHashMap<AEKeyType> keyTypeCounts = new Object2IntOpenHashMap<>();
+    private AEKeyType[] unitTypes = new AEKeyType[4];
+    private int[] amountsPerByte = new int[4];
+    private long[] remainders = new long[4];
+    private int[] typeCounts = new int[4];
+    private int unitTypeCount;
+    private Reference2IntOpenHashMap<AEKeyType> typeSlots;
+
+    private int findType(AEKeyType type) {
+        if (unitTypeCount > 2) return typeSlots.getInt(type);
+        for (int i = 0; i < unitTypeCount; i++) {
+            if (unitTypes[i] == type) return i;
+        }
+        return -1;
+    }
+
+    // Some custom channels (e.g. FE) expose a reloadable amount-per-byte setting.
+    boolean hasCurrentUnits() {
+        for (int i = 0; i < unitTypeCount; i++) {
+            if (unitTypes[i].getAmountPerByte() != amountsPerByte[i]) return false;
+        }
+        return true;
+    }
+
+    private void trackUnits(AEKeyType type, int amountPerByte) {
+        if (unitTypeCount == unitTypes.length) {
+            unitTypes = java.util.Arrays.copyOf(unitTypes, unitTypes.length * 2);
+            amountsPerByte = java.util.Arrays.copyOf(amountsPerByte, amountsPerByte.length * 2);
+            remainders = java.util.Arrays.copyOf(remainders, remainders.length * 2);
+            typeCounts = java.util.Arrays.copyOf(typeCounts, typeCounts.length * 2);
+        }
+        unitTypes[unitTypeCount] = type;
+        remainders[unitTypeCount] = 0;
+        typeCounts[unitTypeCount] = 0;
+        int index = unitTypeCount++;
+        amountsPerByte[index] = amountPerByte;
+        if (typeSlots != null) {
+            typeSlots.put(type, index);
+        } else if (unitTypeCount > 2) {
+            typeSlots = new Reference2IntOpenHashMap<>();
+            typeSlots.defaultReturnValue(-1);
+            for (int i = 0; i < unitTypeCount; i++) typeSlots.put(unitTypes[i], i);
+        }
+    }
+
+    private void removeType(int index) {
+        int last = --unitTypeCount;
+        if (typeSlots != null) {
+            typeSlots.removeInt(unitTypes[index]);
+            if (index != last) typeSlots.put(unitTypes[last], index);
+        }
+        unitTypes[index] = unitTypes[last];
+        amountsPerByte[index] = amountsPerByte[last];
+        remainders[index] = remainders[last];
+        typeCounts[index] = typeCounts[last];
+        unitTypes[last] = null;
+    }
 
     private long usedBytesLo;
     private long usedBytesHi;
@@ -67,7 +122,8 @@ public final class ByteTracker {
             if (freeBytes < bytesPerType) return 0;
             freeBytes -= bytesPerType;
         }
-        long r = keyTypeRemainders.getLong(type);
+        int index = findType(type);
+        long r = index < 0 ? 0 : remainders[index];
         long freeInPartial = (r > 0) ? (apb - r) : 0;
         if (freeBytes > Long.MAX_VALUE / apb) return Long.MAX_VALUE;
         long result = freeBytes * apb + freeInPartial;
@@ -80,20 +136,25 @@ public final class ByteTracker {
 
     public void onInsert(AEKeyType type, long amount, boolean isNewKey) {
         int apb = type.getAmountPerByte();
+        int index = findType(type);
+        if (index < 0) {
+            index = unitTypeCount;
+            trackUnits(type, apb);
+        }
 
-        long oldR = keyTypeRemainders.getLong(type);
+        long oldR = remainders[index];
         long aMod = amount % apb;
         long combined = oldR + aMod;
         long extra = (combined >= apb) ? 1L : 0L;
         long newR = extra > 0 ? combined - apb : combined;
-        keyTypeRemainders.put(type, newR);
+        remainders[index] = newR;
 
         long byteDelta = amount / apb + extra
                 + (newR > 0 ? 1L : 0L) - (oldR > 0 ? 1L : 0L);
 
         if (isNewKey) {
             byteDelta += bytesPerType;
-            keyTypeCounts.addTo(type, 1);
+            typeCounts[index]++;
         }
 
         usedBytesLo += byteDelta;
@@ -106,8 +167,9 @@ public final class ByteTracker {
 
     public void onExtract(AEKeyType type, long amount, boolean keyRemoved) {
         int apb = type.getAmountPerByte();
+        int index = findType(type);
 
-        long oldR = keyTypeRemainders.getLong(type);
+        long oldR = remainders[index];
         long aMod = amount % apb;
         long newR, extra;
         if (oldR >= aMod) {
@@ -123,16 +185,13 @@ public final class ByteTracker {
 
         if (keyRemoved) {
             bytesFreed += bytesPerType;
-            // fastutil addTo returns the PREVIOUS value: the last key of a type sees 1 here.
-            int countBefore = keyTypeCounts.addTo(type, -1);
-            if (countBefore <= 1) {
-                keyTypeCounts.removeInt(type);
-                keyTypeRemainders.removeLong(type);
+            if (--typeCounts[index] <= 0) {
+                removeType(index);
             } else {
-                keyTypeRemainders.put(type, newR);
+                remainders[index] = newR;
             }
         } else {
-            keyTypeRemainders.put(type, newR);
+            remainders[index] = newR;
         }
 
         usedBytesLo -= bytesFreed;
@@ -162,7 +221,7 @@ public final class ByteTracker {
 
     /** Test-only visibility: per-type bookkeeping entries must vanish with a type's last key. */
     int trackedTypeEntries() {
-        return keyTypeCounts.size() + keyTypeRemainders.size();
+        return unitTypeCount * 2;
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -182,22 +241,24 @@ public final class ByteTracker {
                         Object2LongOpenHashMap<AEKeyType> ktHi,
                         Object2IntOpenHashMap<AEKeyType> ktCounts,
                         int totalKeys) {
-        keyTypeRemainders.clear();
-        keyTypeCounts.clear();
+        if (typeSlots != null) typeSlots.clear();
+        java.util.Arrays.fill(unitTypes, null);
+        unitTypeCount = 0;
         usedBytesLo = 0;
         usedBytesHi = 0;
-
-        keyTypeCounts.putAll(ktCounts);
 
         long[] divBuf = new long[2];
         for (var kt : ktLo.keySet()) {
             long tLo = ktLo.getLong(kt);
             long tHi = ktHi.getLong(kt);
             int apb = kt.getAmountPerByte();
+            int index = unitTypeCount;
+            trackUnits(kt, apb);
+            typeCounts[index] = ktCounts.getInt(kt);
 
             long remainder = (tHi == 0) ? tLo % apb
                                         : DualLong126.mod126(tHi, tLo, apb);
-            keyTypeRemainders.put(kt, remainder);
+            remainders[index] = remainder;
 
             DualLong126.ceilDiv126(tHi, tLo, apb, divBuf);
             usedBytesLo += divBuf[1];
@@ -206,6 +267,44 @@ public final class ByteTracker {
         }
 
         usedBytesLo += (long) totalKeys * bytesPerType;
+        if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
+    }
+
+    /**
+     * Rebuild from the engine's identity-indexed type slots. This avoids materializing the
+     * three per-type maps that the cold path above needs, and reuses the caller's scratch
+     * buffer so a resynchronization does not allocate per call.
+     */
+    public void rebuild(IndexedStorage storage, long[] divBuf) {
+        if (typeSlots != null) typeSlots.clear();
+        java.util.Arrays.fill(unitTypes, null);
+        unitTypeCount = 0;
+        usedBytesLo = 0;
+        usedBytesHi = 0;
+
+        int slots = storage.usedTypeSlots();
+        for (int slot = 0; slot < slots; slot++) {
+            int count = storage.typeCountAt(slot);
+            if (count <= 0) continue;
+            var kt = storage.typeAt(slot);
+            long tLo = storage.typeLoAt(slot);
+            long tHi = storage.typeHiAt(slot);
+            int apb = kt.getAmountPerByte();
+            int index = unitTypeCount;
+            trackUnits(kt, apb);
+            typeCounts[index] = count;
+
+            long remainder = (tHi == 0) ? tLo % apb
+                                        : DualLong126.mod126(tHi, tLo, apb);
+            remainders[index] = remainder;
+
+            DualLong126.ceilDiv126(tHi, tLo, apb, divBuf);
+            usedBytesLo += divBuf[1];
+            if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
+            usedBytesHi += divBuf[0];
+        }
+
+        usedBytesLo += (long) storage.getTotalTypes() * bytesPerType;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
     }
 }
