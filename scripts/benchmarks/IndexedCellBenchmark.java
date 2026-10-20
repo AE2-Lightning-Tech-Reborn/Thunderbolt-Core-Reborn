@@ -150,6 +150,31 @@ public final class IndexedCellBenchmark {
                 Files.deleteIfExists(file);
                 Files.deleteIfExists(directory);
             }
+            var empty = new IndexedStorageCellInventory(new ItemStack(Items.PAPER),
+                    IndexedCellTestFixtures.definition(), registries, null);
+            measure(args[0], size, "inventory_empty_pair", PAIRS, () -> {
+                long sum = 0;
+                for (int i = 0; i < PAIRS; i++) {
+                    var key = keys[(i * 0x9e3779b9) & (size - 1)];
+                    sum += empty.insert(key, 8, Actionable.MODULATE, SOURCE);
+                    sum += empty.extract(key, 8, Actionable.MODULATE, SOURCE);
+                }
+                checksum = sum;
+            }, () -> {
+                require(checksum == PAIRS * 16L, "churn transfer return");
+                require(empty.storage().getTotalTypes() == 0 && empty.usedBytes() == 0, "churn ledger");
+            });
+            var wide = java.math.BigInteger.ONE.shiftLeft(512);
+            measure(args[0], size, "inventory_exact_512_pair", PAIRS, () -> {
+                for (int i = 0; i < PAIRS; i++) {
+                    var key = keys[(i * 0x9e3779b9) & (size - 1)];
+                    sink = cell.insertBig(key, wide, Actionable.MODULATE, SOURCE);
+                    sink = cell.extractBig(key, wide, Actionable.MODULATE, SOURCE);
+                }
+            }, () -> {
+                require(wide.equals(sink), "exact transfer return");
+                require(original.equals(store.snapshotExact()), "exact transfer ledger");
+            });
         }
     }
 

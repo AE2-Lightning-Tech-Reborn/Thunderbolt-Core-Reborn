@@ -401,12 +401,12 @@ class IndexedStorageFastPathTest {
         // Reusing the engine for a different save must not reuse the old list.
         store.load(initialPayload, registries());
         var reencoded = store.persist(null, registries());
-        var replacedKeys = store.snapshotKeysForWrite(reencoded.getList("keys", net.minecraft.nbt.Tag.TAG_COMPOUND));
+        var replacedKeys = store.snapshotForWrite(reencoded).get("keys");
         assertNotSame(changedPayload.get("keys"), replacedKeys);
         assertEquals(initialPayload.get("keys"), replacedKeys);
         // Full serialization can replace the source list without changing the inventory.
         var anotherRoot = store.persist(null, registries());
-        var anotherKeys = store.snapshotKeysForWrite(anotherRoot.getList("keys", net.minecraft.nbt.Tag.TAG_COMPOUND));
+        var anotherKeys = store.snapshotForWrite(anotherRoot).get("keys");
         assertNotSame(replacedKeys, anotherKeys);
         assertEquals(replacedKeys, anotherKeys);
         assertEquals(expected, initial);

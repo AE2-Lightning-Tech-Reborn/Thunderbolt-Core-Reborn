@@ -8,8 +8,6 @@ import java.util.UUID;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.LongArrayTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -143,35 +141,8 @@ public final class IndexedCellStorageSavedData extends SavedData {
         return tag;
     }
 
-    /**
-     * NeoForge normally deep-copies every NBT payload on the server thread before handing
-     * SavedData to its I/O worker. Keys are immutable within IndexedStorage: persistence
-     * replaces whole key entries, never mutates their contents. Share those entries and
-     * detach the mutable lists and quantity arrays instead, retaining the standard file format.
-     */
-    static CompoundTag snapshotEncodedCell(CompoundTag encoded) {
-        return snapshotEncodedCell(encoded, null);
-    }
-
     private static CompoundTag snapshotEncodedCell(CompoundTag encoded, @Nullable IndexedStorage storage) {
-        var snapshot = new CompoundTag();
-        for (var name : encoded.getAllKeys()) {
-            var value = encoded.get(name);
-            if (name.equals("keys") && value instanceof ListTag keys) {
-                if (storage != null) {
-                    snapshot.put(name, storage.snapshotKeysForWrite(keys));
-                    continue;
-                }
-                var snapshotKeys = new ListTag(keys.size());
-                for (var key : keys) snapshotKeys.add(key);
-                snapshot.put(name, snapshotKeys);
-            } else if (name.equals("hi") && value instanceof LongArrayTag high && storage != null) {
-                snapshot.put(name, storage.snapshotHighForWrite(high));
-            } else {
-                snapshot.put(name, value.copy());
-            }
-        }
-        return snapshot;
+        return storage != null ? storage.snapshotForWrite(encoded) : new CellNbtSnapshot().copy(encoded);
     }
 
     CompoundTag snapshotForWrite(HolderLookup.Provider registries) {

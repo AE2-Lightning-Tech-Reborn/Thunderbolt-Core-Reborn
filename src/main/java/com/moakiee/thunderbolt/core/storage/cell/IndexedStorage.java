@@ -24,7 +24,8 @@ import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import com.moakiee.thunderbolt.core.storage.cell.DualLong126;
 
 /**
- * Array-indexed storage engine for the infinite cell.
+ * Array-indexed storage engine for the infinite cell. Live state, including query caches,
+ * is confined to the server thread; background I/O may only read detached snapshots.
  * <p>
  * Each {@link AEKey} is assigned a stable integer id. The id doubles as
  * the position in the persisted {@link ListTag} / {@link LongArrayTag},
@@ -85,10 +86,17 @@ public final class IndexedStorage {
 
     public java.util.Map<AEKey, java.math.BigInteger> snapshotExact() {
         if (totalTypes == 0) return java.util.Map.of();
-        // A dense inventory already has a hash index. Clone its arrays without rehashing NBT
-        // keys, replacing ids with detached exact amounts. Sparse inventories use a compact map.
+        // Clone the existing index through fastutil's public API, without rehashing NBT keys.
+        // Stable IDs address detached quantities; sparse inventories use a compact map instead.
         if (totalTypes >= 256 && nextId <= (long) totalTypes * 2) {
-            return java.util.Collections.unmodifiableMap(keyToId.snapshot(this));
+            var amounts = new java.math.BigInteger[nextId];
+            for (int id = 0; id < nextId; id++) {
+                var key = idToKey[id];
+                if (key == null) continue;
+                var wide = wideAmounts.get(key);
+                amounts[id] = wide != null ? wide : exactAmount(hi[id], lo[id]);
+            }
+            return java.util.Collections.unmodifiableMap(new ExactCellSnapshot(keyToId, amounts));
         }
         var result = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<AEKey, java.math.BigInteger>(
                 totalTypes);
@@ -99,77 +107,6 @@ public final class IndexedStorage {
             result.put(key, wide != null ? wide : exactAmount(hi[id], lo[id]));
         }
         return java.util.Collections.unmodifiableMap(result);
-    }
-
-    private static final class ExactSnapshot extends java.util.AbstractMap<AEKey, java.math.BigInteger> {
-        private final Object[] keys;
-        private final java.math.BigInteger[] amounts;
-        private final int mask;
-        private final int size;
-
-        private ExactSnapshot(Object[] keys, java.math.BigInteger[] amounts, int mask, int size) {
-            this.keys = keys;
-            this.amounts = amounts;
-            this.mask = mask;
-            this.size = size;
-        }
-
-        @Override public int size() { return size; }
-        @Override public boolean containsKey(Object key) { return get(key) != null; }
-        @Override public java.math.BigInteger get(Object key) {
-            if (key == null) return null;
-            int slot = it.unimi.dsi.fastutil.HashCommon.mix(key.hashCode()) & mask;
-            while (keys[slot] != null) {
-                if (key.equals(keys[slot])) return amounts[slot];
-                slot = (slot + 1) & mask;
-            }
-            return null;
-        }
-
-        @Override public void forEach(java.util.function.BiConsumer<? super AEKey, ? super java.math.BigInteger> action) {
-            java.util.Objects.requireNonNull(action);
-            for (int slot = 0; slot <= mask; slot++) {
-                if (keys[slot] != null) action.accept((AEKey) keys[slot], amounts[slot]);
-            }
-        }
-
-        @Override public java.util.Set<java.util.Map.Entry<AEKey, java.math.BigInteger>> entrySet() {
-            return new java.util.AbstractSet<>() {
-                @Override public int size() { return size; }
-                @Override public boolean contains(Object candidate) {
-                    return candidate instanceof java.util.Map.Entry<?, ?> entry
-                            && entry.getValue() != null && entry.getValue().equals(get(entry.getKey()));
-                }
-                @Override public java.util.Iterator<java.util.Map.Entry<AEKey, java.math.BigInteger>> iterator() {
-                    return new java.util.Iterator<>() {
-                        private int slot;
-                        public boolean hasNext() {
-                            while (slot <= mask && keys[slot] == null) slot++;
-                            return slot <= mask;
-                        }
-                        public java.util.Map.Entry<AEKey, java.math.BigInteger> next() {
-                            if (!hasNext()) throw new java.util.NoSuchElementException();
-                            int current = slot++;
-                            return java.util.Map.entry((AEKey) keys[current], amounts[current]);
-                        }
-                    };
-                }
-            };
-        }
-    }
-
-    private static final class KeyIndex extends Object2IntOpenHashMap<AEKey> {
-        private ExactSnapshot snapshot(IndexedStorage storage) {
-            Object[] keys = ((Object[]) key).clone();
-            var amounts = new java.math.BigInteger[keys.length];
-            for (int slot = 0; slot <= mask; slot++) {
-                if (keys[slot] == null) continue;
-                int id = value[slot];
-                var wide = storage.wideAmounts.get(keys[slot]);
-                amounts[slot] = wide != null ? wide : exactAmount(storage.hi[id], storage.lo[id]);
-            }
-            return new ExactSnapshot(keys, amounts, mask, size);
-        }
     }
 
     public java.math.BigInteger insertExact(AEKey key, java.math.BigInteger amount, Actionable mode) {
@@ -294,7 +231,7 @@ public final class IndexedStorage {
     private static final int COMPACT_THRESHOLD = 2;
 
     // Key registry — id is stable and doubles as ListTag position
-    private final KeyIndex keyToId = new KeyIndex();
+    private final Object2IntOpenHashMap<AEKey> keyToId = new Object2IntOpenHashMap<>();
     private @Nullable AEKey lastLookupKey;
     private int lastLookupId = -1;
     private AEKey[] idToKey;
@@ -312,35 +249,11 @@ public final class IndexedStorage {
     private CompoundTag[] serializedKey;
     // The {"key": tag} wrapper is immutable for a key's lifetime; persist reuses one instance.
     private CompoundTag[] keyEntries;
-    // The source list is mutable; the detached list is shared only until keys change.
-    private @Nullable ListTag snapshotKeySource;
-    private @Nullable ListTag snapshotKeys;
-    private @Nullable LongArrayTag snapshotHighSource;
-    private @Nullable LongArrayTag snapshotHigh;
+    private final CellNbtSnapshot writeSnapshot = new CellNbtSnapshot();
 
-    /** The detached high words stay valid until persistence changes a high word or its source. */
-    LongArrayTag snapshotHighForWrite(LongArrayTag high) {
-        if (snapshotHigh == null || snapshotHighSource != high) {
-            snapshotHigh = high.copy();
-            snapshotHighSource = high;
-        }
-        return snapshotHigh;
-    }
-
-    /** Returns a detached read-only list, invalidated before any structural mutation. */
-    ListTag snapshotKeysForWrite(ListTag keys) {
-        if (snapshotKeys == null || snapshotKeySource != keys) {
-            var detached = new ListTag(keys.size());
-            for (var key : keys) detached.add(key);
-            snapshotKeySource = keys;
-            snapshotKeys = detached;
-        }
-        return snapshotKeys;
-    }
-
-    private void invalidateSnapshotKeys() {
-        snapshotKeySource = null;
-        snapshotKeys = null;
+    /** Called on the server thread; only the returned detached payload may reach the I/O worker. */
+    CompoundTag snapshotForWrite(CompoundTag encoded) {
+        return writeSnapshot.copy(encoded);
     }
 
     // Dirty tracking: queue + per-id flags (replaces bitset scanning)
@@ -650,6 +563,7 @@ public final class IndexedStorage {
             inQueue[id] = false;
 
             if (isStructDirty[id]) {
+                writeSnapshot.keysChanged();
                 isStructDirty[id] = false;
                 if (idToKey[id] != null) {
                     if (serializedKey[id] == null) {
@@ -663,8 +577,7 @@ public final class IndexedStorage {
 
             pLo[id] = lo[id];
             if (pHi[id] != hi[id]) {
-                snapshotHighSource = null;
-                snapshotHigh = null;
+                writeSnapshot.highChanged();
             }
             pHi[id] = hi[id];
             if (wide != null && (!wideAmounts.isEmpty() || !wide.isEmpty())) {
@@ -778,7 +691,6 @@ public final class IndexedStorage {
 
     private void compact() {
         invalidateLookup();
-        invalidateSnapshotKeys();
         int newCap = alignPow2(Math.max(totalTypes, 1));
         int newNext = 0;
 
@@ -833,9 +745,7 @@ public final class IndexedStorage {
 
     public void load(CompoundTag root, HolderLookup.Provider registries) {
         invalidateLookup();
-        invalidateSnapshotKeys();
-        snapshotHighSource = null;
-        snapshotHigh = null;
+        writeSnapshot.reset();
         needsCompact = false;
         needsPersist = false;
         modCount++;
@@ -925,7 +835,6 @@ public final class IndexedStorage {
     // ══════════════════════════════════════════════════════════════════════
 
     private int allocateId(AEKey key) {
-        invalidateSnapshotKeys();
         int id;
         if (freeCount > 0) {
             id = freeIds[--freeCount];
@@ -947,7 +856,6 @@ public final class IndexedStorage {
     }
 
     private void recycleId(int id, AEKey key) {
-        invalidateSnapshotKeys();
         keyToId.removeInt(key);
         idToKey[id] = null;
         lo[id] = 0;

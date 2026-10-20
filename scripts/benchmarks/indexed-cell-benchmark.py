@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compare a supplied pre-optimization ref with this checkout without modifying either ref."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -71,6 +72,11 @@ args.output.write_text(json.dumps({
     "baseline": baseline,
     "candidate": candidate,
     "candidate_tracked_diff": run(["git", "diff", "--stat"], capture_output=True).stdout,
+    "candidate_cell_sources": {
+        str(source.relative_to(ROOT)): hashlib.sha256(source.read_bytes()).hexdigest()
+        for source in sorted((ROOT / "src/main/java/com/moakiee/thunderbolt/core/storage/cell").glob("*.java"))
+    },
+    "harness_sha256": hashlib.sha256((ROOT / "scripts/benchmarks/IndexedCellBenchmark.java").read_bytes()).hexdigest(),
     "environment": sorted(set(environments)),
     "warmups": 3,
     "samples_per_jvm": 7,
