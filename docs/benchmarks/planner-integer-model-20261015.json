@@ -1,0 +1,229 @@
+{
+  "baseline": "35ffe46f994dd2b0c922aa4bba9dd3d63f98516a",
+  "sourceSha256": {
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/IntegerInterval.java": "cf1eaa8fb5c272fe26e1549c2d7f6a7b1465636b523498c4ad587d975c0431b2",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/MultiRouteBatchOptimizer.java": "d86781605d193ab8bd7b2ce3862235b6a32d6d85c82bdb42bfe9270f1d76d307",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/PairBatchAllocation.java": "cef40d316c5db22d202bad764495a3b14712ed4626c115c166e9257f90cbef6e",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/TwoRouteBatchOptimizer.java": "3f01b5a126f852d13f909d23ee80db5538d9eaa3c87bc4d7f7fcd9eb5e420283"
+  },
+  "runs": [
+    {
+      "workload": "batch",
+      "variant": "baseline",
+      "rows": 5120,
+      "nanos": 443570119,
+      "allocatedBytes": 3377402984,
+      "work": 18180010,
+      "complete": 4270,
+      "changedCount": 0,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "batch",
+      "variant": "candidate",
+      "rows": 5120,
+      "nanos": 313797142,
+      "allocatedBytes": 2582991840,
+      "work": 15269500,
+      "complete": 4600,
+      "changedCount": 330,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "batch",
+      "variant": "candidate",
+      "rows": 5120,
+      "nanos": 338309568,
+      "allocatedBytes": 2904019296,
+      "work": 15269500,
+      "complete": 4600,
+      "changedCount": 330,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "batch",
+      "variant": "baseline",
+      "rows": 5120,
+      "nanos": 451096356,
+      "allocatedBytes": 3900875072,
+      "work": 18180010,
+      "complete": 4270,
+      "changedCount": 0,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "two",
+      "variant": "baseline",
+      "rows": 5120,
+      "nanos": 23383896,
+      "allocatedBytes": 62398336,
+      "work": 62970,
+      "complete": 5120,
+      "changedCount": 0,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "two",
+      "variant": "candidate",
+      "rows": 5120,
+      "nanos": 22228335,
+      "allocatedBytes": 56124176,
+      "work": 62970,
+      "complete": 5120,
+      "changedCount": 0,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "two",
+      "variant": "candidate",
+      "rows": 5120,
+      "nanos": 23211135,
+      "allocatedBytes": 56049520,
+      "work": 62970,
+      "complete": 5120,
+      "changedCount": 0,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "two",
+      "variant": "baseline",
+      "rows": 5120,
+      "nanos": 22224963,
+      "allocatedBytes": 62521944,
+      "work": 62970,
+      "complete": 5120,
+      "changedCount": 0,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "public",
+      "variant": "baseline",
+      "rows": 3339,
+      "nanos": 8577288352,
+      "allocatedBytes": 16512455976,
+      "changedCount": 0,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "public",
+      "variant": "candidate",
+      "rows": 3339,
+      "nanos": 8477978975,
+      "allocatedBytes": 16619074632,
+      "changedCount": 0,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "public",
+      "variant": "candidate",
+      "rows": 3339,
+      "nanos": 8546600739,
+      "allocatedBytes": 16401004480,
+      "changedCount": 0,
+      "regressionCount": 0,
+      "invalidCount": 0
+    },
+    {
+      "workload": "public",
+      "variant": "baseline",
+      "rows": 3339,
+      "nanos": 8497254627,
+      "allocatedBytes": 16619034384,
+      "changedCount": 0,
+      "regressionCount": 0,
+      "invalidCount": 0
+    }
+  ],
+  "extendedCorrectness": {
+    "cases": 8192,
+    "baselineComplete": 7006,
+    "candidateComplete": 7356,
+    "previouslyCompleteChanged": 0,
+    "executionRegressions": 0,
+    "sameExecutionStockRegressions": 0,
+    "executionImprovements": [
+      {
+        "case": "0-129",
+        "before": 40,
+        "after": 26
+      },
+      {
+        "case": "0-4514",
+        "before": 51,
+        "after": 19
+      },
+      {
+        "case": "0-7382",
+        "before": 37,
+        "after": 15
+      },
+      {
+        "case": "0-8006",
+        "before": 57,
+        "after": 15
+      }
+    ]
+  },
+  "tests": {
+    "fullSuite": {
+      "tests": 1292,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2
+    },
+    "afterAddingFrozenRegression": {
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "scope": {
+    "routes": "3..6 ordinary raw-stock routes; incumbent count <= 64; at most 8 raw resources",
+    "sharedMaximumWork": 16384,
+    "batchWarmupRounds": 20,
+    "batchMeasurementRounds": 10,
+    "batchDistinctCases": 512,
+    "publicDistinctCases": 3339,
+    "comparison": "serial ABBA; fresh JVM each arm; Java 21; -Xms256m -Xmx1g",
+    "productionLines": {
+      "before": 460,
+      "after": 484
+    },
+    "ASTDecisionPoints": {
+      "before": 187,
+      "after": 187
+    }
+  },
+  "artifact": {
+    "file": "thunderbolt-2.0.3-beta2.jar",
+    "sha256": "16894c74ed395e01d92c22f2ea29e3f43035256a6b3f743dae84aa24b9827837",
+    "verifiedProductionClassCount": 505
+  },
+  "csvSha256": {
+    "batch-0-baseline.csv": "2005fbf69961eb46b439e881e8ffafaa6fe64369b37bf99b761d1cd4478b9077",
+    "batch-1-candidate.csv": "26a4f7ca98854ea89bdde8c7972e4b877408a279b566a31edad796aa69233da2",
+    "batch-2-candidate.csv": "3110fe923ece4717d526c4b0d2cb53be446868304dced3b8bcd35f24ad1c56dc",
+    "batch-3-baseline.csv": "e41ad914e36004d07f490b7eafc4daf26d73fd1b911b83f857caf656a17ce9ef",
+    "public-0-baseline.csv": "efc28f8c0623c956f8447f0af9bc7c3752a0e0b0b32c8b60e422bfa0cd99fe71",
+    "public-1-candidate.csv": "014d65da5e49b8a5350b8e7958464ad5693cca909e9fb9a7a02e11a09b3a9373",
+    "public-2-candidate.csv": "56bfade556c354f73120d28812f36e71463671cf550696a115c8db08e5fea00a",
+    "public-3-baseline.csv": "f1fe39be150b5338d0ad534ba914c230972c0045263c60ae5b368e19da1f6891",
+    "two-0-baseline.csv": "345eb1dc31a2bc944896c65bf36c75e3977793993fc01cd133786959349c0e57",
+    "two-1-candidate.csv": "66e74fc5437cb34b4ad71c6a32062d6849add490939c39981d433c8454fa76d7",
+    "two-2-candidate.csv": "fc7193192672fa37473a64c7699608c97d3449746a8c52592e7f3e712cfa8669",
+    "two-3-baseline.csv": "bca73314a56724a62ce1dbf97e67cfdfc7fd011b7b4f6501b4308444ea8c5650",
+    "batch-8192-baseline.csv": "31c68a995e9bffba129bb9eab265c96ab7e4cad4645f604dadbdfcadf13606e3",
+    "batch-8192-candidate.csv": "bdc32b8f725738a1dcb199843a2a01d65b3bbfb64fd71ee63708f45a0f6e2d23"
+  }
+}

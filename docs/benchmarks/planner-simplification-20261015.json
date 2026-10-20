@@ -1,0 +1,336 @@
+{
+  "baseline": "4b59ae736f1c0a13a007b57c7b6ad87ca8e0d210",
+  "corpusCases": 3339,
+  "candidateSourceSha256": "55b48c74bbb7bdff0131f00e915f114d7b318e782a8684ebd9fd26cde1dca49c",
+  "variants": {
+    "baseline": {
+      "changed": 0,
+      "moreExecutionsOrInfeasible": 0,
+      "invalidBalanceOrReplay": 0,
+      "examples": [],
+      "csvSha256": "120585cbad06b22f806ba961b6147a184ca7c73f88f8cd906705b4dd6de7d6b4"
+    },
+    "mixSmallBatches": {
+      "changed": 1231,
+      "moreExecutionsOrInfeasible": 269,
+      "invalidBalanceOrReplay": 0,
+      "examples": [
+        {
+          "case": "dag-5",
+          "baselineExecutions": 5,
+          "variantExecutions": 9
+        },
+        {
+          "case": "dag-30",
+          "baselineExecutions": 2,
+          "variantExecutions": 3
+        },
+        {
+          "case": "dag-42",
+          "baselineExecutions": 5,
+          "variantExecutions": 8
+        },
+        {
+          "case": "dag-81",
+          "baselineExecutions": 5,
+          "variantExecutions": 6
+        }
+      ],
+      "csvSha256": "643e12d8bf3bfa68708bb7d5aa40943150762ffcad9b3718ecb889d6f6274cda"
+    },
+    "mixTerminalBatches": {
+      "changed": 6,
+      "moreExecutionsOrInfeasible": 6,
+      "invalidBalanceOrReplay": 0,
+      "examples": [
+        {
+          "case": "terminal-known",
+          "baselineExecutions": 5,
+          "variantExecutions": 9
+        },
+        {
+          "case": "terminal-26",
+          "baselineExecutions": 3,
+          "variantExecutions": 4
+        },
+        {
+          "case": "terminal-65",
+          "baselineExecutions": 4,
+          "variantExecutions": 5
+        },
+        {
+          "case": "terminal-96",
+          "baselineExecutions": 4,
+          "variantExecutions": 5
+        }
+      ],
+      "csvSha256": "c8d577d2a8215cb858c25ae90bbfa34d3ddd6544821c7551a948215beb59103e"
+    },
+    "mixTerminalFixedDepthBatches": {
+      "changed": 2,
+      "moreExecutionsOrInfeasible": 2,
+      "invalidBalanceOrReplay": 0,
+      "examples": [
+        {
+          "case": "terminal-known",
+          "baselineExecutions": 5,
+          "variantExecutions": 6
+        },
+        {
+          "case": "terminal-188",
+          "baselineExecutions": 3,
+          "variantExecutions": 4
+        }
+      ],
+      "csvSha256": "dafe05023e0bfd5cd7093ce6563159b9a561c67def4ba129db9c3260cd74bcf3"
+    },
+    "probeAvailableAlternatives": {
+      "changed": 6,
+      "moreExecutionsOrInfeasible": 6,
+      "invalidBalanceOrReplay": 0,
+      "examples": [
+        {
+          "case": "policy-assembly-2-false",
+          "baselineExecutions": 6,
+          "variantExecutions": 8
+        },
+        {
+          "case": "policy-assembly-3-false",
+          "baselineExecutions": 6,
+          "variantExecutions": 8
+        },
+        {
+          "case": "policy-shared-false",
+          "baselineExecutions": 7,
+          "variantExecutions": 8
+        },
+        {
+          "case": "policy-assembly-2-true",
+          "baselineExecutions": 6,
+          "variantExecutions": 8
+        }
+      ],
+      "csvSha256": "51ace95685ffad6cabcef6b32c5e86aabbec71fddaec879674cd8bea57243fac"
+    },
+    "probePolicy": {
+      "changed": 344,
+      "moreExecutionsOrInfeasible": 183,
+      "invalidBalanceOrReplay": 0,
+      "examples": [
+        {
+          "case": "dag-4",
+          "baselineExecutions": 6,
+          "variantExecutions": 7
+        },
+        {
+          "case": "dag-10",
+          "baselineExecutions": 2,
+          "variantExecutions": 8
+        },
+        {
+          "case": "dag-34",
+          "baselineExecutions": 3,
+          "variantExecutions": 4
+        },
+        {
+          "case": "dag-97",
+          "baselineExecutions": 3,
+          "variantExecutions": 9
+        }
+      ],
+      "csvSha256": "93e9e5a6646865881b4b851fed7e109b58568710a29c9ea03bc55681d80a9f5e"
+    },
+    "ordinaryAdditional": {
+      "changed": 17,
+      "moreExecutionsOrInfeasible": 17,
+      "invalidBalanceOrReplay": 0,
+      "examples": [
+        {
+          "case": "dag-608",
+          "baselineExecutions": 3,
+          "variantExecutions": 4
+        },
+        {
+          "case": "dag-695",
+          "baselineExecutions": 5,
+          "variantExecutions": 6
+        },
+        {
+          "case": "dag-1142",
+          "baselineExecutions": 15,
+          "variantExecutions": 16
+        },
+        {
+          "case": "dag-1155",
+          "baselineExecutions": 11,
+          "variantExecutions": 12
+        }
+      ],
+      "csvSha256": "da72a8c899a12ac939f71d3f23aa68340309a2f2cbeed2adeba9e75dcd86abee"
+    },
+    "upstreamAdditional": {
+      "changed": 10,
+      "moreExecutionsOrInfeasible": 10,
+      "invalidBalanceOrReplay": 0,
+      "examples": [
+        {
+          "case": "two-6",
+          "baselineExecutions": 6,
+          "variantExecutions": 7
+        },
+        {
+          "case": "two-7",
+          "baselineExecutions": 6,
+          "variantExecutions": 7
+        },
+        {
+          "case": "two-8",
+          "baselineExecutions": 6,
+          "variantExecutions": 7
+        },
+        {
+          "case": "two-9",
+          "baselineExecutions": 6,
+          "variantExecutions": 7
+        }
+      ],
+      "csvSha256": "2170b300522d35ff5269c5efabefa9ac8466f03bbcb666c70cb496d40bb0a405"
+    },
+    "graft": {
+      "changed": 7,
+      "moreExecutionsOrInfeasible": 5,
+      "invalidBalanceOrReplay": 0,
+      "examples": [
+        {
+          "case": "dag-175",
+          "baselineExecutions": 5,
+          "variantExecutions": 18
+        },
+        {
+          "case": "dag-1051",
+          "baselineExecutions": 14,
+          "variantExecutions": 16
+        },
+        {
+          "case": "dag-1156",
+          "baselineExecutions": 11,
+          "variantExecutions": 12
+        },
+        {
+          "case": "dag-1945",
+          "baselineExecutions": 6,
+          "variantExecutions": 7
+        }
+      ],
+      "csvSha256": "082d430edccdf3fa6b229a243f7218a36465b383d928f2eba08aa4e5a5ab4dde"
+    },
+    "chains": {
+      "changed": 20,
+      "moreExecutionsOrInfeasible": 9,
+      "invalidBalanceOrReplay": 0,
+      "examples": [
+        {
+          "case": "dag-394",
+          "baselineExecutions": 6,
+          "variantExecutions": 8
+        },
+        {
+          "case": "dag-1051",
+          "baselineExecutions": 14,
+          "variantExecutions": 16
+        },
+        {
+          "case": "dag-1406",
+          "baselineExecutions": 7,
+          "variantExecutions": 8
+        },
+        {
+          "case": "dag-1684",
+          "baselineExecutions": 12,
+          "variantExecutions": 24
+        }
+      ],
+      "csvSha256": "3f8e99bb438034a067fbe346fc1800c9844c1c8fcb64dbec3e32ee6e19a2f531"
+    },
+    "region": {
+      "changed": 7,
+      "moreExecutionsOrInfeasible": 4,
+      "invalidBalanceOrReplay": 0,
+      "examples": [
+        {
+          "case": "dag-403",
+          "baselineExecutions": 6,
+          "variantExecutions": 7
+        },
+        {
+          "case": "dag-1237",
+          "baselineExecutions": 11,
+          "variantExecutions": 16
+        },
+        {
+          "case": "dag-1588",
+          "baselineExecutions": 11,
+          "variantExecutions": 17
+        },
+        {
+          "case": "dag-2524",
+          "baselineExecutions": 3,
+          "variantExecutions": 6
+        }
+      ],
+      "csvSha256": "3e1002359f20e49949ae79dea0bd2b3bf606ef265d938f1a617356271b3b6786"
+    },
+    "candidate": {
+      "changed": 0,
+      "moreExecutionsOrInfeasible": 0,
+      "invalidBalanceOrReplay": 0,
+      "examples": [],
+      "csvSha256": "f1801ca360205805340b5150c52204054cf1ec01eec1be1ab6ebfb4b711a41aa"
+    }
+  },
+  "sequentialPerformanceABBA": [
+    {
+      "run": "planner-performance-baseline-1",
+      "cases": 3339,
+      "milliseconds": 9412.80414,
+      "allocatedBytes": 16636911144,
+      "changed": 0,
+      "invalid": 0
+    },
+    {
+      "run": "planner-performance-baseline-4",
+      "cases": 3339,
+      "milliseconds": 9373.533429,
+      "allocatedBytes": 16727805600,
+      "changed": 0,
+      "invalid": 0
+    },
+    {
+      "run": "planner-performance-candidate-2",
+      "cases": 3339,
+      "milliseconds": 9408.515017,
+      "allocatedBytes": 16618829896,
+      "changed": 0,
+      "invalid": 0
+    },
+    {
+      "run": "planner-performance-candidate-3",
+      "cases": 3339,
+      "milliseconds": 9419.463894,
+      "allocatedBytes": 16555478456,
+      "changed": 0,
+      "invalid": 0
+    }
+  ],
+  "artifact": {
+    "file": "thunderbolt-2.0.3-beta2.jar",
+    "sha256": "51f42a2de3bdb9aabcd6936c94e239c5438dbf580c968273f818d83654542805",
+    "matchingCompiledClasses": 505
+  },
+  "unitTests": {
+    "tests": 1290,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2
+  }
+}

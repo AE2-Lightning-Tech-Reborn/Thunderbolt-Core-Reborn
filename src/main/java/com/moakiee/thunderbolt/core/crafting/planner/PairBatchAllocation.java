@@ -51,12 +51,12 @@ final class PairBatchAllocation {
             var x0 = BigInteger.valueOf(r);
             var y0 = ceilDivide(BigInteger.valueOf(demand).subtract(bigA.multiply(x0)), bigB);
             // The all-first-recipe endpoint (y=0) was already checked above.
-            var interval = new Interval(BigInteger.ZERO, y0.subtract(BigInteger.ONE).divide(dy));
-            interval.constrain(x0.add(y0), executionSlope, BigInteger.valueOf(executionLimit));
+            var interval = new IntegerInterval(BigInteger.ZERO, y0.subtract(BigInteger.ONE).divide(dy));
+            interval.atMost(executionSlope, BigInteger.valueOf(executionLimit).subtract(x0.add(y0)));
             for (int i = 0; i < capacity.length && interval.nonempty(); i++) {
                 var used = BigInteger.valueOf(useA[i]).multiply(x0)
                         .add(BigInteger.valueOf(useB[i]).multiply(y0));
-                interval.constrain(used, resourceSlope[i], BigInteger.valueOf(capacity[i]));
+                interval.atMost(resourceSlope[i], BigInteger.valueOf(capacity[i]).subtract(used));
             }
             if (!interval.nonempty()) continue;
             var t = executionSlope.signum() < 0 || executionSlope.signum() == 0 && consumptionSlope.signum() < 0
@@ -95,25 +95,5 @@ final class PairBatchAllocation {
     private static BigInteger ceilDivide(BigInteger value, BigInteger positiveDivisor) {
         var qr = value.divideAndRemainder(positiveDivisor);
         return qr[1].signum() > 0 ? qr[0].add(BigInteger.ONE) : qr[0];
-    }
-
-    private static final class Interval {
-        BigInteger low, high;
-
-        Interval(BigInteger low, BigInteger high) { this.low = low; this.high = high; }
-        boolean nonempty() { return low.compareTo(high) <= 0; }
-
-        void constrain(BigInteger intercept, BigInteger slope, BigInteger maximum) {
-            var slack = maximum.subtract(intercept);
-            if (slope.signum() > 0) {
-                var qr = slack.divideAndRemainder(slope);
-                var upper = qr[1].signum() < 0 ? qr[0].subtract(BigInteger.ONE) : qr[0];
-                high = high.min(upper);
-            } else if (slope.signum() < 0) {
-                low = low.max(ceilDivide(slack.negate(), slope.negate()));
-            } else if (slack.signum() < 0) {
-                high = BigInteger.valueOf(-1);
-            }
-        }
     }
 }

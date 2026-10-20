@@ -132,16 +132,53 @@ final class ConservativeFeedbackAnalysis<K> {
         List<Component<K>> result = new ArrayList<>();
         List<FallbackComponent<K>> fallbacks = new ArrayList<>();
         List<Set<K>> cyclicComponents = cyclicComponents(patterns);
-        for (Set<K> states : cyclicComponents) {
-            Component<K> component = classify(states, patterns, itemRank);
+        List<List<CraftPattern<K>>> componentPatterns = cyclicComponents.size() > 1
+                ? patternsByComponent(cyclicComponents, patterns) : List.of(patterns);
+        for (int i = 0; i < cyclicComponents.size(); i++) {
+            Set<K> states = cyclicComponents.get(i);
+            List<CraftPattern<K>> touching = componentPatterns.get(i);
+            Component<K> component = classify(states, touching, itemRank);
             if (component != null) {
                 result.add(component);
             } else {
-                FallbackComponent<K> fallback = classifyFallback(states, patterns, itemRank);
+                FallbackComponent<K> fallback = classifyFallback(states, touching, itemRank);
                 if (fallback != null) fallbacks.add(fallback);
             }
         }
         return new Analysis<>(result, fallbacks, cyclicComponents);
+    }
+
+    /** Index incidence once instead of rescanning the complete recipe table for every SCC. */
+    private static <K> List<List<CraftPattern<K>>> patternsByComponent(
+            List<Set<K>> components, List<CraftPattern<K>> patterns) {
+        Map<K, List<CraftPattern<K>>> byState = new HashMap<>();
+        List<List<CraftPattern<K>>> result = new ArrayList<>(components.size());
+        for (Set<K> states : components) {
+            PlanningCancellation.check();
+            List<CraftPattern<K>> touching = new ArrayList<>();
+            result.add(touching);
+            for (K state : states) byState.put(state, touching);
+        }
+        for (CraftPattern<K> pattern : patterns) {
+            PlanningCancellation.check();
+            // Include read/returned inputs and external producers too: even a non-flow contact
+            // can reject a certificate or establish that a feedback seed is craftable.
+            addTouchingPattern(byState, pattern.output(), pattern);
+            for (CraftInput<K> input : pattern.inputs())
+                addTouchingPattern(byState, input.key(), pattern);
+            for (CraftOutput<K> output : pattern.byproducts())
+                addTouchingPattern(byState, output.key(), pattern);
+        }
+        return result;
+    }
+
+    private static <K> void addTouchingPattern(
+            Map<K, List<CraftPattern<K>>> byState, K key, CraftPattern<K> pattern) {
+        List<CraftPattern<K>> touching = byState.get(key);
+        // Patterns arrive once in stable identity order. Multiple incident slots only need the
+        // last identity check; no per-recipe set or duplicate component list is required.
+        if (touching != null && (touching.isEmpty() || touching.getLast() != pattern))
+            touching.add(pattern);
     }
 
     /**

@@ -136,6 +136,12 @@ class ByteTrackerTest {
                 new TestKeyType("a", 1),
                 new TestKeyType("b", 8),
                 new TestKeyType("c", 8000),
+                new TestKeyType("d", 3),
+                new TestKeyType("e", 17),
+                new TestKeyType("f", 1024),
+                new TestKeyType("g", 1000),
+                new TestKeyType("h", 4096),
+                new TestKeyType("i", 7),
         };
 
         for (int round = 0; round < 200; round++) {

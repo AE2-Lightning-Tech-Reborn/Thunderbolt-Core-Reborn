@@ -85,20 +85,15 @@ final class TwoRouteBatchOptimizer {
                 .subtract(cb.values().stream().reduce(ZERO, BigInteger::add));
         for (; count.compareTo(incumbentCount) <= 0 && count.compareTo(SAT) < 0; count = count.add(ONE)) {
             if (!budget.charge(1 + resources.size())) return BatchOptimizationResult.exhausted(initial);
-            BigInteger lo = ZERO, hi = count;
-            BigInteger outputSlope = ao.subtract(bo), deficit = demand.subtract(count.multiply(bo));
-            if (outputSlope.signum() > 0) lo = lo.max(ceil(deficit, outputSlope));
-            else if (outputSlope.signum() < 0) hi = hi.min(floor(deficit.negate(), outputSlope.negate()));
-            else if (deficit.signum() > 0) continue;
+            var interval = new IntegerInterval(ZERO, count);
+            if (!interval.atMost(bo.subtract(ao), count.multiply(bo).subtract(demand))) continue;
             for (K key : resources) {
                 BigInteger ac = ca.getOrDefault(key, ZERO), bc = cb.getOrDefault(key, ZERO);
                 BigInteger slope = ac.subtract(bc), room = caps.get(key).subtract(count.multiply(bc));
-                if (slope.signum() > 0) hi = hi.min(floor(room, slope));
-                else if (slope.signum() < 0) lo = lo.max(ceil(room.negate(), slope.negate()));
-                else if (room.signum() < 0) { hi = ONE.negate(); break; }
+                if (!interval.atMost(slope, room)) break;
             }
-            if (lo.compareTo(hi) > 0) continue;
-            BigInteger x = stockSlope.signum() > 0 ? lo : hi, y = count.subtract(x);
+            if (!interval.nonempty()) continue;
+            BigInteger x = stockSlope.signum() > 0 ? interval.low : interval.high, y = count.subtract(x);
             var firings = new HashMap<CraftPattern<K>, Long>();
             if (x.signum() > 0) firings.put(a, x.longValueExact());
             if (y.signum() > 0) firings.put(b, y.longValueExact());
