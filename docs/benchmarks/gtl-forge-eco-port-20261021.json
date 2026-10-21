@@ -1,0 +1,207 @@
+{
+  "date": "2026-10-21",
+  "recorded_utc": "2026-10-21T09:19:22.700094+00:00",
+  "baseline_commit": "656a1c9816a7e12f64f8d129d4143e6eb6ea3910",
+  "upstream_source_commits": [
+    "ee38e6997d8e772862424b1c26b997a8ddd3e5f3",
+    "cea4cc29b97e308987ad4a06a2c61f7fb00f0527"
+  ],
+  "platform": {
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10",
+    "java": 17,
+    "mod_version": "2.0.0"
+  },
+  "features": [
+    "Native Forge ordinary job UUID overload",
+    "Native BigInteger exact preparation with owned context and deferred atomic dispatch",
+    "Native cancellation notice with facade fallback when unavailable",
+    "Preserve existing facade support without retrying a declined or uncertain native call"
+  ],
+  "validation": {
+    "targeted": {
+      "total": {
+        "tests": 43,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 3,
+        "passed": 40
+      },
+      "classes": {
+        "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest": {
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 3,
+          "passed": 9
+        },
+        "com.moakiee.thunderbolt.compat.neoeco.NeoEcoFastPathBatchAdapterTest": {
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "com.moakiee.thunderbolt.compat.neoeco.NeoEcoFastPathCompatTest": {
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "com.moakiee.thunderbolt.compat.neoeco.NeoEcoForgeContractTest": {
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "com.moakiee.thunderbolt.compat.neoeco.NeoEcoOptionalContractTest": {
+          "tests": 14,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "com.moakiee.thunderbolt.compat.neoeco.NeoEcoProviderResolutionTest": {
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      }
+    },
+    "native_contract_tests": 12,
+    "real_forge_protocol": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "passed": 9
+    },
+    "real_artifact": {
+      "version": "20.5.0",
+      "kind": "Existing Mojang-mapped development jar",
+      "sha256": "a413167fb8041c1e3387ddce08884d7da141df759f391aec41695ea573978ee5",
+      "shapes": {
+        "cn/dancingsnow/neoecoae/api/me/ECOExactBatchProvider.class": false,
+        "cn/dancingsnow/neoecoae/crafting/execution/worker/ECOCraftingJobLifecycle.class": true,
+        "cn/dancingsnow/neoecoae/blocks/entity/crafting/ECOCraftingPatternBusBlockEntity.class": true,
+        "cn/dancingsnow/neoecoae/api/me/ECOFastPathFacade.class": false
+      },
+      "methods": {
+        "ordinary_uuid_overload": true,
+        "cancel_and_recover": false
+      }
+    },
+    "full_check": {
+      "tasks": {
+        "test": {
+          "tests": 1536,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 4,
+          "passed": 1532
+        },
+        "externalPlannerBoundaryTest": {
+          "tests": 38,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 38
+        },
+        "materialDagLargeGraphTest": {
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 1
+        },
+        "cpSatColdRefinementTest": {
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 1
+        },
+        "materialDagColdReplayTest": {
+          "tests": 20,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 20
+        }
+      },
+      "total": {
+        "tests": 1596,
+        "passed": 1592,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 4
+      },
+      "skips": [
+        {
+          "task": "test",
+          "classname": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "name": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()"
+        },
+        {
+          "task": "test",
+          "classname": "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest",
+          "name": "indeterminateReceiptStopsDispatchWithoutOrdinaryRetry()"
+        },
+        {
+          "task": "test",
+          "classname": "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest",
+          "name": "partialReceiptRetainsOnlyAcceptedCopiesAndHonorsStopUntilNextTick()"
+        },
+        {
+          "task": "test",
+          "classname": "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest",
+          "name": "parallelProtocolGetsOwnedBatchTotalsAndJobIdentity()"
+        }
+      ],
+      "test_tasks_executed": 5,
+      "test_cache_reused": false
+    },
+    "game_tests": {
+      "required": 9,
+      "passed": 9,
+      "failed": 0
+    },
+    "release": {
+      "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+      "size_bytes": 5423787,
+      "sha256": "b0a0273e2f981308f6f90c4982bd968dc9ef6a1e6045052b1ed1e1f2b9174680",
+      "main_classes": 534,
+      "main_class_majors": [
+        61
+      ],
+      "nested": [
+        {
+          "entry": "META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+          "max_class_major": 61
+        },
+        {
+          "entry": "META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar",
+          "max_class_major": 52
+        },
+        {
+          "entry": "META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar",
+          "max_class_major": 52
+        }
+      ],
+      "fixture_entries": [],
+      "refmap_matches": true,
+      "mixin_config_matches": true,
+      "legacy_constructor_present": true,
+      "byte_cost_method_present": true,
+      "checked_after_game_tests": true
+    }
+  },
+  "boundaries": [
+    "Targeted and native contract tests overlap the full suite and are not additive",
+    "Native exact/cancellation APIs validated with isolated fixtures; existing real 20.5.0 artifact lacks those methods",
+    "Three skips reflect missing receipt/parallel APIs; one lacks the real SuperMatrix runtime contract",
+    "No real new-NeoECO game integration, complete GTL modpack, client GUI or multiplayer acceptance run",
+    "Previous independent Java 17 timeout evidence remains preserved; no planner, assertion or test budget changes"
+  ],
+  "evidence": "Ignored build/gtl-forge-eco-port-20261021 directory and its owned scratch/evidence location"
+}

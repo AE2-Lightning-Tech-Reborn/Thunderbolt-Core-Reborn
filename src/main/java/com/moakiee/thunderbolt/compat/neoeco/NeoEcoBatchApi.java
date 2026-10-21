@@ -7,9 +7,11 @@ import appeng.api.stacks.KeyCounter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,6 +25,8 @@ final class NeoEcoBatchApi {
     private final Method reconstruct, outputs, remainders, recipeType;
     private final Method status, accepted, canContinue;
     private final boolean hasReceipts;
+    private final Class<?> exactType;
+    private final Method prepareExact, exactCount, exactDispatch;
 
     private NeoEcoBatchApi(ClassLoader loader) throws ReflectiveOperationException {
         capacityType = Class.forName(API + "ECOBatchCapacityProvider", false, loader);
@@ -69,6 +73,28 @@ final class NeoEcoBatchApi {
         parallelCapacity = slots;
         parallelPush = parallelSubmit;
         hasReceipts = receipts;
+        Class<?> exact = null;
+        Method prepare = null, exactCopies = null, dispatch = null;
+        try {
+            exact = Class.forName(API + "ECOExactBatchProvider", false, loader);
+            prepare = exact.getMethod("eco$prepareExactBatch", context, BigInteger.class);
+            var preparation = prepare.getReturnType();
+            exactCopies = preparation.getMethod("craftCount");
+            dispatch = preparation.getMethod("dispatch");
+            if (exactCopies.getReturnType() != BigInteger.class
+                    || dispatch.getReturnType() != BooleanSupplier.class)
+                throw new NoSuchMethodException("Incompatible NeoECO exact preparation");
+        } catch (ReflectiveOperationException | LinkageError absent) {
+            // Older Forge releases retain their bounded long protocol.
+            exact = null;
+            prepare = null;
+            exactCopies = null;
+            dispatch = null;
+        }
+        exactType = exact;
+        prepareExact = prepare;
+        exactCount = exactCopies;
+        exactDispatch = dispatch;
         if (capacity.getReturnType() != long.class || !recipeType.getReturnType().isEnum()
                 || !receipts && push.getReturnType() != boolean.class)
             throw new NoSuchMethodException("Incompatible NeoECO batch protocol");
@@ -83,6 +109,29 @@ final class NeoEcoBatchApi {
     @Nullable Object parallel(ICraftingProvider provider) { return findParallel == null ? null : invoke(findParallel, null, provider); }
     long capacity(Object provider, Object context) { return (long) invoke(capacity, provider, context); }
     long parallelCapacity(Object provider) { return (long) invoke(parallelCapacity, provider); }
+
+    boolean hasExact(Object provider) { return exactType != null && exactType.isInstance(provider); }
+
+    @Nullable NeoEcoFastPathCompat.ExactBatch prepareExact(ICraftingProvider provider,
+            IPatternDetails pattern, KeyCounter[] inputs, BigInteger requested,
+            Level level, UUID craftingId) {
+        if (!hasExact(provider) || requested.signum() <= 0) return null;
+        var context = context(pattern, inputs, level, craftingId);
+        if (context == null) return null;
+        var preparation = invoke(prepareExact, provider, context.value(), requested);
+        if (preparation == null) return null;
+        var count = (BigInteger) invoke(exactCount, preparation);
+        if (count == null || count.signum() <= 0 || count.compareTo(requested) > 0)
+            throw new IllegalArgumentException("Invalid exact NeoECO admission");
+        var dispatch = (BooleanSupplier) invoke(exactDispatch, preparation);
+        if (dispatch == null) throw new IllegalArgumentException("Missing exact NeoECO dispatch");
+        try {
+            return new NeoEcoFastPathCompat.ExactBatch(count, dispatch,
+                    BooleanSupplier.class.getMethod("getAsBoolean"));
+        } catch (NoSuchMethodException impossible) {
+            throw new AssertionError(impossible);
+        }
+    }
 
     @SuppressWarnings("unchecked")
     @Nullable Context context(IPatternDetails pattern, KeyCounter[] oneCopy, Level level, UUID jobId) {

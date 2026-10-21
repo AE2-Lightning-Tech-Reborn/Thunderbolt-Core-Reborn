@@ -16,10 +16,11 @@ public final class ECOFastPathFacade {
     public static long allocatedCount;
     public static boolean accepted = true;
     public static RuntimeException prepareFailure, submitFailure, cancelFailure;
-    public static int preparations, submissions, cancellations;
+    public static int preparations, submissions, cancellations, ordinaryCalls;
 
     public static boolean pushPatternForJob(ICraftingProvider provider, IPatternDetails pattern,
             KeyCounter[] inputs, UUID jobId) {
+        ordinaryCalls++;
         return ((ECOJobAwareCraftingProvider) provider).pushPattern(pattern, inputs, jobId);
     }
 

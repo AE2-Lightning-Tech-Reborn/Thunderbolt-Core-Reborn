@@ -18,6 +18,27 @@ import java.util.UUID;
 /** Keeps NeoECO API types outside the class-loading path when the optional mod is absent. */
 public final class NeoEcoFastPathCompat {
     private static final Optional<Method> CANCEL = findCancellationApi();
+    private static final ClassValue<Optional<NeoEcoBatchApi>> FORGE_EXACT = new ClassValue<>() {
+        @Override
+        protected Optional<NeoEcoBatchApi> computeValue(Class<?> providerType) {
+            return Optional.ofNullable(NeoEcoBatchApi.load(providerType.getClassLoader()));
+        }
+    };
+    private static final ClassValue<Optional<Method>> FORGE_ORDINARY = new ClassValue<>() {
+        @Override
+        protected Optional<Method> computeValue(Class<?> providerType) {
+            try {
+                var bus = Class.forName(
+                        "cn.dancingsnow.neoecoae.blocks.entity.crafting.ECOCraftingPatternBusBlockEntity",
+                        false, providerType.getClassLoader());
+                if (!bus.isAssignableFrom(providerType)) return Optional.empty();
+                var push = bus.getMethod("pushPattern", IPatternDetails.class, KeyCounter[].class, UUID.class);
+                return push.getReturnType() == boolean.class ? Optional.of(push) : Optional.empty();
+            } catch (ReflectiveOperationException | LinkageError unavailable) {
+                return Optional.empty();
+            }
+        }
+    };
     private static final ClassValue<Optional<Method>> ORDINARY = new ClassValue<>() {
         @Override
         protected Optional<Method> computeValue(Class<?> providerType) {
@@ -58,6 +79,14 @@ public final class NeoEcoFastPathCompat {
 
     private static Optional<Method> findCancellationApi() {
         try {
+            var lifecycle = Class.forName(
+                    "cn.dancingsnow.neoecoae.crafting.execution.worker.ECOCraftingJobLifecycle",
+                    false, NeoEcoFastPathCompat.class.getClassLoader());
+            return Optional.of(lifecycle.getMethod("cancelAndRecover", Level.class, UUID.class));
+        } catch (ReflectiveOperationException | LinkageError unavailable) {
+            // Releases without the native Forge lifecycle may expose the facade instead.
+        }
+        try {
             var facade = Class.forName("cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade",
                     false, NeoEcoFastPathCompat.class.getClassLoader());
             return Optional.of(facade.getMethod("cancelJob", Level.class, UUID.class));
@@ -80,10 +109,13 @@ public final class NeoEcoFastPathCompat {
     /** Preserves task ownership on both the batch fallback and the CPU's later ordinary visits. */
     public static boolean pushPattern(ICraftingProvider provider, IPatternDetails pattern,
             KeyCounter[] inputs, @Nullable UUID craftingId) {
-        var method = ORDINARY.get(provider.getClass()).orElse(null);
+        var method = FORGE_ORDINARY.get(provider.getClass()).orElse(null);
+        boolean nativeMethod = method != null;
+        if (method == null) method = ORDINARY.get(provider.getClass()).orElse(null);
         if (method == null) return provider.pushPattern(pattern, inputs);
         try {
-            return (boolean) method.invoke(null, provider, pattern, inputs, craftingId);
+            return (boolean) (nativeMethod ? method.invoke(provider, pattern, inputs, craftingId)
+                    : method.invoke(null, provider, pattern, inputs, craftingId));
         } catch (InvocationTargetException failed) {
             if (failed.getCause() instanceof RuntimeException runtime) throw runtime;
             if (failed.getCause() instanceof Error error) throw error;
@@ -93,9 +125,13 @@ public final class NeoEcoFastPathCompat {
         }
     }
 
-    /** Exact FX admission is optional; the calling CPU retains extraction and settlement. */
+    /** Native Forge admission takes priority; the calling CPU retains extraction and settlement. */
     public static @Nullable ExactBatch prepareExact(ICraftingProvider provider, IPatternDetails pattern,
             KeyCounter[] oneCopy, BigInteger requested, Level level, UUID craftingId) {
+        if (requested.signum() <= 0) return null;
+        var forge = FORGE_EXACT.get(provider.getClass()).orElse(null);
+        if (forge != null && forge.hasExact(provider))
+            return forge.prepareExact(provider, pattern, oneCopy, requested, level, craftingId);
         var prepare = EXACT.get(provider.getClass()).orElse(null);
         if (prepare == null) return null;
         try {
