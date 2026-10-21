@@ -13,6 +13,22 @@ class BigExecutionProgramTest {
     static final BigInteger N = BigInteger.TEN.pow(100);
 
     @Test
+    void legacyResultConstructorRetainsOriginalContract() {
+        var program = BigExecutionProgram.<String>of(List.of());
+        var missing = new HashMap<>(Map.of("raw", BigInteger.ONE));
+        var result = new BigCraftingPlanner.Result<>(program, missing, true);
+        missing.clear();
+
+        assertSame(program, result.program());
+        assertEquals(Map.of("raw", BigInteger.ONE), result.missing());
+        assertTrue(result.verified());
+        assertNull(result.diagnostic());
+        assertFalse(result.executable());
+        assertTrue(new BigCraftingPlanner.Result<>(program, Map.of(), true).executable());
+        assertFalse(new BigCraftingPlanner.Result<>(program, Map.of(), false).executable());
+    }
+
+    @Test
     void repeatedCycleKeepsOneSeedAndNeverExpandsTheQuantity() {
         var a =
                 new CraftPattern<>(
