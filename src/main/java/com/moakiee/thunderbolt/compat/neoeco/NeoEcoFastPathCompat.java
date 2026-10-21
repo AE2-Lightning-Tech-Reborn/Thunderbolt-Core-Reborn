@@ -16,6 +16,12 @@ import java.util.Optional;
 
 /** Keeps NeoECO API types outside the class-loading path when the optional mod is absent. */
 public final class NeoEcoFastPathCompat {
+    private static final ClassValue<Optional<NeoEcoBatchApi>> EXACT_API = new ClassValue<>() {
+        @Override protected Optional<NeoEcoBatchApi> computeValue(Class<?> providerType) {
+            return Optional.ofNullable(NeoEcoBatchApi.load(providerType.getClassLoader()));
+        }
+    };
+    private static final Optional<Method> CANCEL = cancellationApi();
     private static final ClassValue<Optional<Method>> JOB_PUSH = new ClassValue<>() {
         @Override
         protected Optional<Method> computeValue(Class<?> providerType) {
@@ -35,6 +41,48 @@ public final class NeoEcoFastPathCompat {
             "com.moakiee.thunderbolt.compat.neoeco.NeoEcoFastPathBatchAdapter";
 
     private NeoEcoFastPathCompat() {
+    }
+
+    private static Optional<Method> cancellationApi() {
+        try {
+            var lifecycle = Class.forName(
+                    "cn.dancingsnow.neoecoae.crafting.execution.worker.ECOCraftingJobLifecycle",
+                    false, NeoEcoFastPathCompat.class.getClassLoader());
+            return Optional.of(lifecycle.getMethod("cancelAndRecover", Level.class, UUID.class));
+        } catch (ReflectiveOperationException | LinkageError unavailable) {
+            return Optional.empty();
+        }
+    }
+
+    public static void cancelJob(@Nullable Level level, UUID craftingId) {
+        if (CANCEL.isEmpty()) return;
+        try {
+            CANCEL.get().invoke(null, level, craftingId);
+        } catch (ReflectiveOperationException failure) {
+            appeng.core.AELog.warn("[thunderbolt] Could not recover NeoECO workers for cancelled job %s: %s",
+                    craftingId, failure);
+        }
+    }
+
+    /** Forge full-virtual preparation owns its native context and atomic dispatch callback. */
+    public static @Nullable ExactBatch prepareExact(ICraftingProvider provider, IPatternDetails pattern,
+            KeyCounter[] oneCopy, java.math.BigInteger requested, Level level, UUID craftingId) {
+        var api = EXACT_API.get(provider.getClass()).orElse(null);
+        return api == null ? null : api.prepareExact(provider, pattern, oneCopy, requested, level, craftingId);
+    }
+
+    public record ExactBatch(java.math.BigInteger craftCount, Object batch, Method submitMethod) {
+        public boolean submit() {
+            try {
+                return (boolean) submitMethod.invoke(batch);
+            } catch (InvocationTargetException failure) {
+                if (failure.getCause() instanceof RuntimeException runtime) throw runtime;
+                if (failure.getCause() instanceof Error error) throw error;
+                throw new IllegalStateException("NeoECO exact submission failed", failure.getCause());
+            } catch (ReflectiveOperationException failure) {
+                throw new IllegalStateException("Cannot determine exact NeoECO submission ownership", failure);
+            }
+        }
     }
 
     /** Forge NeoECO exposes job ownership on the native pattern bus's public overload. */
