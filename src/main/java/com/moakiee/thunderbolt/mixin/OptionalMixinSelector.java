@@ -17,7 +17,8 @@ public final class OptionalMixinSelector {
             Map.entry("AaeExecutingCraftingJobAccessor", "advanced_ae"),
             Map.entry("AaeElapsedTimeTrackerAccessor", "advanced_ae"),
             Map.entry("AaeTaskProgressAccessor", "advanced_ae"),
-            Map.entry("AppliedETransmutationModuleBatchMixin", "appliede"));
+            Map.entry("AppliedETransmutationModuleBatchMixin", "appliede"),
+            Map.entry("NeoEcoThreadRegistryAccessMixin", "neoecoae"));
 
     /**
      * CPU dispatch hooks whose injection points or material accounting GTLCore replaces.

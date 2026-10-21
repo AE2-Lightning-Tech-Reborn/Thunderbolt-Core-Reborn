@@ -13,16 +13,19 @@ allprojects {
         }
     }
     afterEvaluate {
+        def machineSuite = providers.gradleProperty('neoEcoAcceptanceSuite').getOrElse('ordinary') == 'machine'
         def neoEco = providers.gradleProperty('neoEcoAcceptanceJar').getOrElse('')
         def registrate = providers.gradleProperty('neoEcoAcceptanceRegistrate').getOrElse('')
         if (!file(neoEco).isFile() || !file(registrate).isFile())
             throw new GradleException('Supply Mojang-mapped NeoECO and Registrate development jars')
         dependencies.add('runtimeOnly', files(neoEco, registrate))
         dependencies.add('runtimeOnly', fg.deobf('maven.modrinth:ldlib:mc1.20.1-1.0.33.b-forge'))
+        if (machineSuite) dependencies.add('runtimeOnly', 'org.ojalgo:ojalgo:57.1.0')
         sourceSets.create('neoEcoAcceptance') {
-            java.srcDir rootProject.file('src/neoEcoGameTest/java')
-            resources.srcDir rootProject.file('src/compatibilityGameTest/resources')
+            java.srcDir rootProject.file(machineSuite ? 'src/neoEcoMachineGameTest/java' : 'src/neoEcoGameTest/java')
+            resources.srcDir rootProject.file(machineSuite ? 'src/neoEcoMachineGameTest/resources' : 'src/compatibilityGameTest/resources')
             compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            if (machineSuite) compileClasspath += sourceSets.main.runtimeClasspath
             runtimeClasspath += output + sourceSets.main.runtimeClasspath
         }
         tasks.named('processResources') {
@@ -30,7 +33,7 @@ allprojects {
             doLast {
                 def configFile = rootProject.file('build/resources/main/thunderbolt.mixins.json')
                 def config = new groovy.json.JsonSlurper().parse(configFile)
-                config.mixins.add('neoecoacceptance.BusCallProbeMixin')
+                if (!machineSuite) config.mixins.add('neoecoacceptance.BusCallProbeMixin')
                 configFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(config))
             }
         }
@@ -53,14 +56,22 @@ allprojects {
         tasks.named('compileNeoEcoAcceptanceJava') {
             options.incremental = false
         }
+        tasks.named('compileJava') {
+            options.incremental = false
+            outputs.upToDateWhen { false }
+        }
         tasks.matching { it.name == 'runGameTestServer' }.configureEach {
             dependsOn 'neoEcoAcceptanceClasses'
             finalizedBy 'restoreNeoEcoAcceptanceResources'
             doLast {
                 def runDirectory = file(providers.gradleProperty('thunderboltDevGameDirectory').get())
                 def log = new File(runDirectory, 'logs/latest.log').getText('UTF-8')
-                if (!log.contains('All 3 required tests passed'))
-                    throw new GradleException('Expected all three real NeoECO acceptance tests to run')
+                def expectedTests = machineSuite ? 4 : 3
+                if (!log.contains("All ${expectedTests} required tests passed"))
+                    throw new GradleException("Expected all ${expectedTests} real NeoECO acceptance tests to run")
+                if (log.contains('Failed to load data for block entity neoecoae:crafting_worker')
+                        || log.contains('Skipping BlockEntity with id neoecoae:crafting_worker'))
+                    throw new GradleException('NeoECO worker persistence failed outside the GameTest assertions')
             }
         }
         tasks.matching { it.name == 'downloadMCMeta' }.configureEach {

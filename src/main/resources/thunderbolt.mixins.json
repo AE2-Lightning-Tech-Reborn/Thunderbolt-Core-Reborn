@@ -26,6 +26,7 @@
     "ae2.crafting.CraftingCpuLogicAccessor",
     "compat.advancedae.AdvCraftingCpuAccessor",
     "compat.appliede.AppliedETransmutationModuleBatchMixin",
+    "compat.neoeco.NeoEcoThreadRegistryAccessMixin",
     "ae2.crafting.ExecutingCraftingJobAccessor",
     "ae2.crafting.ElapsedTimeTrackerAccessor",
     "ae2.crafting.TaskProgressAccessor",

@@ -1,0 +1,253 @@
+{
+  "date": "2026-10-21",
+  "recorded_utc": "2026-10-21T11:13:40.090088+00:00",
+  "base_commit": "bcd6e8d8f6c07957850207e9382edaf856c48b91",
+  "status": "passed_within_documented_scope",
+  "scope": "Forge 1.20.1 NeoECO formed-machine server acceptance",
+  "production_implementation_changed": true,
+  "production_fix": "Optional NeoECO thread NBT registry access before block entity level assignment",
+  "release_platform": {
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "java": 17,
+    "ae2": "15.4.10",
+    "mod_version": "2.0.0"
+  },
+  "real_neoeco_runtime": {
+    "minecraft": "1.20.1",
+    "forge": "47.4.20",
+    "java": 17,
+    "ae2": "15.4.10",
+    "neoeco": "20.5.0-beta1",
+    "ldlib": "1.0.33.b",
+    "ojalgo": "57.1.0",
+    "registrate_loaded": true,
+    "source_repository": "https://github.com/DancingSnow0517/NeoECOAEExtension",
+    "source_commit": "a6b3d776d677c3093954081d40d4871592864c3b",
+    "source_license": "GPL-3.0",
+    "source_archive_sha256": "e3f2ec0ff523f8330868f29f502c72103649f42a3267ee6b4fc0aefcd5ba5ee3",
+    "source_audit": {
+      "source_files_compared": 2412,
+      "changed_source_files": [],
+      "jar_size": 5076284,
+      "jar_sha256": "253b9742255a75dbbd39e0515c4b6f850ab0a6fcd5a29d76306ea52b45e6c9ea",
+      "exact_api": true
+    },
+    "artifact_kind": "Locally source-built Mojang development jar; compileJava forced to execute",
+    "synthetic_neoeco_classes_supplied": false,
+    "test_probe_mixins_used": false,
+    "machine_behavior_replaced": false,
+    "power": "Real AE2 creative energy cell",
+    "grid_wiring": "Public GridHelper.createConnection API",
+    "storage": "Real ECOInfiniteStorage backed by SavedData engine; public global storage provider mount",
+    "complete_storage_multiblock_built": false,
+    "gtl_compat_mode": "never",
+    "complete_gtl_pack_loaded": false
+  },
+  "validation": {
+    "machine_game_tests": {
+      "tests": 4,
+      "passed": 4,
+      "skipped": 0,
+      "failures": 0,
+      "cases": [
+        {
+          "name": "formedMachineProducesBatchesAndRecoversCancelledInputs",
+          "hosts": 1,
+          "tier": "L4",
+          "observations": [
+            "Real structure calculator forms machine",
+            "Warmup plus seven batch copies produce 72 ingots",
+            "Native UUID cancellation returns one iron block",
+            "Idle worker counts and no duplication after 30 ticks"
+          ]
+        },
+        {
+          "name": "eightFullHostsExecuteAndCancelExactBatchesBeyondLong",
+          "hosts": 8,
+          "tier": "L9",
+          "workers_per_host": 11,
+          "copies": "1180591620717411303461",
+          "output_including_warmup": "10625324586456701731158",
+          "observations": [
+            "Natural full virtual mode eligibility",
+            "Preparation does not dispatch",
+            "Exact BigInteger count accepted and output reaches persistent storage",
+            "Cancellation recovers complete exact count without truncation or duplication"
+          ]
+        },
+        {
+          "name": "activeWorkerSurvivesVanillaNbtLoadBeforeLevelAssignment",
+          "hosts": 1,
+          "tier": "L4",
+          "observations": [
+            "Vanilla BlockEntity.loadStatic restores detached active worker",
+            "Real running thread retained before level assignment",
+            "Reattached worker refunds one cancelled input and releases custody"
+          ]
+        },
+        {
+          "name": "ae2CpuPlansExtractsProducesAndCancelsThroughRealMachine",
+          "hosts": 1,
+          "tier": "L4",
+          "cpu": "AE2 64K crafting storage",
+          "observations": [
+            "Real crafting service calculates and submits to explicitly selected real AE2 CPU",
+            "CPU extracts three real iron blocks and delivers 27 ingots",
+            "900-ingot order cancelled only after a worker owns inputs",
+            "Native cancellation lifecycle and all 100 input recipe units conserved",
+            "Inventory stable after 30 further ticks"
+          ]
+        }
+      ]
+    },
+    "old_neoeco_game_tests": {
+      "version": "20.5.0",
+      "forge": "47.4.20",
+      "tests": 3,
+      "passed": 3,
+      "skipped": 0,
+      "failures": 0,
+      "artifact_sha256": "a413167fb8041c1e3387ddce08884d7da141df759f391aec41695ea573978ee5"
+    },
+    "full_check": {
+      "tasks": {
+        "test": {
+          "tests": 1537,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 4,
+          "passed": 1533
+        },
+        "externalPlannerBoundaryTest": {
+          "tests": 38,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 38
+        },
+        "materialDagLargeGraphTest": {
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 1
+        },
+        "cpSatColdRefinementTest": {
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 1
+        },
+        "materialDagColdReplayTest": {
+          "tests": 20,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 20
+        }
+      },
+      "total": {
+        "tests": 1597,
+        "passed": 1593,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 4
+      },
+      "skips": [
+        {
+          "task": "test",
+          "classname": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+          "name": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()"
+        },
+        {
+          "task": "test",
+          "classname": "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest",
+          "name": "indeterminateReceiptStopsDispatchWithoutOrdinaryRetry()"
+        },
+        {
+          "task": "test",
+          "classname": "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest",
+          "name": "partialReceiptRetainsOnlyAcceptedCopiesAndHonorsStopUntilNextTick()"
+        },
+        {
+          "task": "test",
+          "classname": "com.moakiee.thunderbolt.compat.neoeco.NeoEcoBatchProtocolTest",
+          "name": "parallelProtocolGetsOwnedBatchTotalsAndJobIdentity()"
+        }
+      ],
+      "test_tasks_executed": 5,
+      "test_cache_reused": false
+    },
+    "compatibility_and_storage_game_tests": {
+      "forge": "47.1.3",
+      "tests": 9,
+      "passed": 9,
+      "failures": 0,
+      "includes_synthetic_gtl_fixtures": true,
+      "includes_real_neoeco": false
+    },
+    "release_verify": {
+      "task": "verifyReleaseJar",
+      "forge": "47.1.3",
+      "passed": true,
+      "acceptance_init_applied": false
+    }
+  },
+  "release": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "size_bytes": 5425404,
+    "sha256": "46377485f8d2c4d623b90bf0577b404a54429119938c3af4f795f1bee9becada",
+    "main_classes": 535,
+    "main_class_majors": [
+      61
+    ],
+    "nested": [
+      {
+        "entry": "META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+        "max_class_major": 61
+      },
+      {
+        "entry": "META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar",
+        "max_class_major": 52
+      },
+      {
+        "entry": "META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar",
+        "max_class_major": 52
+      }
+    ],
+    "fixture_entries": [],
+    "refmap_matches": true,
+    "mixin_config_matches": true,
+    "legacy_constructor_present": true,
+    "byte_cost_method_present": true,
+    "worker_registry_access_mapped": true
+  },
+  "local_log_sha256": {
+    "machine-attempt10.log": "c4d84cdeabd40c11139ee93bbe20d3cff0611db91a67e48244f3809fcfbffa4b",
+    "old-neoeco.log": "a7717065db68d8cb7ecef5787e4a08602c21e0e3d8299cead1b65f364807ef18",
+    "game-tests.log": "78c27a3ba0a70e8a198da93d7a8c38ce7930775a227c282f67b2c30f5d3a9773",
+    "full-check.log": "28b505976aac18094c8de8dcb5d6e284c2b48a47fcef0c9cea029574419ef8fa",
+    "final-package.log": "0e2674fc21fb692a68da6bdd4fa3679186c12add936b3681f5a08193af5f198a"
+  },
+  "investigation": {
+    "pre_fix_log": "machine-attempt2.log",
+    "defect": "Shutdown chunk loading raised NPE in ECOCraftingThread.deserializeNBT; vanilla skipped the worker entity",
+    "reproducer": "activeWorkerSurvivesVanillaNbtLoadBeforeLevelAssignment",
+    "harness_corrections": [
+      "Provide the real grid node on ICraftingSimulationRequester",
+      "Seed through network storage so crafting snapshots observe inventory",
+      "Standalone AE2 successful submission returns null; use CPU getLastLink for identity",
+      "Standalone link has no completion nexus; assert CPU idle, successful native lifecycle and exact output",
+      "Use real 64K storage for the cancellable 900-ingot plan"
+    ]
+  },
+  "limitations": [
+    "No complete GTL modpack, client GUI, multiplayer or long-duration soak acceptance",
+    "Exact batches use public independent-CPU handoff API with an already-extracted per-copy template; no BigInteger CPU stock extraction is claimed",
+    "Vanilla loadStatic exercises active worker NBT restoration; no full-process restart of an active job is claimed",
+    "Grid links and real persistent storage mount use public APIs; cable placement and full storage multiblock formation are not covered",
+    "Source development jar is a local build; official CI and client-side mapping correctness are not asserted"
+  ]
+}
