@@ -101,28 +101,7 @@ final class ExactPlanPreview {
     }
 
     static BigInteger bytes(ExactCraftPlan<AEKey> plan, Set<AEKey> durability) {
-        BigInteger numerator = BigInteger.ZERO;
-        BigInteger denominator = BigInteger.ONE;
-        for (var entry : plan.grossDemand().entrySet()) {
-            PlanningCancellation.check();
-            BigInteger divisor = BigInteger.valueOf(Math.max(1, entry.getKey().getType().getAmountPerByte()));
-            BigInteger gcd = denominator.gcd(divisor);
-            BigInteger factor = divisor.divide(gcd);
-            numerator = numerator.multiply(factor).add(entry.getValue().multiply(BigInteger.valueOf(8))
-                    .multiply(denominator.divide(gcd)));
-            denominator = denominator.multiply(factor);
-        }
-        BigInteger total = ExactDiagnosticPlanner.ceilDiv(numerator, denominator)
-                .add(BigInteger.valueOf(plan.grossDemand().size()).multiply(BigInteger.valueOf(8)));
-        for (var entry : plan.firings().entrySet()) {
-            total = total.add(entry.getValue());
-            for (var input : entry.getKey().inputs()) {
-                if (input.returned() || input.remainder() != null || durability.contains(input.key())) {
-                    total = total.add(input.exactAmount().multiply(entry.getValue()));
-                }
-            }
-        }
-        return ExactDiagnosticPlanner.checked(total);
+        return plan.byteCost(key -> key.getType().getAmountPerByte(), durability);
     }
 
     private static KeyCounter project(Map<AEKey, BigInteger> exact) {
