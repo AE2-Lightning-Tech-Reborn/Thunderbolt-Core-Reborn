@@ -22,7 +22,7 @@
 - 支持精确 BigInteger 存储、可认证执行程序，以及超限合成预览
 - 为合成供应器、高容量频道、索引存储单元和弹出端点提供扩展 API
 - 为兼容的高容量网络提供基于最大流的频道分配（双向树种子 + 精确残量补齐）
-- 包含 Advanced AE、NeoECO、AE2 Crafting Tree 和 ExtendedAE Plus 的可选兼容钩子；仅在对应模组存在时加载
+- 包含 Advanced AE、AE2 Crafting Tree 和 ExtendedAE Plus 的可选兼容钩子；仅在对应模组存在时加载
 - 与 GTLCore（`gtlcore`）共存：CPU 派发让位给 GTLCore，规划器挂在 `CraftingCalculation#computePlan`，其余子系统保持启用
 
 让位边界、`-Dthunderbolt.gtlCompat` 开关与验证步骤见 `docs/gtl-core-coexistence.zh-CN.md`。

@@ -32,7 +32,7 @@ server.
   storage cells, and eject endpoints
 - max-flow channel allocation for compatible high-capacity networks,
   using a bidirectional tree seed and exact residual completion
-- optional compatibility hooks for Advanced AE, NeoECO, AE2 Crafting Tree,
+- optional compatibility hooks for Advanced AE, AE2 Crafting Tree,
   and ExtendedAE Plus; hooks load only when the corresponding mod is present
 - coexistence with GTLCore (`gtlcore`): Thunderbolt yields CPU dispatch to
   GTLCore, attaches the planner at `CraftingCalculation#computePlan`,

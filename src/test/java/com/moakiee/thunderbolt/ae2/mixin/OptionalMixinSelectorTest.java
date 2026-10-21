@@ -7,14 +7,6 @@ import org.junit.jupiter.api.Test;
 
 class OptionalMixinSelectorTest {
     @Test
-    void neoEcoWorkerPersistenceFixRequiresNeoEco() {
-        String mixin = "com.moakiee.thunderbolt.mixin.compat.neoeco.NeoEcoThreadRegistryAccessMixin";
-        assertFalse(OptionalMixinSelector.shouldApply(mixin, ignored -> false));
-        assertFalse(OptionalMixinSelector.shouldApply(mixin, "ae2"::equals));
-        assertTrue(OptionalMixinSelector.shouldApply(mixin, "neoecoae"::equals));
-    }
-
-    @Test
     void craftingTreeTailAdaptationOnlyRunsWithTheAddon() {
         assertFalse(OptionalMixinSelector.shouldApply("Ae2CraftingTreeCompatibilityMixin", ignored -> false));
         assertTrue(OptionalMixinSelector.shouldApply("Ae2CraftingTreeCompatibilityMixin", "ae2ct"::equals));
