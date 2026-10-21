@@ -10,13 +10,47 @@ import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.KeyCounter;
 import net.minecraft.world.level.Level;
 import java.util.UUID;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Optional;
 
 /** Keeps NeoECO API types outside the class-loading path when the optional mod is absent. */
 public final class NeoEcoFastPathCompat {
+    private static final ClassValue<Optional<Method>> JOB_PUSH = new ClassValue<>() {
+        @Override
+        protected Optional<Method> computeValue(Class<?> providerType) {
+            try {
+                var bus = Class.forName(
+                        "cn.dancingsnow.neoecoae.blocks.entity.crafting.ECOCraftingPatternBusBlockEntity",
+                        false, providerType.getClassLoader());
+                if (!bus.isAssignableFrom(providerType)) return Optional.empty();
+                var push = bus.getMethod("pushPattern", IPatternDetails.class, KeyCounter[].class, UUID.class);
+                return push.getReturnType() == boolean.class ? Optional.of(push) : Optional.empty();
+            } catch (ReflectiveOperationException | LinkageError unavailable) {
+                return Optional.empty();
+            }
+        }
+    };
     private static final String ADAPTER_CLASS =
             "com.moakiee.thunderbolt.compat.neoeco.NeoEcoFastPathBatchAdapter";
 
     private NeoEcoFastPathCompat() {
+    }
+
+    /** Forge NeoECO exposes job ownership on the native pattern bus's public overload. */
+    public static boolean pushPattern(ICraftingProvider provider, IPatternDetails pattern,
+            KeyCounter[] inputs, @Nullable UUID craftingId) {
+        var method = JOB_PUSH.get(provider.getClass()).orElse(null);
+        if (method == null) return provider.pushPattern(pattern, inputs);
+        try {
+            return (boolean) method.invoke(provider, pattern, inputs, craftingId);
+        } catch (InvocationTargetException failure) {
+            if (failure.getCause() instanceof RuntimeException runtime) throw runtime;
+            if (failure.getCause() instanceof Error error) throw error;
+            throw new IllegalStateException("NeoECO ordinary submission failed", failure.getCause());
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Cannot determine NeoECO ordinary submission ownership", failure);
+        }
     }
 
     @Nullable
