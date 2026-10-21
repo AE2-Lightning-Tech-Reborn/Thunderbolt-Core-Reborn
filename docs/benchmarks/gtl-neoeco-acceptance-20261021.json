@@ -1,0 +1,155 @@
+{
+  "date": "2026-10-21",
+  "recorded_utc": "2026-10-21T09:41:21.065808+00:00",
+  "production_commit": "30df54c7d9720bb137604681e0f80b0e82ef811b",
+  "status": "partial",
+  "production_implementation_changed": false,
+  "release_platform": {
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10",
+    "java": 17,
+    "mod_version": "2.0.0"
+  },
+  "real_neoeco_runtime": {
+    "minecraft": "1.20.1",
+    "forge": "47.4.20",
+    "java": 17,
+    "ae2": "15.4.10",
+    "neoeco": "20.5.0",
+    "ldlib": "1.0.33.b",
+    "registrate_loaded": true,
+    "artifact_kind": "Existing Mojang-mapped development jar",
+    "artifact_sha256": "a413167fb8041c1e3387ddce08884d7da141df759f391aec41695ea573978ee5",
+    "artifact_minimum_forge": "47.4.0",
+    "gtl_compat_mode": "never",
+    "complete_gtl_pack_loaded": false,
+    "synthetic_neoeco_classes_supplied": false,
+    "machine_behavior_replaced": false
+  },
+  "validation": {
+    "real_neoeco_game_tests": {
+      "tests": 3,
+      "passed": 3,
+      "skipped": 0,
+      "failures": 0,
+      "cases": [
+        "nativeAdapterRegistersForTheRealMod",
+        "realUnformedBusBlocksBatchesAndNativeJobCallPreservesInputs",
+        "olderRealModKeepsExactAndCancellationOptional"
+      ],
+      "pattern": "Real AE2 encoded/decoded vanilla iron block unpacking crafting pattern",
+      "observations": [
+        "Native adapter registers with real mod and dependencies",
+        "Busy unformed bus prepares capacity zero and does not submit batches",
+        "Direct ordinary helper invokes real UUID overload exactly once with supplied job",
+        "Real unformed machine rejects and input counters remain unchanged",
+        "Absent exact API declines and missing cancellation API remains optional"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "passed": 2,
+          "failures": 1,
+          "cause": "Test incorrectly expected capacity one from an unformed busy bus"
+        },
+        {
+          "attempt": 2,
+          "passed": 3,
+          "failures": 0,
+          "correction": "Assert capacity zero for busy bus and verify direct native UUID call separately; use real decoded crafting pattern"
+        }
+      ]
+    },
+    "release_verify": {
+      "task": "verifyReleaseJar",
+      "forge": "47.1.3",
+      "passed": true,
+      "acceptance_init_applied": false
+    },
+    "previous_same_production_code": {
+      "report": "gtl-forge-eco-port-20261021.json",
+      "rerun_this_acceptance": false,
+      "full_check": {
+        "tests": 1596,
+        "passed": 1592,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 4
+      },
+      "compatibility_and_storage_game_tests": {
+        "tests": 9,
+        "passed": 9,
+        "failures": 0
+      },
+      "new_native_contract_tests": {
+        "tests": 12,
+        "passed": 12,
+        "evidence_kind": "Dynamically compiled isolated fixtures"
+      },
+      "counts_are_overlapping_not_additive": true
+    }
+  },
+  "new_neoeco_source": {
+    "repository": "DancingSnow0517/NeoECOAEExtension",
+    "branch": "1.20.1",
+    "commit": "a6b3d776d677c3093954081d40d4871592864c3b",
+    "archive_sha256": "e3f2ec0ff523f8330868f29f502c72103649f42a3267ee6b4fc0aefcd5ba5ee3",
+    "official_latest_three_builds": "failure",
+    "latest_official_run": 36680392078,
+    "latest_successful_build_commit": "aa0dba02c54e3aa0caf044a33f2e2fba59a86221",
+    "latest_successful_run": 35551039337,
+    "local_offline_build": "Failed during configuration: io.freefair.lombok 8.7.1 plugin unavailable",
+    "local_online_build": "Cancelled after dependency resolution made no visible progress",
+    "complete_new_artifact_built": false
+  },
+  "release": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "size_bytes": 5423787,
+    "sha256": "fd76295700710aa6c5fea025d451b25a5c0939b39192e72da100b6fb22502852",
+    "main_classes": 534,
+    "main_class_majors": [
+      61
+    ],
+    "nested": [
+      {
+        "entry": "META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+        "max_class_major": 61
+      },
+      {
+        "entry": "META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar",
+        "max_class_major": 52
+      },
+      {
+        "entry": "META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar",
+        "max_class_major": 52
+      }
+    ],
+    "fixture_entries": [],
+    "refmap_matches": true,
+    "mixin_config_matches": true,
+    "legacy_constructor_present": true,
+    "byte_cost_method_present": true
+  },
+  "candidate_comparison": {
+    "candidate_sha256": "b0a0273e2f981308f6f90c4982bd968dc9ef6a1e6045052b1ed1e1f2b9174680",
+    "all_entry_contents_identical": true,
+    "added": [],
+    "removed": [],
+    "changed_content": [],
+    "timestamp_changes": 545
+  },
+  "not_accepted_as_complete": [
+    "Real new-version BigInteger exact batch admission and dispatch",
+    "Real new-version cancelAndRecover and inventory recovery",
+    "Formed multiblock successful production and output delivery",
+    "Independent CPU integration of the public exact/cancellation handoff",
+    "Complete GTL modpack, client GUI, multiplayer and historical isolated Java 17 timeout"
+  ],
+  "sources": {
+    "tests": "src/neoEcoGameTest/java/com/moakiee/thunderbolt/gametest/NeoEcoAcceptanceTests.java",
+    "observer": "src/neoEcoGameTest/java/com/moakiee/thunderbolt/mixin/neoecoacceptance/BusCallProbeMixin.java",
+    "runner": "tools/neoeco-acceptance-game-tests.gradle"
+  },
+  "raw_evidence_committed": false
+}
