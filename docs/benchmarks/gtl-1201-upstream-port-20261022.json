@@ -1,0 +1,334 @@
+{
+  "date": "2026-10-22",
+  "port": {
+    "upstream_branch": "1.20.1",
+    "upstream_commit": "cea4cc29b97e308987ad4a06a2c61f7fb00f0527",
+    "port_base_commit": "fbde81452833fc0fdcc7e0983aa9b9df2ead226e",
+    "new_production_function": "SmallDagBatchOptimizer with shared work and cancellation budgets",
+    "new_test_methods": 5,
+    "new_upstream_game_tests": 5,
+    "cold_replenishment_forks_per_class": 1,
+    "neoeco_restored": false,
+    "preserved_local_implementations": [
+      "GTL compatibility",
+      "FeasibleWitness integer certificate reuse",
+      "exact accounting and ABI",
+      "Forge detached storage snapshots",
+      "126-bit single-key accounting",
+      "planner cancellation and budget certificates"
+    ],
+    "game_test_startup_fix": "main source set precedes gameTest for exploded Mixin manifest discovery",
+    "ci_false_success_guard": "requires All 5 required tests passed in the Forge server log",
+    "isolated_lifecycle_timing_cases": 5,
+    "lifecycle_timing_limits_and_assertions_unchanged": true
+  },
+  "environment": {
+    "minecraft": "1.20.1",
+    "loader": "Forge",
+    "forge": "47.1.3",
+    "java": 17,
+    "ae2": "15.4.10"
+  },
+  "junit": {
+    "tasks": {
+      "test": {
+        "tests": 1497,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1,
+        "passed": 1496
+      },
+      "externalPlannerBoundaryTest": {
+        "tests": 38,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 38
+      },
+      "materialDagLargeGraphTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 1
+      },
+      "cpSatColdRefinementTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 1
+      },
+      "materialDagColdReplayTest": {
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 20
+      },
+      "materialDagColdReplenishmentTest": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 2
+      },
+      "planningLifecycleTimingTest": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 5
+      }
+    },
+    "total": {
+      "tests": 1564,
+      "passed": 1563,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "skips": [
+      {
+        "task": "test",
+        "classname": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+        "name": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()"
+      }
+    ],
+    "test_tasks_executed": 7,
+    "test_cache_reused": false,
+    "unique_cases": {
+      "passed": 1540,
+      "failed": 0,
+      "skipped": 1
+    },
+    "repeated_executions": 23
+  },
+  "upstream_nbt_game_tests": {
+    "required_tests_passed": 5,
+    "mixin_audit_enabled": true,
+    "mixin_audit_targets": 18,
+    "namespace": "thunderbolt_nbt",
+    "upstream_cases_identical": true
+  },
+  "compatibility_game_tests": {
+    "environment": "Minecraft 1.20.1 / Forge 47.1.3 / Java 17",
+    "required_tests_passed": 13,
+    "local_nbt_tests": 4,
+    "copy_hooks_in_transformed_methods": {
+      "CompoundTag": {
+        "fuseTransform": 1,
+        "collectCopy": 1
+      },
+      "ListTag": {
+        "fuseTransform": 1,
+        "collectCopy": 1
+      }
+    },
+    "production_mixin_config_restored": true
+  },
+  "random_batch_inventory": {
+    "seeds": [
+      {
+        "provider_cases": 2000,
+        "seed": 20261022,
+        "elapsed_ms": 2595.7603,
+        "cases": 20000,
+        "limiter_calls": 4429,
+        "rejected_or_unavailable": 17811,
+        "status": "PASS",
+        "trillion_quantity_cases": 2858,
+        "preparation_exceptions": 729
+      },
+      {
+        "provider_cases": 2000,
+        "preparation_exceptions": 708,
+        "trillion_quantity_cases": 2858,
+        "status": "PASS",
+        "rejected_or_unavailable": 17733,
+        "limiter_calls": 4469,
+        "cases": 20000,
+        "elapsed_ms": 3807.215501,
+        "seed": 20261023
+      },
+      {
+        "seed": 20261024,
+        "elapsed_ms": 3741.0532,
+        "cases": 20000,
+        "limiter_calls": 4445,
+        "rejected_or_unavailable": 17764,
+        "status": "PASS",
+        "trillion_quantity_cases": 2858,
+        "preparation_exceptions": 742,
+        "provider_cases": 2000
+      }
+    ],
+    "total_cases": 66000
+  },
+  "release_contract_tests": {
+    "tests": 12,
+    "passed": 12
+  },
+  "workflow_actionlint": "PASS",
+  "release": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "size_bytes": 5405705,
+    "sha256": "c76ce326b755a84d57a9295ff0eb64317645712063a3dd7f606aabbb7441ec3a",
+    "main_classes": 525,
+    "main_class_majors": [
+      61
+    ],
+    "nested": [
+      {
+        "entry": "META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+        "max_class_major": 61
+      },
+      {
+        "entry": "META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar",
+        "max_class_major": 52
+      },
+      {
+        "entry": "META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar",
+        "max_class_major": 52
+      }
+    ],
+    "fixture_entries": [],
+    "refmap_matches": true,
+    "mixin_config_matches": true,
+    "legacy_constructor_present": true,
+    "byte_cost_method_present": true,
+    "neoeco_entries": [],
+    "neoeco_references": [],
+    "neoeco_optional_artifacts": []
+  },
+  "small_dag_release": {
+    "small_dag_optimizer_packaged": true,
+    "production_call_present": true,
+    "game_test_fixtures_excluded": true
+  },
+  "nbt_release": {
+    "nbt_copy_refmap": {
+      "CompoundTag": "Lnet/minecraft/nbt/CompoundTag;m_6426_()Lnet/minecraft/nbt/CompoundTag;",
+      "ListTag": "Lnet/minecraft/nbt/ListTag;m_6426_()Lnet/minecraft/nbt/ListTag;"
+    },
+    "list_shadow_remapped": true
+  },
+  "earlier_verification_failures": [
+    {
+      "attempt": "first",
+      "task": "test",
+      "classname": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagReplayTest",
+      "name": "repetition 2 of 12",
+      "seconds": 1.022,
+      "message": "org.opentest4j.AssertionFailedError: execution timed out after 1000 ms",
+      "original_timeout_ms": 1000
+    },
+    {
+      "attempt": "second",
+      "task": "materialDagColdReplenishmentTest",
+      "classname": "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagReplayTest",
+      "name": "recoversMaterialDag8089()",
+      "seconds": 1.475,
+      "message": "org.opentest4j.AssertionFailedError: execution timed out after 1000 ms",
+      "original_timeout_ms": 1000
+    },
+    {
+      "attempt": "third",
+      "task": "test",
+      "classname": "com.moakiee.thunderbolt.core.crafting.algorithm.PlanningAttemptMonitorTest",
+      "name": "budgetExpiryInterruptAndIsolationAreDistinctStages()",
+      "seconds": 1.024,
+      "message": "java.util.concurrent.TimeoutException"
+    },
+    {
+      "attempt": "third",
+      "task": "test",
+      "classname": "com.moakiee.thunderbolt.core.crafting.algorithm.PlanningCandidateExecutorTest",
+      "name": "interruptResponsiveExternalCancellationExitsWithoutQuarantine()",
+      "seconds": 1.17,
+      "message": "org.opentest4j.AssertionFailedError: expected: <true> but was: <false>"
+    },
+    {
+      "attempt": "third",
+      "task": "test",
+      "classname": "com.moakiee.thunderbolt.core.crafting.algorithm.PlanningCandidateExecutorTest",
+      "name": "hardTimeoutDetachesNonCooperativeCandidateOnlyAtIsolationDeadline()",
+      "seconds": 0.534,
+      "message": "org.opentest4j.AssertionFailedError: the ignored interrupt must not hold up the caller ==> expected: <true> but was: <false>"
+    },
+    {
+      "attempt": "third",
+      "task": "test",
+      "classname": "com.moakiee.thunderbolt.core.crafting.algorithm.RegisteredPlanningEngineCancellationContractTest",
+      "name": "cooperativeRegisteredEngineMayReturnAtTimeoutOnItsIsolatedCandidateThread()",
+      "seconds": 0.945,
+      "message": "java.util.concurrent.CancellationException: crafting calculation interrupted"
+    },
+    {
+      "attempt": "third",
+      "task": "cpSatColdRefinementTest",
+      "classname": "com.moakiee.thunderbolt.core.crafting.planner.CpSatPetriRefinementTest",
+      "name": "repeatedFreshDeadlockAlternativesUseBoundedPreflightAndRemainExecutable()",
+      "seconds": 5.246,
+      "message": "org.opentest4j.AssertionFailedError: expected: <SOLVED> but was: <UNKNOWN>"
+    },
+    {
+      "attempt": "fourth",
+      "task": "test",
+      "classname": "com.moakiee.thunderbolt.core.crafting.planner.reference.ReferenceCapabilityRunnerTest",
+      "name": "refillStartsASecondPassWithAFreshDeadline()",
+      "seconds": 0.255,
+      "message": "org.opentest4j.AssertionFailedError: expected: <SUPPORTED> but was: <ENGINE_TIMEOUT>"
+    }
+  ],
+  "isolated_timing_recheck": [
+    {
+      "task": "test",
+      "classname": "com.moakiee.thunderbolt.core.crafting.algorithm.PlanningAttemptMonitorTest",
+      "name": "budgetExpiryInterruptAndIsolationAreDistinctStages()",
+      "seconds": 1.495,
+      "status": "PASS"
+    },
+    {
+      "task": "test",
+      "classname": "com.moakiee.thunderbolt.core.crafting.algorithm.PlanningCandidateExecutorTest",
+      "name": "interruptResponsiveExternalCancellationExitsWithoutQuarantine()",
+      "seconds": 0.022,
+      "status": "PASS"
+    },
+    {
+      "task": "test",
+      "classname": "com.moakiee.thunderbolt.core.crafting.algorithm.PlanningCandidateExecutorTest",
+      "name": "hardTimeoutDetachesNonCooperativeCandidateOnlyAtIsolationDeadline()",
+      "seconds": 0.253,
+      "status": "PASS"
+    },
+    {
+      "task": "test",
+      "classname": "com.moakiee.thunderbolt.core.crafting.algorithm.RegisteredPlanningEngineCancellationContractTest",
+      "name": "cooperativeRegisteredEngineMayReturnAtTimeoutOnItsIsolatedCandidateThread()",
+      "seconds": 0.03,
+      "status": "PASS"
+    },
+    {
+      "task": "cpSatColdRefinementTest",
+      "classname": "com.moakiee.thunderbolt.core.crafting.planner.CpSatPetriRefinementTest",
+      "name": "repeatedFreshDeadlockAlternativesUseBoundedPreflightAndRemainExecutable()",
+      "seconds": 1.312,
+      "status": "PASS"
+    }
+  ],
+  "repeated_material_replay_recheck": {
+    "repetitions": 12,
+    "passed": 12,
+    "failures": 0,
+    "original_timeout_ms": 1000,
+    "max_repetition_seconds": 0.537,
+    "test_or_timeout_modified": false
+  },
+  "limitations": [
+    "One real EAEP integration case skipped: optional artifact not supplied",
+    "Earlier cold-start and thread-timing failures remain a stability observation",
+    "GTL runtime scenarios use existing fixtures with compatibility mode ALWAYS; full-modpack TPS and manual client acceptance require separate verification"
+  ]
+}

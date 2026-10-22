@@ -28,6 +28,11 @@ tasks.register('printProjectVersion') {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
+sourceSets.create('gameTest') {
+    compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    runtimeClasspath += output + sourceSets.main.runtimeClasspath
+}
+
 // Avoid platform-dependent source decoding on Windows.
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
@@ -42,6 +47,13 @@ minecraft {
     copyIdeResources = true
 
     runs {
+        configureEach {
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            // Forge discovers the exploded mod's Mixin manifest from its first source.
+            mods { "${mod_id}" { source sourceSets.main } }
+            workingDirectory project.file(thunderboltDevGameDirectory.isEmpty() ? 'run' : thunderboltDevGameDirectory)
+        }
         client {
             property 'thunderbolt.mixinAudit', 'true'
         }
@@ -49,17 +61,14 @@ minecraft {
             property 'thunderbolt.mixinAudit', 'true'
         }
         gameTestServer {
+            workingDirectory project.file(thunderboltDevGameDirectory.isEmpty()
+                    ? 'build/nbt-game-test' : thunderboltDevGameDirectory)
             property 'thunderbolt.mixinAudit', 'true'
-            property 'forge.enabledGameTestNamespaces', mod_id
+            property 'forge.enabledGameTestNamespaces', 'thunderbolt_nbt'
+            mods { "${mod_id}" { source sourceSets.gameTest } }
         }
         data {
             args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-        }
-        configureEach {
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            mods { "${mod_id}" { source sourceSets.main } }
-            workingDirectory project.file(thunderboltDevGameDirectory.isEmpty() ? 'run' : thunderboltDevGameDirectory)
         }
     }
 }
@@ -244,11 +253,20 @@ tasks.withType(Test).configureEach {
     jvmArgs '-XX:ActiveProcessorCount=4'
 }
 
+def planningLifecycleTimingCases = [
+        'com.moakiee.thunderbolt.core.crafting.algorithm.PlanningAttemptMonitorTest.budgetExpiryInterruptAndIsolationAreDistinctStages',
+        'com.moakiee.thunderbolt.core.crafting.algorithm.PlanningCandidateExecutorTest.interruptResponsiveExternalCancellationExitsWithoutQuarantine',
+        'com.moakiee.thunderbolt.core.crafting.algorithm.PlanningCandidateExecutorTest.hardTimeoutDetachesNonCooperativeCandidateOnlyAtIsolationDeadline',
+        'com.moakiee.thunderbolt.core.crafting.algorithm.RegisteredPlanningEngineCancellationContractTest.cooperativeRegisteredEngineMayReturnAtTimeoutOnItsIsolatedCandidateThread',
+        'com.moakiee.thunderbolt.core.crafting.planner.reference.ReferenceCapabilityRunnerTest.refillStartsASecondPassWithAFreshDeadline'
+]
+
 test {
     useJUnitPlatform()
     exclude 'com/moakiee/thunderbolt/core/crafting/planner/ExternalPlannerBoundaryCompatibilityTest.class'
     filter {
         excludeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MaterialDagSupplyTest.linearSideOutputSchedulingCoversGraphsBeyondTheFormerSixteenThousandWorkCap'
+        planningLifecycleTimingCases.each { excludeTestsMatching it }
     }
     dependsOn 'prepareOptionalModShapeArtifacts'
     systemProperty 'thunderbolt.optionalModShapeDir',
@@ -262,6 +280,22 @@ test {
         events "passed", "skipped", "failed"
     }
 }
+
+// Keep millisecond-scale scheduler assertions independent of the large suite's
+// Minecraft/native initialization, GC and JIT history. Their limits stay unchanged.
+tasks.register('planningLifecycleTimingTest', Test) {
+    group = 'verification'
+    description = 'Checks planning lifecycle stages and fresh reference deadlines in an isolated JVM.'
+    dependsOn 'testClasses'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        planningLifecycleTimingCases.each { includeTestsMatching it }
+    }
+    testLogging { events 'passed', 'failed' }
+}
+tasks.named('test') { dependsOn 'planningLifecycleTimingTest' }
 
 // Keep the imported one-second boundary cases in a fresh JVM, independent of
 // earlier Minecraft/native planner tests. Both test and build must still run them.
@@ -337,6 +371,25 @@ tasks.register('materialDagColdReplayTest', Test) {
     testLogging { events 'failed' }
 }
 tasks.named('check') { dependsOn 'materialDagColdReplayTest' }
+
+tasks.register('materialDagColdReplenishmentTest', Test) {
+    group = 'verification'
+    description = 'Checks fresh-session replenishment certificates and material DAG recovery in cold JVMs.'
+    dependsOn 'testClasses'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    forkEvery = 1
+    filter {
+        includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest.freshRecipeIdentitiesKeepBothCycleSupplementsReproducible'
+        includeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MaterialDagReplayTest.recoversMaterialDag8089'
+    }
+    testLogging { events 'passed', 'failed' }
+}
+
+tasks.named('compileGameTestJava') { dependsOn 'classes' }
+tasks.matching { it.name == 'runGameTestServer' }.configureEach { dependsOn 'gameTestClasses' }
+tasks.named('check') { dependsOn 'materialDagColdReplenishmentTest' }
 
 tasks.register('prepareOptionalModShapeArtifacts', Sync) {
     from configurations.optionalModShapeArtifacts

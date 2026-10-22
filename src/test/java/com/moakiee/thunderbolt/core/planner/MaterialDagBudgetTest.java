@@ -15,6 +15,21 @@ import org.junit.jupiter.api.Test;
 
 class MaterialDagBudgetTest {
     @Test
+    void freshRecipeIdentitiesKeepBothCycleSupplementsReproducible() {
+        for (int round = 0; round < 6; round++) {
+            for (var graph : List.of(batchCycle(), sharedCycle())) {
+                var plan = CraftPlannerV2.plan(graph, "M6", 2);
+                assertFalse(plan.missing().isEmpty());
+                var supplied = graph.withAdditionalStock(plan.missing());
+                var ready = CraftPlannerV2.planDetailed(supplied, "M6", 2, 1, 1);
+                assertTrue(ready.plan().feasible(), () -> "missing=" + plan.missing()
+                        + " diagnostics=" + ready.diagnostics());
+                assertBalance(supplied, ready.plan());
+            }
+        }
+    }
+
+    @Test
     void unboundMaterialDagPortfolioDoesNotChargeASchedulingPause() {
         var threads = java.lang.management.ManagementFactory.getThreadMXBean();
         org.junit.jupiter.api.Assumptions.assumeTrue(

@@ -83,6 +83,16 @@ final class OptionalPlanningStages {
             if (targetRoutes >= 2 && targetRoutes <= 6
                     && FeasibleConsumptionOptimizer.targetOnlyBound(graph, target, amount, initial.plan()))
                 return initial;
+            var smallDag = targetRoutes <= 1
+                    ? SmallDagBatchOptimizer.solve(graph, target, amount, seed,
+                            session.searchWorkBudget::tryConsume)
+                    : null;
+            if (smallDag != null && FeasibleConsumptionOptimizer.improves(seed, smallDag)) {
+                budget.improved(seed, smallDag);
+                seed = smallDag;
+                mixedProbes = 1;
+                mixedImprovements = 1;
+            }
             var mixed = TwoRouteBatchOptimizer.solve(graph, target, amount, seed,
                     session.searchWorkBudget::tryConsume);
             if (mixed.status() == BatchOptimizationResult.Status.UNSUPPORTED) {
