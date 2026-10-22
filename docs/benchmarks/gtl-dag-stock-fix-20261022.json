@@ -1,0 +1,322 @@
+{
+  "date": "2026-10-22",
+  "branch": "1.20.1_GTL",
+  "baseline_commit": "f20193759b658728fe0143accaf7289b2dc900b4",
+  "scope": "large ordinary and exact stock snapshots in CraftGraph",
+  "environment": {
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10",
+    "java": "17.0.20",
+    "platform": "Windows amd64"
+  },
+  "fix": {
+    "large_snapshot": "private HashMap wrapped with Collections.unmodifiableMap",
+    "small_snapshot": "Map.copyOf for at most 16 entries",
+    "covered_paths": [
+      "build",
+      "withAdditionalStock",
+      "withStockLimits",
+      "withoutStock",
+      "withPatterns (shared snapshot)"
+    ],
+    "null_keys_rejected": true,
+    "exact_stock_preserved": true,
+    "saturated_stock_preserved": true,
+    "existing_deadlines_changed": false,
+    "existing_test_sizes_changed": false,
+    "new_regression_methods": 3,
+    "tradeoff": "More entry objects for inventories larger than 16 keys"
+  },
+  "deterministic_regression": {
+    "keys": 2048,
+    "baseline_equals_calls": 12584960,
+    "candidate_equals_call_upper_bound_per_projection": 32768,
+    "candidate_projection_count": 5,
+    "baseline_failed": true,
+    "candidate_passed": true,
+    "timing_assertion": false
+  },
+  "jfr": {
+    "baseline": {
+      "execution_samples": 163,
+      "stock_MapN_probe_samples": 16
+    },
+    "candidate": {
+      "execution_samples": 192,
+      "stock_MapN_probe_samples": 0
+    }
+  },
+  "check": {
+    "build_success": true,
+    "tasks": {
+      "test": {
+        "tests": 1500,
+        "skipped": 1,
+        "failures": 0,
+        "errors": 0,
+        "passed": 1499
+      },
+      "externalPlannerBoundaryTest": {
+        "tests": 38,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0,
+        "passed": 38
+      },
+      "materialDagLargeGraphTest": {
+        "tests": 1,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0,
+        "passed": 1
+      },
+      "cpSatColdRefinementTest": {
+        "tests": 1,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0,
+        "passed": 1
+      },
+      "materialDagColdReplayTest": {
+        "tests": 20,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0,
+        "passed": 20
+      },
+      "materialDagColdReplenishmentTest": {
+        "tests": 2,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0,
+        "passed": 2
+      },
+      "planningLifecycleTimingTest": {
+        "tests": 5,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0,
+        "passed": 5
+      }
+    },
+    "skips": [
+      {
+        "task": "test",
+        "classname": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+        "name": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()"
+      }
+    ],
+    "failures": [],
+    "total": {
+      "tests": 1567,
+      "passed": 1566,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "unique_cases": {
+      "passed": 1543,
+      "skipped": 1
+    },
+    "repeated_executions": 23,
+    "test_cache_reused": false
+  },
+  "cold_dag_rechecks": {
+    "independent_jvms": 10,
+    "branches": 4096,
+    "quantities": [
+      1,
+      1000000000000
+    ],
+    "timeout_seconds_per_call": 3,
+    "result": {
+      "build_success": true,
+      "tasks": {
+        "dagColdRepeat1": {
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "passed": 1
+        },
+        "dagColdRepeat2": {
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "passed": 1
+        },
+        "dagColdRepeat3": {
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "passed": 1
+        },
+        "dagColdRepeat4": {
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "passed": 1
+        },
+        "dagColdRepeat5": {
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "passed": 1
+        },
+        "dagColdRepeat6": {
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "passed": 1
+        },
+        "dagColdRepeat7": {
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "passed": 1
+        },
+        "dagColdRepeat8": {
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "passed": 1
+        },
+        "dagColdRepeat9": {
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "passed": 1
+        },
+        "dagColdRepeat10": {
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0,
+          "passed": 1
+        }
+      },
+      "skips": [],
+      "failures": [],
+      "total": {
+        "tests": 10,
+        "passed": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "unique_cases": {
+        "passed": 1
+      },
+      "repeated_executions": 9,
+      "test_cache_reused": false
+    }
+  },
+  "forge_gametest": {
+    "default_nbt": {
+      "required_tests_passed": 5,
+      "actual_server_log_checked": true,
+      "saved_and_stopped": true,
+      "copy_hooks_in_transformed_methods": {
+        "CompoundTag": {
+          "fuseTransform": 1,
+          "collectCopy": 1
+        },
+        "ListTag": {
+          "fuseTransform": 1,
+          "collectCopy": 1
+        }
+      },
+      "production_mixin_config_restored": true,
+      "gtl_mode": "default",
+      "test_errors": []
+    },
+    "gtl_compatibility": {
+      "required_tests_passed": 13,
+      "actual_server_log_checked": true,
+      "saved_and_stopped": true,
+      "copy_hooks_in_transformed_methods": {
+        "CompoundTag": {
+          "fuseTransform": 1,
+          "collectCopy": 1
+        },
+        "ListTag": {
+          "fuseTransform": 1,
+          "collectCopy": 1
+        }
+      },
+      "production_mixin_config_restored": true,
+      "gtl_mode": "always",
+      "test_errors": []
+    }
+  },
+  "release": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "size_bytes": 5406039,
+    "sha256": "1a94a63e6e6bcaf88a94273395de1afa2db1e3fc9e75cf2142254d9fdb7af411",
+    "main_classes": 525,
+    "main_class_majors": [
+      61
+    ],
+    "nested": [
+      {
+        "entry": "META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+        "max_class_major": 61
+      },
+      {
+        "entry": "META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar",
+        "max_class_major": 52
+      },
+      {
+        "entry": "META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar",
+        "max_class_major": 52
+      }
+    ],
+    "fixture_entries": [],
+    "refmap_matches": true,
+    "mixin_config_matches": true,
+    "legacy_constructor_present": true,
+    "byte_cost_method_present": true,
+    "neoeco_entries": [],
+    "neoeco_references": [],
+    "neoeco_optional_artifacts": []
+  },
+  "nbt_release": {
+    "nbt_copy_refmap": {
+      "CompoundTag": "Lnet/minecraft/nbt/CompoundTag;m_6426_()Lnet/minecraft/nbt/CompoundTag;",
+      "ListTag": "Lnet/minecraft/nbt/ListTag;m_6426_()Lnet/minecraft/nbt/ListTag;"
+    },
+    "list_shadow_remapped": true
+  },
+  "small_dag_release": {
+    "small_dag_optimizer_packaged": true,
+    "production_call_present": true,
+    "game_test_fixtures_excluded": true
+  },
+  "stock_release": {
+    "stock_snapshot_call_sites": 8,
+    "large_hash_map_present": true,
+    "read_only_wrapper_present": true,
+    "null_checks_present": true
+  },
+  "neoeco_excluded": true,
+  "limitations": [
+    "The clustered lookup degradation is reproduced; it is not proven to explain every part of the historical timeout.",
+    "Finite successful timing runs cannot guarantee deadlines under arbitrary scheduling or resource pressure.",
+    "No graphical client, manual multiplayer, or long-running full GTL modpack TPS validation in this fix.",
+    "GTL runtime integration uses the existing fixtures in always mode; remote CI was not run."
+  ],
+  "raw_evidence_directory": "build/dag-timeout-fix-20261022",
+  "delivery": {
+    "local_summary_commit": true,
+    "pushed": false
+  }
+}

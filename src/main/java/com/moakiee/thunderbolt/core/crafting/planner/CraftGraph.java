@@ -4,10 +4,12 @@ import com.moakiee.thunderbolt.core.crafting.pattern.ReusableStockSource;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Immutable snapshot the planner runs against: patterns indexed by their output item, plus a
@@ -54,6 +56,15 @@ public final class CraftGraph<K> {
         return pattern.hasHostFeedbackSeed();
     }
 
+    /** Keep large stock lookups independent of MapN's unspread linear-probing clusters. */
+    private static <K, V> Map<K, V> stockSnapshot(Map<K, V> source) {
+        if (source.size() <= 16) return Map.copyOf(source);
+        var snapshot = new HashMap<K, V>(source.size() * 2);
+        source.forEach((key, value) -> snapshot.put(
+                Objects.requireNonNull(key), Objects.requireNonNull(value)));
+        return Collections.unmodifiableMap(snapshot);
+    }
+
     /** Patterns whose primary output is {@code key}, in caller-defined preference order. */
     public List<CraftPattern<K>> patternsFor(K key) {
         return patternsByOutput.getOrDefault(key, List.of());
@@ -61,11 +72,11 @@ public final class CraftGraph<K> {
 
     /** Available amount of {@code key} in the snapshot (0 if none). */
     public BigInteger exactStock(K key) {
-        return exactStock.getOrDefault(key, BigInteger.ZERO).max(BigInteger.ZERO);
+        return exactStock.getOrDefault(Objects.requireNonNull(key), BigInteger.ZERO).max(BigInteger.ZERO);
     }
 
     public long stock(K key) {
-        Long v = stock.get(key);
+        Long v = stock.get(Objects.requireNonNull(key));
         return v == null ? 0L : Math.max(0L, v);
     }
 
@@ -110,8 +121,8 @@ public final class CraftGraph<K> {
                 exactMerged.merge(key, BigInteger.valueOf(amount), BigInteger::add);
             }
         });
-        return new CraftGraph<>(patternsByOutput, Map.copyOf(merged), reusableStock,
-                reusableStockRoutes, Map.copyOf(exactMerged), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
+        return new CraftGraph<>(patternsByOutput, stockSnapshot(merged), reusableStock,
+                reusableStockRoutes, stockSnapshot(exactMerged), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
     }
 
     /** Read-only recipe projection over exactly the same inventory snapshot. */
@@ -146,8 +157,8 @@ public final class CraftGraph<K> {
                 exact.put(key, BigInteger.valueOf(amount));
             }
         });
-        return new CraftGraph<>(patternsByOutput, Map.copyOf(limited), reusableStock,
-                reusableStockRoutes, Map.copyOf(exact), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
+        return new CraftGraph<>(patternsByOutput, stockSnapshot(limited), reusableStock,
+                reusableStockRoutes, stockSnapshot(exact), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
     }
 
     /** Residual ordinary stock for a prefix plan; committed draws cannot be spent a second time. */
@@ -159,8 +170,8 @@ public final class CraftGraph<K> {
             remaining.put(key, stock(key) - amount);
             exactRemaining.put(key, exactStock(key).subtract(BigInteger.valueOf(amount)));
         });
-        return new CraftGraph<>(patternsByOutput, Map.copyOf(remaining), reusableStock,
-                reusableStockRoutes, Map.copyOf(exactRemaining), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
+        return new CraftGraph<>(patternsByOutput, stockSnapshot(remaining), reusableStock,
+                reusableStockRoutes, stockSnapshot(exactRemaining), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
     }
 
     Map<ReusableStockKey<K>, Long> reusableStock() {
@@ -251,8 +262,8 @@ public final class CraftGraph<K> {
                 PlanningCancellation.check();
                 frozenRoutes.put(entry.getKey(), List.copyOf(entry.getValue()));
             }
-            return new CraftGraph<>(frozen, Map.copyOf(stock), Map.copyOf(reusableStock),
-                    Map.copyOf(frozenRoutes), Map.copyOf(exactStock), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
+            return new CraftGraph<>(frozen, stockSnapshot(stock), Map.copyOf(reusableStock),
+                    Map.copyOf(frozenRoutes), stockSnapshot(exactStock), hasByproducts, hasHostFeedbackSeeds, hasTagConversions);
         }
     }
 }
