@@ -1,6 +1,5 @@
 package com.moakiee.thunderbolt.core.crafting.batch;
 
-import java.util.ArrayList;
 import java.util.function.Supplier;
 
 import appeng.api.crafting.IPatternDetails;
@@ -49,9 +48,7 @@ public final class TickProviderDispatchSchedule {
         }
         var schedule = patterns.getAndMoveToLast(canonicalPattern);
         if (schedule == null) {
-            var providers = new ArrayList<ICraftingProvider>();
-            source.get().forEach(providers::add);
-            schedule = new PatternSchedule(providers);
+            schedule = new PatternSchedule(source.get());
             if (patterns.size() >= MAX_PATTERNS) patterns.removeFirst();
             patterns.put(canonicalPattern, schedule);
         }
@@ -90,7 +87,7 @@ public final class TickProviderDispatchSchedule {
     private static final class PatternSchedule {
         private final IdentityCandidateQueue<ICraftingProvider> candidates;
         private long lastTick = Long.MIN_VALUE;
-        private PatternSchedule(java.util.List<ICraftingProvider> providers) {
+        private PatternSchedule(Iterable<ICraftingProvider> providers) {
             this.candidates = new IdentityCandidateQueue<>(providers);
         }
         private void beginTick(long tick) {

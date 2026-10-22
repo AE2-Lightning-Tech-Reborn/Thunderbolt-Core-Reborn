@@ -1,0 +1,915 @@
+{
+  "date": "2026-10-22",
+  "unit": "one insert/extract pair",
+  "validation": {
+    "tests": 1405,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 5,
+    "conservation_operations": 1000000,
+    "reloads": 372,
+    "async_save_keys": 16384,
+    "async_save_generations": 12,
+    "async_ordered_writes": 24,
+    "jar_sha256": "ce48e6911dc36f4f18bba7da1fee633d3b30a3a6b31b999dcbd3b8d81be31eb3"
+  },
+  "final_matrix": {
+    "manifest": {
+      "baseline_ref": "69e9af1b35b533f4593c122eff7b46a3ee4c37cf",
+      "java": "java version \"21.0.12\" 2026-07-21 LTS\nJava(TM) SE Runtime Environment Oracle GraalVM 21.0.12+7.1 (build 21.0.12+7-LTS-jvmci-23.1-b96)\nJava HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.12+7.1 (build 21.0.12+7-LTS-jvmci-23.1-b96, mixed mode, sharing)\n",
+      "jvm_flags": [
+        "-Xms512m",
+        "-Xmx512m",
+        "-Dbenchmark.warmupMillis=1000",
+        "-Dbenchmark.sampleMillis=150"
+      ],
+      "order": [
+        "baseline",
+        "optimized",
+        "optimized",
+        "baseline"
+      ],
+      "harness_sha256": "474b0725a62af659095a370e4a36dcef5129fe7ad07858cf28050aaa619425e4",
+      "source_sha256": {
+        "baseline": "1fc5f65b12bda3570e3bf4cf9182d7c3f80047fb5598e0a71fe04c505c04685a",
+        "optimized": "25469852cf085339e29441618d4328624199ec7580e0f4d5c6d97cdc1714b6e4"
+      }
+    },
+    "summary": [
+      {
+        "scenario": "engine_small_1",
+        "signature": "1:1000000:4096",
+        "baseline": {
+          "ns_per_op": 109.00175,
+          "cpu_ns_per_op": 106.66085000000001,
+          "bytes_per_op": 975.9981
+        },
+        "optimized": {
+          "ns_per_op": 8.7718,
+          "cpu_ns_per_op": 8.7707,
+          "bytes_per_op": 0.0
+        },
+        "ns_per_op_change_percent": -91.95260626549575,
+        "cpu_ns_per_op_change_percent": -91.77702034064045
+      },
+      {
+        "scenario": "engine_long_sized_1",
+        "signature": "1:18446744073709551614:9223372036854775807",
+        "baseline": {
+          "ns_per_op": 237.74034999999998,
+          "cpu_ns_per_op": 233.0414,
+          "bytes_per_op": 1872.0
+        },
+        "optimized": {
+          "ns_per_op": 8.4586,
+          "cpu_ns_per_op": 8.4586,
+          "bytes_per_op": 0.0
+        },
+        "ns_per_op_change_percent": -96.44208482068778,
+        "cpu_ns_per_op_change_percent": -96.3703444967289
+      },
+      {
+        "scenario": "engine_simulate_1",
+        "signature": "1:1000000:4096",
+        "baseline": {
+          "ns_per_op": 21.4651,
+          "cpu_ns_per_op": 20.62075,
+          "bytes_per_op": 256.0
+        },
+        "optimized": {
+          "ns_per_op": 4.86525,
+          "cpu_ns_per_op": 4.8642,
+          "bytes_per_op": 0.0
+        },
+        "ns_per_op_change_percent": -77.33413773986611,
+        "cpu_ns_per_op_change_percent": -76.41113926506068
+      },
+      {
+        "scenario": "inventory_small_1",
+        "signature": "1:1000000:4096",
+        "baseline": {
+          "ns_per_op": 253.71055,
+          "cpu_ns_per_op": 248.11565000000002,
+          "bytes_per_op": 1552.0
+        },
+        "optimized": {
+          "ns_per_op": 132.32845,
+          "cpu_ns_per_op": 129.86090000000002,
+          "bytes_per_op": 592.0
+        },
+        "ns_per_op_change_percent": -47.84274836028695,
+        "cpu_ns_per_op_change_percent": -47.66114108481266
+      },
+      {
+        "scenario": "engine_legacy_1",
+        "signature": "1:1000000:4096",
+        "baseline": {
+          "ns_per_op": 7.1356,
+          "cpu_ns_per_op": 7.1212,
+          "bytes_per_op": 0.0
+        },
+        "optimized": {
+          "ns_per_op": 7.630599999999999,
+          "cpu_ns_per_op": 7.6152999999999995,
+          "bytes_per_op": 0.0
+        },
+        "ns_per_op_change_percent": 6.937048040809457,
+        "cpu_ns_per_op_change_percent": 6.938437342020998
+      },
+      {
+        "scenario": "engine_wide_1",
+        "signature": "1:10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000:4096",
+        "baseline": {
+          "ns_per_op": 221.54854999999998,
+          "cpu_ns_per_op": 218.04075,
+          "bytes_per_op": 1360.0
+        },
+        "optimized": {
+          "ns_per_op": 193.18085,
+          "cpu_ns_per_op": 188.1914,
+          "bytes_per_op": 1200.0
+        },
+        "ns_per_op_change_percent": -12.80428149947268,
+        "cpu_ns_per_op_change_percent": -13.689803396842116
+      },
+      {
+        "scenario": "engine_small_1024",
+        "signature": "1024:1000000:4096",
+        "baseline": {
+          "ns_per_op": 218.25075,
+          "cpu_ns_per_op": 214.35649999999998,
+          "bytes_per_op": 1047.8515
+        },
+        "optimized": {
+          "ns_per_op": 74.52275,
+          "cpu_ns_per_op": 74.31805,
+          "bytes_per_op": 71.85155
+        },
+        "ns_per_op_change_percent": -65.85452741857702,
+        "cpu_ns_per_op_change_percent": -65.32969609039148
+      },
+      {
+        "scenario": "engine_long_sized_1024",
+        "signature": "1024:18446744073709551614:9223372036854775807",
+        "baseline": {
+          "ns_per_op": 324.30449999999996,
+          "cpu_ns_per_op": 319.69855,
+          "bytes_per_op": 2079.85155
+        },
+        "optimized": {
+          "ns_per_op": 74.21885,
+          "cpu_ns_per_op": 74.15835,
+          "bytes_per_op": 71.85155
+        },
+        "ns_per_op_change_percent": -77.11445570443827,
+        "cpu_ns_per_op_change_percent": -76.80366395155687
+      },
+      {
+        "scenario": "engine_simulate_1024",
+        "signature": "1024:1000000:4096",
+        "baseline": {
+          "ns_per_op": 96.9813,
+          "cpu_ns_per_op": 95.66305,
+          "bytes_per_op": 327.85159999999996
+        },
+        "optimized": {
+          "ns_per_op": 66.00575,
+          "cpu_ns_per_op": 65.80875,
+          "bytes_per_op": 71.85155
+        },
+        "ns_per_op_change_percent": -31.9397141510786,
+        "cpu_ns_per_op_change_percent": -31.20776517161015
+      },
+      {
+        "scenario": "inventory_small_1024",
+        "signature": "1024:1000000:4096",
+        "baseline": {
+          "ns_per_op": 339.584,
+          "cpu_ns_per_op": 335.16305,
+          "bytes_per_op": 1623.85115
+        },
+        "optimized": {
+          "ns_per_op": 215.78269999999998,
+          "cpu_ns_per_op": 213.86984999999999,
+          "bytes_per_op": 663.8516999999999
+        },
+        "ns_per_op_change_percent": -36.45675296833774,
+        "cpu_ns_per_op_change_percent": -36.18931144110308
+      },
+      {
+        "scenario": "engine_legacy_1024",
+        "signature": "1024:1000000:4096",
+        "baseline": {
+          "ns_per_op": 65.1691,
+          "cpu_ns_per_op": 65.0031,
+          "bytes_per_op": 71.85165
+        },
+        "optimized": {
+          "ns_per_op": 70.06944999999999,
+          "cpu_ns_per_op": 69.6467,
+          "bytes_per_op": 71.85155
+        },
+        "ns_per_op_change_percent": 7.519437893111913,
+        "cpu_ns_per_op_change_percent": 7.143659302402483
+      },
+      {
+        "scenario": "engine_wide_1024",
+        "signature": "1024:10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000:4096",
+        "baseline": {
+          "ns_per_op": 481.20124999999996,
+          "cpu_ns_per_op": 477.04139999999995,
+          "bytes_per_op": 1720.3627000000001
+        },
+        "optimized": {
+          "ns_per_op": 456.2825,
+          "cpu_ns_per_op": 452.49014999999997,
+          "bytes_per_op": 1560.57835
+        },
+        "ns_per_op_change_percent": -5.178446647842239,
+        "cpu_ns_per_op_change_percent": -5.1465658955386235
+      }
+    ],
+    "sample_count": 336,
+    "fork_medians": [
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_small_1",
+        "ns_per_op": 111.7991,
+        "cpu_ns_per_op": 109.3415,
+        "bytes_per_op": 938.4418
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_long_sized_1",
+        "ns_per_op": 232.0257,
+        "cpu_ns_per_op": 227.5685,
+        "bytes_per_op": 1872.0
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_simulate_1",
+        "ns_per_op": 21.4684,
+        "cpu_ns_per_op": 20.8803,
+        "bytes_per_op": 256.0
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "inventory_small_1",
+        "ns_per_op": 259.278,
+        "cpu_ns_per_op": 252.7153,
+        "bytes_per_op": 1552.0
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_legacy_1",
+        "ns_per_op": 7.4133,
+        "cpu_ns_per_op": 7.3619,
+        "bytes_per_op": 0.0
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_wide_1",
+        "ns_per_op": 221.1603,
+        "cpu_ns_per_op": 216.4372,
+        "bytes_per_op": 1360.0
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_small_1024",
+        "ns_per_op": 222.6682,
+        "cpu_ns_per_op": 219.4733,
+        "bytes_per_op": 1035.1719
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_long_sized_1024",
+        "ns_per_op": 326.29,
+        "cpu_ns_per_op": 320.6253,
+        "bytes_per_op": 2067.172
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_simulate_1024",
+        "ns_per_op": 98.5222,
+        "cpu_ns_per_op": 97.5215,
+        "bytes_per_op": 315.1719
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "inventory_small_1024",
+        "ns_per_op": 347.0845,
+        "cpu_ns_per_op": 343.4008,
+        "bytes_per_op": 1611.1712
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_legacy_1024",
+        "ns_per_op": 67.951,
+        "cpu_ns_per_op": 67.5109,
+        "bytes_per_op": 59.1719
+      },
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_wide_1024",
+        "ns_per_op": 481.4254,
+        "cpu_ns_per_op": 478.7882,
+        "bytes_per_op": 1656.5199
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_small_1",
+        "ns_per_op": 8.7787,
+        "cpu_ns_per_op": 8.776,
+        "bytes_per_op": 0.0
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_long_sized_1",
+        "ns_per_op": 8.2617,
+        "cpu_ns_per_op": 8.2592,
+        "bytes_per_op": 0.0
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_simulate_1",
+        "ns_per_op": 5.24,
+        "cpu_ns_per_op": 5.2404,
+        "bytes_per_op": 0.0
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "inventory_small_1",
+        "ns_per_op": 132.4712,
+        "cpu_ns_per_op": 129.5653,
+        "bytes_per_op": 576.0
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_legacy_1",
+        "ns_per_op": 7.5754,
+        "cpu_ns_per_op": 7.534,
+        "bytes_per_op": 0.0
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_wide_1",
+        "ns_per_op": 197.583,
+        "cpu_ns_per_op": 190.0622,
+        "bytes_per_op": 1200.0
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_small_1024",
+        "ns_per_op": 75.6789,
+        "cpu_ns_per_op": 75.2002,
+        "bytes_per_op": 84.5313
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_long_sized_1024",
+        "ns_per_op": 75.0873,
+        "cpu_ns_per_op": 74.6813,
+        "bytes_per_op": 84.5313
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_simulate_1024",
+        "ns_per_op": 66.6779,
+        "cpu_ns_per_op": 66.3796,
+        "bytes_per_op": 84.5311
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "inventory_small_1024",
+        "ns_per_op": 215.6514,
+        "cpu_ns_per_op": 213.6232,
+        "bytes_per_op": 660.5313
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_legacy_1024",
+        "ns_per_op": 70.7749,
+        "cpu_ns_per_op": 70.7664,
+        "bytes_per_op": 84.5313
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_wide_1024",
+        "ns_per_op": 455.5205,
+        "cpu_ns_per_op": 450.0261,
+        "bytes_per_op": 1624.2088
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_small_1",
+        "ns_per_op": 8.7649,
+        "cpu_ns_per_op": 8.7654,
+        "bytes_per_op": 0.0
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_long_sized_1",
+        "ns_per_op": 8.4735,
+        "cpu_ns_per_op": 8.4716,
+        "bytes_per_op": 0.0
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_simulate_1",
+        "ns_per_op": 4.4254,
+        "cpu_ns_per_op": 4.4212,
+        "bytes_per_op": 0.0
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "inventory_small_1",
+        "ns_per_op": 132.1857,
+        "cpu_ns_per_op": 129.9718,
+        "bytes_per_op": 608.0
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_legacy_1",
+        "ns_per_op": 7.6789,
+        "cpu_ns_per_op": 7.6758,
+        "bytes_per_op": 0.0
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_wide_1",
+        "ns_per_op": 190.4088,
+        "cpu_ns_per_op": 187.4517,
+        "bytes_per_op": 1200.0
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_small_1024",
+        "ns_per_op": 72.5904,
+        "cpu_ns_per_op": 72.4618,
+        "bytes_per_op": 59.1719
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_long_sized_1024",
+        "ns_per_op": 72.9109,
+        "cpu_ns_per_op": 72.7463,
+        "bytes_per_op": 59.1717
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_simulate_1024",
+        "ns_per_op": 65.1126,
+        "cpu_ns_per_op": 65.0893,
+        "bytes_per_op": 59.1719
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "inventory_small_1024",
+        "ns_per_op": 217.4226,
+        "cpu_ns_per_op": 214.8119,
+        "bytes_per_op": 667.1719
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_legacy_1024",
+        "ns_per_op": 68.9671,
+        "cpu_ns_per_op": 68.6011,
+        "bytes_per_op": 59.1719
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_wide_1024",
+        "ns_per_op": 456.8208,
+        "cpu_ns_per_op": 453.1797,
+        "bytes_per_op": 1496.9531
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_small_1",
+        "ns_per_op": 105.3411,
+        "cpu_ns_per_op": 102.876,
+        "bytes_per_op": 976.0
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_long_sized_1",
+        "ns_per_op": 242.7543,
+        "cpu_ns_per_op": 237.6693,
+        "bytes_per_op": 1872.0
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_simulate_1",
+        "ns_per_op": 20.7168,
+        "cpu_ns_per_op": 20.1561,
+        "bytes_per_op": 256.0
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "inventory_small_1",
+        "ns_per_op": 246.5728,
+        "cpu_ns_per_op": 242.7976,
+        "bytes_per_op": 1552.0
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_legacy_1",
+        "ns_per_op": 6.8562,
+        "cpu_ns_per_op": 6.8564,
+        "bytes_per_op": 0.0
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_wide_1",
+        "ns_per_op": 225.0917,
+        "cpu_ns_per_op": 221.4157,
+        "bytes_per_op": 1360.0
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_small_1024",
+        "ns_per_op": 207.8748,
+        "cpu_ns_per_op": 205.1307,
+        "bytes_per_op": 1060.5313
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_long_sized_1024",
+        "ns_per_op": 321.5032,
+        "cpu_ns_per_op": 314.516,
+        "bytes_per_op": 2092.5309
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_simulate_1024",
+        "ns_per_op": 94.8408,
+        "cpu_ns_per_op": 93.6697,
+        "bytes_per_op": 340.5311
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "inventory_small_1024",
+        "ns_per_op": 330.3298,
+        "cpu_ns_per_op": 326.162,
+        "bytes_per_op": 1636.5327
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_legacy_1024",
+        "ns_per_op": 63.8405,
+        "cpu_ns_per_op": 63.6567,
+        "bytes_per_op": 84.5313
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_wide_1024",
+        "ns_per_op": 476.4906,
+        "cpu_ns_per_op": 467.2478,
+        "bytes_per_op": 1784.2013
+      }
+    ]
+  },
+  "isolated_legacy_1024": {
+    "manifest": {
+      "baseline_ref": "69e9af1b35b533f4593c122eff7b46a3ee4c37cf",
+      "java": "java version \"21.0.12\" 2026-07-21 LTS\nJava(TM) SE Runtime Environment Oracle GraalVM 21.0.12+7.1 (build 21.0.12+7-LTS-jvmci-23.1-b96)\nJava HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.12+7.1 (build 21.0.12+7-LTS-jvmci-23.1-b96, mixed mode, sharing)\n",
+      "jvm_flags": [
+        "-Xms512m",
+        "-Xmx512m",
+        "-Dbenchmark.warmupMillis=3000",
+        "-Dbenchmark.sampleMillis=300",
+        "-Dbenchmark.scenario=engine_legacy_1024"
+      ],
+      "order": [
+        "baseline",
+        "optimized",
+        "optimized",
+        "baseline"
+      ],
+      "harness_sha256": "474b0725a62af659095a370e4a36dcef5129fe7ad07858cf28050aaa619425e4",
+      "source_sha256": {
+        "baseline": "1fc5f65b12bda3570e3bf4cf9182d7c3f80047fb5598e0a71fe04c505c04685a",
+        "optimized": "25469852cf085339e29441618d4328624199ec7580e0f4d5c6d97cdc1714b6e4"
+      }
+    },
+    "summary": [
+      {
+        "scenario": "engine_legacy_1024",
+        "signature": "1024:1000000:4096",
+        "baseline": {
+          "ns_per_op": 70.48885,
+          "cpu_ns_per_op": 69.93715,
+          "bytes_per_op": 68.1841
+        },
+        "optimized": {
+          "ns_per_op": 65.5453,
+          "cpu_ns_per_op": 65.26495,
+          "bytes_per_op": 59.1718
+        },
+        "ns_per_op_change_percent": -7.013236845259929,
+        "cpu_ns_per_op_change_percent": -6.68056962572825
+      }
+    ],
+    "sample_count": 28,
+    "fork_medians": [
+      {
+        "fork": 0,
+        "variant": "baseline",
+        "scenario": "engine_legacy_1024",
+        "ns_per_op": 70.2798,
+        "cpu_ns_per_op": 69.3026,
+        "bytes_per_op": 84.5313
+      },
+      {
+        "fork": 1,
+        "variant": "optimized",
+        "scenario": "engine_legacy_1024",
+        "ns_per_op": 61.6273,
+        "cpu_ns_per_op": 60.9168,
+        "bytes_per_op": 59.1718
+      },
+      {
+        "fork": 2,
+        "variant": "optimized",
+        "scenario": "engine_legacy_1024",
+        "ns_per_op": 66.2622,
+        "cpu_ns_per_op": 65.6586,
+        "bytes_per_op": 59.1718
+      },
+      {
+        "fork": 3,
+        "variant": "baseline",
+        "scenario": "engine_legacy_1024",
+        "ns_per_op": 70.8328,
+        "cpu_ns_per_op": 70.0335,
+        "bytes_per_op": 59.1719
+      }
+    ]
+  },
+  "initial_matrix": {
+    "manifest": {
+      "baseline_ref": "69e9af1b35b533f4593c122eff7b46a3ee4c37cf",
+      "java": "java version \"21.0.12\" 2026-07-21 LTS\nJava(TM) SE Runtime Environment Oracle GraalVM 21.0.12+7.1 (build 21.0.12+7-LTS-jvmci-23.1-b96)\nJava HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.12+7.1 (build 21.0.12+7-LTS-jvmci-23.1-b96, mixed mode, sharing)\n",
+      "jvm_flags": [
+        "-Xms512m",
+        "-Xmx512m",
+        "-Dbenchmark.warmupMillis=1000",
+        "-Dbenchmark.sampleMillis=150"
+      ],
+      "order": [
+        "baseline",
+        "optimized",
+        "optimized",
+        "baseline"
+      ],
+      "harness_sha256": "6ff0f811f23c6a86ad953a6b4aebec5df981263f1a475bcbab3be1169ee79c5d",
+      "source_sha256": {
+        "baseline": "1fc5f65b12bda3570e3bf4cf9182d7c3f80047fb5598e0a71fe04c505c04685a",
+        "optimized": "25469852cf085339e29441618d4328624199ec7580e0f4d5c6d97cdc1714b6e4"
+      }
+    },
+    "summary": [
+      {
+        "scenario": "engine_small_1",
+        "signature": "1:1000000:4096",
+        "baseline": {
+          "ns_per_op": 111.4657,
+          "cpu_ns_per_op": 108.50325000000001,
+          "bytes_per_op": 976.0
+        },
+        "optimized": {
+          "ns_per_op": 8.66545,
+          "cpu_ns_per_op": 8.6501,
+          "bytes_per_op": 0.0
+        },
+        "ns_per_op_change_percent": -92.2259044710615,
+        "cpu_ns_per_op_change_percent": -92.02779640241191
+      },
+      {
+        "scenario": "engine_long_sized_1",
+        "signature": "1:18446744073709551614:9223372036854775807",
+        "baseline": {
+          "ns_per_op": 240.13045,
+          "cpu_ns_per_op": 234.9413,
+          "bytes_per_op": 1872.0
+        },
+        "optimized": {
+          "ns_per_op": 8.02765,
+          "cpu_ns_per_op": 8.000350000000001,
+          "bytes_per_op": 0.0
+        },
+        "ns_per_op_change_percent": -96.65696291328317,
+        "cpu_ns_per_op_change_percent": -96.59474515549203
+      },
+      {
+        "scenario": "engine_simulate_1",
+        "signature": "1:1000000:4096",
+        "baseline": {
+          "ns_per_op": 21.5156,
+          "cpu_ns_per_op": 20.7499,
+          "bytes_per_op": 256.0
+        },
+        "optimized": {
+          "ns_per_op": 4.362,
+          "cpu_ns_per_op": 4.359,
+          "bytes_per_op": 0.0
+        },
+        "ns_per_op_change_percent": -79.7263380988678,
+        "cpu_ns_per_op_change_percent": -78.99266984419202
+      },
+      {
+        "scenario": "inventory_small_1",
+        "signature": "1:1000000:4096",
+        "baseline": {
+          "ns_per_op": 253.13094999999998,
+          "cpu_ns_per_op": 248.83145,
+          "bytes_per_op": 1552.0
+        },
+        "optimized": {
+          "ns_per_op": 125.3073,
+          "cpu_ns_per_op": 123.69839999999999,
+          "bytes_per_op": 576.0
+        },
+        "ns_per_op_change_percent": -50.497045106495264,
+        "cpu_ns_per_op_change_percent": -50.28827746653408
+      },
+      {
+        "scenario": "engine_legacy_1",
+        "signature": "1:1000000:4096",
+        "baseline": {
+          "ns_per_op": 7.17555,
+          "cpu_ns_per_op": 7.1721,
+          "bytes_per_op": 0.0
+        },
+        "optimized": {
+          "ns_per_op": 7.32665,
+          "cpu_ns_per_op": 7.32155,
+          "bytes_per_op": 0.0
+        },
+        "ns_per_op_change_percent": 2.1057619276571016,
+        "cpu_ns_per_op_change_percent": 2.083769049511308
+      },
+      {
+        "scenario": "engine_wide_1",
+        "signature": "1:10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000:4096",
+        "baseline": {
+          "ns_per_op": 275.98425,
+          "cpu_ns_per_op": 271.9651,
+          "bytes_per_op": 1400.0
+        },
+        "optimized": {
+          "ns_per_op": 186.42975,
+          "cpu_ns_per_op": 182.94549999999998,
+          "bytes_per_op": 1200.0
+        },
+        "ns_per_op_change_percent": -32.44913432560009,
+        "cpu_ns_per_op_change_percent": -32.73199392127888
+      },
+      {
+        "scenario": "engine_small_1024",
+        "signature": "1024:1000000:4096",
+        "baseline": {
+          "ns_per_op": 253.56675,
+          "cpu_ns_per_op": 250.89385,
+          "bytes_per_op": 1075.1718
+        },
+        "optimized": {
+          "ns_per_op": 73.79065,
+          "cpu_ns_per_op": 73.48995,
+          "bytes_per_op": 84.5313
+        },
+        "ns_per_op_change_percent": -70.8989250365042,
+        "cpu_ns_per_op_change_percent": -70.70874794260601
+      },
+      {
+        "scenario": "engine_long_sized_1024",
+        "signature": "1024:18446744073709551614:9223372036854775807",
+        "baseline": {
+          "ns_per_op": 358.16819999999996,
+          "cpu_ns_per_op": 352.5094,
+          "bytes_per_op": 2067.1714
+        },
+        "optimized": {
+          "ns_per_op": 72.218,
+          "cpu_ns_per_op": 71.74440000000001,
+          "bytes_per_op": 84.5313
+        },
+        "ns_per_op_change_percent": -79.8368476040028,
+        "cpu_ns_per_op_change_percent": -79.64752145616542
+      },
+      {
+        "scenario": "engine_simulate_1024",
+        "signature": "1024:1000000:4096",
+        "baseline": {
+          "ns_per_op": 95.73415,
+          "cpu_ns_per_op": 94.90775,
+          "bytes_per_op": 315.1719
+        },
+        "optimized": {
+          "ns_per_op": 63.507999999999996,
+          "cpu_ns_per_op": 63.11295,
+          "bytes_per_op": 84.5312
+        },
+        "ns_per_op_change_percent": -33.66212579314697,
+        "cpu_ns_per_op_change_percent": -33.50074150951845
+      },
+      {
+        "scenario": "inventory_small_1024",
+        "signature": "1024:1000000:4096",
+        "baseline": {
+          "ns_per_op": 375.8982,
+          "cpu_ns_per_op": 370.7221,
+          "bytes_per_op": 1651.1718
+        },
+        "optimized": {
+          "ns_per_op": 209.11939999999998,
+          "cpu_ns_per_op": 206.16705,
+          "bytes_per_op": 676.5313
+        },
+        "ns_per_op_change_percent": -44.368076250431635,
+        "cpu_ns_per_op_change_percent": -44.38770982361182
+      },
+      {
+        "scenario": "engine_legacy_1024",
+        "signature": "1024:1000000:4096",
+        "baseline": {
+          "ns_per_op": 64.46655,
+          "cpu_ns_per_op": 64.4533,
+          "bytes_per_op": 59.1718
+        },
+        "optimized": {
+          "ns_per_op": 69.4032,
+          "cpu_ns_per_op": 69.0442,
+          "bytes_per_op": 84.5313
+        },
+        "ns_per_op_change_percent": 7.65769224504802,
+        "cpu_ns_per_op_change_percent": 7.12283156952398
+      },
+      {
+        "scenario": "engine_wide_1024",
+        "signature": "1024:10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000:4096",
+        "baseline": {
+          "ns_per_op": 516.92305,
+          "cpu_ns_per_op": 511.58155,
+          "bytes_per_op": 1696.9464
+        },
+        "optimized": {
+          "ns_per_op": 436.37055,
+          "cpu_ns_per_op": 431.2885,
+          "bytes_per_op": 1584.21085
+        },
+        "ns_per_op_change_percent": -15.58307372828509,
+        "cpu_ns_per_op_change_percent": -15.695063670689457
+      }
+    ],
+    "sample_count": 336
+  }
+}

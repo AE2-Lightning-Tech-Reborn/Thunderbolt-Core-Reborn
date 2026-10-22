@@ -1,0 +1,691 @@
+{
+  "manifest": {
+    "suite": "provider-schedule",
+    "baseline_ref": "69e9af1b35b533f4593c122eff7b46a3ee4c37cf",
+    "java": "java version \"21.0.12\" 2026-07-21 LTS\nJava(TM) SE Runtime Environment Oracle GraalVM 21.0.12+7.1 (build 21.0.12+7-LTS-jvmci-23.1-b96)\nJava HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.12+7.1 (build 21.0.12+7-LTS-jvmci-23.1-b96, mixed mode, sharing)\n",
+    "jvm_flags": [
+      "-Xms512m",
+      "-Xmx512m",
+      "-Dbenchmark.warmupMillis=1500",
+      "-Dbenchmark.sampleMillis=150"
+    ],
+    "order": [
+      "baseline",
+      "optimized",
+      "optimized",
+      "baseline"
+    ],
+    "sha256": {
+      "baseline/src/main/java/com/moakiee/thunderbolt/core/crafting/batch/IdentityCandidateQueue.java": "23b0f71cf8eac06cfeea9ea9f99f4fb46ef74a30c8334077c155efd9af271342",
+      "baseline/src/main/java/com/moakiee/thunderbolt/core/crafting/batch/TickProviderDispatchSchedule.java": "f9d409f8cab56919b5a9ada542c08745f17b0e98f7395a900eb31e4e1f608c6a",
+      "optimized/src/main/java/com/moakiee/thunderbolt/core/crafting/batch/IdentityCandidateQueue.java": "497bade20a966168c8a59f001fa21b9a6903d1521759b57b4b9519a89dfd4487",
+      "optimized/src/main/java/com/moakiee/thunderbolt/core/crafting/batch/TickProviderDispatchSchedule.java": "c2ac5b0b7ca9a2934cc6fa42c51850d2756d941e8bd13b5ac85ae3cd29238e35"
+    },
+    "shared_class_sha256": {
+      "core/crafting/batch/BatchProviderResolutionCache$Entry.class": "0ed261c5a8b0a1afce40a88c6614c434b5659e2c9faffa0b392a3c42c3f01442",
+      "core/crafting/batch/BatchProviderResolutionCache.class": "ee5a9cc3c6ef13732cf8aca940970cdd3ae26f3d46bc6b857e5ef141d5003375",
+      "core/crafting/support/CraftingProviderRevision.class": "2f87b9695ac3c13eb93e0517f0fe136b33ae8dc65a764a2f073b833f76dea2a6"
+    },
+    "harness_sha256": "81003455a666569aae327039bc3e72b72d33e8b632bc9ba2a7fe6d5ce0984097"
+  },
+  "summary": [
+    {
+      "scenario": "queue-scan-0",
+      "signature": "checksum:0",
+      "baseline": {
+        "ns_per_op": 0.0455,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 0.045,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -1.098901098901095
+    },
+    {
+      "scenario": "queue-scan-1",
+      "signature": "checksum:1",
+      "baseline": {
+        "ns_per_op": 2.8885,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 2.998,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": 3.790894928163402
+    },
+    {
+      "scenario": "queue-scan-16",
+      "signature": "checksum:136",
+      "baseline": {
+        "ns_per_op": 46.9265,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 26.746,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -43.00448573833548
+    },
+    {
+      "scenario": "queue-scan-256",
+      "signature": "checksum:32896",
+      "baseline": {
+        "ns_per_op": 875.482,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 470.4525,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -46.26360107917695
+    },
+    {
+      "scenario": "queue-scan-1024",
+      "signature": "checksum:524800",
+      "baseline": {
+        "ns_per_op": 3563.3805,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 1876.8485,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -47.32955125056109
+    },
+    {
+      "scenario": "queue-preferred-256",
+      "signature": "checksum:32896",
+      "baseline": {
+        "ns_per_op": 876.5219999999999,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 422.579,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -51.7891165310169
+    },
+    {
+      "scenario": "queue-1024-only-one-active",
+      "signature": "checksum:1024",
+      "baseline": {
+        "ns_per_op": 3.9855,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 1.9595,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -50.83427424413499
+    },
+    {
+      "scenario": "queue-block-restore-16",
+      "signature": "checksum:100",
+      "baseline": {
+        "ns_per_op": 197.34,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 165.417,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -16.176649437519007
+    },
+    {
+      "scenario": "queue-block-restore-256",
+      "signature": "checksum:24640",
+      "baseline": {
+        "ns_per_op": 3039.5625,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 2499.3055,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -17.774169802397555
+    },
+    {
+      "scenario": "schedule-rebuild-0",
+      "signature": "checksum:0",
+      "baseline": {
+        "ns_per_op": 35.6445,
+        "bytes_per_op": 712.0
+      },
+      "optimized": {
+        "ns_per_op": 31.310000000000002,
+        "bytes_per_op": 376.0
+      },
+      "time_change_percent": -12.160361346070214
+    },
+    {
+      "scenario": "schedule-rebuild-1",
+      "signature": "checksum:1",
+      "baseline": {
+        "ns_per_op": 48.46,
+        "bytes_per_op": 816.0
+      },
+      "optimized": {
+        "ns_per_op": 37.757000000000005,
+        "bytes_per_op": 400.0
+      },
+      "time_change_percent": -22.086256706562104
+    },
+    {
+      "scenario": "schedule-rebuild-16",
+      "signature": "checksum:136",
+      "baseline": {
+        "ns_per_op": 222.001,
+        "bytes_per_op": 1360.0
+      },
+      "optimized": {
+        "ns_per_op": 147.0515,
+        "bytes_per_op": 760.0
+      },
+      "time_change_percent": -33.76088395998216
+    },
+    {
+      "scenario": "schedule-rebuild-256",
+      "signature": "checksum:32896",
+      "baseline": {
+        "ns_per_op": 4674.959500000001,
+        "bytes_per_op": 19144.0
+      },
+      "optimized": {
+        "ns_per_op": 3315.6325,
+        "bytes_per_op": 14264.0
+      },
+      "time_change_percent": -29.07676526395577
+    },
+    {
+      "scenario": "schedule-rebuild-1024",
+      "signature": "checksum:524800",
+      "baseline": {
+        "ns_per_op": 20319.6525,
+        "bytes_per_op": 72664.0
+      },
+      "optimized": {
+        "ns_per_op": 14578.9905,
+        "bytes_per_op": 57304.0
+      },
+      "time_change_percent": -28.25177251431834
+    },
+    {
+      "scenario": "schedule-stable-ticks-16",
+      "signature": "checksum:136",
+      "baseline": {
+        "ns_per_op": 54.5775,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 35.669,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -34.64522926114242
+    },
+    {
+      "scenario": "schedule-stable-ticks-256",
+      "signature": "checksum:32896",
+      "baseline": {
+        "ns_per_op": 919.7175,
+        "bytes_per_op": 0.0
+      },
+      "optimized": {
+        "ns_per_op": 477.214,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -48.11298034450796
+    }
+  ],
+  "per_fork": [
+    {
+      "scenario": "queue-scan-0",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 0.045,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-0",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 0.045,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-0",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 0.045,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-0",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 0.046,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-1",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 2.924,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-1",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 2.905,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-1",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 3.072,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-1",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 2.871,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-16",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 47.189,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-16",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 28.506,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-16",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 24.365,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-16",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 46.323,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-256",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 875.546,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-256",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 477.33,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-256",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 469.419,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-256",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 875.418,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-1024",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 3563.356,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-1024",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 1895.103,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-1024",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 1852.99,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-scan-1024",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 3587.181,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-preferred-256",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 876.447,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-preferred-256",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 423.928,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-preferred-256",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 422.504,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-preferred-256",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 879.05,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-1024-only-one-active",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 3.863,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-1024-only-one-active",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 2.039,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-1024-only-one-active",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 1.892,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-1024-only-one-active",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 4.14,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-block-restore-16",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 183.996,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-block-restore-16",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 166.099,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-block-restore-16",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 163.513,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-block-restore-16",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 197.643,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-block-restore-256",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 2992.375,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-block-restore-256",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 2525.987,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-block-restore-256",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 2487.745,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "queue-block-restore-256",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 3099.748,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "schedule-rebuild-0",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 35.703,
+      "bytes_per_op": 712.0
+    },
+    {
+      "scenario": "schedule-rebuild-0",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 31.075,
+      "bytes_per_op": 376.0
+    },
+    {
+      "scenario": "schedule-rebuild-0",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 31.47,
+      "bytes_per_op": 376.0
+    },
+    {
+      "scenario": "schedule-rebuild-0",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 35.35,
+      "bytes_per_op": 712.0
+    },
+    {
+      "scenario": "schedule-rebuild-1",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 45.955,
+      "bytes_per_op": 816.0
+    },
+    {
+      "scenario": "schedule-rebuild-1",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 37.357,
+      "bytes_per_op": 400.0
+    },
+    {
+      "scenario": "schedule-rebuild-1",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 38.378,
+      "bytes_per_op": 400.0
+    },
+    {
+      "scenario": "schedule-rebuild-1",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 49.875,
+      "bytes_per_op": 816.0
+    },
+    {
+      "scenario": "schedule-rebuild-16",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 227.525,
+      "bytes_per_op": 1360.0
+    },
+    {
+      "scenario": "schedule-rebuild-16",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 146.453,
+      "bytes_per_op": 760.0
+    },
+    {
+      "scenario": "schedule-rebuild-16",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 147.222,
+      "bytes_per_op": 760.0
+    },
+    {
+      "scenario": "schedule-rebuild-16",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 216.204,
+      "bytes_per_op": 1360.0
+    },
+    {
+      "scenario": "schedule-rebuild-256",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 4587.709,
+      "bytes_per_op": 19144.0
+    },
+    {
+      "scenario": "schedule-rebuild-256",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 3291.458,
+      "bytes_per_op": 14264.0
+    },
+    {
+      "scenario": "schedule-rebuild-256",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 3332.621,
+      "bytes_per_op": 14264.0
+    },
+    {
+      "scenario": "schedule-rebuild-256",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 4763.691,
+      "bytes_per_op": 19144.0
+    },
+    {
+      "scenario": "schedule-rebuild-1024",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 19740.492,
+      "bytes_per_op": 72664.0
+    },
+    {
+      "scenario": "schedule-rebuild-1024",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 14551.444,
+      "bytes_per_op": 57304.0
+    },
+    {
+      "scenario": "schedule-rebuild-1024",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 14674.032,
+      "bytes_per_op": 57304.0
+    },
+    {
+      "scenario": "schedule-rebuild-1024",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 21171.736,
+      "bytes_per_op": 72664.0
+    },
+    {
+      "scenario": "schedule-stable-ticks-16",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 54.437,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "schedule-stable-ticks-16",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 35.686,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "schedule-stable-ticks-16",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 35.649,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "schedule-stable-ticks-16",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 54.644,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "schedule-stable-ticks-256",
+      "fork": 0,
+      "variant": "baseline",
+      "ns_per_op": 917.509,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "schedule-stable-ticks-256",
+      "fork": 1,
+      "variant": "optimized",
+      "ns_per_op": 477.131,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "schedule-stable-ticks-256",
+      "fork": 2,
+      "variant": "optimized",
+      "ns_per_op": 477.686,
+      "bytes_per_op": 0.0
+    },
+    {
+      "scenario": "schedule-stable-ticks-256",
+      "fork": 3,
+      "variant": "baseline",
+      "ns_per_op": 920.713,
+      "bytes_per_op": 0.0
+    }
+  ]
+}

@@ -11,6 +11,14 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
 SUITES = {
+    'exact-preview': ('com.moakiee.thunderbolt.core.crafting.planner.ExactPreviewBenchmark', 'exact-preview-benchmark', [
+        'src/main/java/com/moakiee/thunderbolt/core/crafting/planner/ExactPlanPreview.java',
+    ]),
+    'provider-schedule': ('com.moakiee.thunderbolt.core.crafting.batch.ProviderScheduleBenchmark',
+                          'provider-schedule-benchmark', [
+        'src/main/java/com/moakiee/thunderbolt/core/crafting/batch/IdentityCandidateQueue.java',
+        'src/main/java/com/moakiee/thunderbolt/core/crafting/batch/TickProviderDispatchSchedule.java',
+    ]),
     'runtime': ('RuntimeHotpathBenchmark', 'runtime-hotpath-benchmark', [
         'src/main/java/com/moakiee/thunderbolt/core/crafting/support/CraftingPatternDelegates.java',
         'src/main/java/com/moakiee/thunderbolt/core/crafting/cpu/DynamicCraftingCpuClusterIndex.java',
@@ -56,6 +64,8 @@ def main():
                 'jvm_flags': flags,
                 'order': ['baseline', 'optimized', 'optimized', 'baseline'], 'sha256': {}}
     shared = {
+        'provider-schedule': ['core/crafting/batch/BatchProviderResolutionCache',
+                              'core/crafting/support/CraftingProviderRevision'],
         'big-execution': ['core/crafting/big/BigCraftingPlanner', 'core/crafting/planner/CraftPlannerV2',
                           'core/crafting/planner/ExactDiagnosticPlanner', 'core/crafting/planner/ExactCraftPlan'],
         'batch': ['core/crafting/batch/ParallelBatchCpuHelper', 'core/crafting/pattern/PlannedInputPattern',

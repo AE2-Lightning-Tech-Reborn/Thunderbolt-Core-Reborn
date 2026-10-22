@@ -60,16 +60,12 @@ class PlannedInputDispatchTest {
                                 default -> null;
                             });
             var schedule = new TickProviderDispatchSchedule();
-            var scheduleClass = Class.forName(TickProviderDispatchSchedule.class.getName() + "$PatternSchedule");
-            var constructor = scheduleClass.getDeclaredConstructor(List.class);
-            constructor.setAccessible(true);
-            var schedules = TickProviderDispatchSchedule.class.getDeclaredField("patterns");
-            schedules.setAccessible(true);
             // Two providers reserve ten copies; the first receives five. Failure must leave
             // the second half available without attempting the second provider.
             var secondProvider = java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),
                     new Class<?>[] {providerType}, java.lang.reflect.Proxy.getInvocationHandler(provider));
-            ((Map) schedules.get(schedule)).put(source, constructor.newInstance(List.of(provider, secondProvider)));
+            schedule.candidates(null, Long.MIN_VALUE, source, () -> List.of(provider,
+                    (appeng.api.networking.crafting.ICraftingProvider) secondProvider));
             var handle = new com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle() {
                 public IPatternDetails details() { return planned; }
                 public long getValue() { return progress[0]; }

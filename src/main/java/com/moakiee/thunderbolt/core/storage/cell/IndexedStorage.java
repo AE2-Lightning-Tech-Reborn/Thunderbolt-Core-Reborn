@@ -112,6 +112,12 @@ public final class IndexedStorage {
     public java.math.BigInteger insertExact(AEKey key, java.math.BigInteger amount, Actionable mode) {
         com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(amount);
         if (!arbitraryPrecision) throw new IllegalStateException("Exact insertion requires an opted-in cell");
+        // Before any type approaches the 126-bit ceiling, a long-sized request is fully
+        // accepted by the primitive ledger. Keep its carry/dirty bookkeeping in one path.
+        if (!exactPathPossible && amount.bitLength() <= 63) {
+            insert(key, amount.longValue(), mode);
+            return amount;
+        }
         var current = getAmountExact(key);
         var next = current.add(amount).min(MAX_EXACT);
         var accepted = next.subtract(current);
@@ -122,6 +128,13 @@ public final class IndexedStorage {
     public java.math.BigInteger extractExact(AEKey key, java.math.BigInteger amount, Actionable mode) {
         com.moakiee.thunderbolt.core.storage.big.BigAmounts.nonNegative(amount);
         if (!arbitraryPrecision) throw new IllegalStateException("Exact extraction requires an opted-in cell");
+        // This guard also prevents recursion when the legacy facade delegates wide totals
+        // back here. Reuse the caller's immutable quantity for a fully satisfied request.
+        if (!exactPathPossible && amount.bitLength() <= 63) {
+            long requested = amount.longValue();
+            long taken = extract(key, requested, mode);
+            return taken == requested ? amount : java.math.BigInteger.valueOf(taken);
+        }
         var current = getAmountExact(key);
         var taken = current.min(amount);
         if (taken.signum() > 0 && mode == Actionable.MODULATE) setAmountExact(key, current, current.subtract(taken));
