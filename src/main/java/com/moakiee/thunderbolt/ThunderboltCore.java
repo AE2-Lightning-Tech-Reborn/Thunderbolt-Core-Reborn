@@ -12,6 +12,7 @@ import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -29,6 +30,7 @@ import com.moakiee.thunderbolt.core.crafting.planner.CpSatPlanningEngine;
 import com.moakiee.thunderbolt.core.crafting.planner.ThunderboltV2PlanningEngine;
 import com.moakiee.thunderbolt.core.eject.EjectEndpointIndex;
 import com.moakiee.thunderbolt.core.eject.ThunderboltBlockEntities;
+import com.moakiee.thunderbolt.core.nbt.NbtCopyOptions;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedCellStorageRegistry;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedCellStorageSavedData;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedStorageCellHandler;
@@ -47,6 +49,7 @@ public final class ThunderboltCore {
         ThunderboltMenus.TYPES.register(modEventBus);
         modEventBus.addListener(this::onCommonSetup);
         modEventBus.addListener(this::onLoadComplete);
+        modEventBus.addListener(this::onConfigEvent);
         ModLoadingContext.get().registerConfig(
                 ModConfig.Type.COMMON, ThunderboltCommonConfig.SPEC, "thunderbolt-common.toml");
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
@@ -63,6 +66,13 @@ public final class ThunderboltCore {
     private void onServerStopped(ServerStoppedEvent event) {
         EjectEndpointIndex.INSTANCE.onServerStop();
         IndexedCellStorageSavedData.clearServerCache();
+    }
+
+    private void onConfigEvent(ModConfigEvent event) {
+        if (event.getConfig().getSpec() == ThunderboltCommonConfig.SPEC) {
+            NbtCopyOptions.configure(!(event instanceof ModConfigEvent.Unloading)
+                    && ThunderboltCommonConfig.fastNbtCopies());
+        }
     }
 
     private void onCommonSetup(FMLCommonSetupEvent event) {

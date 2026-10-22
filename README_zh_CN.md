@@ -36,6 +36,7 @@ V2 会在预算内继续优化可行方案，优先减少配方执行次数，�
 
 - `planning.enableCpSatPlanner`：启用实验性的 OR-Tools CP-SAT 规划器（默认：`false`）。启用后，Thunderbolt 会在启动时下载并校验匹配的原生运行库；加载失败不会影响其他规划器。
 - `channel.mode`：控制最大流频道分配（默认：`MOD`）。`MOD` 在已加载的集成明确请求时启用，`DEVICE` 也会为主动接入的设备启用，`ON` 则在存在控制器时始终启用。
+- `objects.fastNbtCopies`：减少 NBT 深拷贝的临时分配（默认：`true`）。设为 `false` 可使用原有复制路径。
 
 高级规划诊断和安全限制可通过 JVM 系统属性设置：
 

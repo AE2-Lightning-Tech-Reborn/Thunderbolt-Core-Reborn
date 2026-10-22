@@ -57,6 +57,8 @@ Common options are written to `config/thunderbolt-common.toml`:
 - `channel.mode`: controls max-flow channel allocation (default: `MOD`). `MOD`
   enables it when a loaded integration requests it, `DEVICE` also enables it
   for an opted-in device, and `ON` enables it whenever a controller is present.
+- `objects.fastNbtCopies`: reduces temporary allocations during NBT deep copies
+  (default: `true`). Set it to `false` to use the original copy operations.
 
 Advanced planner diagnostics and safety limits can be set as JVM system
 properties:
