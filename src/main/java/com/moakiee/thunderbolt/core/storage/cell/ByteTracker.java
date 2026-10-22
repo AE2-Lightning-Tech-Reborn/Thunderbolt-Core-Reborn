@@ -155,6 +155,9 @@ public final class ByteTracker {
 
         if (isNewKey) {
             byteDelta += bytesPerType;
+            // With one unit per byte, the request plus key charge can carry on
+            // its own before it is added to the existing low word.
+            if (byteDelta < 0) { byteDelta &= Long.MAX_VALUE; usedBytesHi++; }
             channel.keyCount++;
         }
 
@@ -188,6 +191,7 @@ public final class ByteTracker {
         channel.remainder = newR;
         if (keyRemoved) {
             bytesFreed += bytesPerType;
+            if (bytesFreed < 0) { bytesFreed &= Long.MAX_VALUE; usedBytesHi--; }
             if (--channel.keyCount <= 0) {
                 removeType(index);
             }
