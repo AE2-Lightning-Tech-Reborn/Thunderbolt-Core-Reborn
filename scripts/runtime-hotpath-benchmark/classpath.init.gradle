@@ -1,0 +1,12 @@
+allprojects {
+    afterEvaluate {
+        tasks.register('writeRuntimeBenchmarkClasspath') {
+            dependsOn tasks.named('classes')
+            doLast {
+                def output = layout.buildDirectory.file('runtime-hotpath-benchmark/classpath.txt').get().asFile
+                output.parentFile.mkdirs()
+                output.text = (sourceSets.main.runtimeClasspath + sourceSets.main.compileClasspath).asPath
+            }
+        }
+    }
+}

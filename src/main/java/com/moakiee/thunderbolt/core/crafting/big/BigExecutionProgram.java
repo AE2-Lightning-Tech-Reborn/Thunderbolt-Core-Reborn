@@ -12,6 +12,7 @@ import java.util.*;
 public record BigExecutionProgram<K>(
         List<Block<K>> blocks, Map<K, BigInteger> required, Map<K, BigInteger> delta) {
     private static final BigInteger ZERO = BigInteger.ZERO, ONE = BigInteger.ONE;
+    private static final int MAX_CERTIFICATE_WORK = 200_000;
 
     public BigExecutionProgram {
         blocks = List.copyOf(blocks);
@@ -64,22 +65,30 @@ public record BigExecutionProgram<K>(
         if (n.signum() <= 0) throw new IllegalArgumentException("repetitions");
         var pre = new LinkedHashMap<K, BigInteger>(s.required());
         var delta = new LinkedHashMap<K, BigInteger>();
+        var previousRepetitions = n.subtract(ONE);
         s.delta()
                 .forEach(
                         (k, d) -> {
                             if (d.signum() < 0)
-                                pre.merge(k, d.negate().multiply(n.subtract(ONE)), BigInteger::add);
+                                pre.merge(k, d.negate().multiply(previousRepetitions), BigInteger::add);
                             delta.put(k, d.multiply(n));
                         });
         return new Summary<>(Map.copyOf(pre), Map.copyOf(delta));
     }
 
     public static <K> Summary<K> compose(List<Step<K>> steps) {
+        return compose(steps, null);
+    }
+
+    private static <K> Summary<K> compose(
+            List<Step<K>> steps, Map<CraftPattern<K>, Summary<K>> recipeArcs) {
         var pre = new LinkedHashMap<K, BigInteger>();
         var delta = new LinkedHashMap<K, BigInteger>();
         for (var step : steps) {
             PlanningCancellation.check();
-            var s = repeat(arcs(step.recipe()), step.copies());
+            var physical = recipeArcs == null ? arcs(step.recipe())
+                    : recipeArcs.computeIfAbsent(step.recipe(), BigExecutionProgram::arcs);
+            var s = repeat(physical, step.copies());
             append(pre, delta, s);
         }
         return new Summary<>(Map.copyOf(pre), Map.copyOf(delta));
@@ -160,23 +169,28 @@ public record BigExecutionProgram<K>(
                 });
         var stock = new LinkedHashMap<K, BigInteger>(supplied);
         var blocks = new ArrayList<Block<K>>();
+        // CraftPattern is immutable. Keep physical arcs local to this certificate attempt;
+        // inventory, remaining counts and execution order must never enter this cache.
+        var recipeArcs = new IdentityHashMap<CraftPattern<K>, Summary<K>>(
+                Math.min(left.size(), MAX_CERTIFICATE_WORK));
         int work = 0;
         while (!left.isEmpty()) {
             PlanningCancellation.check();
             var steps = new ArrayList<Step<K>>();
-            for (var e : new ArrayList<>(left.entrySet())) {
-                if (++work > 200_000) return Optional.empty();
-                var arcs = arcs(e.getKey());
+            for (var pending = left.entrySet().iterator(); pending.hasNext();) {
+                var e = pending.next();
+                if (++work > MAX_CERTIFICATE_WORK) return Optional.empty();
+                var arcs = recipeArcs.computeIfAbsent(e.getKey(), BigExecutionProgram::arcs);
                 var n = supported(arcs, stock, e.getValue());
                 if (n.signum() == 0) continue;
                 steps.add(new Step<>(e.getKey(), n));
                 apply(stock, arcs.delta(), n);
                 var remaining = e.getValue().subtract(n);
-                if (remaining.signum() == 0) left.remove(e.getKey());
-                else left.put(e.getKey(), remaining);
+                if (remaining.signum() == 0) pending.remove();
+                else e.setValue(remaining);
             }
             if (steps.isEmpty()) return Optional.empty();
-            var summary = compose(steps);
+            var summary = compose(steps, recipeArcs);
             BigInteger repeats = null;
             for (var step : steps) {
                 var n = left.getOrDefault(step.recipe(), ZERO).divide(step.copies());
@@ -191,8 +205,12 @@ public record BigExecutionProgram<K>(
                     else left.put(step.recipe(), n);
                 }
             }
-            blocks.add(block(steps, repeats.add(ONE)));
+            var repetitions = repeats.add(ONE);
+            var repeated = repeat(summary, repetitions);
+            blocks.add(new Block<>(steps, repetitions, repeated.required(), repeated.delta()));
         }
+        // Rebuild every block from its recipes at the public verification boundary. The cached
+        // arcs and internally assembled summaries above are not trusted by this final proof.
         var program = of(blocks);
         for (var e : program.required().entrySet())
             if (e.getValue().compareTo(supplied.getOrDefault(e.getKey(), ZERO)) > 0)

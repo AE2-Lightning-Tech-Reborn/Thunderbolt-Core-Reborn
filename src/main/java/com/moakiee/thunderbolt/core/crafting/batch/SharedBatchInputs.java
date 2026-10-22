@@ -18,8 +18,9 @@ public final class SharedBatchInputs {
         if (details == null) return false;
         var inputs = details.getInputs();
         for (int slot = 0; slot < inputs.length; slot++) {
-            for (var possible : inputs[slot].getPossibleInputs()) {
-                if (possible.what() != null && isSharedInput(details, slot, possible.what())) {
+            var input = inputs[slot];
+            for (var possible : input.getPossibleInputs()) {
+                if (possible.what() != null && isSharedInput(details, slot, input, possible.what())) {
                     return true;
                 }
             }
@@ -38,12 +39,17 @@ public final class SharedBatchInputs {
         var inputs = details.getInputs();
         if (slot < 0 || slot >= inputs.length) return false;
 
+        return isSharedInput(details, slot, inputs[slot], concreteKey);
+    }
+
+    private static boolean isSharedInput(
+            IPatternDetails details, int slot, IPatternDetails.IInput input, AEKey concreteKey) {
         if (details instanceof SharedBatchInputPattern explicit
                 && explicit.isSharedBatchInput(slot, concreteKey)) {
             return true;
         }
 
-        AEKey remaining = inputs[slot].getRemainingKey(concreteKey);
+        AEKey remaining = input.getRemainingKey(concreteKey);
         return concreteKey.equals(remaining);
     }
 }
