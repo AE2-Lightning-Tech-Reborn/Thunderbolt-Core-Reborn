@@ -118,6 +118,24 @@ class ThunderboltCraftingPlanSummaryTest {
         assertEquals(15L, entry(summary, PRODUCT).getCraftAmount());
     }
 
+    @Test
+    void overflowKeepsExactDisplayAmountsWithoutMakingPlanPreviewOnly() {
+        var used = new KeyCounter(); used.add(PRODUCT, Long.MAX_VALUE);
+        var emitted = new KeyCounter(); emitted.add(PRODUCT, 2);
+        var plan = new CraftingPlan(null, 1, false, false, used, emitted, new KeyCounter(),
+                Map.of(new FakePattern(PRODUCT, Long.MAX_VALUE), 3L));
+        var summary = ThunderboltCraftingPlanSummary.fromPlan(plan);
+        var exact = ExactPlanReports.get(summary);
+        var max = java.math.BigInteger.valueOf(Long.MAX_VALUE);
+        assertFalse(summary.isSimulation());
+        assertFalse(exact.previewOnly());
+        assertEquals(max.add(java.math.BigInteger.TWO), exact.entries().get(PRODUCT).stored());
+        assertEquals(max.multiply(java.math.BigInteger.valueOf(3)).add(java.math.BigInteger.TWO),
+                exact.entries().get(PRODUCT).crafting());
+        assertEquals(Long.MAX_VALUE, entry(summary, PRODUCT).getCraftAmount());
+        assertEquals(Long.MAX_VALUE, entry(summary, PRODUCT).getStoredAmount());
+    }
+
     private static CraftingPlanSummaryEntry entry(CraftingPlanSummary summary, AEKey key) {
         return summary.getEntries().stream()
                 .filter(entry -> entry.getWhat().equals(key))

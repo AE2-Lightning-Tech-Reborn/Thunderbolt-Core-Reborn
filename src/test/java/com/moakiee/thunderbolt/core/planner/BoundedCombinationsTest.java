@@ -13,6 +13,62 @@ import org.junit.jupiter.api.Test;
 
 class BoundedCombinationsTest {
 
+    @Test
+    void sparseFrontierPreservesLegacyTieOrder() {
+        var random = new java.util.Random(20261024);
+        for (int trial = 0; trial < 200; trial++) {
+            var slots = new ArrayList<List<Integer>>();
+            for (int j = random.nextInt(7); j > 0; j--) {
+                var options = new ArrayList<Integer>();
+                for (int k = 0, count = 1 + random.nextInt(4); k < count; k++) options.add(k);
+                slots.add(options);
+            }
+            int limit = 1 + random.nextInt(64);
+            assertEquals(legacy(slots, limit), BoundedCombinations.bestFirst(slots, limit));
+        }
+    }
+
+    @Test
+    void veryWideTwoChoicePatternDoesNotCopyDenseFrontierVectors() {
+        var slots = java.util.Collections.nCopies(8192, List.of(0, 1));
+        var result = BoundedCombinations.bestFirst(slots, 16);
+        assertEquals(16, result.size());
+        assertEquals(16, new java.util.HashSet<>(result).size());
+        assertEquals(0, result.getFirst().stream().mapToInt(Integer::intValue).sum());
+        for (int i = 1; i < result.size(); i++)
+            assertEquals(1, result.get(i).stream().mapToInt(Integer::intValue).sum());
+    }
+
+    @Test
+    void cancelledExpansionDoesNotEnumerate() {
+        Thread.currentThread().interrupt();
+        try {
+            org.junit.jupiter.api.Assertions.assertThrows(java.util.concurrent.CancellationException.class,
+                    () -> BoundedCombinations.bestFirst(List.of(List.of(0, 1)), 64));
+        } finally { Thread.interrupted(); }
+    }
+
+    private static List<List<Integer>> legacy(List<List<Integer>> slots, int limit) {
+        int n = slots.size();
+        var heap = new java.util.PriorityQueue<int[]>(java.util.Comparator.comparingInt(a -> a[n]));
+        var visited = new java.util.HashSet<String>();
+        var result = new ArrayList<List<Integer>>();
+        heap.add(new int[n + 1]);
+        visited.add(java.util.Arrays.toString(new int[n + 1]));
+        while (!heap.isEmpty() && result.size() < limit) {
+            var current = heap.remove();
+            var values = new ArrayList<Integer>();
+            for (int s = 0; s < n; s++) values.add(slots.get(s).get(current[s]));
+            result.add(values);
+            for (int s = 0; s < n; s++) {
+                if (current[s] + 1 >= slots.get(s).size()) continue;
+                var next = current.clone(); next[s]++; next[n]++;
+                if (visited.add(java.util.Arrays.toString(next))) heap.add(next);
+            }
+        }
+        return result;
+    }
+
     private static List<String> slot(String... opts) {
         return List.of(opts);
     }

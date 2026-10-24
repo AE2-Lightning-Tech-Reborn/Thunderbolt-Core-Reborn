@@ -41,12 +41,13 @@ public record LoopCraftingPlan(
         totalReusableSeeds = Map.copyOf(totalReusableSeeds);
         hostReusableSeeds = Map.copyOf(hostReusableSeeds);
         hostReusableSeedAllocations = List.copyOf(hostReusableSeedAllocations);
-        if (restrictions.isEmpty()) {
-            throw new IllegalArgumentException("loop plan must have at least one restriction");
+        if (restrictions.isEmpty() && totalReusableSeeds.isEmpty() && hostReusableSeeds.isEmpty()
+                && hostReusableSeedAllocations.isEmpty()) {
+            throw new IllegalArgumentException("loop plan must have restrictions or reusable seed metadata");
         }
     }
 
-    /** Wraps an AE2 plan only when it contains a time-wheel-restricted pattern. */
+    /** Preserves CPU restrictions and reusable-seed ownership independently. */
     public static ICraftingPlan wrapIfNeeded(ICraftingPlan plan) {
         return wrapIfNeeded(plan, null);
     }
@@ -118,7 +119,7 @@ public record LoopCraftingPlan(
                         "private reusable-stock usage exceeds its route seed requirement");
             }
         }
-        return restrictions.isEmpty()
+        return restrictions.isEmpty() && totalSeeds.isEmpty() && hostSeeds.isEmpty() && hostAllocations.isEmpty()
                 ? craftingPlan
                 : new LoopCraftingPlan(
                         craftingPlan,

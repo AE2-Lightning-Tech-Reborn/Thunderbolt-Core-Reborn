@@ -2489,10 +2489,13 @@ public final class CraftPlannerV2<K> {
             PlanningCancellation.check();
             K output = queue.remove();
             for (CraftPattern<K> consumer : graph.patternsFor(output)) {
+                PlanningCancellation.check();
                 for (CraftInput<K> input : consumer.inputs()) {
+                    PlanningCancellation.check();
                     if (seen.add(input.key())) queue.add(input.key());
                 }
                 for (CraftOutput<K> byproduct : consumer.byproducts()) {
+                    PlanningCancellation.check();
                     if (seen.add(byproduct.key())) queue.add(byproduct.key());
                 }
 
@@ -2508,13 +2511,17 @@ public final class CraftPlannerV2<K> {
         // root quadratic, even when there is no feedback edge to inspect.
         Map<K, Long> ordinaryInputs = new LinkedHashMap<>();
         for (CraftInput<K> input : consumer.inputs()) {
+            PlanningCancellation.check();
             if (!input.returned() && input.remainder() == null)
                 ordinaryInputs.merge(input.key(), input.amount(), Sat::add);
         }
         Map<K, Long> returnedOutputs = new LinkedHashMap<>();
-        for (CraftOutput<K> outputEntry : consumer.byproducts())
+        for (CraftOutput<K> outputEntry : consumer.byproducts()) {
+            PlanningCancellation.check();
             returnedOutputs.merge(outputEntry.key(), outputEntry.amount(), Sat::add);
+        }
         for (var consumed : ordinaryInputs.entrySet()) {
+            PlanningCancellation.check();
             K consumedKey = consumed.getKey();
             long consumedAmount = consumed.getValue();
             if (consumedAmount <= 0) continue;
@@ -2527,6 +2534,7 @@ public final class CraftPlannerV2<K> {
             Set<K> possibleReturns = refills.size() < returnedOutputs.size()
                     ? refills.keySet() : returnedOutputs.keySet();
             for (K byproduct : possibleReturns) {
+                PlanningCancellation.check();
                 long returnedAmount = returnedOutputs.getOrDefault(byproduct, 0L);
                 if (returnedAmount <= 0) continue;
                 List<FeedbackRefill> candidates = refills.get(byproduct);
@@ -2537,6 +2545,7 @@ public final class CraftPlannerV2<K> {
                 if (!positiveProductGreater(bestRatio.outputAmount(), returnedAmount,
                         consumedAmount, bestRatio.inputAmount())) continue;
                 for (FeedbackRefill refill : candidates) {
+                    PlanningCancellation.check();
                     long refillInput = refill.inputAmount();
                     long common = gcd(returnedAmount, refillInput);
                     long consumerBatch = refillInput / common;
@@ -2561,6 +2570,7 @@ public final class CraftPlannerV2<K> {
             PlanningCancellation.check();
             var amounts = new HashMap<K, Long>();
             for (CraftInput<K> input : pattern.inputs()) {
+                PlanningCancellation.check();
                 if (!input.returned() && input.remainder() == null)
                     // The former per-key scan saturated from zero, including its first slot.
                     amounts.merge(input.key(), Sat.add(0L, input.amount()), Sat::add);

@@ -109,23 +109,27 @@ public final class ByteTracker {
     // ══════════════════════════════════════════════════════════════════════
 
     public long computeMaxInsertable(AEKeyType type, boolean isNewKey) {
+        if (isNewKey && totalTypesGetter.getAsInt() >= maxTypes) return 0;
         int apb = type.getAmountPerByte();
-
-        if (capacityHi == usedBytesHi) {
-            if (capacityLo <= usedBytesLo) return 0;
-            return maxFromFreeBytes(capacityLo - usedBytesLo, apb, type, isNewKey);
+        if (capacityHi < usedBytesHi || capacityHi == usedBytesHi && capacityLo < usedBytesLo) return 0;
+        long freeHi = capacityHi - usedBytesHi;
+        long freeLo = capacityLo - usedBytesLo;
+        if (freeLo < 0) {
+            freeLo &= Long.MAX_VALUE;
+            freeHi--;
         }
-        if (capacityHi < usedBytesHi) return 0;
+        // Crossing a 63-bit boundary can still leave only a few bytes. Charge type overhead
+        // before deciding whether the remaining space is larger than a long-sized request.
+        if (isNewKey) {
+            if (freeHi == 0 && freeLo < bytesPerType) return 0;
+            freeLo -= bytesPerType;
+            if (freeLo < 0) { freeLo &= Long.MAX_VALUE; freeHi--; }
+        }
+        if (freeHi == 0) return maxFromFreeBytes(freeLo, apb, type);
         return Long.MAX_VALUE;
     }
 
-    private long maxFromFreeBytes(long freeBytes, int apb, AEKeyType type, boolean isNewKey) {
-        int totalTypes = totalTypesGetter.getAsInt();
-        if (isNewKey) {
-            if (totalTypes >= maxTypes) return 0;
-            if (freeBytes < bytesPerType) return 0;
-            freeBytes -= bytesPerType;
-        }
+    private long maxFromFreeBytes(long freeBytes, int apb, AEKeyType type) {
         int index = findType(type);
         long r = index < 0 ? 0 : channels[index].remainder;
         long freeInPartial = (r > 0) ? (apb - r) : 0;
@@ -153,13 +157,15 @@ public final class ByteTracker {
         long byteDelta = amount / apb + extra
                 + (newR > 0 ? 1L : 0L) - (oldR > 0 ? 1L : 0L);
 
-        if (isNewKey) {
-            byteDelta += bytesPerType;
-            channel.keyCount++;
-        }
-
         usedBytesLo += byteDelta;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
+        if (isNewKey) {
+            // A long-sized amount plus type overhead can itself exceed one 63-bit word.
+            // Apply each nonnegative delta separately so neither carry is lost.
+            usedBytesLo += bytesPerType;
+            if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
+            channel.keyCount++;
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -186,15 +192,15 @@ public final class ByteTracker {
                 + (oldR > 0 ? 1L : 0L) - (newR > 0 ? 1L : 0L);
 
         channel.remainder = newR;
+        usedBytesLo -= bytesFreed;
+        if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi--; }
         if (keyRemoved) {
-            bytesFreed += bytesPerType;
+            usedBytesLo -= bytesPerType;
+            if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi--; }
             if (--channel.keyCount <= 0) {
                 removeType(index);
             }
         }
-
-        usedBytesLo -= bytesFreed;
-        if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi--; }
     }
 
     // ══════════════════════════════════════════════════════════════════════
