@@ -163,16 +163,17 @@ public record BigExecutionProgram<K>(
     public static <K> Optional<BigExecutionProgram<K>> certify(
             Map<CraftPattern<K>, BigInteger> counts, Map<K, BigInteger> supplied) {
         var left = new LinkedHashMap<CraftPattern<K>, BigInteger>();
-        counts.forEach(
-                (p, n) -> {
-                    if (BigAmounts.nonNegative(n).signum() > 0) left.put(p, n);
-                });
+        for (var entry : counts.entrySet()) {
+            if (BigAmounts.nonNegative(entry.getValue()).signum() > 0)
+                left.put(entry.getKey(), entry.getValue());
+        }
         var stock = new LinkedHashMap<K, BigInteger>(supplied);
         var blocks = new ArrayList<Block<K>>();
         // CraftPattern is immutable. Keep physical arcs local to this certificate attempt;
         // inventory, remaining counts and execution order must never enter this cache.
         var recipeArcs = new IdentityHashMap<CraftPattern<K>, Summary<K>>(
                 Math.min(left.size(), MAX_CERTIFICATE_WORK));
+        left = dependencyOrder(left, recipeArcs);
         int work = 0;
         while (!left.isEmpty()) {
             PlanningCancellation.check();
@@ -216,5 +217,54 @@ public record BigExecutionProgram<K>(
             if (e.getValue().compareTo(supplied.getOrDefault(e.getKey(), ZERO)) > 0)
                 throw new IllegalStateException("Invalid executable prefix proof");
         return Optional.of(program);
+    }
+
+    /**
+     * A reverse-listed DAG must not spend the sweep budget rediscovering each dependency.
+     * This only changes the candidate order: the normal physical-stock replay and final
+     * independent proof still validate every firing. Cycles retain the repeatable-sweep path.
+     */
+    private static <K> LinkedHashMap<CraftPattern<K>, BigInteger> dependencyOrder(
+            LinkedHashMap<CraftPattern<K>, BigInteger> counts,
+            Map<CraftPattern<K>, Summary<K>> recipeArcs) {
+        if (counts.size() > MAX_CERTIFICATE_WORK) return counts;
+        var recipes = new ArrayList<>(counts.keySet());
+        var producers = new HashMap<K, List<Integer>>();
+        int work = 0;
+        for (int i = 0; i < recipes.size(); i++) {
+            PlanningCancellation.check();
+            if (++work > MAX_CERTIFICATE_WORK) return counts;
+            var physical = recipeArcs.computeIfAbsent(recipes.get(i), BigExecutionProgram::arcs);
+            for (var output : physical.delta().entrySet()) {
+                if (++work > MAX_CERTIFICATE_WORK) return counts;
+                if (output.getValue().signum() > 0)
+                    producers.computeIfAbsent(output.getKey(), ignored -> new ArrayList<>()).add(i);
+            }
+        }
+        var successors = new ArrayList<Set<Integer>>(recipes.size());
+        for (int i = 0; i < recipes.size(); i++) successors.add(new LinkedHashSet<>());
+        var indegree = new int[recipes.size()];
+        for (int consumer = 0; consumer < recipes.size(); consumer++) {
+            PlanningCancellation.check();
+            for (var key : recipeArcs.get(recipes.get(consumer)).required().keySet()) {
+                if (++work > MAX_CERTIFICATE_WORK) return counts;
+                for (int producer : producers.getOrDefault(key, List.of())) {
+                    if (++work > MAX_CERTIFICATE_WORK) return counts;
+                    if (successors.get(producer).add(consumer)) indegree[consumer]++;
+                }
+            }
+        }
+        var ready = new ArrayDeque<Integer>();
+        for (int i = 0; i < recipes.size(); i++) if (indegree[i] == 0) ready.add(i);
+        var ordered = new LinkedHashMap<CraftPattern<K>, BigInteger>();
+        while (!ready.isEmpty()) {
+            PlanningCancellation.check();
+            int producer = ready.remove();
+            var recipe = recipes.get(producer);
+            ordered.put(recipe, counts.get(recipe));
+            for (int consumer : successors.get(producer))
+                if (--indegree[consumer] == 0) ready.add(consumer);
+        }
+        return ordered.size() == counts.size() ? ordered : counts;
     }
 }

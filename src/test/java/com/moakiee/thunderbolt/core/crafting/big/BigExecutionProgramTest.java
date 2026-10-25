@@ -22,17 +22,56 @@ class BigExecutionProgramTest {
         assertEquals(original, counts);
         assertEquals(Map.of("p0", N), program.required());
         assertEquals(Map.of("p0", N.negate(), "p128", N), program.delta());
-        assertEquals(128, program.blocks().size());
+        assertEquals(1, program.blocks().size());
         assertCounts(program, counts);
         for (int i = 0; i < 128; i++) {
-            assertEquals("p" + (i + 1), program.blocks().get(i).steps().getFirst().recipe().output());
+            assertEquals("p" + (i + 1), program.blocks().getFirst().steps().get(i).recipe().output());
         }
     }
 
     @Test
-    void workLimitStillDeclinesWithoutPublishingAPartialCertificate() {
-        // Reverse order needs 640 * 641 / 2 scans, exceeding the unchanged 200,000 work cap.
-        assertTrue(BigExecutionProgram.certify(reverseChain(640, N), Map.of("p0", N)).isEmpty());
+    void thousandLevelCompressionChainCertifiesOneExactOrder() {
+        var target = BigInteger.valueOf(9).multiply(BigInteger.TEN.pow(99));
+        var counts = new LinkedHashMap<CraftPattern<String>, BigInteger>();
+        var copies = target;
+        for (int i = 1000; i > 0; i--) {
+            counts.put(new CraftPattern<>("p" + i, 1,
+                    List.of(CraftInput.of("p" + (i - 1), 9)), null), copies);
+            copies = copies.multiply(BigInteger.valueOf(9));
+        }
+        var raw = copies;
+        var program = BigExecutionProgram.certify(counts, Map.of("p0", raw)).orElseThrow();
+        assertEquals(Map.of("p0", raw), program.required());
+        assertEquals(Map.of("p0", raw.negate(), "p1000", target), program.delta());
+        assertEquals(1, program.blocks().size());
+        assertEquals(1000, program.blocks().getFirst().steps().size());
+        assertCounts(program, counts);
+        assertTrue(BigExecutionProgram.certify(counts, Map.of("p0", raw.subtract(BigInteger.ONE))).isEmpty());
+    }
+
+    @Test
+    void branchingDagIncludesByproductDependenciesAndSharedInputs() {
+        var source = new CraftPattern<>("left", 1, List.of(CraftInput.of("raw", 2)),
+                List.of(CraftOutput.of("right", 1)), null);
+        var left = new CraftPattern<>("A", 1, List.of(CraftInput.of("left", 1), CraftInput.of("fuel", 1)), null);
+        var right = new CraftPattern<>("B", 1, List.of(CraftInput.of("right", 1), CraftInput.of("fuel", 1)), null);
+        var merge = new CraftPattern<>("result", 1, List.of(CraftInput.of("A", 1), CraftInput.of("B", 1)), null);
+        var counts = new LinkedHashMap<CraftPattern<String>, BigInteger>();
+        for (var recipe : List.of(merge, right, left, source)) counts.put(recipe, N);
+        var supplied = Map.of("raw", N.multiply(BigInteger.TWO), "fuel", N.multiply(BigInteger.TWO));
+        var program = BigExecutionProgram.certify(counts, supplied).orElseThrow();
+        assertEquals(supplied, program.required());
+        assertEquals(N, program.delta().get("result"));
+        assertCounts(program, counts);
+        assertTrue(BigExecutionProgram.certify(counts, Map.of("raw", N.multiply(BigInteger.TWO), "fuel", N)).isEmpty());
+    }
+
+    @Test
+    void cyclicFallbackKeepsWorkLimitAndDoesNotPublishPartialCertificate() {
+        var counts = reverseChain(640, N);
+        counts.put(new CraftPattern<>("seed", 2, List.of(CraftInput.of("seed", 1)), null), BigInteger.ONE);
+        // A self-dependent producer retains the bounded general sweep algorithm.
+        assertTrue(BigExecutionProgram.certify(counts, Map.of("p0", N, "seed", BigInteger.ONE)).isEmpty());
     }
 
     @Test
