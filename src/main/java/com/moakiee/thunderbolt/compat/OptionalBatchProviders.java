@@ -4,6 +4,7 @@ import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapter;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapters;
 import com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusBatchAdapter;
 import com.moakiee.thunderbolt.compat.gtl.GtlCompat;
+import com.moakiee.thunderbolt.compat.neoeco.NeoEcoFastPathCompat;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.ModList;
 
@@ -15,6 +16,9 @@ public final class OptionalBatchProviders {
         // GTL owns catalyst/inflated-pattern accounting through its handover.
         if (GtlCompat.isCraftingHandoverActive()) return;
         var mods = ModList.get();
+        if (mods != null && mods.isLoaded("neoecoae")) {
+            register("neoecoae", NeoEcoFastPathCompat.createAdapter());
+        }
         if (mods != null && mods.isLoaded("extendedae_plus")) {
             register("extendedae_plus", ExtendedAePlusBatchAdapter.createAdapter());
         }

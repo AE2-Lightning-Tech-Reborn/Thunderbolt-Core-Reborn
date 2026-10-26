@@ -33,13 +33,17 @@ server.
 - max-flow channel allocation for compatible high-capacity networks,
   using a bidirectional tree seed and exact residual completion
 - optional compatibility hooks for Advanced AE, AE2 Crafting Tree,
-  and ExtendedAE Plus; hooks load only when the corresponding mod is present
+  ExtendedAE Plus, and NeoECO 20.5.1; hooks load only when the corresponding mod is present
 - coexistence with GTLCore (`gtlcore`): Thunderbolt yields CPU dispatch to
   GTLCore, attaches the planner at `CraftingCalculation#computePlan`,
   and keeps its other subsystems active
 
 The hand-over boundary, the `-Dthunderbolt.gtlCompat` switch and the
 verification steps are described in `docs/gtl-core-coexistence.zh-CN.md`.
+
+NeoECO 20.5.1 requires Forge `47.4.10` or newer and LDLib. Its public FastPath
+adapter preserves CPU input ownership and job IDs. GTL CPU handover takes precedence;
+see [the compatibility report](docs/neoeco-compatibility-20261026.zh-CN.md) for tested scope.
 
 ## Configuration
 

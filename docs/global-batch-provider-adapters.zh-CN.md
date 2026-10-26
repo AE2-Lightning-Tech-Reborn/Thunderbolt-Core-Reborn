@@ -10,11 +10,11 @@
 LT 时间轮 CPU 已改用不带适配器的完整调度重载。AE2 和 AdvancedAE CPU 原有的短重载
 自动使用同一全局表；各 CPU 的次数预算和材料分配策略保持各自实现。
 
-在 NeoForge common setup 的串行 `enqueueWork` 中注册：
+在 Forge common setup 的串行 `enqueueWork` 中注册：
 
 ```java
 BatchProviderAdapters.register(
-        ResourceLocation.fromNamespaceAndPath("my_mod", "machine"),
+        new ResourceLocation("my_mod", "machine"),
         0,
         (provider, pattern, job) -> {
             // 不匹配返回 null；匹配时返回实现 IBatchCraftingProvider 的端点。
@@ -36,14 +36,21 @@ BatchProviderAdapters.register(
 | 对象 | 路径与边界 |
 | --- | --- |
 | EAEP | 超级装配矩阵提供器及其子类，使用 `ScaledMolecularAssemblerPattern`。通过全局适配取代给矩阵注入 TB 接口，保留矩阵的配置批量上限。 |
+| NeoECO 20.5.1 | 使用 `ECOFastPathFacade.prepareAllocated`，只接受公开接口批准的无返还输入、无状态 NORMAL 配方；不适用时回退单份普通执行。大型工作站已有原生批处理优先。 |
 | AppliedE | TB 已有 EMC 模块原生批量 Mixin，直接命中 `IBatchCraftingProvider`，无需二次包装。 |
 | LT / LTPP | 已有原生批量接口，继续优先直接调用。 |
 
-EAEP 可选适配由 TB common setup 注册，TB 不依赖 LT 加载。
+EAEP、NeoECO 可选适配由 TB common setup 注册，TB 不依赖 LT 加载。
 缺少可选模组或对应 API 时不注册。
 
-自 2026-10-21 起，本分支已删除 NeoECO 专用适配器、协议探测与机器 Mixin。
-带日期的旧验收报告仅记录当时结果。
+2026-10-26 按新的 ECO 兼容要求接入 NeoECO 1.20.1 的公开接口；不恢复旧版机器或 CPU Mixin。
+`thunderbolt:neoecoae` 使用反射探测完整接口，不引入强制依赖。GTL CPU 接管激活时不注册可选批处理协议，
+由 GTL 与 ECO 原生逻辑处理派发。带日期的旧报告保留各自当时的兼容范围。
+
+适配器在提取前准备，捕获任务 UUID 和输入副本，不持有借用的可变 `BatchJobView`。
+CPU 仍独自结算材料、能量与等待产物；ECO 的 allocated 路径使用零能量私有账本。
+缩小供给时重新准备；明确拒绝可尝试单份普通派发，提交异常向上传递并停止任务，避免不明所有权下重复投料。
+公开 `prepareExact` 辅助接口保留 `BigInteger`，由调用方持有完整事务；普通 Core CPU 不因此自动获得超 long 派发能力。
 
 `pushBatch` 返回**未接收份数**，输入是借用的单份只读模板。
 适配器只能向下游交付自己的副本。下游已经进入提交阶段后抛出的异常必须传给执行器，
@@ -65,6 +72,10 @@ TB `test` 覆盖全局顺序、重复 ID、显式覆盖、原生优先、混合�
 同 tick 注册变更、部分接收、原料模板不可变和提交异常。
 可通过 `-PthunderboltBatchTestMods=<EAEP JAR 路径>` 加载实际 EAEP 倍率样板契约测试；
 多个测试 JAR 使用平台路径分隔符分开。未提供 EAEP 时该实际协议用例跳过。
+
+NeoECO 的隔离协议夹具覆盖准备、部分接收、拒绝、异常和真实 `BatchExecutor` 库存结算；
+真实发行包机器测试入口为 `tools/neoeco-compatibility-game-tests.gradle`，环境要求与复现命令见
+[2026-10-26 兼容报告](neoeco-compatibility-20261026.zh-CN.md)。测试源码与模板不加入发行包。
 
 LT 提供 `runGlobalBatchGameTestServer -Pae2ltGlobalBatchTestsOnly=true`。
 先让 LT 的 Thunderbolt 依赖解析到本次构建，再用

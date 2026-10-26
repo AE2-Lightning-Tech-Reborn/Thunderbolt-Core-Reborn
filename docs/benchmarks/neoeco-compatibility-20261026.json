@@ -1,0 +1,201 @@
+{
+  "date": "2026-10-26",
+  "branch": "1.20.1_GTL",
+  "base_commit": "57eda50013b8aea526099149120a0d2873aa1e91",
+  "upstream": {
+    "repository": "https://github.com/DancingSnow0517/NeoECOAEExtension",
+    "branch": "1.20.1",
+    "reference_commit": "d1e306c7fbf557fc883f8c804b0d10c22b057f89",
+    "license": "GPLv3"
+  },
+  "neoeco_release": {
+    "version": "20.5.1",
+    "url": "https://cdn.modrinth.com/data/udZtKfzP/versions/vjWvlG5t/neoecoae-20.5.1.jar",
+    "size_bytes": 7650126,
+    "sha512": "8a4e5d9b36c311acb17c476977d65a58a05e8c3600fb69985c2158e98f9788f05bed52d5f4fbe8f331eb2639f5459e792c7a553f7691696bb777ff257f179344"
+  },
+  "default_environment": {
+    "minecraft": "1.20.1",
+    "forge": "47.1.3",
+    "ae2": "15.4.10",
+    "guideme": "20.1.15",
+    "java": "17.0.20",
+    "platform": "Windows amd64",
+    "neoeco_present": false
+  },
+  "neoeco_environment": {
+    "minecraft": "1.20.1",
+    "forge": "47.4.20",
+    "ae2": "15.4.10",
+    "guideme": "20.1.15",
+    "ldlib": "1.0.50",
+    "neoeco": "20.5.1",
+    "mixinextras_runtime": "0.5.3",
+    "java": "17.0.20",
+    "platform": "Windows amd64",
+    "gtl_handover": "never",
+    "real_gtlcore_present": false
+  },
+  "full_check": {
+    "tasks": [
+      {
+        "task": "cpSatColdRefinementTest",
+        "tests": 1,
+        "passed": 1,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "task": "externalPlannerBoundaryTest",
+        "tests": 38,
+        "passed": 38,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "task": "materialDagColdReplayTest",
+        "tests": 20,
+        "passed": 20,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "task": "materialDagColdReplenishmentTest",
+        "tests": 2,
+        "passed": 2,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "task": "materialDagLargeGraphTest",
+        "tests": 1,
+        "passed": 1,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "task": "planningLifecycleTimingTest",
+        "tests": 5,
+        "passed": 5,
+        "skipped": 0,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "task": "test",
+        "tests": 1516,
+        "passed": 1515,
+        "skipped": 1,
+        "failures": 0,
+        "errors": 0
+      }
+    ],
+    "totals": {
+      "tests": 1583,
+      "passed": 1582,
+      "skipped": 1,
+      "failures": 0,
+      "errors": 0
+    },
+    "forced_execution": true,
+    "assemble": "passed",
+    "verifyReleaseJar": "passed",
+    "optional_skip": "EAEP 1.5.5 lacks ScaledMolecularAssemblerPattern; pre-existing optional test"
+  },
+  "new_protocol_tests": {
+    "passed": 16,
+    "failures": 0,
+    "scope": "isolated protocol fixture plus actual AE2 BatchExecutor and inventory ledger"
+  },
+  "forge_game_tests": [
+    {
+      "suite": "NeoECO actual machines",
+      "passed": 4,
+      "failures": 0,
+      "mixin_audit": true,
+      "scope": [
+        "formed finite batch, cancellation and conservation",
+        "AE2 CPU plan, input debit, output delivery and cancellation",
+        "active worker vanilla NBT decode before level assignment",
+        "eight full L9 hosts, actual tier-9 coolant, exact count 2^70+37, cancellation and conservation"
+      ]
+    },
+    {
+      "suite": "default NBT",
+      "passed": 5,
+      "failures": 0,
+      "mixin_audit": true
+    },
+    {
+      "suite": "GTL compatibility fixtures and NBT",
+      "passed": 13,
+      "failures": 0,
+      "gtl_handover": "always",
+      "real_gtlcore_present": false
+    }
+  ],
+  "release_artifact": {
+    "path": "build/libs/thunderbolt-forge-1.20.1-2.0.0.jar",
+    "size_bytes": 5420427,
+    "sha256": "621b20c4b9c7fbc4ec1f739cb4f1f61339dccd89ca006f97d15dc52496c94afd",
+    "main_classes": 533,
+    "main_class_majors": [
+      61
+    ],
+    "nested": [
+      {
+        "entry": "META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+        "max_class_major": 61
+      },
+      {
+        "entry": "META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar",
+        "max_class_major": 52
+      },
+      {
+        "entry": "META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar",
+        "max_class_major": 52
+      }
+    ],
+    "fixture_entries": [],
+    "foreign_neoeco_descriptors": [],
+    "foreign_bundles": [],
+    "neoeco_compat_classes": [
+      "com/moakiee/thunderbolt/compat/neoeco/NeoEcoAllocatedApi$Admission.class",
+      "com/moakiee/thunderbolt/compat/neoeco/NeoEcoAllocatedApi.class",
+      "com/moakiee/thunderbolt/compat/neoeco/NeoEcoFastPathBatchAdapter$Endpoint$1.class",
+      "com/moakiee/thunderbolt/compat/neoeco/NeoEcoFastPathBatchAdapter$Endpoint.class",
+      "com/moakiee/thunderbolt/compat/neoeco/NeoEcoFastPathBatchAdapter.class",
+      "com/moakiee/thunderbolt/compat/neoeco/NeoEcoFastPathCompat$1.class",
+      "com/moakiee/thunderbolt/compat/neoeco/NeoEcoFastPathCompat$ExactBatch.class",
+      "com/moakiee/thunderbolt/compat/neoeco/NeoEcoFastPathCompat.class"
+    ],
+    "refmap_matches": true,
+    "mixin_config_matches": true,
+    "neoeco_mandatory_dependency": false
+  },
+  "known_limits": [
+    "Full GTLCore modpack co-installation, graphical client interaction and multiplayer were not exercised.",
+    "AdvancedAE CPUs and the large integrated workstation were not accepted as complete real machines in this run.",
+    "Exact helper requires an independently owned exact transaction; it does not add automatic beyond-long CPU execution.",
+    "LDLib 1.0.50 logs a caught dedicated-server scan error for NeoECO PatternItemSlot/LocalPlayer; all machine tests still passed.",
+    "Minecraft client asset download returned truncated JSON; dedicated-server checks excluded downloadAssets and used cached game dependencies."
+  ],
+  "resolved_test_setup_issues": [
+    "old test fixture APIs updated to the 20.5.1 release",
+    "Registrate kept nested at runtime to avoid duplicate JPMS packages",
+    "GameTest template namespace corrected",
+    "virtual topology supplied normal overclock, active cooling and registered cryotheum through the real input hatch",
+    "locked prior JUnit output bypassed with isolated result directories"
+  ],
+  "production_files": {
+    "src/main/java/com/moakiee/thunderbolt/compat/OptionalBatchProviders.java": "45e5eddeaa98240f9979363c66a8eb31bcfc2679b5b5affceb473fa9090e3b6f",
+    "src/main/java/com/moakiee/thunderbolt/compat/neoeco/NeoEcoAllocatedApi.java": "f9a1342ff85b2c6076eb6120a908e172fd618fbbca4ea18438fb03b54210fe0f",
+    "src/main/java/com/moakiee/thunderbolt/compat/neoeco/NeoEcoFastPathBatchAdapter.java": "451a0f708ffd14d9b4ee9dc28608842244fcf6ad62b7210233a3ca22ce8b4ddc",
+    "src/main/java/com/moakiee/thunderbolt/compat/neoeco/NeoEcoFastPathCompat.java": "f5bb332a5b9d9ce3948e1557e4ed5ef7e61bd15c2fa6442cc0360ef15718a819"
+  }
+}

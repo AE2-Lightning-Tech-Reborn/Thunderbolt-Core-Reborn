@@ -1,0 +1,64 @@
+// Opt-in real NeoECO 20.5.1 machine checks. Run separately from release packaging.
+if (gradle.startParameter.taskNames.any { it.tokenize(':').last() in ['build', 'assemble', 'jar', 'jarJar', 'verifyReleaseJar'] }) {
+    throw new GradleException('Run NeoECO machine tests separately from release packaging')
+}
+allprojects {
+    afterEvaluate {
+        def neoEco = rootProject.file(providers.gradleProperty('neoEcoTestJar').getOrElse(''))
+        if (!neoEco.isFile() || neoEco.name != 'neoecoae-20.5.1.jar') {
+            throw new GradleException('Supply the official neoecoae-20.5.1.jar using -PneoEcoTestJar=<path>')
+        }
+        def libraries = rootProject.file('build/neoeco-test-libraries')
+        libraries.mkdirs()
+        def ldlib = rootProject.file(providers.gradleProperty('neoEcoTestLdlibJar').getOrElse(''))
+        if (!ldlib.isFile()) throw new GradleException('Supply a compatible LDLib release using -PneoEcoTestLdlibJar=<path>')
+        new File(libraries, 'ldlib-neoeco-tests.jar').bytes = ldlib.bytes
+        def registrateName = 'Registrate-MC1.20-1.3.11.jar'
+        def archive = new java.util.zip.ZipFile(neoEco)
+        try {
+            def entry = archive.getEntry('META-INF/jarjar/' + registrateName)
+            if (entry == null) throw new GradleException('NeoECO release is missing Registrate')
+            archive.getInputStream(entry).withCloseable { input ->
+                new File(libraries, registrateName).bytes = input.bytes
+            }
+        } finally { archive.close() }
+        repositories { flatDir { dirs neoEco.parentFile, libraries } }
+        dependencies.add('runtimeOnly', fg.deobf('local.neoeco:neoecoae:20.5.1'))
+        // Forge loads the release's nested Registrate at runtime. A second copy would create
+        // a split JPMS package; javac alone needs its mapped API on the compile classpath.
+        dependencies.add('compileOnly', fg.deobf('local.neoeco:Registrate:MC1.20-1.3.11'))
+        dependencies.add('runtimeOnly', fg.deobf('local.neoeco:ldlib:neoeco-tests'))
+        sourceSets.create('neoEcoMachineVerification') {
+            java.srcDir rootProject.file('src/neoEcoMachineGameTest/java')
+            resources.srcDir rootProject.file('src/neoEcoMachineGameTest/resources')
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath
+            runtimeClasspath += output + sourceSets.main.runtimeClasspath
+        }
+        minecraft.runs.gameTestServer {
+            property 'forge.enabledGameTestNamespaces', 'thunderbolt_neoeco'
+            property 'forge.logging.console.level', 'info'
+            property 'thunderbolt.gtlCompat', 'never'
+            property 'fml.doNotBackup', 'true'
+            property 'fml.doNotConfirm', 'true'
+            mods { thunderbolt { source sourceSets.neoEcoMachineVerification } }
+        }
+        tasks.named('compileNeoEcoMachineVerificationJava') { dependsOn 'classes' }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            dependsOn 'neoEcoMachineVerificationClasses'
+            doLast {
+                def world = rootProject.file(providers.gradleProperty('thunderboltDevGameDirectory').getOrElse('build/nbt-game-test'))
+                def log = new File(world, 'logs/latest.log').getText('UTF-8')
+                if (!log.contains('All 4 required tests passed')) {
+                    throw new GradleException('Expected all four real NeoECO machine tests to pass')
+                }
+                if (log.contains('Failed to load data for block entity neoecoae:crafting_worker')
+                        || log.contains('Skipping BlockEntity with id neoecoae:crafting_worker')) {
+                    throw new GradleException('NeoECO worker persistence failed outside the test assertions')
+                }
+            }
+        }
+        tasks.matching { it.name == 'downloadMCMeta' }.configureEach {
+            onlyIf { !rootProject.file('build/downloadMCMeta/version.json').isFile() }
+        }
+    }
+}
