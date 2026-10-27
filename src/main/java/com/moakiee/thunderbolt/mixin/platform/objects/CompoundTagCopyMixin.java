@@ -14,7 +14,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 /** Adapted from Thunderbolt-Core-Reborn dc4d9bc, LGPL-3.0; preserves replaced copy views. */
-@Mixin(value = CompoundTag.class, priority = 900)
+// Radium's priority-1000 overwrite retains transformValues but uses a fastutil map.
+// Inject after overwrite merging is complete, with permission to wrap that method;
+// the exact HashMap check below delegates its map/view and preserves its collector.
+@Mixin(value = CompoundTag.class, priority = 1100)
 abstract class CompoundTagCopyMixin {
     @WrapOperation(method = "copy()Lnet/minecraft/nbt/CompoundTag;", at = @At(value = "INVOKE", remap = false,
             target = "Lcom/google/common/collect/Maps;transformValues(Ljava/util/Map;Lcom/google/common/base/Function;)Ljava/util/Map;"), require = 0)

@@ -1,0 +1,553 @@
+{
+  "date": "2026-10-27",
+  "branch": "1.20.1_GTL",
+  "source_base_commit": "68bb94496f49c81212fa88d1eb714de91ca96edf",
+  "version": "2.0.3-beta4",
+  "status": "CORE_FIX_VERIFIED_AWAITING_AE2LT_FULL_GTL_DEFAULT_CLIENT_RETEST",
+  "remote_push": false,
+  "published_to_maven": false,
+  "root_cause": {
+    "target": "net.minecraft.nbt.CompoundTag.copy",
+    "core_mixin": "com.moakiee.thunderbolt.mixin.platform.objects.CompoundTagCopyMixin",
+    "old_priority": 900,
+    "radium_overwrite_mixin": "me.jellysquid.mods.lithium.mixin.alloc.nbt.NbtCompoundMixin",
+    "radium_priority": 1000,
+    "failure_phase": "PREINJECT; before invocation matching and runtime config checks",
+    "old_source_reproduction": {
+      "exit_code": 1,
+      "seconds": 54.984,
+      "finished_utc": "2026-10-27T15:22:41.086025+00:00",
+      "log": "radium/baseline-real.log",
+      "command": [
+        "<evidence-root>\\checkout\\gradlew.bat",
+        "--no-daemon",
+        "--offline",
+        "--no-parallel",
+        "--max-workers=1",
+        "--console=plain",
+        "--project-cache-dir",
+        "<evidence-root>\\project-cache",
+        "-Pmod_version=2.0.3-beta3",
+        "-Pforge_version=47.4.20",
+        "-PradiumTestJar=<evidence-root>\\radium\\radium-mc1.20.1-0.12.4+git.26c9d8e.jar",
+        "-PradiumTestNamespace=thunderbolt_nbt",
+        "-PverificationGame=radium-baseline-real",
+        "-PthunderboltDevGameDirectory=<evidence-root>\\games\\radium-baseline-real",
+        "-I",
+        "tools/radium-compatibility-game-tests.gradle",
+        "-I",
+        "<evidence-root>\\verification.init.gradle",
+        "runGameTestServer"
+      ]
+    },
+    "tests_executed_in_failed_old_run": 0
+  },
+  "fix": {
+    "new_priority": 1100,
+    "runtime_handler_logic_changed": false,
+    "list_tag_mixin_changed": false,
+    "optional_mixin_selector_changed": false,
+    "nbt_optimization_disabled": false,
+    "radium_modified": false,
+    "radium_map_collector_preserved": true,
+    "explanation": "The exact Radium overwrite still calls Maps.transformValues. A higher-priority Core wrapper may wrap it after MAIN overwrite merging; the existing exact-HashMap condition delegates Radium fastutil maps to original and retains their collector.",
+    "scope": "Fixed Radium version/overwrite structure verified; does not promise all higher-priority third-party overwrites."
+  },
+  "environment": {
+    "minecraft": "1.20.1",
+    "forge_game_tests": "47.4.20",
+    "forge_full_junit_and_release_build": "47.1.3",
+    "ae2": "15.4.10",
+    "guideme": "20.1.15",
+    "java_runtime": "Temurin 17.0.20+8",
+    "gradle": "8.14",
+    "radium": "0.12.4+git.26c9d8e",
+    "radium_filename": "radium-mc1.20.1-0.12.4+git.26c9d8e.jar",
+    "radium_sha256": "b42584e2672d6b5329959ec2b0f342395b19389fed0ee4d86ea71072f42f77a0",
+    "junit_eaep_api": "1.6.3 (test classpath only)",
+    "gtl_handover": "never",
+    "gradle_parallel": false,
+    "max_gradle_workers": 1,
+    "junit_jvm_active_processor_count": 4
+  },
+  "game_tests": {
+    "enabled": {
+      "required": 5,
+      "passed": 5,
+      "failed": 0,
+      "saved_and_stopped": true,
+      "log": "games/radium-enabled/logs/latest.log",
+      "markers": [
+        "All 5 required tests passed",
+        "All dimensions are saved",
+        "Game test server shutting down"
+      ],
+      "run": {
+        "exit_code": 0,
+        "seconds": 237.314,
+        "finished_utc": "2026-10-27T15:27:28.063067+00:00",
+        "log": "radium/enabled.log",
+        "command": [
+          "<evidence-root>\\checkout\\gradlew.bat",
+          "--no-daemon",
+          "--offline",
+          "--no-parallel",
+          "--max-workers=1",
+          "--console=plain",
+          "--project-cache-dir",
+          "<evidence-root>\\project-cache",
+          "-Pmod_version=2.0.3-beta4",
+          "-Pforge_version=47.4.20",
+          "-PverificationGame=radium-enabled",
+          "-PthunderboltDevGameDirectory=<evidence-root>\\games\\radium-enabled",
+          "-PradiumTestJar=<evidence-root>\\radium\\radium-mc1.20.1-0.12.4+git.26c9d8e.jar",
+          "-PradiumTestNamespace=thunderbolt_radium",
+          "-I",
+          "tools/radium-compatibility-game-tests.gradle",
+          "-I",
+          "<evidence-root>\\verification.init.gradle",
+          "runGameTestServer"
+        ]
+      }
+    },
+    "disabled": {
+      "required": 5,
+      "passed": 5,
+      "failed": 0,
+      "saved_and_stopped": true,
+      "log": "games/radium-disabled/logs/latest.log",
+      "markers": [
+        "All 5 required tests passed",
+        "All dimensions are saved",
+        "Game test server shutting down"
+      ],
+      "run": {
+        "exit_code": 0,
+        "seconds": 83.55,
+        "finished_utc": "2026-10-27T15:29:21.465969+00:00",
+        "log": "radium/disabled.log",
+        "command": [
+          "<evidence-root>\\checkout\\gradlew.bat",
+          "--no-daemon",
+          "--offline",
+          "--no-parallel",
+          "--max-workers=1",
+          "--console=plain",
+          "--project-cache-dir",
+          "<evidence-root>\\project-cache",
+          "-Pmod_version=2.0.3-beta4",
+          "-Pforge_version=47.4.20",
+          "-PverificationGame=radium-disabled",
+          "-PthunderboltDevGameDirectory=<evidence-root>\\games\\radium-disabled",
+          "-PradiumTestJar=<evidence-root>\\radium\\radium-mc1.20.1-0.12.4+git.26c9d8e.jar",
+          "-PradiumTestNamespace=thunderbolt_nbt",
+          "-I",
+          "tools/radium-compatibility-game-tests.gradle",
+          "-I",
+          "<evidence-root>\\verification.init.gradle",
+          "runGameTestServer"
+        ]
+      }
+    },
+    "standalone": {
+      "required": 5,
+      "passed": 5,
+      "failed": 0,
+      "saved_and_stopped": true,
+      "log": "games/radium-standalone/logs/latest.log",
+      "markers": [
+        "All 5 required tests passed",
+        "All dimensions are saved",
+        "Game test server shutting down"
+      ],
+      "run": {
+        "exit_code": 0,
+        "seconds": 49.971,
+        "finished_utc": "2026-10-27T15:30:50.406047+00:00",
+        "log": "radium/standalone.log",
+        "command": [
+          "<evidence-root>\\checkout\\gradlew.bat",
+          "--no-daemon",
+          "--offline",
+          "--no-parallel",
+          "--max-workers=1",
+          "--console=plain",
+          "--project-cache-dir",
+          "<evidence-root>\\project-cache",
+          "-Pmod_version=2.0.3-beta4",
+          "-Pforge_version=47.4.20",
+          "-PverificationGame=radium-standalone",
+          "-PthunderboltDevGameDirectory=<evidence-root>\\games\\radium-standalone",
+          "-I",
+          "<evidence-root>\\verification.init.gradle",
+          "runGameTestServer"
+        ]
+      }
+    }
+  },
+  "game_test_execution_totals": {
+    "required": 15,
+    "passed": 15,
+    "failed": 0
+  },
+  "default_radium_config": {
+    "active_user_overrides": 0,
+    "nbt_default_enabled": true,
+    "file_contains_only_generated_comments": true,
+    "core_default_enabled_observed_by_test": true
+  },
+  "new_default_radium_game_test_scope": [
+    "Each child copied exactly once with Core runtime flag false and true; Radium map collector remains active and Core list fusion remains active only when enabled",
+    "Deep separation of mutable compound/list/byte/int/long arrays, immutable value sharing and empty containers",
+    "Custom LinkedHashMap/LinkedList preserve copy semantics and avoid Core native collectors",
+    "Original Tag.copy exceptions propagate, retries retain no state, both Core runtime flags",
+    "128 seeded graph comparisons (0x52414449554d), compressed NBT disk round trip and mutation isolation"
+  ],
+  "full_junit": {
+    "tasks": [
+      {
+        "task": "cpSatColdRefinementTest",
+        "tests": 1,
+        "passed": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "task": "externalPlannerBoundaryTest",
+        "tests": 38,
+        "passed": 38,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "task": "materialDagColdReplayTest",
+        "tests": 20,
+        "passed": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "task": "materialDagColdReplenishmentTest",
+        "tests": 2,
+        "passed": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "task": "materialDagLargeGraphTest",
+        "tests": 1,
+        "passed": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "task": "planningLifecycleTimingTest",
+        "tests": 5,
+        "passed": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "task": "test",
+        "tests": 1516,
+        "passed": 1516,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "execution_totals": {
+      "tests": 1583,
+      "passed": 1583,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "forced_test_execution": true,
+    "xml_timestamps_verified_current": true,
+    "excluded_prior_output_folders": [
+      "dagCutoffRepeat1",
+      "dagCutoffRepeat2",
+      "dagCutoffRepeat3",
+      "storagePressureTest"
+    ],
+    "xml_files": 211,
+    "xml_manifest_sha256": "6ff10fe10402383eeaaf10cc0741326b2f98dde76ab82332384e9cb708d5db4a",
+    "run": {
+      "exit_code": 0,
+      "seconds": 220.579,
+      "finished_utc": "2026-10-27T15:35:26.839447+00:00",
+      "log": "radium/full-final.log",
+      "command": [
+        "<evidence-root>\\checkout\\gradlew.bat",
+        "--no-daemon",
+        "--offline",
+        "--no-parallel",
+        "--max-workers=1",
+        "--console=plain",
+        "--project-cache-dir",
+        "<evidence-root>\\project-cache",
+        "-Pmod_version=2.0.3-beta4",
+        "-Pforge_version=47.1.3",
+        "-I",
+        "<evidence-root>\\verification.init.gradle",
+        "-PthunderboltBatchTestMods=<evidence-root>\\eaep\\extendedae_plus-1.6.3.jar",
+        "check",
+        "assemble",
+        "verifyReleaseJar",
+        "generatePomFileForMavenJavaPublication",
+        "--continue"
+      ]
+    },
+    "accounting": "Fresh XML for the seven actually scheduled JUnit tasks only; excludes earlier diagnostic XML. Repeated/parameterized and cold-JVM executions retain the existing full-retest convention. EAEP bridge cases are included, not added twice."
+  },
+  "actual_transformed_bytecode": {
+    "CompoundTag": {
+      "class_sha256": "289fd17a7327ba44fb836eb8a6f39d06cebbd9e9935414e96330a76b234df2c1",
+      "copy_calls_core_transform_wrapper": true,
+      "copy_calls_core_collector_wrapper": false,
+      "copy_uses_radium_collector": true
+    },
+    "ListTag": {
+      "class_sha256": "1a08209817d54687731481ffbc1520bbb30d2e4f633747f185a52810a19512de",
+      "copy_calls_core_transform_wrapper": true,
+      "copy_calls_core_collector_wrapper": true,
+      "copy_uses_radium_collector": false
+    }
+  },
+  "source_snapshot": {
+    "tracked_files": 693,
+    "byte_identical": 408,
+    "text_crlf_only": 285,
+    "different": [],
+    "new_verification_files": [
+      {
+        "path": "src/radiumGameTest/java/com/moakiee/thunderbolt/gametest/RadiumNbtCopyGameTests.java",
+        "sha256": "0ad312289d89e9fbb597a84999036d1f17e8eeb15f79676f502ea51cda2ff8fa",
+        "byte_identical": true
+      },
+      {
+        "path": "src/radiumGameTest/resources/data/thunderbolt_radium/structures/runtime_empty.nbt",
+        "sha256": "f1e96bb2349398b8165977f584fd2132d70e90fc39284a74d465aa1a0b04e2c0",
+        "byte_identical": true
+      },
+      {
+        "path": "tools/radium-compatibility-game-tests.gradle",
+        "sha256": "7bbda3bffd5a370962e226c9c380b0d527e0dea980bb129b0e67f3ce178b9e22",
+        "byte_identical": true
+      }
+    ]
+  },
+  "release": {
+    "version": "2.0.3-beta4",
+    "artifact": "build/libs/thunderbolt-forge-1.20.1-2.0.3-beta4.jar",
+    "bytes": 5420478,
+    "sha256": "374e5f5035601b6191d1f9dac117b5e6c676f1afa81846595d8d7d77c896cb75",
+    "main_classes": 533,
+    "java_class_major": 61,
+    "nested_dependencies": [
+      "META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+      "META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar",
+      "META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar"
+    ],
+    "test_or_radium_entries": [],
+    "changed_main_class_bytes_vs_beta3": [
+      "com/moakiee/thunderbolt/core/crafting/planner/FastCraftingPlanner.class",
+      "com/moakiee/thunderbolt/mixin/platform/objects/CompoundTagCopyMixin.class"
+    ],
+    "planner_class_difference": {
+      "kind": "compiler-generated local-variable debug name only",
+      "old_debug_names": [
+        "patt59414$temp"
+      ],
+      "new_debug_names": [
+        "patt60554$temp"
+      ],
+      "all_other_class_bytes_identical_after_only_this_name_normalization": true,
+      "method_disassembly_identical": true,
+      "evidence": "radium/class-comparison/verbose.diff"
+    },
+    "refmap_matches_compiler": true,
+    "manifest_and_mod_metadata_verified": true,
+    "previously_reported_missing_classes_present": true,
+    "maven": {
+      "groupId": "com.moakiee.thunderbolt",
+      "artifactId": "thunderbolt-reborn-forge-1.20.1-gtl",
+      "version": "2.0.3-beta4"
+    },
+    "pom_sha256": "f00723979ce87c526761351224ec625bbed9a579e0248e6870989ec74cdc99e9",
+    "workspace_copy_sha256_matches": true
+  },
+  "changes": {
+    "production_logic_files": [
+      "src/main/java/com/moakiee/thunderbolt/mixin/platform/objects/CompoundTagCopyMixin.java"
+    ],
+    "version_and_coordinate_files": [
+      "gradle.properties",
+      "README.md"
+    ],
+    "verification_files": [
+      "src/radiumGameTest/java/com/moakiee/thunderbolt/gametest/RadiumNbtCopyGameTests.java",
+      "src/radiumGameTest/resources/data/thunderbolt_radium/structures/runtime_empty.nbt",
+      "tools/radium-compatibility-game-tests.gradle"
+    ],
+    "reports": [
+      "docs/radium-nbt-fix-20261027.zh-CN.md",
+      "docs/benchmarks/radium-nbt-fix-20261027.json"
+    ],
+    "existing_junit_or_game_test_assertions_relaxed": false,
+    "timeouts_increased": false,
+    "neoeco_removed": false,
+    "agents_md_changed": false,
+    "other_projects_modified": false,
+    "prior_untracked_files_preserved": 27
+  },
+  "setup_interruption": {
+    "log": "radium/baseline.log",
+    "kind": "PowerShell split unquoted dotted version parameters before Gradle; no game tests ran",
+    "corrected_by": "JSON argument arrays supplied directly to subprocess; original failure retained"
+  },
+  "not_resolved_or_not_run": [
+    "Formal full GTL client under original Forge 47.4.16 and default Radium, using the new beta4 release JAR",
+    "Full GTL crafting/cancellation conservation and same-save restart in independent JVMs with beta4",
+    "Two intermittent runtime class-resolution failures reported by AE2LT; both class entries are present in beta4 but their original causes remain unresolved",
+    "AE2LT performance-budget failures",
+    "Earlier MaterialDagPortfolioCutoffTest intermittent probe-failure root cause; this successful check does not establish resolution"
+  ],
+  "handoff": {
+    "recipient": "ae2lt gtl",
+    "action": "Replace only the Core artifact with beta4 in the authorized AE2LT test copy, restore Radium default configuration, rerun full GTL client NBT, crafting/cancellation conservation and same-save independent JVM restart.",
+    "artifact": "build/libs/thunderbolt-forge-1.20.1-2.0.3-beta4.jar",
+    "sha256": "374e5f5035601b6191d1f9dac117b5e6c676f1afa81846595d8d7d77c896cb75",
+    "source": "AE2LT build/validation-fixes-20261027/core-handoff.md"
+  },
+  "evidence_directory": "%LOCALAPPDATA%/Temp/thunderbolt-gtl-full-20261027/",
+  "evidence_files": [
+    {
+      "path": "radium/baseline-real.log",
+      "bytes": 35712,
+      "sha256": "34648fb49f31204b1e57550bc494f70c7f7a48f2ff1d8744f3e8d00d53f99bb3"
+    },
+    {
+      "path": "radium/baseline-real-run.json",
+      "bytes": 1132,
+      "sha256": "2b934b5197bba91f70ad8e01d97566a3061b200f8927c420cdebd1e43fe1c243"
+    },
+    {
+      "path": "radium/baseline.log",
+      "bytes": 736,
+      "sha256": "7ff0e9355138ea19719a226d84b7f105340269245ff42d1efe511dc034bf9211"
+    },
+    {
+      "path": "radium/enabled.log",
+      "bytes": 52615,
+      "sha256": "33234f88a672d2a07c8ecd4c05f4c7f94acec7fcfde9552ec5a70229417d6b8c"
+    },
+    {
+      "path": "radium/enabled-run.json",
+      "bytes": 1118,
+      "sha256": "add1e08444949bfa338cc0e3d1460845f252e299e510fe4c6102f760e7721834"
+    },
+    {
+      "path": "radium/disabled.log",
+      "bytes": 40735,
+      "sha256": "5006313a4faa084576a29dafdfd1ba2d73740df93197d8ffbb8b1e54959851db"
+    },
+    {
+      "path": "radium/disabled-run.json",
+      "bytes": 1116,
+      "sha256": "dee73f6dae80c6ea5183a13e3eeb252fa0e8e2f083c42297fcf4b686406da35e"
+    },
+    {
+      "path": "radium/standalone.log",
+      "bytes": 31549,
+      "sha256": "18c5718fc99a1f18db1c3f3c91b1190394c0d10b4be37e59beefc01989a04276"
+    },
+    {
+      "path": "radium/standalone-run.json",
+      "bytes": 871,
+      "sha256": "1d87d85dfb54dfab2e770df67431f9ad44cafd07440312903138ae3b736698d0"
+    },
+    {
+      "path": "radium/full-final.log",
+      "bytes": 158877,
+      "sha256": "42b23046d09ed8d28f3d4aea8c2f8fd25c6b7645121c91ee2884d6fe22380c50"
+    },
+    {
+      "path": "radium/full-final-run.json",
+      "bytes": 926,
+      "sha256": "68f04c4f8ddcb0c731c271ab1386f5d1a89fd1faa2d647b4109421c38846b10c"
+    },
+    {
+      "path": "radium/full-junit-results.json",
+      "bytes": 1607,
+      "sha256": "930cd20582fab6a945c8dd19ccbff48ad8dd144307a4008e87c8268788d5fe8d"
+    },
+    {
+      "path": "radium/source-snapshot.json",
+      "bytes": 792,
+      "sha256": "36fad159513c35bd7d00021fba0c3d5cef7611fd0f85a375543945e1d7cd34f2"
+    },
+    {
+      "path": "radium/transformed-bytecode.json",
+      "bytes": 3715,
+      "sha256": "ebaf473adbe96abcbbbb3543eae7218c4b33f041f8f96a3cf56837f8a28b8982"
+    },
+    {
+      "path": "radium/enabled-CompoundTag.javap.txt",
+      "bytes": 57971,
+      "sha256": "e4dbc8901064ce5ef83a3b5bc3034a1541a11c258f25b11ddfb4bda65f795cb5"
+    },
+    {
+      "path": "radium/enabled-ListTag.javap.txt",
+      "bytes": 36227,
+      "sha256": "862d99005861c831a6a8656f8f5d2b82fadf3ff89a9e8c1e5a3cb31753af2339"
+    },
+    {
+      "path": "radium/class-comparison/verbose.diff",
+      "bytes": 1373,
+      "sha256": "d03b5fe486a2412ec10ece517a6aa0a0ffefadca8ca0018dc803474c7b671627"
+    },
+    {
+      "path": "radium/class-comparison/beta3.javap.txt",
+      "bytes": 225523,
+      "sha256": "8462e7b1733e034c61212737eb277fb0805a6f7e7f1da6be7ea2e3847722b908"
+    },
+    {
+      "path": "radium/class-comparison/beta4.javap.txt",
+      "bytes": 225523,
+      "sha256": "8462e7b1733e034c61212737eb277fb0805a6f7e7f1da6be7ea2e3847722b908"
+    },
+    {
+      "path": "radium/release-results.json",
+      "bytes": 1524,
+      "sha256": "7e33ec5db946a591902de5fc87e97f47059a7f1d2a3db124df5f0daefb2c62de"
+    },
+    {
+      "path": "games/radium-enabled/config/lithium.properties",
+      "bytes": 349,
+      "sha256": "b87ee52fdc722ce1497e7ff55fdbd0660fc9df40c8f2f8167465cab55a388f0d"
+    },
+    {
+      "path": "games/radium-enabled/logs/latest.log",
+      "bytes": 39750,
+      "sha256": "6237547c9a70069ec4284f3ec5080c30c5bb8de113fdef2bd5dbcdc386e08984"
+    },
+    {
+      "path": "games/radium-disabled/logs/latest.log",
+      "bytes": 33429,
+      "sha256": "7ef008decafeb08d9fcc20edbe1a4322acaa88cb0ee92155e505622d9faf13ce"
+    },
+    {
+      "path": "games/radium-standalone/logs/latest.log",
+      "bytes": 23516,
+      "sha256": "c0ec0862b972ab7876707ea6d0ec628f5fa7cf4c73033220d2f1c984dabaa5dd"
+    }
+  ]
+}

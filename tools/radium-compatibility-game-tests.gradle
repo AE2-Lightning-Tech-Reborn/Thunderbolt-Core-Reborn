@@ -1,0 +1,53 @@
+// Opt-in verification with the exact Radium release from the GTL startup failure.
+if (gradle.startParameter.taskNames.any { it.tokenize(':').last() in ['build', 'assemble', 'jar', 'jarJar', 'verifyReleaseJar'] }) {
+    throw new GradleException('Run Radium compatibility tests separately from release packaging')
+}
+allprojects {
+    afterEvaluate {
+        def radium = rootProject.file(providers.gradleProperty('radiumTestJar').getOrElse(''))
+        if (!radium.isFile() || radium.name != 'radium-mc1.20.1-0.12.4+git.26c9d8e.jar'
+                || java.security.MessageDigest.getInstance('SHA-256').digest(radium.bytes).encodeHex().toString()
+                != 'b42584e2672d6b5329959ec2b0f342395b19389fed0ee4d86ea71072f42f77a0') {
+            throw new GradleException('Supply the verified GTL Radium release with -PradiumTestJar=<path>')
+        }
+        def namespace = providers.gradleProperty('radiumTestNamespace').getOrElse('thunderbolt_radium')
+        if (!(namespace in ['thunderbolt_radium', 'thunderbolt_nbt'])) {
+            throw new GradleException('Unsupported Radium test namespace: ' + namespace)
+        }
+        repositories { flatDir { dirs radium.parentFile } }
+        dependencies.add('runtimeOnly', fg.deobf('local.radium:radium-mc1.20.1:0.12.4+git.26c9d8e'))
+        sourceSets.create('radiumVerification') {
+            java.srcDir rootProject.file('src/radiumGameTest/java')
+            resources.srcDir rootProject.file('src/radiumGameTest/resources')
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath
+            runtimeClasspath += output + sourceSets.main.runtimeClasspath
+        }
+        minecraft.runs.gameTestServer {
+            workingDirectory rootProject.file(providers.gradleProperty('thunderboltDevGameDirectory')
+                    .getOrElse('build/radium-game-test'))
+            property 'forge.enabledGameTestNamespaces', namespace
+            property 'forge.logging.console.level', 'info'
+            property 'thunderbolt.gtlCompat', 'never'
+            property 'fml.doNotBackup', 'true'
+            property 'fml.doNotConfirm', 'true'
+            property 'mixin.debug.export', 'true'
+            mods { thunderbolt { source sourceSets.radiumVerification } }
+        }
+        tasks.named('compileRadiumVerificationJava') { dependsOn 'classes' }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            dependsOn 'radiumVerificationClasses'
+            doLast {
+                def world = rootProject.file(providers.gradleProperty('thunderboltDevGameDirectory')
+                        .getOrElse('build/radium-game-test'))
+                def log = new File(world, 'logs/latest.log').getText('UTF-8')
+                if (!log.contains('All 5 required tests passed') || !log.contains('All dimensions are saved')
+                        || !log.contains('Game test server shutting down')) {
+                    throw new GradleException('Expected five NBT tests, normal world save and server shutdown')
+                }
+            }
+        }
+        tasks.matching { it.name == 'downloadMCMeta' }.configureEach {
+            onlyIf { !rootProject.file('build/downloadMCMeta/version.json').isFile() }
+        }
+    }
+}
