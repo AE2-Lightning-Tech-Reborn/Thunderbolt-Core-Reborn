@@ -24,9 +24,30 @@ summary extensions. Native summary fields are clamped compatibility data only.
 Both the AE2 and Tianshu material tables read the exact attachment. Compact values
 use decimal arithmetic; tooltips show full quantities, scaled by AEKey units.
 
-AE2's request input remains `long` (the native menu is narrower). This feature
-supports intermediate amounts above that range, not arbitrary-sized order input.
-It does not implement large-quantity execution, persistence or storage I/O.
+AE2's calculation input remains `long` even though its native amount menu uses
+`int`. `CraftingRequestMenu.thunderbolt$planRequest` bridges this UI limit through
+the existing confirmation hook: every positive amount through `Long.MAX_VALUE`
+still reaches the normal selected planner and CPU admission. Crossing
+`Integer.MAX_VALUE` alone never requests an exact backend.
+
+An addon can register `ExactCraftingBackend` for an existing algorithm with
+`CraftingPlanningEngines.registerExactBackend`. Requests above `long`, and genuine
+intermediate-overflow previews, can use it only when that algorithm is the first
+resolved choice and the backend reports online execution capability. Registering
+a backend does not select its algorithm. A preferred vanilla or other algorithm
+is never skipped. Without an eligible backend, intermediate-overflow results stay
+non-executable previews; an explicit over-long request is rejected.
+
+The same TB confirmation hook owns exact planning, algorithm tracking, CPU
+filtering, summary conversion, replan and Back. Exact plans implement
+`ExactCraftingPlan`; an extended input implements `CraftingAmountMenu` to restore
+the full amount on Back. Addons supply graph capture/execution rather than adding
+another confirmation-menu mixin. AE2LT registers Tianshu support: its extended
+input also requires an online Tianshu CPU and selection of V2, and exact execution
+requires the multidimensional tier. Ordinary long requests retain ordinary CPU
+matching. Input transport and backend selection are separate decisions.
+
+TB itself does not implement addon execution, persistence or storage I/O.
 Representation is bounded to 32768 bits per amount; exact report decoding also
 bounds entry count and payload size. Resource-budget failures must not become
 rounded executable plans.
