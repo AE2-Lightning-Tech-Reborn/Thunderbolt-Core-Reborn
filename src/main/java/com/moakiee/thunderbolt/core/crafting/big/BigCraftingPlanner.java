@@ -10,8 +10,14 @@ import java.util.*;
 public final class BigCraftingPlanner {
     private BigCraftingPlanner() {}
 
+    /** Keep the diagnostic quantities for reports, including intermediate work absent from escrow. */
     public record Result<K>(
-            BigExecutionProgram<K> program, Map<K, BigInteger> missing, boolean verified) {
+            BigExecutionProgram<K> program, Map<K, BigInteger> missing, boolean verified,
+            ExactCraftPlan<K> diagnostic) {
+        public Result(BigExecutionProgram<K> program, Map<K, BigInteger> missing, boolean verified) {
+            this(program, missing, verified, null);
+        }
+
         public Result {
             missing = Map.copyOf(missing);
         }
@@ -33,12 +39,12 @@ public final class BigCraftingPlanner {
         supplied.remove(target);
         candidate.missing().forEach((k, n) -> supplied.merge(k, n, BigInteger::add));
         var certified = BigExecutionProgram.certify(candidate.firings(), supplied);
-        if (certified.isEmpty()) return new Result<>(null, candidate.missing(), false);
+        if (certified.isEmpty()) return new Result<>(null, candidate.missing(), false, candidate);
         var program = certified.get();
         var finalStock = new LinkedHashMap<>(program.required());
         BigExecutionProgram.apply(finalStock, program.delta(), BigInteger.ONE);
         if (finalStock.getOrDefault(target, BigInteger.ZERO).compareTo(amount) < 0)
-            return new Result<>(null, candidate.missing(), false);
+            return new Result<>(null, candidate.missing(), false, candidate);
         var missing = new LinkedHashMap<K, BigInteger>();
         program.required()
                 .forEach(
@@ -50,6 +56,6 @@ public final class BigCraftingPlanner {
                             var shortage = n.subtract(have);
                             if (shortage.signum() > 0) missing.put(k, shortage);
                         });
-        return new Result<>(program, missing, true);
+        return new Result<>(program, missing, true, candidate);
     }
 }

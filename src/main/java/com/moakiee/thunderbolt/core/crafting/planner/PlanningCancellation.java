@@ -9,6 +9,7 @@ import com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot;
 public final class PlanningCancellation {
     private static final ThreadLocal<PlanningAttemptContext> CURRENT = new ThreadLocal<>();
     private static final ThreadLocal<Long> OPTIONAL_DEADLINE = new ThreadLocal<>();
+    private static final ThreadLocal<Long> WITNESS_CPU_DEADLINE = new ThreadLocal<>();
 
     private PlanningCancellation() {
     }
@@ -22,6 +23,8 @@ public final class PlanningCancellation {
         }
         Long optional = OPTIONAL_DEADLINE.get();
         if (optional != null && System.nanoTime() - optional >= 0L) throw new OptionalWorkLimit();
+        Long witness = WITNESS_CPU_DEADLINE.get();
+        if (witness != null && WitnessClock.cpuNanos() - witness >= 0L) throw new OptionalWorkLimit();
     }
 
     /** Runs the bound planning checkpoint and reports whether this is candidate work. */
@@ -47,6 +50,8 @@ public final class PlanningCancellation {
         long boundedCap = Math.max(0L, capNanos);
         Long optional = OPTIONAL_DEADLINE.get();
         if (optional != null) boundedCap = Math.min(boundedCap, Math.max(0L, optional - System.nanoTime()));
+        Long witness = WITNESS_CPU_DEADLINE.get();
+        if (witness != null) boundedCap = Math.min(boundedCap, Math.max(0L, witness - WitnessClock.cpuNanos()));
         var context = CURRENT.get();
         if (context == null) {
             return boundedCap;
@@ -76,6 +81,32 @@ public final class PlanningCancellation {
         Long installed = OPTIONAL_DEADLINE.get();
         if (installed != null && installed - deadline > 0L) OPTIONAL_DEADLINE.set(deadline);
         return scope;
+    }
+
+    /** Pure Java witnesses use CPU time when no caller imposes a latency deadline. */
+    static Scope limitWitnessWork(long nanos) {
+        if (CURRENT.get() != null || WitnessClock.cpuNanos() < 0L) return limitOptionalWork(nanos);
+        Long previous = WITNESS_CPU_DEADLINE.get();
+        long duration = remainingNanos(nanos);
+        WITNESS_CPU_DEADLINE.set(WitnessClock.cpuNanos() + duration);
+        return () -> {
+            if (previous == null) WITNESS_CPU_DEADLINE.remove();
+            else WITNESS_CPU_DEADLINE.set(previous);
+        };
+    }
+
+    static long witnessClockNanos() {
+        long cpu = CURRENT.get() == null ? WitnessClock.cpuNanos() : -1L;
+        return cpu < 0L ? System.nanoTime() : cpu;
+    }
+
+    private static final class WitnessClock {
+        private static final java.lang.management.ThreadMXBean THREADS =
+                java.lang.management.ManagementFactory.getThreadMXBean();
+
+        static long cpuNanos() {
+            return THREADS.isCurrentThreadCpuTimeSupported() ? THREADS.getCurrentThreadCpuTime() : -1L;
+        }
     }
 
     static final class OptionalWorkLimit extends RuntimeException {

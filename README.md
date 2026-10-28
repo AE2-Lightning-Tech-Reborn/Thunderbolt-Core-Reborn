@@ -6,19 +6,32 @@ Thunderbolt Core Reborn is the shared AE2 optimization and infrastructure layer 
 AE2 Lightning Tech Reborn. It can also be installed as a standalone AE2 autocrafting
 accelerator.
 
-This is the **Minecraft Forge 1.20.1** branch. For Minecraft 1.21.1 and
+This is the **Minecraft Forge 1.20.1 GTO** branch. For Minecraft 1.21.1 and
 NeoForge, see the [`main`](https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/tree/main)
 branch.
 
 ## Requirements
 
 - Minecraft `1.20.1`
-- Forge `47.1.3` or newer (not NeoForge)
-- Java `17`
-- Applied Energistics 2 `15.4.10`–`15.x`
+- Forge `47.4.20` or newer (not NeoForge)
+- Java `21`
+- GTOCore `26.10.9` or newer, matching NeoECO `1.20.1-GTO`'s minimum
+- AE2-GTO `15.2610.31` or newer, below `16`; compile baseline `15.2610.31`
 
-Install Thunderbolt Core Reborn and AE2 in the `mods` directory on both the client and
-server.
+Starting with `2.0.3-gto.2`, the declared requirements are GTOCore `[26.10.9,)`
+and AE2 `[15.2610.31,16)`, matching NeoECO's GTO `0.6.0.23` target environment.
+These loading constraints do not establish runtime compatibility for every
+accepted combination; use an LT build for the same environment. Existing `gto.1`
+JARs retain their original requirements.
+See the [GTO compatibility notes](docs/GTO_COMPATIBILITY.md).
+
+Install Thunderbolt Core Reborn in the `mods` directory on both the client and
+server using this dependency combination, retaining the modpack's bundled AE2.
+
+Optional NeoECO support targets [`20.5.0-gto.1`](https://github.com/Yang120231/NeoECOAEExtension/tree/1.20.1-GTO).
+Upgrade the GTO baseline together. Existing AE2LT `2.1.2-gto.1` and AppliedE
+`0.14.3-gto` artifacts reject these newer dependencies. See the
+[compatibility and validation record](docs/GTO_NEOECO_GTO_20261026.zh-CN.md).
 
 ## Features
 
@@ -29,8 +42,8 @@ server.
 - extension APIs for crafting providers, high-capacity channels, indexed
   storage cells, and eject endpoints
 - max-flow channel allocation for compatible high-capacity networks
-- optional compatibility hooks for Advanced AE, NeoECO, AE2 Crafting Tree,
-  and ExtendedAE Plus; hooks load only when the corresponding mod is present
+- optional compatibility hooks for Advanced AE, AE2 Crafting Tree,
+  ExtendedAE Plus and NeoECO GTO; hooks load only when the corresponding mod is present
 
 ## Configuration
 
@@ -93,11 +106,11 @@ Publish it to the local Maven repository:
 .\gradlew.bat publishToMavenLocal
 ```
 
-- Version: `2.0.0-beta.5`
+- Version: `2.0.3-gto.2`
 - Maven coordinate:
-  `com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.5`
+  `com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1:2.0.3-gto.2`
 - Distributable JAR:
-  `build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.5.jar`
+  `build/libs/thunderbolt-forge-1.20.1-2.0.3-gto.2.jar`
 
 The `-slim.jar` artifact does not contain the required MixinExtras jar-in-jar
 dependency and is only an intermediate development artifact.

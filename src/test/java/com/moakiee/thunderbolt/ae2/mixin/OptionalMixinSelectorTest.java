@@ -7,6 +7,12 @@ import org.junit.jupiter.api.Test;
 
 class OptionalMixinSelectorTest {
     @Test
+    void craftingTreeSummaryBridgeRequiresCraftingTree() {
+        assertFalse(OptionalMixinSelector.shouldApply("Ae2CraftingTreeCompatibilityMixin", ignored -> false));
+        assertTrue(OptionalMixinSelector.shouldApply("Ae2CraftingTreeCompatibilityMixin", "ae2ct"::equals));
+    }
+
+    @Test
     void skipsAdvancedAeTargetsWhenAddonIsMissing() {
         assertFalse(OptionalMixinSelector.shouldApply(
                 "com.moakiee.thunderbolt.mixin.compat.advancedae.AdvCraftingCpuLogicBatchMixin",
@@ -19,6 +25,18 @@ class OptionalMixinSelectorTest {
         assertFalse(OptionalMixinSelector.shouldApply(
                 "AppliedETransmutationModuleBatchMixin",
                 ignored -> false));
+    }
+
+    @Test
+    void exactSummaryBridgeRequiresLightningTech() {
+        assertFalse(OptionalMixinSelector.shouldApply("LtBigCraftingPlanSummaryMixin", ignored -> false));
+        assertTrue(OptionalMixinSelector.shouldApply("LtBigCraftingPlanSummaryMixin", "ae2lt"::equals));
+    }
+
+    @Test
+    void ioPortSnapshotRequiresLightningTech() {
+        assertFalse(OptionalMixinSelector.shouldApply("LtIOPortInventoryLoadMixin", ignored -> false));
+        assertTrue(OptionalMixinSelector.shouldApply("LtIOPortInventoryLoadMixin", "ae2lt"::equals));
     }
 
     @Test

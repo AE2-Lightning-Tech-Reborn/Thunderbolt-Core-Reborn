@@ -1,0 +1,6 @@
+{
+  "gto_material_cache": "coremods/gto_material_cache.js",
+  "gto_modifier_keys": "coremods/gto_modifier_keys.js",
+  "gto_data_initialization": "coremods/gto_data_initialization.js",
+  "neoeco_gto_remote_ui": "coremods/neoeco_gto_remote_ui.js"
+}

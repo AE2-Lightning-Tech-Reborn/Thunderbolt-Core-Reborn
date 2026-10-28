@@ -9,6 +9,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
+import org.jetbrains.annotations.Nullable;
 
 
 /** Internal world persistence behind the public indexed-cell registry. */
@@ -20,20 +21,41 @@ public final class IndexedCellStorageSavedData extends SavedData {
     private static final ResourceLocation LEGACY_AE2LT_TYPE =
             new ResourceLocation("ae2lt", "infinite_cell");
 
-    private record StorageKey(ResourceLocation type, UUID id) {}
+    record StorageKey(ResourceLocation type, UUID id) {}
+
+    // Transfers resolve the world payload on every modification; cache the per-server instance
+    // so the hot path does not walk the overworld DataStorage and its string-keyed map each time.
+    private record Cached(MinecraftServer server, IndexedCellStorageSavedData data) {}
+
+    private static volatile @Nullable Cached cached;
 
     private final Map<StorageKey, CompoundTag> cells = new HashMap<>();
     private final transient Map<StorageKey, IndexedStorage> storageCache = new HashMap<>();
+    // Detached payloads are read-only, including while older saves compress on the I/O worker.
+    private final transient Map<StorageKey, CompoundTag> writeSnapshots = new HashMap<>();
     private boolean legacyMigrationComplete;
 
     public static IndexedCellStorageSavedData get(MinecraftServer server) {
+        var snapshot = cached;
+        if (snapshot != null && snapshot.server() == server) return snapshot.data();
         // Forge 1.20.1: no SavedData.Factory — computeIfAbsent(loader, factory, name).
         var data = server.overworld().getDataStorage().computeIfAbsent(
                 IndexedCellStorageSavedData::load,
                 IndexedCellStorageSavedData::new,
                 DATA_NAME);
         data.migrateLegacyIfNeeded(server);
+        cached = new Cached(server, data);
         return data;
+    }
+
+    public static @Nullable IndexedCellStorageSavedData getOrNull() {
+        var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        return server != null ? get(server) : null;
+    }
+
+    /** Drops the per-server instance cache so a stopped server cannot be retained. */
+    public static void clearServerCache() {
+        cached = null;
     }
 
     public IndexedStorage getOrCreateStorage(
@@ -65,6 +87,7 @@ public final class IndexedCellStorageSavedData extends SavedData {
         var key = new StorageKey(type, id);
         storageCache.put(key, storage);
         cells.put(key, storage.persist(cells.get(key), registries));
+        writeSnapshots.remove(key);
         setDirty();
     }
 
@@ -74,30 +97,54 @@ public final class IndexedCellStorageSavedData extends SavedData {
         setDirty();
     }
 
+    /** Same as above for a caller that already resolved its immutable identity key. */
+    void markStorageDirty(StorageKey key, IndexedStorage storage) {
+        if (key == null || storage == null) return;
+        storageCache.put(key, storage);
+        setDirty();
+    }
+
     public void removeCell(ResourceLocation type, UUID id) {
         var key = new StorageKey(type, id);
         boolean changed = cells.remove(key) != null;
         storageCache.remove(key);
+        writeSnapshots.remove(key);
         if (changed) setDirty();
     }
 
     @Override
     public CompoundTag save(CompoundTag tag) {
+        return encode(tag, null, false);
+    }
+
+    private CompoundTag encode(CompoundTag tag, HolderLookup.Provider registries, boolean snapshot) {
         for (var entry : storageCache.entrySet()) {
             if (entry.getValue().needsPersist()) {
-                // AE2 15.4.10 key serialization needs no HolderLookup.
-                cells.put(entry.getKey(), entry.getValue().persist(cells.get(entry.getKey()), null));
+                cells.put(entry.getKey(), entry.getValue().persist(cells.get(entry.getKey()), registries));
+                writeSnapshots.remove(entry.getKey());
             }
         }
         var storesTag = new CompoundTag();
         for (var entry : cells.entrySet()) {
             var typeTag = storesTag.getCompound(entry.getKey().type().toString());
-            typeTag.put(entry.getKey().id().toString(), entry.getValue());
+            var payload = snapshot
+                    ? writeSnapshots.computeIfAbsent(entry.getKey(), ignored ->
+                            snapshotEncodedCell(entry.getValue(), storageCache.get(entry.getKey())))
+                    : entry.getValue();
+            typeTag.put(entry.getKey().id().toString(), payload);
             storesTag.put(entry.getKey().type().toString(), typeTag);
         }
         tag.put(TAG_STORES, storesTag);
         tag.putBoolean(TAG_LEGACY_MIGRATION_COMPLETE, legacyMigrationComplete);
         return tag;
+    }
+
+    private static CompoundTag snapshotEncodedCell(CompoundTag encoded, @Nullable IndexedStorage storage) {
+        return storage != null ? storage.snapshotForWrite(encoded) : new CellNbtSnapshot().copy(encoded);
+    }
+
+    CompoundTag snapshotForWrite(HolderLookup.Provider registries) {
+        return encode(new CompoundTag(), registries, true);
     }
 
     private void migrateLegacyIfNeeded(MinecraftServer server) {

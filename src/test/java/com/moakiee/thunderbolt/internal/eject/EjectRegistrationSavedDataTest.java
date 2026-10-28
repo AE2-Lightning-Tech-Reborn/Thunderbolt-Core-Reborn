@@ -11,6 +11,25 @@ import org.junit.jupiter.api.Test;
 
 class EjectRegistrationSavedDataTest {
     @Test
+    void removingAnExactRegistrationPreservesOtherHostsOnTheSameFace() {
+        var dimension = EjectRegistrationSavedData.dimension("minecraft:overworld");
+        var first = new EjectRegistrationSavedData.PersistentRegistration(
+                dimension, new BlockPos(1, 64, 2), Direction.UP,
+                dimension, new BlockPos(3, 65, 4));
+        var second = new EjectRegistrationSavedData.PersistentRegistration(
+                dimension, first.interceptPos(), first.interceptFace(),
+                dimension, new BlockPos(5, 65, 6));
+        var data = new EjectRegistrationSavedData();
+        data.add(first);
+        data.add(second);
+        data.remove(first);
+        data.remove(first);
+
+        assertEquals(java.util.List.of(second),
+                EjectRegistrationSavedData.load(data.save(new CompoundTag())).getAll());
+    }
+
+    @Test
     void roundTripsTheLegacyAe2ltSchema() {
         // 1.20.1: Registries.DIMENSION / ResourceKey.createRegistryKey would trigger
         // BuiltInRegistries bootstrap, which is unavailable in plain JUnit. The SavedData's own

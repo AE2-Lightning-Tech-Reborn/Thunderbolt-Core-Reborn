@@ -20,6 +20,17 @@ class Ae2CraftingTreeSummaryBridgeTest {
         assertSame(plan, summary.getJob().sourcePlan());
     }
 
+    @Test
+    void preservesPayloadOwnedByAThirdPartySummaryFactory() {
+        var summary = new CurrentSummary();
+        var original = com.neuvillette.ae2ct.api.RecipeHelper.fromCraftingPlan(plan());
+        summary.setJob(original);
+
+        assertTrue(Ae2CraftingTreeSummaryBridge.attachSupportedIntegration(
+                summary, plan(), getClass().getClassLoader()));
+        assertSame(original, summary.getJob());
+    }
+
     private static CraftingPlan plan() {
         return new CraftingPlan(
                 null, 1, false, false,

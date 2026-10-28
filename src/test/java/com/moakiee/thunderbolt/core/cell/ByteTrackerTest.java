@@ -2,6 +2,7 @@ package com.moakiee.thunderbolt.core.storage.cell;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -94,6 +95,117 @@ class ByteTrackerTest {
     }
 
     @Test
+    void fullByteStillAcceptsTheUnusedUnitsInItsLastByte() {
+        var tracker = new ByteTracker(() -> 1);
+        var items = new TestKeyType("partial", 8);
+        tracker.configure(0, 1, 1, 0);
+        tracker.onInsert(items, 1, true);
+
+        assertEquals(7, tracker.computeMaxInsertable(items, false));
+        assertEquals(0, tracker.computeMaxInsertable(items, true));
+    }
+
+    @Test
+    void capacityAboveOneLimbStillEnforcesTheTypeLimit() {
+        var tracker = new ByteTracker(() -> 1);
+        var items = new TestKeyType("type_limit", 8);
+        tracker.configure(8, 1, 0, 1);
+        tracker.onInsert(items, 1, true);
+
+        assertEquals(0, tracker.computeMaxInsertable(items, true));
+        assertEquals(Long.MAX_VALUE, tracker.computeMaxInsertable(items, false));
+    }
+
+    @Test
+    void adjacentLimbsCanHaveOnlyAFewFreeBytes() {
+        var tracker = new ByteTracker(() -> 1);
+        var items = new TestKeyType("borrow", 1);
+        tracker.configure(0, 2, 5, 1);
+        tracker.onInsert(items, Long.MAX_VALUE - 2, true);
+
+        assertEquals(8, tracker.computeMaxInsertable(items, false));
+    }
+
+    @Test
+    void largeInsertionIncludesBothTheAmountAndMetadataCarries() {
+        var tracker = new ByteTracker(() -> 2);
+        var items = new TestKeyType("insert_carry", 1);
+        tracker.configure(8, 3, 0, 4);
+        tracker.onInsert(items, Long.MAX_VALUE - 10, true);
+        tracker.onInsert(items, Long.MAX_VALUE, true);
+
+        assertEquals(2, tracker.getUsedBytesHi());
+        assertEquals(4, tracker.getUsedBytesLo());
+    }
+
+    @Test
+    void largeExtractionIncludesBothTheAmountAndMetadataBorrows() {
+        var tracker = new ByteTracker(() -> 1);
+        var items = new TestKeyType("extract_borrow", 1);
+        tracker.configure(8, 3, 0, 4);
+        var lo = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<AEKeyType>();
+        var hi = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<AEKeyType>();
+        var counts = new it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<AEKeyType>();
+        lo.put(items, Long.MAX_VALUE - 11);
+        hi.put(items, 1);
+        counts.put(items, 2);
+        tracker.rebuild(lo, hi, counts, 2);
+        tracker.onExtract(items, Long.MAX_VALUE, true);
+
+        assertEquals(0, tracker.getUsedBytesHi());
+        assertEquals(Long.MAX_VALUE - 2, tracker.getUsedBytesLo());
+    }
+
+    @Test
+    void insertionLimitsMatchIndependentBigIntegerCapacityFormula() {
+        var limb = BigInteger.ONE.shiftLeft(63);
+        var mask = limb.subtract(BigInteger.ONE);
+        for (int apb : new int[] {1, 8, 8000}) {
+            var type = new TestKeyType("oracle_" + apb, apb);
+            for (int metadata : new int[] {0, 8}) {
+                for (int keys : new int[] {1, 2}) {
+                    BigInteger[] amounts = {BigInteger.valueOf(keys), BigInteger.valueOf(8001),
+                            mask.subtract(BigInteger.TWO), mask, limb, limb.add(BigInteger.ONE),
+                            limb.multiply(BigInteger.valueOf(apb)).subtract(BigInteger.ONE)};
+                    for (var amount : amounts) {
+                        var used = amount.add(BigInteger.valueOf(apb - 1)).divide(BigInteger.valueOf(apb))
+                                .add(BigInteger.valueOf((long) keys * metadata));
+                        BigInteger[] capacities = {BigInteger.ZERO, used.subtract(BigInteger.ONE), used,
+                                used.add(BigInteger.ONE), used.add(BigInteger.valueOf(8)),
+                                mask, limb, limb.add(BigInteger.valueOf(5)), limb.shiftLeft(1)};
+                        for (var capacity : capacities) {
+                            if (capacity.signum() < 0) continue;
+                            for (int limit : new int[] {keys, keys + 1}) {
+                                var tracker = new ByteTracker(() -> keys);
+                                tracker.configure(metadata, limit,
+                                        capacity.and(mask).longValueExact(), capacity.shiftRight(63).longValueExact());
+                                var lo = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<AEKeyType>();
+                                var hi = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<AEKeyType>();
+                                var counts = new it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<AEKeyType>();
+                                lo.put(type, amount.and(mask).longValueExact());
+                                hi.put(type, amount.shiftRight(63).longValueExact());
+                                counts.put(type, keys);
+                                tracker.rebuild(lo, hi, counts, keys);
+                                for (boolean newKey : new boolean[] {false, true}) {
+                                    var availableBytes = capacity.subtract(BigInteger.valueOf(
+                                            (long) (keys + (newKey ? 1 : 0)) * metadata));
+                                    long expected = newKey && keys >= limit ? 0 : availableBytes
+                                            .multiply(BigInteger.valueOf(apb)).subtract(amount)
+                                            .max(BigInteger.ZERO).min(mask).longValueExact();
+                                    assertEquals(expected, tracker.computeMaxInsertable(type, newKey),
+                                            "apb=" + apb + ", metadata=" + metadata + ", keys=" + keys
+                                                    + ", amount=" + amount + ", capacity=" + capacity
+                                                    + ", limit=" + limit + ", newKey=" + newKey);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     void removingTheLastKeyOfATypeDropsItsBookkeepingEntries() {
         var model = new ReferenceModel();
         var tracker = configuredTracker(model);
@@ -106,7 +218,7 @@ class ByteTrackerTest {
 
         tracker.onExtract(fluids, 24_000, true);
         assertEquals(2, tracker.trackedTypeEntries(),
-                "removing the last fluid key must drop both per-type entries");
+                "removing the last fluid key must drop all per-type entries");
 
         tracker.onExtract(items, 100, true);
         assertEquals(0, tracker.trackedTypeEntries());
@@ -136,6 +248,12 @@ class ByteTrackerTest {
                 new TestKeyType("a", 1),
                 new TestKeyType("b", 8),
                 new TestKeyType("c", 8000),
+                new TestKeyType("d", 3),
+                new TestKeyType("e", 17),
+                new TestKeyType("f", 1024),
+                new TestKeyType("g", 1000),
+                new TestKeyType("h", 4096),
+                new TestKeyType("i", 7),
         };
 
         for (int round = 0; round < 200; round++) {

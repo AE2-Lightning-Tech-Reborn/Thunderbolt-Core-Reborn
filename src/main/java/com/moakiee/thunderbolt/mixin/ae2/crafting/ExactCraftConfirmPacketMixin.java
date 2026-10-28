@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = CraftConfirmPlanPacket.class, remap = false)
 public abstract class ExactCraftConfirmPacketMixin {
     @Unique
-    private static final int THUNDERBOLT_EXACT_MAGIC = 0x54424531;
+    private static final int THUNDERBOLT_EXACT_MAGIC = 0x54424532;
 
     @Shadow @Final private CraftingPlanSummary plan;
 

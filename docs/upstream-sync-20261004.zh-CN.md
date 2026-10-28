@@ -1,5 +1,7 @@
 # Forge 1.20.1 按实际环境同步上游
 
+> 历史记录：2026-10-21 已按要求移除本分支全部 NeoECO 专用兼容。本文中的 NeoECO 实现、用法和测试结果对应此前构建，不代表当前支持范围；当前说明见 [GTO_COMPATIBILITY.md](GTO_COMPATIBILITY.md)。
+
 本页记录同步时的验证状态。后续双配方反例优化见 [混合批次优化](mixed-batch-optimization.zh-CN.md)，不将历史失败记录当作当前结果。
 
 最新同步与库存策略变更见 [上游库存感知更新](stock-aware-upstream-update-20261004.zh-CN.md)。以下 `28a1f25` 的策略、测试数量及失败记录均为历史状态。

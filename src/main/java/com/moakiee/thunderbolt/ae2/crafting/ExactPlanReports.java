@@ -25,10 +25,24 @@ public final class ExactPlanReports {
     }
 
     public static ExactPlanReport get(Object owner) {
-        return owner == null ? null : REPORTS.get(owner);
+        if (owner == null) return null;
+        var report = REPORTS.get(owner);
+        // GTO finalizes restricted plans by wrapping the original CraftingPlan. The report
+        // remains attached to that delegate, including its preview-only submission guard.
+        if (report == null && owner instanceof com.moakiee.thunderbolt.core.crafting.plan.LoopCraftingPlan loop) {
+            return get(loop.delegate());
+        }
+        return report;
     }
 
     public static boolean isPreview(Object plan) {
-        return get(plan) != null;
+        // Older GTO integrations use the three-argument report constructor for executable
+        // summaries too. Their native simulation flag remains authoritative for display;
+        // ICraftingPlan submission guards below still honor the explicit preview marker.
+        if (plan instanceof appeng.menu.me.crafting.CraftingPlanSummary summary && !summary.isSimulation()) {
+            return false;
+        }
+        var report = get(plan);
+        return report != null && report.previewOnly();
     }
 }

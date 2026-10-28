@@ -1,5 +1,6 @@
 package com.moakiee.thunderbolt.core.crafting.algorithm;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -172,11 +173,13 @@ public final class PlanningCandidateExecutor {
                         throw new InterruptedException("crafting calculation cancelled");
                     }
                     return new Result<>(Status.SUCCESS, value, null);
-                } catch (ExecutionException failed) {
+                } catch (ExecutionException | CancellationException failed) {
                     if (Thread.interrupted()) {
                         throw new InterruptedException("crafting calculation cancelled");
                     }
-                    Throwable failure = failed.getCause();
+                    // CompletableFuture.get throws CancellationException directly, including
+                    // when candidate code completed it exceptionally after a budget interrupt.
+                    Throwable failure = failed instanceof ExecutionException ? failed.getCause() : failed;
                     return new Result<>(
                             monitor.isolated()
                                     ? Status.HARD_TIMEOUT

@@ -93,7 +93,10 @@ public final class GtoPlanningCalculation implements Callable<ICraftingPlan> {
                         () -> Thread.sleep(1), GtoPlanningCalculation::discard);
                 if (execution.status() != PlanningCandidateExecutor.Status.SUCCESS) {
                     if (execution.failure() instanceof Error error) throw error;
-                    if (execution.failure() instanceof CancellationException cancelled) throw cancelled;
+                    // A budget interrupt belongs to this candidate; the executor propagates
+                    // cancellation of the owning calculation separately as InterruptedException.
+                    if (execution.status() == PlanningCandidateExecutor.Status.FAILED
+                            && execution.failure() instanceof CancellationException cancelled) throw cancelled;
                     continue;
                 }
                 ICraftingPlan result = execution.value();

@@ -28,6 +28,28 @@ tasks.register('printProjectVersion') {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+// Standalone, offline migration tool. Never embedded into the mod or loaded by Forge.
+sourceSets.create('compatTool') {
+    compileClasspath += sourceSets.main.compileClasspath
+    runtimeClasspath += sourceSets.main.compileClasspath
+}
+dependencies {
+    testImplementation sourceSets.compatTool.output
+}
+tasks.register('gtoAddonPatcherJar', Jar) {
+    group = 'compatibility'
+    description = 'Builds the offline AE2-GTO addon plan API migration tool.'
+    archiveFileName = 'gto-addon-patcher.jar'
+    destinationDirectory = layout.buildDirectory.dir('compat-tools')
+    from sourceSets.compatTool.output
+    from('LICENSE') { into 'META-INF' }
+    from({ sourceSets.compatTool.runtimeClasspath.findAll { it.name.startsWith('asm-') }.collect { zipTree(it) } }) {
+        exclude 'META-INF/MANIFEST.MF', 'module-info.class'
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+    manifest { attributes 'Main-Class': 'com.moakiee.thunderbolt.tools.GtoAddonPatcher' }
+}
+
 sourceSets.create('gameTest') {
     compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
     runtimeClasspath += output + sourceSets.main.runtimeClasspath
@@ -66,7 +88,7 @@ minecraft {
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
             property 'thunderbolt.mixinAudit', 'true'
-            property 'forge.enabledGameTestNamespaces', 'thunderbolt_nbt'
+            property 'forge.enabledGameTestNamespaces', 'thunderbolt_nbt,thunderbolt'
             mods { "${mod_id}" { source sourceSets.main; source sourceSets.gameTest } }
         }
         data {
@@ -257,9 +279,9 @@ dependencies {
     testImplementation platform("org.junit:junit-bom:5.10.2")
     testImplementation "org.junit.jupiter:junit-jupiter"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    testRuntimeOnly "org.openjdk.nashorn:nashorn-core:15.4"
 
     optionalModShapeArtifacts "maven.modrinth:advancedae:${advancedae_version}"
-    optionalModShapeArtifacts "maven.modrinth:neoecoae:${neoecoae_version}"
     optionalModShapeArtifacts "curse.maven:ae2-crafting-tree-1086241:${ae2_crafting_tree_file_id}"
     optionalModShapeArtifacts "maven.modrinth:extendedae-plus:${extendedae_plus_version}"
     optionalModShapeArtifacts "maven.modrinth:appliede:${appliede_version}"
@@ -383,6 +405,7 @@ processResources {
         forge_version_range    : forge_version_range,
         loader_version_range   : loader_version_range,
         ae2_version_range      : ae2_version_range,
+        gtocore_version_range  : gtocore_version_range,
         mod_id                 : mod_id,
         mod_name               : mod_name,
         mod_license            : mod_license,

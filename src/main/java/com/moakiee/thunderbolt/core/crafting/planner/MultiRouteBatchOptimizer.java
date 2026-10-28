@@ -122,9 +122,10 @@ final class MultiRouteBatchOptimizer {
     }
 
     private static final class Search {
-        final BigInteger[] outputs, caps;
+        final BigInteger[] outputs, caps, pairSlopes;
         final BigInteger[][] use;
-        final BigInteger demand;
+        final BigInteger demand, outputSlope;
+        final BigInteger stockSlope, lastStock, totalStock;
         final IntPredicate shared;
         int remaining;
         boolean exhausted;
@@ -134,6 +135,17 @@ final class MultiRouteBatchOptimizer {
         Search(BigInteger[] outputs, BigInteger[][] use, BigInteger[] caps, BigInteger demand, IntPredicate shared, int work) {
             this.outputs = outputs; this.use = use; this.caps = caps; this.demand = demand;
             this.shared = shared; remaining = work;
+            int last = outputs.length - 1;
+            outputSlope = outputs[last].subtract(outputs[last - 1]);
+            pairSlopes = new BigInteger[caps.length];
+            BigInteger slope = ZERO, lastUse = ZERO, total = ZERO;
+            for (int r = 0; r < caps.length; r++) {
+                pairSlopes[r] = use[last - 1][r].subtract(use[last][r]);
+                slope = slope.add(pairSlopes[r]);
+                lastUse = lastUse.add(use[last][r]);
+                total = total.add(caps[r]);
+            }
+            stockSlope = slope; lastStock = lastUse; totalStock = total;
         }
 
         /** Preserve a cheap certified incumbent before route-order search can exhaust its budget. */
@@ -163,22 +175,33 @@ final class MultiRouteBatchOptimizer {
         void visit(int route, int left, BigInteger produced, BigInteger[] available, long[] counts) {
             PlanningCancellation.check();
             if (exhausted) return;
-            int work = 1 + caps.length;
+            // A solved pair evaluates both the interval constraints and the stock objective.
+            int work = (1 + caps.length) * (route == outputs.length - 2 ? 2 : 1);
             if (work > remaining || !shared.test(work)) { exhausted = true; return; }
             remaining -= work;
             BigInteger max = ZERO;
             for (int p = route; p < outputs.length; p++) max = max.max(outputs[p]);
             if (produced.add(max.multiply(BigInteger.valueOf(left))).compareTo(demand) < 0) return;
-            if (route == outputs.length - 1) {
-                BigInteger n = BigInteger.valueOf(left), stock = ZERO;
-                if (produced.add(outputs[route].multiply(n)).compareTo(demand) < 0) return;
+            if (route == outputs.length - 2) {
+                // x + y = left removes one integer dimension. Every original resource and
+                // the output requirement intersect an interval for x; stock use is linear,
+                // so its minimum is an endpoint. Ties take the smaller x, as enumeration did.
+                int last = route + 1;
+                var n = BigInteger.valueOf(left);
+                var interval = new IntegerInterval(ZERO, n);
+                if (!interval.atMost(outputSlope,
+                        produced.add(outputs[last].multiply(n)).subtract(demand))) return;
+                BigInteger availableStock = ZERO;
                 for (int r = 0; r < caps.length; r++) {
-                    BigInteger rest = available[r].subtract(use[route][r].multiply(n));
-                    if (rest.signum() < 0) return;
-                    stock = stock.add(caps[r].subtract(rest));
+                    var intercept = use[last][r].multiply(n);
+                    if (!interval.atMost(pairSlopes[r], available[r].subtract(intercept))) return;
+                    availableStock = availableStock.add(available[r]);
                 }
+                var x = stockSlope.signum() < 0 ? interval.high : interval.low;
+                var stock = totalStock.subtract(availableStock).add(lastStock.multiply(n)).add(stockSlope.multiply(x));
                 if (bestStock == null || stock.compareTo(bestStock) < 0) {
-                    counts[route] = left;
+                    counts[route] = x.longValueExact();
+                    counts[last] = left - counts[route];
                     best = counts.clone(); bestStock = stock;
                 }
                 return;

@@ -22,9 +22,10 @@ class PortMetadataContractTest {
             properties.load(reader);
         }
 
-        // Baseline synced with GTO 0.6.0 (AE2 declares forge [47.4.20,)).
+        // GTO instance Forge baseline; AE2/Core requirements match NeoECO 1.20.1-GTO.
         assertEquals("[47.4.20,)", properties.getProperty("forge_version_range"));
-        assertEquals("[15.2610.8]", properties.getProperty("ae2_version_range"));
+        assertEquals("[15.2610.31,16)", properties.getProperty("ae2_version_range"));
+        assertEquals("[26.10.9,)", properties.getProperty("gtocore_version_range"));
     }
 
     @Test
