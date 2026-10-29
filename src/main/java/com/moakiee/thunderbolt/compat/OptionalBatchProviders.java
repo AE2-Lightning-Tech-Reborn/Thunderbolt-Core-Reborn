@@ -12,6 +12,7 @@ public final class OptionalBatchProviders {
     private OptionalBatchProviders() {}
 
     public static void register() {
+        register("useless", com.moakiee.thunderbolt.compat.useless.UselessBatchCompat.createAdapter());
         register("neoeco", NeoEcoFastPathCompat.createAdapter());
         var mods = ModList.get();
         if (mods != null && mods.isLoaded("extendedae_plus")) {
