@@ -34,21 +34,25 @@ public final class DynamicCraftingCpuClusterIndex<P, C> {
             Function<? super P, @Nullable ? extends C> resolver,
             Consumer<? super C> onAdded) {
         refreshedClusters.clear();
+        boolean addedCluster = false;
         for (var provider : providers) {
             var cluster = resolver.apply(provider);
-            if (cluster != null) {
-                refreshedClusters.add(cluster);
+            if (cluster != null && refreshedClusters.add(cluster) && !addedCluster) {
+                addedCluster = !clusters.contains(cluster);
             }
         }
 
-        boolean changed = !clusters.equals(refreshedClusters);
-        clusters.removeIf(cluster -> !refreshedClusters.contains(cluster));
+        // Providers must still be resolved on every refresh: their exposed cluster can change
+        // without a node event. No new identity and the same size prove that both sets are equal;
+        // stable snapshots need no second scan or redundant set writes.
+        if (!addedCluster && clusters.size() == refreshedClusters.size()) return false;
+        clusters.retainAll(refreshedClusters);
         for (var cluster : refreshedClusters) {
             if (clusters.add(cluster)) {
                 onAdded.accept(cluster);
             }
         }
-        return changed;
+        return true;
     }
 
     public Set<C> clusters() {

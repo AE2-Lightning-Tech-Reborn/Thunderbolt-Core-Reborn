@@ -29,6 +29,9 @@ import com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegates;
 public final class BatchExecutor {
     private static final Set<String> REPORTED_SHARED_SEMANTIC_MISMATCHES =
             ConcurrentHashMap.newKeySet();
+    private static final java.util.Comparator<EligibleProvider> CAPACITY_ORDER = java.util.Comparator
+            .comparing((EligibleProvider provider) -> provider.mode() != BatchDispatchMode.UNBOUNDED)
+            .thenComparingLong(EligibleProvider::capacity);
 
     private BatchExecutor() {
     }
@@ -260,10 +263,7 @@ public final class BatchExecutor {
 
             if (hasSharedInputs && eligible.size() > 1) {
                 // One reusable seed cannot be in multiple executing providers simultaneously.
-                eligible.sort(java.util.Comparator
-                        .comparing((EligibleProvider provider) -> provider.mode() != BatchDispatchMode.UNBOUNDED)
-                        .thenComparing(EligibleProvider::capacity, java.util.Comparator.reverseOrder()));
-                eligible.subList(1, eligible.size()).clear();
+                retainBestSharedProvider(eligible);
             }
 
             boolean hasUnboundedProvider = false;
@@ -275,9 +275,7 @@ public final class BatchExecutor {
 
             // Legacy-unbounded providers get first access to the current CPU copy budget. They do
             // not bypass copiesBudget. Normal providers retain the smaller-first balancing order.
-            eligible.sort(java.util.Comparator
-                    .comparing((EligibleProvider provider) -> provider.mode() != BatchDispatchMode.UNBOUNDED)
-                    .thenComparingLong(EligibleProvider::capacity));
+            if (eligible.size() > 1) eligible.sort(CAPACITY_ORDER);
 
             long copyBudget = hasUnboundedProvider
                     || unboundedCpuBatch
@@ -332,10 +330,7 @@ public final class BatchExecutor {
                     continue;
                 }
                 if (eligible.size() > 1) {
-                    eligible.sort(java.util.Comparator
-                            .comparing((EligibleProvider provider) -> provider.mode() != BatchDispatchMode.UNBOUNDED)
-                            .thenComparing(EligibleProvider::capacity, java.util.Comparator.reverseOrder()));
-                    eligible.subList(1, eligible.size()).clear();
+                    retainBestSharedProvider(eligible);
                 }
             }
             if (!sharedBatchSemanticsMatch(details, executionDetails, result)) {
@@ -562,7 +557,23 @@ public final class BatchExecutor {
         return capacity > 1L;
     }
 
-    private record EligibleProvider(IBatchCraftingProvider provider, ICraftingProvider identity,
+    /** Same winner as the stable unbounded-first, largest-capacity sort, without sorting losers. */
+    static void retainBestSharedProvider(java.util.ArrayList<EligibleProvider> eligible) {
+        if (eligible.size() <= 1) return;
+        var best = eligible.get(0);
+        for (int i = 1; i < eligible.size(); i++) {
+            var candidate = eligible.get(i);
+            boolean candidateUnbounded = candidate.mode() == BatchDispatchMode.UNBOUNDED;
+            boolean bestUnbounded = best.mode() == BatchDispatchMode.UNBOUNDED;
+            if (candidateUnbounded != bestUnbounded ? candidateUnbounded : candidate.capacity() > best.capacity()) {
+                best = candidate;
+            }
+        }
+        eligible.clear();
+        eligible.add(best);
+    }
+
+    record EligibleProvider(IBatchCraftingProvider provider, ICraftingProvider identity,
                                     long capacity, BatchDispatchMode mode, PreparedBatch prepared) {
     }
 
