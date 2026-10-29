@@ -91,6 +91,52 @@ class ThunderboltCraftingPlanSummaryTest {
     }
 
     @Test
+    void legacyExecutableSummaryDoesNotBecomePreviewOnly() {
+        var report = new ExactPlanReport(java.math.BigInteger.TEN, Map.of(), false);
+        var executable = new CraftingPlanSummary(10, false, List.of());
+        var preview = new CraftingPlanSummary(10, true, List.of());
+        ExactPlanReports.attach(executable, report);
+        ExactPlanReports.attach(preview, report);
+
+        assertFalse(ExactPlanReports.isPreview(executable));
+        assertTrue(ExactPlanReports.isPreview(preview));
+        assertEquals(report, ExactPlanReports.get(executable));
+
+        var plan = new CraftingPlan(null, 10, false, false,
+                new KeyCounter(), new KeyCounter(), new KeyCounter(),
+                new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>());
+        ExactPlanReports.attach(plan, report);
+        assertTrue(ExactPlanReports.isPreview(plan), "summary compatibility must not weaken submission guards");
+    }
+
+    @Test
+    void exactReportsPreserveExecutableAndSimulationStatus() {
+        for (boolean simulation : List.of(false, true)) {
+            for (boolean previewOnly : List.of(false, true)) {
+                var plan = new CraftingPlan(null, 1L, simulation, false,
+                        new KeyCounter(), new KeyCounter(), new KeyCounter(),
+                        new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>());
+                var amount = java.math.BigInteger.TEN.pow(30);
+                var report = new ExactPlanReport(amount,
+                        Map.of(MATERIAL, new ExactPlanReport.Amounts(amount,
+                                java.math.BigInteger.ZERO, java.math.BigInteger.ZERO)),
+                        false, previewOnly);
+                ExactPlanReports.attach(plan, report);
+
+                var summary = ThunderboltCraftingPlanSummary.fromPlan(plan);
+
+                assertEquals(simulation || previewOnly, summary.isSimulation());
+                assertEquals(previewOnly, ExactPlanReports.isPreview(summary));
+                assertEquals(report, ExactPlanReports.get(summary));
+                assertEquals(Long.MAX_VALUE, summary.getUsedBytes());
+                assertEquals(Long.MAX_VALUE, entry(summary, MATERIAL).getStoredAmount());
+                assertEquals(report.entries().get(MATERIAL),
+                        ExactPlanReports.amounts(entry(summary, MATERIAL)));
+            }
+        }
+    }
+
+    @Test
     void preservesEmitterAndPatternCraftingAmounts() {
         var used = new KeyCounter();
         used.add(MATERIAL, 4L);

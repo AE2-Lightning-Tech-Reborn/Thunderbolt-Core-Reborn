@@ -8,6 +8,26 @@ import org.junit.jupiter.api.Test;
 
 class ExactAmountCodecTest {
     @Test
+    void executableAndPreviewReportsKeepTheirSubmissionPolicyAcrossForgeWireFormat() {
+        var buffer = new FriendlyByteBuf(Unpooled.buffer());
+        try {
+            for (boolean previewOnly : new boolean[] {true, false}) {
+                var report = new ExactPlanReport(BigInteger.TEN.pow(100), java.util.Map.of(), false, previewOnly);
+                report.write(buffer);
+                var decoded = ExactPlanReport.read(buffer);
+                assertEquals(report, decoded);
+                var owner = new Object();
+                ExactPlanReports.attach(owner, decoded);
+                assertEquals(previewOnly, ExactPlanReports.isPreview(owner));
+                assertFalse(buffer.isReadable());
+            }
+            assertTrue(new ExactPlanReport(BigInteger.ZERO, java.util.Map.of(), false).previewOnly());
+        } finally {
+            buffer.release();
+        }
+    }
+
+    @Test
     void roundTripDoesNotTruncateAtMachineIntegerBoundaries() {
         var buffer = new FriendlyByteBuf(Unpooled.buffer());
         try {

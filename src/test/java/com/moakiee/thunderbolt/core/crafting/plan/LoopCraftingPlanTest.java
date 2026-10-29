@@ -32,6 +32,31 @@ import org.junit.jupiter.api.Test;
 class LoopCraftingPlanTest {
 
     @Test
+    void exactReportSurvivesLoopWrappingAndSummaryConversion() {
+        var seed = new TestKey("seed");
+        var pattern = new TestLoopPattern(seed, new TestHost());
+        for (boolean previewOnly : List.of(false, true)) {
+            var delegate = new CraftingPlan(new GenericStack(seed, 1L), 0L, false, false,
+                    new KeyCounter(), new KeyCounter(), new KeyCounter(),
+                    new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of(pattern, 1L)));
+            var amount = java.math.BigInteger.TEN.pow(30);
+            var report = new com.moakiee.thunderbolt.ae2.crafting.ExactPlanReport(amount,
+                    Map.of(seed, new com.moakiee.thunderbolt.ae2.crafting.ExactPlanReport.Amounts(
+                            amount, java.math.BigInteger.ZERO, amount)), false, previewOnly);
+            com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.attach(delegate, report);
+
+            var wrapped = LoopCraftingPlan.wrapIfNeeded(delegate);
+            assertSame(report, com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.get(wrapped));
+            assertEquals(previewOnly,
+                    com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(wrapped));
+            var summary = com.moakiee.thunderbolt.ae2.crafting.ThunderboltCraftingPlanSummary.fromPlan(wrapped);
+            assertSame(report, com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.get(summary));
+            assertEquals(Long.MAX_VALUE, summary.getUsedBytes());
+            assertEquals(previewOnly, summary.isSimulation());
+        }
+    }
+
+    @Test
     void wrapsCoreLoopMetadataIntoCorePlanImplementation() {
         var acceptedHost = new TestHost();
         var otherHost = new TestHost();

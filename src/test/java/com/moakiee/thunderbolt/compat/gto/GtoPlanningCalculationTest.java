@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.*;
 import appeng.api.stacks.*;
@@ -96,6 +97,67 @@ class GtoPlanningCalculationTest {
         Thread.currentThread().interrupt();
         try { assertThrows(InterruptedException.class, task::call); }
         finally { Thread.interrupted(); }
+    }
+    @Test @Timeout(20)
+    void timedOutCandidateClosesThenUsesNativePlan() throws Exception {
+        var nativePlan = plan(20, false);
+        var closed = new AtomicInteger();
+        var session = new PlanningEngineSession() {
+            public PlanningAttempt attempt(long amount, boolean simulate, PlanningAttemptContext context) {
+                // Model a third-party engine that responds only to the budget's thread interrupt.
+                while (!Thread.currentThread().isInterrupted()) LockSupport.parkNanos(1_000_000L);
+                throw new CancellationException("candidate interrupted after its budget");
+            }
+            public void close() { closed.incrementAndGet(); }
+        };
+        var result = calculation(session, CalculationStrategy.REPORT_MISSING_ITEMS, () -> nativePlan).call();
+        assertSame(nativePlan, result);
+        assertEquals(1, closed.get());
+        assertFalse(Thread.currentThread().isInterrupted());
+    }
+    @Test void candidateCancellationBeforeTimeoutRemainsVisibleToCaller() throws Exception {
+        var failure = new CancellationException("candidate cancelled");
+        var closed = new AtomicInteger();
+        var session = new PlanningEngineSession() {
+            public PlanningAttempt attempt(long amount, boolean simulate, PlanningAttemptContext context) {
+                throw failure;
+            }
+            public void close() { closed.incrementAndGet(); }
+        };
+        var task = calculation(session, CalculationStrategy.REPORT_MISSING_ITEMS,
+                () -> { throw new AssertionError("cancelled fallback ran"); });
+        assertSame(failure, assertThrows(CancellationException.class, task::call));
+        assertEquals(1, closed.get());
+    }
+    @Test @Timeout(10)
+    void cancellingRunningCalculationClosesCandidateWithoutFallback() throws Exception {
+        var started = new CountDownLatch(1);
+        var closed = new CountDownLatch(1);
+        var session = new PlanningEngineSession() {
+            public PlanningAttempt attempt(long amount, boolean simulate, PlanningAttemptContext context) {
+                started.countDown();
+                while (true) {
+                    context.checkpoint();
+                    LockSupport.parkNanos(1_000_000L);
+                }
+            }
+            public void close() { closed.countDown(); }
+        };
+        var task = calculation(session, CalculationStrategy.REPORT_MISSING_ITEMS,
+                () -> { throw new AssertionError("cancelled fallback ran"); });
+        var future = new FutureTask<>(task);
+        var caller = new Thread(future, "gto-cancellation-test");
+        caller.start();
+        try {
+            assertTrue(started.await(5, TimeUnit.SECONDS));
+            caller.interrupt();
+            var failure = assertThrows(ExecutionException.class, () -> future.get(5, TimeUnit.SECONDS));
+            assertInstanceOf(InterruptedException.class, failure.getCause());
+            assertTrue(closed.await(5, TimeUnit.SECONDS));
+        } finally {
+            caller.interrupt();
+            caller.join(1_000L);
+        }
     }
     @Test void nativeFailureRemainsVisibleToCaller() throws Exception {
         var failure = new IllegalStateException("native failure");

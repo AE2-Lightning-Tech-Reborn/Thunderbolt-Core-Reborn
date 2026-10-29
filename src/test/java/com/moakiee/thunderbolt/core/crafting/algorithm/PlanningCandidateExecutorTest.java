@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -98,6 +99,46 @@ class PlanningCandidateExecutorTest {
 
         assertEquals(PlanningCandidateExecutor.Status.SOFT_TIMEOUT, result.status());
         assertTrue(result.failure() instanceof PlanningExitException);
+    }
+
+    @Test
+    void budgetInterruptCancellationIsReportedAsTimeout() {
+        var engineId = id("budget_interrupt_cancellation");
+        var failure = new CancellationException("candidate interrupted after its budget");
+        var result = org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(
+                Duration.ofSeconds(3),
+                () -> PlanningCandidateExecutor.executeForTest(
+                        engineId,
+                        "budget interrupt cancellation test",
+                        context -> {
+                            while (!Thread.currentThread().isInterrupted()) LockSupport.parkNanos(1_000_000L);
+                            throw failure;
+                        },
+                        Thread::yield,
+                        20,
+                        30,
+                        2_000));
+
+        assertEquals(PlanningCandidateExecutor.Status.SOFT_TIMEOUT, result.status());
+        org.junit.jupiter.api.Assertions.assertSame(failure, result.failure());
+        assertFalse(PlanningCandidateExecutor.isQuarantined(engineId));
+        assertFalse(Thread.currentThread().isInterrupted());
+    }
+
+    @Test
+    void candidateCancellationBeforeTimeoutIsReportedAsFailure() throws Exception {
+        var failure = new CancellationException("candidate cancelled");
+        var result = PlanningCandidateExecutor.executeForTest(
+                id("candidate_cancellation_before_timeout"),
+                "candidate cancellation before timeout test",
+                context -> { throw failure; },
+                Thread::yield,
+                5_000,
+                1_000,
+                5_000);
+
+        assertEquals(PlanningCandidateExecutor.Status.FAILED, result.status());
+        org.junit.jupiter.api.Assertions.assertSame(failure, result.failure());
     }
 
     @Test

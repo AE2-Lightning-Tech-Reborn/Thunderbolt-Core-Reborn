@@ -29,8 +29,10 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
     private final String cellIdTag;
     private final IndexedStorage storage;
     private final ByteTracker byteTracker;
+    private final long[] rebuildDivBuf = new long[2];
 
     private @Nullable UUID cellId;
+    private @Nullable IndexedCellStorageSavedData.StorageKey storageKey;
     private long lastSyncModCount = -1;
     private int lastWrittenTypes = -1;
     private long lastWrittenBytes = -1;
@@ -48,10 +50,11 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
         this.cellIdTag = definition.cellIdTag(stack);
         this.cellId = readCellId();
 
-        var savedData = IndexedCellStorageRegistry.getOrNull();
+        var savedData = IndexedCellStorageSavedData.getOrNull();
         this.storage = cellId != null && savedData != null
                 ? savedData.getOrCreateStorage(storageType, cellId, resolveRegistries())
                 : new IndexedStorage();
+        if (cellId != null) this.storageKey = new IndexedCellStorageSavedData.StorageKey(storageType, cellId);
         if (definition.supportsBigAmounts(stack)) storage.enableArbitraryPrecision();
         this.byteTracker = definition.createByteTracker(stack, storage);
         syncByteTracker();
@@ -60,16 +63,28 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
     @Override
     public long insert(AEKey key, long amount, Actionable mode, IActionSource source) {
         if (amount <= 0 || !definition.accepts(stack, key, source)) return 0;
-        if (definition.supportsBigAmounts(stack)) return insertBig(key, java.math.BigInteger.valueOf(amount), mode, source).longValueExact();
+        boolean unlimited = definition.supportsBigAmounts(stack);
+        if (unlimited && mode == Actionable.SIMULATE) {
+            // Only the engine's exact quantity boundary can reject an unlimited insertion.
+            // Simulation must not resynchronize byte state or touch the item summary.
+            return storage.insert(key, amount, mode);
+        }
         ensureSync();
-        boolean newKey = !storage.containsKey(key);
-        long accepted = Math.min(amount, byteTracker.computeMaxInsertable(key.getType(), newKey));
+        int typesBefore = storage.getTotalTypes();
+        long accepted = unlimited ? amount
+                : Math.min(amount, byteTracker.computeMaxInsertable(key.getType(), !storage.containsKey(key)));
         if (accepted <= 0) return 0;
         accepted = storage.insert(key, accepted, Actionable.SIMULATE);
         if (accepted == 0 || mode == Actionable.SIMULATE) return accepted;
 
-        storage.insert(key, accepted, Actionable.MODULATE);
-        byteTracker.onInsert(key.getType(), accepted, newKey);
+        boolean projectedTotal = storage.isTypeTotalSaturated(key.getType());
+        accepted = storage.insert(key, accepted, Actionable.MODULATE);
+        if (accepted <= 0) return 0;
+        if (projectedTotal || storage.isTypeTotalSaturated(key.getType())) {
+            syncByteTracker();
+        } else {
+            byteTracker.onInsert(key.getType(), accepted, storage.getTotalTypes() > typesBefore);
+        }
         lastSyncModCount = storage.getModCount();
         syncSummary();
         markChanged();
@@ -79,15 +94,17 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
     @Override
     public long extract(AEKey key, long amount, Actionable mode, IActionSource source) {
         if (amount <= 0) return 0;
-        if (definition.supportsBigAmounts(stack)) return extractBig(key, java.math.BigInteger.valueOf(amount), mode, source).longValueExact();
-        ensureSync();
         if (mode == Actionable.SIMULATE) {
             return storage.extract(key, amount, Actionable.SIMULATE);
         }
+        ensureSync();
+        int typesBefore = storage.getTotalTypes();
+        boolean projectedTotal = storage.isTypeTotalSaturated(key.getType());
         long extracted = storage.extract(key, amount, Actionable.MODULATE);
         if (extracted > 0) {
-            boolean keyRemoved = !storage.containsKey(key);
-            byteTracker.onExtract(key.getType(), extracted, keyRemoved);
+            boolean keyRemoved = storage.getTotalTypes() < typesBefore;
+            if (projectedTotal) syncByteTracker();
+            else byteTracker.onExtract(key.getType(), extracted, keyRemoved);
             lastSyncModCount = storage.getModCount();
             syncSummary();
             markChanged();
@@ -124,7 +141,9 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
 
     @Override
     public void persist() {
-        var savedData = IndexedCellStorageRegistry.getOrNull();
+        ensureSync();
+        syncSummary();
+        var savedData = IndexedCellStorageSavedData.getOrNull();
         if (savedData == null) return;
         if (storage.getTotalTypes() == 0) {
             if (storage.needsPersist()) storage.persist(null, resolveRegistries());
@@ -132,6 +151,7 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
                 savedData.removeCell(storageType, cellId);
                 clearCellId();
                 cellId = null;
+                storageKey = null;
             }
             syncSummary();
             return;
@@ -185,25 +205,22 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
         if (storage.getTotalTypes() == 0) {
             persist();
         } else {
-            var savedData = IndexedCellStorageRegistry.getOrNull();
+            var savedData = IndexedCellStorageSavedData.getOrNull();
             if (savedData != null) {
                 ensureCellId();
-                savedData.markStorageDirty(storageType, cellId, storage);
+                if (storageKey != null) savedData.markStorageDirty(storageKey, storage);
+                else savedData.markStorageDirty(storageType, cellId, storage);
             }
         }
         if (saveProvider != null) saveProvider.saveChanges();
     }
 
     private void ensureSync() {
-        if (storage.getModCount() != lastSyncModCount) syncByteTracker();
+        if (storage.getModCount() != lastSyncModCount || !byteTracker.hasCurrentUnits()) syncByteTracker();
     }
 
     private void syncByteTracker() {
-        byteTracker.rebuild(
-                storage.getTypeAmountLo(),
-                storage.getTypeAmountHi(),
-                storage.getTypeCounts(),
-                storage.getTotalTypes());
+        byteTracker.rebuild(storage, rebuildDivBuf);
         lastSyncModCount = storage.getModCount();
     }
 
@@ -224,6 +241,7 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
     private void ensureCellId() {
         if (cellId != null) return;
         cellId = UUID.randomUUID();
+        storageKey = new IndexedCellStorageSavedData.StorageKey(storageType, cellId);
         stack.getOrCreateTag().putUUID(cellIdTag, cellId);
     }
 

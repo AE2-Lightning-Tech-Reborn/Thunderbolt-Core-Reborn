@@ -36,6 +36,6 @@ ${mod_description}
 [[dependencies."${mod_id}"]]
 modId = "gtocore"
 mandatory = true
-versionRange = "[26.10.5,26.10.6)"
+versionRange = "${gtocore_version_range}"
 ordering = "AFTER"
 side = "BOTH"

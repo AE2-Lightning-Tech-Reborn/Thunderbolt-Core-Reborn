@@ -183,9 +183,7 @@ public final class EjectEndpointIndex implements EjectCapabilityRegistry.Runtime
                 .computeIfAbsent(endpoint.interceptFace(), ignored -> new ArrayList<>())
                 .add(entry);
         if (persist && savedData != null) {
-            savedData.add(new EjectRegistrationSavedData.PersistentRegistration(
-                    endpoint.interceptDimension(), endpoint.interceptPos(), endpoint.interceptFace(),
-                    endpoint.hostDimension(), endpoint.hostPos()));
+            savedData.add(persistentRegistration(endpoint));
         }
         return entry;
     }
@@ -197,14 +195,23 @@ public final class EjectEndpointIndex implements EjectCapabilityRegistry.Runtime
         var faceMap = dimensionMap.get(endpoint.interceptPos().asLong());
         if (faceMap == null) return;
         var entries = faceMap.get(endpoint.interceptFace());
-        if (entries != null) entries.remove(target);
-        if (entries != null && entries.isEmpty()) faceMap.remove(endpoint.interceptFace());
+        // Ignore handles from an explicit unregister or a previous server.
+        if (entries == null || !entries.remove(target)) return;
+        if (entries.isEmpty()) faceMap.remove(endpoint.interceptFace());
         if (faceMap.isEmpty()) dimensionMap.remove(endpoint.interceptPos().asLong());
         if (dimensionMap.isEmpty()) registrations.remove(endpoint.interceptDimension());
         if (persist && savedData != null) {
-            savedData.removeByIntercept(
-                    endpoint.interceptDimension(), endpoint.interceptPos(), endpoint.interceptFace());
+            var persisted = persistentRegistration(endpoint);
+            if (entries.stream().noneMatch(entry -> persistentRegistration(entry.endpoint).equals(persisted))) {
+                savedData.remove(persisted);
+            }
         }
+    }
+
+    private static EjectRegistrationSavedData.PersistentRegistration persistentRegistration(EjectEndpoint endpoint) {
+        return new EjectRegistrationSavedData.PersistentRegistration(
+                endpoint.interceptDimension(), endpoint.interceptPos(), endpoint.interceptFace(),
+                endpoint.hostDimension(), endpoint.hostPos());
     }
 
     @Nullable

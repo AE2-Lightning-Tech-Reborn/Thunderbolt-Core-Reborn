@@ -57,14 +57,14 @@ AE2 `CraftingPlan` 的具体包装、可复用库存分配和宿主借用记录�
 - 计算入口的候选解析、完整计算所有权和顺序回退；
 - 扩展 CPU 的发现、列表、提交和 tick；
 - AE2CT/菜单所需的只读计划摘要；
-- AdvancedAE、NeoECO 等版本相关适配。
+- AdvancedAE 等版本相关适配。
 
 Mixin 不拥有闭环种子账本、过载输出认领或产品持久化状态。无限 CPU 容量显示等只依赖
 Thunderbolt core 的 AE2 客户端适配也由 Thunderbolt 自己注册，不下放给 AE2LT。
 
 Batch 热路径直接把现有 `BatchJobView` 传给
 `pushBatch(details, template, maxCraft, job)`，不创建 dispatch context，也不复制 template
-数组。job view 统一提供 level、crafting ID、任务和 waiting-for 视图；NeoECO 等适配器自行读取
+数组。job view 统一提供 level、crafting ID、任务和 waiting-for 视图；可选适配器自行读取
 所需信息，不把 job 拆成公共方法参数。已使用较久的三参数 `pushBatch` 保留为基础契约，job
 重载默认转发给它。
 

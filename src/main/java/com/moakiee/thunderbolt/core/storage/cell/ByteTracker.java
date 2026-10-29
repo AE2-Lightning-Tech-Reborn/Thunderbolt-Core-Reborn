@@ -5,6 +5,7 @@ import java.util.function.IntSupplier;
 import appeng.api.stacks.AEKeyType;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 
 /**
  * Tracks byte-level capacity consumption for the infinite cell using
@@ -18,8 +19,66 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
  */
 public final class ByteTracker {
 
-    private final Object2LongOpenHashMap<AEKeyType> keyTypeRemainders = new Object2LongOpenHashMap<>();
-    private final Object2IntOpenHashMap<AEKeyType> keyTypeCounts = new Object2IntOpenHashMap<>();
+    /** A channel moves as one unit when the dense channel array grows or removes an entry. */
+    private static final class Channel {
+        final AEKeyType type;
+        final int amountPerByte;
+        long remainder;
+        int keyCount;
+
+        Channel(AEKeyType type, int amountPerByte) {
+            this.type = type;
+            this.amountPerByte = amountPerByte;
+        }
+    }
+
+    private Channel[] channels = new Channel[4];
+    private int unitTypeCount;
+    private Reference2IntOpenHashMap<AEKeyType> typeSlots;
+
+    private int findType(AEKeyType type) {
+        if (unitTypeCount > 2) return typeSlots.getInt(type);
+        for (int i = 0; i < unitTypeCount; i++) {
+            if (channels[i].type == type) return i;
+        }
+        return -1;
+    }
+
+    // Some custom channels (e.g. FE) expose a reloadable amount-per-byte setting.
+    public boolean hasCurrentUnits() {
+        for (int i = 0; i < unitTypeCount; i++) {
+            var channel = channels[i];
+            if (channel.type.getAmountPerByte() != channel.amountPerByte) return false;
+        }
+        return true;
+    }
+
+    private Channel trackUnits(AEKeyType type, int amountPerByte) {
+        if (unitTypeCount == channels.length) {
+            channels = java.util.Arrays.copyOf(channels, channels.length * 2);
+        }
+        var channel = new Channel(type, amountPerByte);
+        int index = unitTypeCount++;
+        channels[index] = channel;
+        if (typeSlots != null) {
+            typeSlots.put(type, index);
+        } else if (unitTypeCount > 2) {
+            typeSlots = new Reference2IntOpenHashMap<>();
+            typeSlots.defaultReturnValue(-1);
+            for (int i = 0; i < unitTypeCount; i++) typeSlots.put(channels[i].type, i);
+        }
+        return channel;
+    }
+
+    private void removeType(int index) {
+        int last = --unitTypeCount;
+        if (typeSlots != null) {
+            typeSlots.removeInt(channels[index].type);
+            if (index != last) typeSlots.put(channels[last].type, index);
+        }
+        channels[index] = channels[last];
+        channels[last] = null;
+    }
 
     private long usedBytesLo;
     private long usedBytesHi;
@@ -34,7 +93,10 @@ public final class ByteTracker {
         this.totalTypesGetter = totalTypesGetter;
     }
 
+    // ══════════════════════════════════════════════════════════════════════
     //  Configuration
+    // ══════════════════════════════════════════════════════════════════════
+
     public void configure(int bytesPerType, int maxTypes, long capacityLo, long capacityHi) {
         this.bytesPerType = bytesPerType;
         this.maxTypes = maxTypes;
@@ -42,60 +104,77 @@ public final class ByteTracker {
         this.capacityHi = capacityHi;
     }
 
+    // ══════════════════════════════════════════════════════════════════════
     //  Hot-path: capacity check
+    // ══════════════════════════════════════════════════════════════════════
+
     public long computeMaxInsertable(AEKeyType type, boolean isNewKey) {
-        int apb = type.getAmountPerByte();
-
-        if (capacityHi == usedBytesHi) {
-            if (capacityLo <= usedBytesLo) return 0;
-            return maxFromFreeBytes(capacityLo - usedBytesLo, apb, type, isNewKey);
+        if (isNewKey && totalTypesGetter.getAsInt() >= maxTypes) return 0;
+        long freeLo = capacityLo - usedBytesLo;
+        long freeHi = capacityHi - usedBytesHi;
+        if (freeLo < 0) {
+            freeLo &= Long.MAX_VALUE;
+            freeHi--;
         }
-        if (capacityHi < usedBytesHi) return 0;
-        return Long.MAX_VALUE;
-    }
-
-    private long maxFromFreeBytes(long freeBytes, int apb, AEKeyType type, boolean isNewKey) {
-        int totalTypes = totalTypesGetter.getAsInt();
+        if (freeHi < 0) return 0;
         if (isNewKey) {
-            if (totalTypes >= maxTypes) return 0;
-            if (freeBytes < bytesPerType) return 0;
-            freeBytes -= bytesPerType;
+            freeLo -= bytesPerType;
+            if (freeLo < 0) {
+                freeLo &= Long.MAX_VALUE;
+                freeHi--;
+            }
         }
-        long r = keyTypeRemainders.getLong(type);
+        if (freeHi < 0) return 0;
+        if (freeHi > 0) return Long.MAX_VALUE;
+
+        int apb = type.getAmountPerByte();
+        int index = findType(type);
+        long r = index < 0 ? 0 : channels[index].remainder;
         long freeInPartial = (r > 0) ? (apb - r) : 0;
-        if (freeBytes > Long.MAX_VALUE / apb) return Long.MAX_VALUE;
-        long result = freeBytes * apb + freeInPartial;
-        return result < 0 ? Long.MAX_VALUE : result;
+        if (freeLo > (Long.MAX_VALUE - freeInPartial) / apb) return Long.MAX_VALUE;
+        return freeLo * apb + freeInPartial;
     }
 
+    // ══════════════════════════════════════════════════════════════════════
     //  Hot-path: insert delta
+    // ══════════════════════════════════════════════════════════════════════
+
     public void onInsert(AEKeyType type, long amount, boolean isNewKey) {
         int apb = type.getAmountPerByte();
+        int index = findType(type);
+        var channel = index < 0 ? trackUnits(type, apb) : channels[index];
 
-        long oldR = keyTypeRemainders.getLong(type);
+        long oldR = channel.remainder;
         long aMod = amount % apb;
         long combined = oldR + aMod;
         long extra = (combined >= apb) ? 1L : 0L;
         long newR = extra > 0 ? combined - apb : combined;
-        keyTypeRemainders.put(type, newR);
+        channel.remainder = newR;
 
         long byteDelta = amount / apb + extra
                 + (newR > 0 ? 1L : 0L) - (oldR > 0 ? 1L : 0L);
 
         if (isNewKey) {
             byteDelta += bytesPerType;
-            keyTypeCounts.addTo(type, 1);
+            channel.keyCount++;
         }
 
-        usedBytesLo += byteDelta;
+        // The amount and new-key metadata can together exceed one 63-bit limb.
+        usedBytesHi += byteDelta < 0 ? 1L : 0L;
+        usedBytesLo += byteDelta & Long.MAX_VALUE;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
     }
 
+    // ══════════════════════════════════════════════════════════════════════
     //  Hot-path: extract delta
+    // ══════════════════════════════════════════════════════════════════════
+
     public void onExtract(AEKeyType type, long amount, boolean keyRemoved) {
         int apb = type.getAmountPerByte();
+        int index = findType(type);
+        var channel = channels[index];
 
-        long oldR = keyTypeRemainders.getLong(type);
+        long oldR = channel.remainder;
         long aMod = amount % apb;
         long newR, extra;
         if (oldR >= aMod) {
@@ -109,25 +188,23 @@ public final class ByteTracker {
         long bytesFreed = amount / apb + extra
                 + (oldR > 0 ? 1L : 0L) - (newR > 0 ? 1L : 0L);
 
+        channel.remainder = newR;
         if (keyRemoved) {
             bytesFreed += bytesPerType;
-            // fastutil addTo returns the PREVIOUS value: the last key of a type sees 1 here.
-            int countBefore = keyTypeCounts.addTo(type, -1);
-            if (countBefore <= 1) {
-                keyTypeCounts.removeInt(type);
-                keyTypeRemainders.removeLong(type);
-            } else {
-                keyTypeRemainders.put(type, newR);
+            if (--channel.keyCount <= 0) {
+                removeType(index);
             }
-        } else {
-            keyTypeRemainders.put(type, newR);
         }
 
-        usedBytesLo -= bytesFreed;
+        usedBytesHi -= bytesFreed < 0 ? 1L : 0L;
+        usedBytesLo -= bytesFreed & Long.MAX_VALUE;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi--; }
     }
 
+    // ══════════════════════════════════════════════════════════════════════
     //  Queries
+    // ══════════════════════════════════════════════════════════════════════
+
     public long getUsedBytes() {
         return DualLong126.cap(usedBytesHi, usedBytesLo);
     }
@@ -147,10 +224,13 @@ public final class ByteTracker {
 
     /** Test-only visibility: per-type bookkeeping entries must vanish with a type's last key. */
     int trackedTypeEntries() {
-        return keyTypeCounts.size() + keyTypeRemainders.size();
+        return unitTypeCount * 2;
     }
 
+    // ══════════════════════════════════════════════════════════════════════
     //  Cold-path: full rebuild from pre-aggregated per-type data — O(keyTypes)
+    // ══════════════════════════════════════════════════════════════════════
+
     /**
      * Rebuild byte tracking state from per-{@link AEKeyType} aggregates
      * already maintained by the storage engine.
@@ -164,29 +244,51 @@ public final class ByteTracker {
                         Object2LongOpenHashMap<AEKeyType> ktHi,
                         Object2IntOpenHashMap<AEKeyType> ktCounts,
                         int totalKeys) {
-        keyTypeRemainders.clear();
-        keyTypeCounts.clear();
-        usedBytesLo = 0;
-        usedBytesHi = 0;
-
-        keyTypeCounts.putAll(ktCounts);
-
+        beginRebuild();
         long[] divBuf = new long[2];
         for (var kt : ktLo.keySet()) {
-            long tLo = ktLo.getLong(kt);
-            long tHi = ktHi.getLong(kt);
-            int apb = kt.getAmountPerByte();
-
-            long remainder = (tHi == 0) ? tLo % apb
-                                        : DualLong126.mod126(tHi, tLo, apb);
-            keyTypeRemainders.put(kt, remainder);
-
-            DualLong126.ceilDiv126(tHi, tLo, apb, divBuf);
-            usedBytesLo += divBuf[1];
-            if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
-            usedBytesHi += divBuf[0];
+            rebuildChannel(kt, ktLo.getLong(kt), ktHi.getLong(kt), ktCounts.getInt(kt), divBuf);
         }
+        finishRebuild(totalKeys);
+    }
 
+    /**
+     * Rebuild from the engine's identity-indexed type slots. This avoids materializing the
+     * three per-type maps that the cold path above needs, and reuses the caller's scratch
+     * buffer. Only the small channel records are recreated.
+     */
+    public void rebuild(IndexedStorage storage, long[] divBuf) {
+        beginRebuild();
+        int slots = storage.usedTypeSlots();
+        for (int slot = 0; slot < slots; slot++) {
+            int count = storage.typeCountAt(slot);
+            if (count <= 0) continue;
+            rebuildChannel(storage.typeAt(slot), storage.typeLoAt(slot), storage.typeHiAt(slot), count, divBuf);
+        }
+        finishRebuild(storage.getTotalTypes());
+    }
+
+    private void beginRebuild() {
+        if (typeSlots != null) typeSlots.clear();
+        java.util.Arrays.fill(channels, null);
+        unitTypeCount = 0;
+        usedBytesLo = 0;
+        usedBytesHi = 0;
+    }
+
+    /** Both public rebuild entry points use exactly the same rounding and carry arithmetic. */
+    private void rebuildChannel(AEKeyType type, long lo, long hi, int keyCount, long[] divBuf) {
+        int apb = type.getAmountPerByte();
+        var channel = trackUnits(type, apb);
+        channel.keyCount = keyCount;
+        channel.remainder = hi == 0 ? lo % apb : DualLong126.mod126(hi, lo, apb);
+        DualLong126.ceilDiv126(hi, lo, apb, divBuf);
+        usedBytesLo += divBuf[1];
+        if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
+        usedBytesHi += divBuf[0];
+    }
+
+    private void finishRebuild(int totalKeys) {
         usedBytesLo += (long) totalKeys * bytesPerType;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
     }

@@ -51,7 +51,8 @@ public final class ThunderboltCraftingPlanSummary {
                 if (comparison == 0) comparison = b.stored().compareTo(a.stored());
                 return comparison;
             });
-            var summary = new CraftingPlanSummary(ExactPlanReport.project(exact.bytes()), true, List.copyOf(entries));
+            var summary = new CraftingPlanSummary(ExactPlanReport.project(exact.bytes()),
+                    plan.simulation() || exact.previewOnly(), List.copyOf(entries));
             ExactPlanReports.attach(summary, exact);
             Ae2CraftingTreeSummaryBridge.attach(summary, plan);
             return summary;

@@ -1,5 +1,9 @@
 # 全局批量提供器适配
 
+2026-10-26 按新要求接入 NeoECO `20.5.0-gto.1` 的公开已分配输入接口；2026-10-21 移除的普通 NeoECO 字节码迁移和旧兼容层保持移除。版本及实测范围见 [GTO NeoECO 记录](GTO_NEOECO_GTO_20261026.zh-CN.md)。
+
+GTO 分支使用 AE2-GTO，以下适配协议不代表普通版附属模组已经兼容 GTO。已确认部分普通版附属仍调用旧的 `Map` 型 `patternTimes()` 和 `CraftingPlan` 构造器，见 [GTO 兼容性检查报告](GTO_COMPATIBILITY_AUDIT.zh-CN.md)。
+
 ## 调用与注册
 
 `BatchExecutor` 继续负责材料提取、能耗、任务次数、等待产物和未接收材料的返还。
@@ -35,16 +39,13 @@ BatchProviderAdapters.register(
 
 | 对象 | 路径与边界 |
 | --- | --- |
-| NeoECO | `ECOFastPathDispatchProvider` + `ECOFastPathFacade.prepareAllocated`。只使用已分配材料的无状态协议；不支持的配方回退单份，下一 tick 可重新尝试。保留原 API 的原料返还/状态配方限制。 |
 | EAEP | 超级装配矩阵提供器及其子类，使用 `ScaledMolecularAssemblerPattern`。通过全局适配取代给矩阵注入 TB 接口，保留矩阵的配置批量上限。 |
+| NeoECO GTO | 原生 `ECOFastPathDispatchProvider` 使用 `prepareAllocated`；提取前准备容量，缩小报价时重新准备，保留任务 UUID。大型工作站优先使用 NeoECO 自带的 `IBatchCraftingProvider`。 |
 | AppliedE | TB 已有 EMC 模块原生批量 Mixin，直接命中 `IBatchCraftingProvider`，无需二次包装。 |
 | LT / LTPP | 已有原生批量接口，继续优先直接调用。 |
 
-以上两个可选适配均由 TB common setup 注册，TB 不依赖 LT 加载。
+EAEP 可选适配由 TB common setup 注册，TB 不依赖 LT 加载。
 缺少可选模组或对应 API 时不注册。
-检查过的 NeoECO→OmniSequence 桥是让 Omni 的执行器调用 NeoECO，属于调用方协议，
-不代表 Omni 向 TB 提供可接收批量的机器端点，因此未反向注册它。
-
 `pushBatch` 返回**未接收份数**，输入是借用的单份只读模板。
 适配器只能向下游交付自己的副本。下游已经进入提交阶段后抛出的异常必须传给执行器，
 停止任务，不能伪装成拒收后退款/重试，也不能当成确定成功继续运行。
@@ -53,8 +54,6 @@ BatchProviderAdapters.register(
 
 - 参考上游 `28a1f25` 移除 Useless 适配器、注册和模拟契约测试。官方
   `26.7.13-Forge1.20.1` 缺少 BigInteger / Smart Doubling 批量 API，继续普通执行。
-- NeoECO `20.3.0` / `20.4.2` 缺少 allocated 公开协议，不注册批量适配器。
-  模组自身 FastPath 不等于 Thunderbolt 所需 API；这两个发行版要求 Forge >=47.4.0。
 - EAEP Forge `1.5.5`（`pN9pMjiW`）没有超级矩阵 API，虚拟完成兼容另行保留。
   Forge `1.6.3`（`HNyEHPOp`）已提供缩放样板和超级矩阵，匹配既有桥接协议；
   实际样板类测试不能替代完整游戏内多方块执行验证。
@@ -72,7 +71,7 @@ LT 提供 `runGlobalBatchGameTestServer -Pae2ltGlobalBatchTestsOnly=true`。
 先让 LT 的 Thunderbolt 依赖解析到本次构建，再用
 `-Pae2ltJdbProbeMods=<可选模组及其必需依赖 JAR>` 运行发行包接口测试。
 普通运行验证真实 Mixin 转换后的批量执行、全局提供器刷新和时间轮材料/产物回流；
-加载模组后还验证 TB 自动注册，以及 NeoECO 部分接收和不确定提交。
+加载模组后还验证 TB 的可选适配器注册。
 接口用例使用受控提供器，不能替代每一种真实多方块机器的整包长期运行测试。
 
 ## 1.20.1-alpha 同步验证（2026-09-28）
@@ -81,6 +80,4 @@ LT 提供 `runGlobalBatchGameTestServer -Pae2ltGlobalBatchTestsOnly=true`。
 Java 17 / Forge：`test build publishToMavenLocal` 通过。875 项单元测试，0 失败，1 项需要实际 EAEP JAR 的可选测试跳过。
 对应 LT 的 `scripts/alpha-sync-test.init.gradle` 还验证了真实 BatchExecutor/Mixin 全局适配分派及材料回流。
 
-NeoECO 使用反射隔离新版 allocated API：当前版本缺少公开 API 时不注册适配器，保留普通执行。
-已验证缺失 API 回退及提交异常归属；没有宣称验证这些 Minecraft 版本上尚不可用的 NeoECO/EAEP 实机组合。
 上文 LT 的 1.21.1 专用运行任务不直接适用于移植分支；本版本使用 LT 的 alpha-sync 原生测试入口。

@@ -31,6 +31,7 @@ import com.moakiee.thunderbolt.core.eject.EjectEndpointIndex;
 import com.moakiee.thunderbolt.core.eject.ThunderboltBlockEntities;
 import com.moakiee.thunderbolt.core.nbt.NbtCopyOptions;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedCellStorageRegistry;
+import com.moakiee.thunderbolt.core.storage.cell.IndexedCellStorageSavedData;
 import com.moakiee.thunderbolt.core.storage.cell.IndexedStorageCellHandler;
 
 /** Entry point for Thunderbolt Core Reborn's shared AE2 optimization and extension layer. */
@@ -69,6 +70,7 @@ public final class ThunderboltCore {
 
     private void onServerStopped(ServerStoppedEvent event) {
         EjectEndpointIndex.INSTANCE.onServerStop();
+        IndexedCellStorageSavedData.clearServerCache();
     }
 
     private void onCommonSetup(FMLCommonSetupEvent event) {
@@ -99,6 +101,7 @@ public final class ThunderboltCore {
     }
 
     private void onLoadComplete(FMLLoadCompleteEvent event) {
+        event.enqueueWork(com.moakiee.thunderbolt.compat.gto.GtoDataInitialization::awaitReady);
         if (Boolean.getBoolean("thunderbolt.mixinAudit")) {
             event.enqueueWork(() -> {
                 LOGGER.info("Auditing every selected Thunderbolt Mixin target");

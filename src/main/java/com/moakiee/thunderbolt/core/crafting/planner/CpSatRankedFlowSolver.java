@@ -161,15 +161,19 @@ public final class CpSatRankedFlowSolver<K> {
         }
         Candidate<K> first = solveCandidate(compilation, new long[0], List.of(), false);
         if (first.status != Status.SOLVED) {
+            // Native timeout or failure cannot invalidate an already certified execution.
+            // Keep that witness before considering a leaf-shortage fallback.
+            if (preflight != null) {
+                session.incomplete = true;
+                return new Result<>(Status.SOLVED, withBudget(preflight), first.branches);
+            }
             CraftPlan<K> partial = first.status == Status.UNKNOWN
                     ? smallPartialWitness(compilation) : null;
             if (partial != null) {
                 session.incomplete = true;
                 return new Result<>(Status.SOLVED, withBudget(partial), first.branches);
             }
-            if (preflight == null) return new Result<>(first.status, null, first.branches);
-            session.incomplete = true;
-            return new Result<>(Status.SOLVED, withBudget(preflight), first.branches);
+            return new Result<>(first.status, null, first.branches);
         }
         if (preflight != null && (first.plan == null || better(compilation, preflight, first.plan))) {
             session.improvements++;
@@ -322,14 +326,14 @@ public final class CpSatRankedFlowSolver<K> {
         if (allowance <= 0) return null;
         smallRecoveryTried = true;
         session.smallRecoveryAttempts++;
-        long started = System.nanoTime();
-        try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
+        long started = PlanningCancellation.witnessClockNanos();
+        try (var ignored = PlanningCancellation.limitWitnessWork(allowance)) {
             return SmallConservativeSearch.tryPlan(graph, target, targetAmount,
                     Math.min(256, session.verifier.remainingNodes()), () -> session.verifier.take(1L));
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             return null;
         } finally {
-            session.remainingNanos = Math.max(0L, session.remainingNanos - (System.nanoTime() - started));
+            session.remainingNanos = Math.max(0L, session.remainingNanos - (PlanningCancellation.witnessClockNanos() - started));
         }
     }
 
