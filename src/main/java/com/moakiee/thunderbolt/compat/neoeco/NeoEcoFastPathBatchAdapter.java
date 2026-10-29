@@ -69,30 +69,41 @@ public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
 
         @Override
         public long pushBatch(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft, BatchJobView job) {
-            if (maxCraft <= 0L) {
-                return 0L;
-            }
-            var prepared = NeoEcoAllocatedApi.prepareAllocated(
-                    delegate, details, oneCopy, maxCraft, job.level(), job.craftingId());
-            if (prepared == null) {
-                return pushSingleCopy(details, oneCopy, maxCraft, job.craftingId());
-            }
+            var prepared = prepareBatch(details, oneCopy, maxCraft, job);
+            return prepared == null ? Math.max(0L, maxCraft) : prepared.push(maxCraft);
+        }
 
-            long offered = prepared.craftCount();
-            try {
-                boolean accepted = prepared.submit();
-                if (accepted) {
-                    return maxCraft - offered;
+        @Override
+        public com.moakiee.thunderbolt.api.crafting.batch.PreparedBatch prepareBatch(
+                IPatternDetails details, KeyCounter[] oneCopy, long maxCraft, BatchJobView job) {
+            if (maxCraft <= 0L || job == null) return null;
+            var template = copyInputs(oneCopy);
+            var prepared = NeoEcoAllocatedApi.prepareAllocated(
+                    delegate, details, copyInputs(template), maxCraft, job.level(), job.craftingId());
+            long capacity = prepared == null ? 1L : prepared.craftCount();
+            return new com.moakiee.thunderbolt.api.crafting.batch.PreparedBatch() {
+                private boolean used;
+                public long capacity() { return capacity; }
+                public long push(long offered) {
+                    if (used) throw new IllegalStateException("Batch already submitted");
+                    used = true;
+                    if (offered <= 0L) return 0L;
+                    if (offered > maxCraft) throw new IllegalArgumentException("Offer exceeds preparation");
+                    var current = offered < capacity ? NeoEcoAllocatedApi.prepareAllocated(
+                            delegate, details, copyInputs(template), offered, job.level(), job.craftingId()) : prepared;
+                    if (current != null && current.submit()) return offered - current.craftCount();
+                    return pushSingleCopy(details, template, offered, job.craftingId());
                 }
-            } catch (NeoEcoAllocatedApi.IndeterminateBatchException uncertain) {
-                // Ownership is uncertain: do not refund the prepared inputs and risk duplication.
-                appeng.core.AELog.error(
-                        "[thunderbolt] NeoECO FastPath acceptance is indeterminate; retaining CPU output accounting for %d crafts.",
-                        offered,
-                        uncertain);
-                return maxCraft - offered;
+            };
+        }
+
+        private static KeyCounter[] copyInputs(KeyCounter[] source) {
+            var result = new KeyCounter[source.length];
+            for (int i = 0; i < source.length; i++) {
+                result[i] = new KeyCounter();
+                result[i].addAll(source[i]);
             }
-            return pushSingleCopy(details, oneCopy, maxCraft, job.craftingId());
+            return result;
         }
 
         private long pushSingleCopy(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft,
