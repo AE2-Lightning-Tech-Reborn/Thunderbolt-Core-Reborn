@@ -22,16 +22,13 @@ class IndexedStorageFastPathTest {
     private static final BigInteger MAX_63 = BigInteger.ONE.shiftLeft(63).subtract(BigInteger.ONE);
     private static final IActionSource SOURCE = IActionSource.empty();
 
-    private static Object previousKeyTypes;
-
-    @BeforeAll
-    static void bootstrap() throws Exception {
-        BigIndexedStorageTest.bootstrap();
-        previousKeyTypes = IndexedCellTestFixtures.installKeyTypes();
-    }
+    private static AutoCloseable keyRegistry;
 
     @org.junit.jupiter.api.AfterAll
-    static void restoreKeyTypes() throws Exception { IndexedCellTestFixtures.restoreKeyTypes(previousKeyTypes); }
+    static void closeKeyRegistry() throws Exception { keyRegistry.close(); }
+
+    @BeforeAll
+    static void bootstrap() { BigIndexedStorageTest.bootstrap(); keyRegistry = IndexedCellTestFixtures.openKeyRegistry(); }
 
     private static RegistryAccess registries() {
         return RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
@@ -162,7 +159,7 @@ class IndexedStorageFastPathTest {
         var b = variant(2);
         inv.insert(a, 64, Actionable.MODULATE, SOURCE);
         inv.storage().insert(b, 16, Actionable.MODULATE);
-        var summary = stack.getTag();
+        var summary = stack.getTag() == null ? null : stack.getTag().copy();
         assertEquals(32, inv.insert(b, 32, Actionable.SIMULATE, SOURCE));
         assertEquals(32, inv.extract(a, 32, Actionable.SIMULATE, SOURCE));
         assertEquals(summary, stack.getTag());
@@ -203,7 +200,7 @@ class IndexedStorageFastPathTest {
         assertEquals(0, inv.insert(AEItemKey.of(Items.GOLD_INGOT), 1, Actionable.SIMULATE, SOURCE));
         assertEquals(0, callbacks[0]);
         assertEquals(4, inv.insert(allowed, 4, Actionable.MODULATE, SOURCE));
-        var before = stack.getTag();
+        var before = stack.getTag() == null ? null : stack.getTag().copy();
         assertEquals(4, inv.extract(allowed, 64, Actionable.SIMULATE, SOURCE));
         assertEquals(before, stack.getTag());
         assertEquals(4, inv.storage().getAmount(allowed));
@@ -701,7 +698,7 @@ class IndexedStorageFastPathTest {
         var type = new AEKeyType(new net.minecraft.resources.ResourceLocation("test:energy"),
                 AEItemKey.class, net.minecraft.network.chat.Component.literal("Test energy")) {
             public int getAmountPerByte() { return units[0]; }
-            public AEKey loadKeyFromTag(net.minecraft.nbt.CompoundTag tag) { return null; }
+            public AEKey loadKeyFromTag(CompoundTag tag) { throw new UnsupportedOperationException(); }
             public AEKey readFromPacket(net.minecraft.network.FriendlyByteBuf input) { return null; }
         };
         var tracker = new ByteTracker(() -> 1);

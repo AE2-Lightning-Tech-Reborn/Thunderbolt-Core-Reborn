@@ -90,8 +90,8 @@ final class ExactPlanPreview {
         Map<AEKey, BigInteger> emitted = new HashMap<>();
         plan.usedStock().forEach((key, value) -> {
             if (emittable.contains(key)) {
-                // Virtual stock also includes requester-allowed physical inventory. Preserve the
-                // exact remainder even when the emitter shortfall is wider than a long.
+                // Match executable plans: virtual stock includes the physical inventory that the
+                // requester is allowed to use. Keep the remainder exact even beyond long range.
                 BigInteger fromStock = value.min(BigInteger.valueOf(usableStock.applyAsLong(key)));
                 if (fromStock.signum() > 0) used.merge(key, fromStock, BigInteger::add);
                 BigInteger fromEmitter = value.subtract(fromStock);

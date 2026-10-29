@@ -7,6 +7,12 @@ import org.junit.jupiter.api.Test;
 
 class OptionalMixinSelectorTest {
     @Test
+    void craftingTreeTailAdaptationOnlyRunsWithTheAddon() {
+        assertFalse(OptionalMixinSelector.shouldApply("Ae2CraftingTreeCompatibilityMixin", ignored -> false));
+        assertTrue(OptionalMixinSelector.shouldApply("Ae2CraftingTreeCompatibilityMixin", "ae2ct"::equals));
+    }
+
+    @Test
     void skipsAdvancedAeTargetsWhenAddonIsMissing() {
         assertFalse(OptionalMixinSelector.shouldApply(
                 "com.moakiee.thunderbolt.mixin.compat.advancedae.AdvCraftingCpuLogicBatchMixin",
@@ -40,5 +46,23 @@ class OptionalMixinSelectorTest {
                 "ExtendedCraftingCpuInsertMixin", "advanced_ae"::equals));
         assertTrue(OptionalMixinSelector.shouldApply(
                 "ExtendedCraftingCpuInsertMixin", ignored -> false));
+    }
+
+    @Test
+    void nbtCopyWrappersStandDownForLithiumAndForgePortsBeforeInjection() {
+        for (String owner : new String[] {"radium", "lithium", "canary"}) {
+            assertFalse(OptionalMixinSelector.shouldApply(
+                    "com.moakiee.thunderbolt.mixin.platform.objects.CompoundTagCopyMixin", owner::equals));
+            assertFalse(OptionalMixinSelector.shouldApply("ListTagCopyMixin", owner::equals));
+            assertTrue(OptionalMixinSelector.shouldApply("CraftingCalculationMixin", owner::equals));
+            assertTrue(OptionalMixinSelector.shouldApply("CraftingCpuLogicBatchMixin", owner::equals));
+        }
+    }
+
+    @Test
+    void nbtCopyWrappersRemainAvailableWithoutAConflictingMod() {
+        assertTrue(OptionalMixinSelector.shouldApply("CompoundTagCopyMixin", ignored -> false));
+        assertTrue(OptionalMixinSelector.shouldApply("ListTagCopyMixin", "gtlcore"::equals));
+        assertTrue(OptionalMixinSelector.shouldApply("CompoundTagCopyMixin", "modernfix"::equals));
     }
 }

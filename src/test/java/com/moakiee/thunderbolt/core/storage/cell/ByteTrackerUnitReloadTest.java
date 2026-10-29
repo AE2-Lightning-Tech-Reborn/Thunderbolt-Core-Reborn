@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.AEKeyType;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -21,7 +20,7 @@ class ByteTrackerUnitReloadTest {
         }
 
         @Override public int getAmountPerByte() { return units; }
-        @Override public AEKey loadKeyFromTag(net.minecraft.nbt.CompoundTag tag) { return null; }
+        @Override public AEKey loadKeyFromTag(net.minecraft.nbt.CompoundTag tag) { throw new UnsupportedOperationException(); }
         @Override public AEKey readFromPacket(FriendlyByteBuf input) { throw new UnsupportedOperationException(); }
     }
 

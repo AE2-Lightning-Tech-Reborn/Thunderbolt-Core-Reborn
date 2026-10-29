@@ -183,9 +183,7 @@ public final class EjectEndpointIndex implements EjectCapabilityRegistry.Runtime
                 .computeIfAbsent(endpoint.interceptFace(), ignored -> new ArrayList<>())
                 .add(entry);
         if (persist && savedData != null) {
-            savedData.add(new EjectRegistrationSavedData.PersistentRegistration(
-                    endpoint.interceptDimension(), endpoint.interceptPos(), endpoint.interceptFace(),
-                    endpoint.hostDimension(), endpoint.hostPos()));
+            savedData.add(persistentRegistration(endpoint));
         }
         return entry;
     }
@@ -197,14 +195,26 @@ public final class EjectEndpointIndex implements EjectCapabilityRegistry.Runtime
         var faceMap = dimensionMap.get(endpoint.interceptPos().asLong());
         if (faceMap == null) return;
         var entries = faceMap.get(endpoint.interceptFace());
-        if (entries != null) entries.remove(target);
-        if (entries != null && entries.isEmpty()) faceMap.remove(endpoint.interceptFace());
+        // An unregister/re-register cycle leaves old handles alive. They no longer own
+        // any entry and must not remove a replacement's persisted registration.
+        if (entries == null || !entries.remove(target)) return;
+        if (entries.isEmpty()) faceMap.remove(endpoint.interceptFace());
         if (faceMap.isEmpty()) dimensionMap.remove(endpoint.interceptPos().asLong());
         if (dimensionMap.isEmpty()) registrations.remove(endpoint.interceptDimension());
         if (persist && savedData != null) {
-            savedData.removeByIntercept(
-                    endpoint.interceptDimension(), endpoint.interceptPos(), endpoint.interceptFace());
+            var registration = persistentRegistration(endpoint);
+            // Multiple handles can represent one persisted endpoint. Other hosts on the
+            // same face, and duplicate handles for this host, retain their registrations.
+            if (entries.stream().noneMatch(entry -> registration.equals(persistentRegistration(entry.endpoint)))) {
+                savedData.remove(registration);
+            }
         }
+    }
+
+    private static EjectRegistrationSavedData.PersistentRegistration persistentRegistration(EjectEndpoint endpoint) {
+        return new EjectRegistrationSavedData.PersistentRegistration(
+                endpoint.interceptDimension(), endpoint.interceptPos(), endpoint.interceptFace(),
+                endpoint.hostDimension(), endpoint.hostPos());
     }
 
     @Nullable

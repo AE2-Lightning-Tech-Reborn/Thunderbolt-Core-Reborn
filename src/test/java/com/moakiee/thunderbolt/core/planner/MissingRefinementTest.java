@@ -32,6 +32,30 @@ class MissingRefinementTest {
     }
 
     @Test
+    void batchedSupplementSpendsUnreservedOriginalStockAcrossLeafAlternatives() {
+        for (long amount : new long[]{2L, 1_000_000_000_000L}) {
+            var graph = CraftGraph.<String>builder().stock("spare", 1)
+                    .pattern("T", 1, List.of(CraftInput.of("A", 1), CraftInput.of("B", 1)))
+                    .pattern("T", 1, List.of(CraftInput.of("spare", 1), CraftInput.of("B", 1)))
+                    .build();
+            var policy = ConservativeReplenishment.compile(graph, List.of("T", "A", "B", "spare"),
+                    Map.of("T", graph.patternsFor("T")));
+            var supply = Map.of("A", amount - 1, "B", amount);
+            var budget = BoundedIntegerLinearSolver.WorkBudget.bounded(64, 256, 100_000_000L);
+            var ready = policy.planBatchAware("T", amount, supply, budget);
+            assertNotNull(ready);
+            assertTrue(ready.feasible());
+            assertEquals(Map.of("A", amount - 1, "B", amount, "spare", 1L), ready.usedStock());
+            assertEquals(List.of(amount - 1, 1L), graph.patternsFor("T").stream()
+                    .map(pattern -> ready.firings().get(pattern)).toList());
+            var replay = MaterialDagReplay.tryPlan(graph.withAdditionalStock(supply), ready.firings(), "T", amount);
+            assertNotNull(replay);
+            assertTrue(replay.feasible());
+            assertDoesNotThrow(PlanningCancellation::check);
+        }
+    }
+
+    @Test
     void refinedRandomDagsRemainExecutableWhenReplannedWithTinyBudgets() {
         var random = new Random(730917L);
         for (int sample = 0; sample < 100; sample++) {

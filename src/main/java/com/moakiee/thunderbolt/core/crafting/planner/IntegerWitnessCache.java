@@ -14,13 +14,25 @@ final class IntegerWitnessCache {
     BoundedIntegerLinearSolver.Result solve(int variables,
             List<BoundedIntegerLinearSolver.Constraint> constraints, long maximum, int nodes,
             BoundedIntegerLinearSolver.WorkBudget budget) {
+        return solve(variables, constraints, maximum, nodes, budget, false);
+    }
+
+    BoundedIntegerLinearSolver.Result tryPropagate(int variables,
+            List<BoundedIntegerLinearSolver.Constraint> constraints, long maximum, int nodes,
+            BoundedIntegerLinearSolver.WorkBudget budget) {
+        return solve(variables, constraints, maximum, nodes, budget, true);
+    }
+
+    private BoundedIntegerLinearSolver.Result solve(int variables,
+            List<BoundedIntegerLinearSolver.Constraint> constraints, long maximum, int nodes,
+            BoundedIntegerLinearSolver.WorkBudget budget, boolean propagationOnly) {
         PlanningCancellation.check();
         if (constraints == null)
-            return BoundedIntegerLinearSolver.solve(variables, null, maximum, nodes, budget);
+            return solveUncached(variables, null, maximum, nodes, budget, propagationOnly);
         long cells = (long) constraints.size() * (variables + 1L);
         if (variables <= 0 || maximum < 0 || nodes <= 0 || cells > MAX_CELLS
                 || constraints.stream().anyMatch(row -> row == null || row.coefficients().length != variables))
-            return BoundedIntegerLinearSolver.solve(variables, constraints, maximum, nodes, budget);
+            return solveUncached(variables, constraints, maximum, nodes, budget, propagationOnly);
         if (!budget.tryConsume(cells)) return new BoundedIntegerLinearSolver.Result(
                 BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED, null, 0);
         var model = new Model(variables, constraints, maximum, nodes);
@@ -31,9 +43,17 @@ final class IntegerWitnessCache {
             PlanningCancellation.check();
             return new BoundedIntegerLinearSolver.Result(BoundedIntegerLinearSolver.Status.SOLVED, witness, 0);
         }
-        var result = BoundedIntegerLinearSolver.solve(variables, constraints, maximum, nodes, budget);
-        if (result.solved() && witnesses.size() < MAX_ENTRIES) witnesses.put(model, result.values());
+        var result = solveUncached(variables, constraints, maximum, nodes, budget, propagationOnly);
+        if (result != null && result.solved() && witnesses.size() < MAX_ENTRIES) witnesses.put(model, result.values());
         return result;
+    }
+
+    private static BoundedIntegerLinearSolver.Result solveUncached(int variables,
+            List<BoundedIntegerLinearSolver.Constraint> constraints, long maximum, int nodes,
+            BoundedIntegerLinearSolver.WorkBudget budget, boolean propagationOnly) {
+        return propagationOnly
+                ? BoundedIntegerLinearSolver.tryPropagate(variables, constraints, maximum, nodes, budget)
+                : BoundedIntegerLinearSolver.solve(variables, constraints, maximum, nodes, budget);
     }
 
     private static final class Model {

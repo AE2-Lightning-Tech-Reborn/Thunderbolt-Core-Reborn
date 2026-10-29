@@ -1,12 +1,16 @@
 package com.moakiee.thunderbolt.core.crafting.algorithm;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 import org.junit.jupiter.api.Test;
@@ -16,6 +20,73 @@ import net.minecraft.resources.ResourceLocation;
 import com.moakiee.thunderbolt.api.crafting.PlanningExitException;
 
 class PlanningAttemptMonitorTest {
+    @Test
+    void unmanagedInterruptStillReportsNativeCancellation() throws Exception {
+        var outcome = new CompletableFuture<Throwable>();
+        var worker = new Thread(() -> {
+            try (var monitor = PlanningAttemptMonitor.startForTest(
+                    new ResourceLocation("thunderbolt_test", "native_cancel"),
+                    "native cancellation test", 0, 5_000, 1_000, 5_000)) {
+                Thread.currentThread().interrupt();
+                try {
+                    monitor.checkpoint();
+                    outcome.complete(null);
+                } catch (Throwable failure) {
+                    outcome.complete(failure);
+                }
+            } catch (Throwable failure) {
+                outcome.completeExceptionally(failure);
+            }
+        });
+        worker.start();
+
+        var failure = outcome.get(2, TimeUnit.SECONDS);
+        worker.join(2_000L);
+        assertInstanceOf(CancellationException.class, failure);
+        assertFalse(worker.isAlive());
+    }
+
+    @Test
+    void cancellationPublishedAtInterruptObservationIsStillACooperativeExit() throws Exception {
+        var monitorReady = new AtomicReference<PlanningAttemptMonitor>();
+        var interruptObservation = new AtomicBoolean();
+        var interruptedAtExit = new AtomicBoolean();
+        var outcome = new CompletableFuture<Throwable>();
+        var worker = new Thread(() -> {
+            try (var monitor = PlanningAttemptMonitor.startForTest(
+                    new ResourceLocation("thunderbolt_test", "cancel_at_interrupt_read"),
+                    "cancellation publication race test", 0, 5_000, 1_000, 5_000)) {
+                monitorReady.set(monitor);
+                interruptObservation.set(true);
+                try {
+                    monitor.checkpoint();
+                    outcome.complete(null);
+                } catch (Throwable failure) {
+                    interruptedAtExit.set(Thread.currentThread().isInterrupted());
+                    outcome.complete(failure);
+                }
+            } catch (Throwable failure) {
+                outcome.completeExceptionally(failure);
+            }
+        }) {
+            @Override
+            public boolean isInterrupted() {
+                // Place cancellation exactly at the interrupt read, after any earlier state reads.
+                if (interruptObservation.compareAndSet(true, false)) {
+                    monitorReady.get().requestExitForExternalCancellation();
+                }
+                return super.isInterrupted();
+            }
+        };
+        worker.start();
+
+        var failure = outcome.get(2, TimeUnit.SECONDS);
+        worker.join(2_000L);
+        assertInstanceOf(PlanningExitException.class, failure);
+        assertTrue(interruptedAtExit.get());
+        assertFalse(worker.isAlive());
+    }
+
     @Test
     void budgetExpiryInterruptAndIsolationAreDistinctStages() throws Exception {
         var engineId = new ResourceLocation("thunderbolt_test", "slow");

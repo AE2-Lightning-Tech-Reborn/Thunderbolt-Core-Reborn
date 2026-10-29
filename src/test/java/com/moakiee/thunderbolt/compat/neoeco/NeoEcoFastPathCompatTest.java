@@ -30,6 +30,18 @@ class NeoEcoFastPathCompatTest {
     @Test void absentPlatformApiRetainsOrdinaryDispatch() {
         assertNull(NeoEcoFastPathCompat.loadAdapter(getClass().getClassLoader()));
     }
+
+    @Test void deniedOptionalApiIsDeclinedBeforeTheFirstCpuDispatch() {
+        var loader = new ClassLoader(getClass().getClassLoader()) {
+            @Override protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+                if (name.startsWith("cn.dancingsnow.neoecoae.")) throw new SecurityException("denied optional API");
+                return super.loadClass(name, resolve);
+            }
+        };
+        assertNull(NeoEcoBatchApi.load(loader));
+        assertNull(NeoEcoAllocatedApi.load(loader));
+        assertNull(NeoEcoFastPathCompat.loadAdapter(loader));
+    }
     @Test void oldOrAbsentApiIsDeclinedBeforeTheFirstCpuDispatch() {
         for (var missing : new String[] {"ECOFastPathFacade", "ECOFastPathDispatchProvider", "ECOFastPathFacade$EnergyAccount"}) {
             var loader = new ClassLoader(getClass().getClassLoader()) {

@@ -100,7 +100,7 @@ final class NeoEcoBatchApi {
 
     static @Nullable NeoEcoBatchApi load(ClassLoader loader) {
         try { return new NeoEcoBatchApi(loader); }
-        catch (ReflectiveOperationException | LinkageError unavailable) { return null; }
+        catch (ReflectiveOperationException | LinkageError | SecurityException unavailable) { return null; }
     }
 
     boolean hasCapacity(Object provider) { return capacityType.isInstance(provider); }

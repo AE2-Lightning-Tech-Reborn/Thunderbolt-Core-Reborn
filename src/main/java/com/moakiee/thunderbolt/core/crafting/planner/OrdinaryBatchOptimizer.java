@@ -21,7 +21,13 @@ final class OrdinaryBatchOptimizer {
 
     /** Optional route search must not depend on provider registration order. */
     static <K> void sortRoutes(List<CraftPattern<K>> routes) {
-        routes.sort((left, right) -> right.toString().compareTo(left.toString()));
+        if (routes.size() < 2) return;
+        var descriptions = new IdentityHashMap<CraftPattern<K>, String>();
+        for (var route : routes) {
+            PlanningCancellation.check();
+            descriptions.computeIfAbsent(route, CraftPattern::toString);
+        }
+        routes.sort((left, right) -> descriptions.get(right).compareTo(descriptions.get(left)));
     }
 
     static <K> CraftPlan<K> tryImprove(CraftGraph<K> graph, K target, long amount, CraftPlan<K> incumbent, List<K> keyOrder,

@@ -137,6 +137,20 @@ public final class CpSatRankedFlowSolver<K> {
     }
 
     private Result<K> solve() {
+        var tail = CpSatUnitTail.prepare(graph, target, targetAmount, 512);
+        if (tail != null) {
+            Result<K> core;
+            if (tail.amount() == 0L) {
+                core = new Result<>(Status.SOLVED, new CraftPlan<>(true, true, Map.of(), Map.of(),
+                        Map.of(), Map.of(), Map.of(), 0, false), 0L);
+            } else {
+                // Keep the original calculation's session identity and shared refinement budget.
+                var reduced = new CpSatRankedFlowSolver<>(graph, tail.target(), tail.amount(), session);
+                core = reduced.solve();
+                weightedDomainLimited |= reduced.weightedDomainLimited;
+            }
+            return new Result<>(core.status, core.plan == null ? null : tail.expand(core.plan), core.branches);
+        }
         Result<K> sparse = CpSatSparseDag.trySolve(graph, target, targetAmount, 1_000_000L);
         if (sparse != null) return sparse;
         Compilation<K> compilation = compile();
@@ -243,27 +257,47 @@ public final class CpSatRankedFlowSolver<K> {
         if (compilation.patterns.size() < 512 || compilation.conversionCycles.isEmpty())
             return null;
         int[] producers = new int[compilation.items.size()];
+        var itemIndices = new java.util.HashMap<K, Integer>();
+        for (int i = 0; i < compilation.items.size(); i++) itemIndices.put(compilation.items.get(i), i);
+        int[] inputs = new int[compilation.patterns.size()];
         Arrays.fill(producers, -1);
-        for (var pattern : compilation.patterns) {
+        for (int r = 0; r < compilation.patterns.size(); r++) {
+            PlanningCancellation.check();
+            var pattern = compilation.patterns.get(r);
             if (pattern.executionCost() != 1 || pattern.exactOutputAmount().compareTo(BigInteger.ONE) != 0
                     || !pattern.byproducts().isEmpty() || pattern.inputs().size() != 1
                     || pattern.inputs().get(0).exactAmount().compareTo(BigInteger.ONE) != 0) return null;
-            int output = compilation.items.indexOf(pattern.output());
+            int output = itemIndices.getOrDefault(pattern.output(), -1);
             if (output < 0 || producers[output] >= 0) return null;
-            producers[output] = compilation.patterns.indexOf(pattern);
+            producers[output] = r;
             var input = pattern.inputs().get(0);
             if (input.returned() || input.remainder() != null || input.reusableStockSource() != null
                     || input.exactAmount().compareTo(BigInteger.ONE) != 0
-                    || compilation.items.indexOf(input.key()) < 0) return null;
+                    || !itemIndices.containsKey(input.key())) return null;
+            inputs[r] = itemIndices.get(input.key());
         }
-        int targetIndex = compilation.items.indexOf(target);
+        int targetIndex = itemIndices.getOrDefault(target, -1);
         if (targetIndex < 0) return null;
         long[] stock = compilation.stocks.clone();
         long[] firings = new long[compilation.patterns.size()];
         long[] gross = new long[compilation.items.size()];
         long[] used = new long[compilation.items.size()];
-        if (!resolveUnitDemand(compilation, targetIndex, targetAmount, producers,
-                stock, firings, gross, used, new boolean[compilation.items.size()])) return null;
+        boolean[] active = new boolean[compilation.items.size()];
+        int currentItem = targetIndex;
+        long amount = targetAmount;
+        while (amount > 0L) {
+            PlanningCancellation.check();
+            if (Sat.isSaturated(amount) || !add(gross, currentItem, amount)) return null;
+            long fromStock = Math.min(stock[currentItem], amount);
+            stock[currentItem] -= fromStock;
+            if (!add(used, currentItem, fromStock)) return null;
+            amount -= fromStock;
+            if (amount == 0L) break;
+            int recipe = producers[currentItem];
+            if (recipe < 0 || active[currentItem] || !add(firings, recipe, amount)) return null;
+            active[currentItem] = true;
+            currentItem = inputs[recipe];
+        }
         Map<CraftPattern<K>, Long> firingMap = new IdentityHashMap<>();
         for (int recipe = 0; recipe < firings.length; recipe++) {
             if (firings[recipe] > 0L) firingMap.put(compilation.patterns.get(recipe), firings[recipe]);
@@ -276,25 +310,6 @@ public final class CpSatRankedFlowSolver<K> {
         }
         return new CraftPlan<>(true, true, Map.copyOf(firingMap), Map.copyOf(usedStock), Map.of(),
                 Map.of(), Map.copyOf(grossDemand), compilation.items.size(), false);
-    }
-
-    private boolean resolveUnitDemand(Compilation<K> compilation, int item, long amount,
-                                      int[] producers, long[] stock, long[] firings,
-                                      long[] gross, long[] used, boolean[] active) {
-        if (amount <= 0L || Sat.isSaturated(amount) || !add(gross, item, amount)) return false;
-        long fromStock = Math.min(stock[item], amount);
-        stock[item] -= fromStock;
-        if (!add(used, item, fromStock)) return false;
-        long remaining = amount - fromStock;
-        if (remaining == 0L) return true;
-        int recipe = producers[item];
-        if (recipe < 0 || active[item] || !add(firings, recipe, remaining)) return false;
-        active[item] = true;
-        int input = compilation.items.indexOf(compilation.patterns.get(recipe).inputs().get(0).key());
-        boolean resolved = input >= 0 && resolveUnitDemand(compilation, input, remaining, producers,
-                stock, firings, gross, used, active);
-        active[item] = false;
-        return resolved;
     }
 
     /** A zero-Missing witness bounds every better plan's positive weighted firing cost. */
@@ -350,12 +365,14 @@ public final class CpSatRankedFlowSolver<K> {
         // Direct callers have no router deadline. Never let a native proof run without a bound.
         long remainingNanos = PlanningCancellation.remainingNanos(
                 PlanningCancellation.checkpointIfBound() ? Long.MAX_VALUE : 3_000_000_000L);
-        remainingNanos -= remainingNanos / 4L; // Leave time to certify the native incumbent.
         if (remainingNanos <= 0L) return Candidate.status(Status.UNKNOWN);
 
         try (var cutoff = PlanningCancellation.limitOptionalWork(remainingNanos)) {
+            // Certification shares the full stage deadline. Only the native call receives the
+            // shorter slice; applying it to the scope would discard an incumbent at native expiry.
+            long nativeNanos = remainingNanos - remainingNanos / 4L;
             return solveCandidateBounded(compilation, missingCaps, cuts, enforceStartup, blocks,
-                    witnessBounds, remainingNanos);
+                    witnessBounds, nativeNanos);
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             return Candidate.status(Status.UNKNOWN);
         }

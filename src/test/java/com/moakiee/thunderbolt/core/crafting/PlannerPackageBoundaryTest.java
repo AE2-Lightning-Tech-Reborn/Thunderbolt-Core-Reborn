@@ -56,7 +56,7 @@ class PlannerPackageBoundaryTest {
                 "if (choice.kind() == PlanningChoice.Kind.VANILLA)");
         int isolatedExecution = source.indexOf("PlanningCandidateExecutor.execute(");
         assertTrue(vanillaBranch >= 0);
-        assertTrue(source.contains("ICraftingPlan result = original.call(instance);"));
+        assertTrue(source.contains("ICraftingPlan result = original.call();"));
         assertTrue(isolatedExecution > vanillaBranch,
                 "vanilla must return through AE2 before engine isolation begins");
         var vanillaSource = source.substring(vanillaBranch, isolatedExecution);

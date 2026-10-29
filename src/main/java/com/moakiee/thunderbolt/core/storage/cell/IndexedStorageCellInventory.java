@@ -74,8 +74,8 @@ public final class IndexedStorageCellInventory implements StorageCell, com.moaki
         long accepted = unlimited ? amount
                 : Math.min(amount, byteTracker.computeMaxInsertable(key.getType(), !storage.containsKey(key)));
         if (accepted <= 0) return 0;
-        accepted = storage.insert(key, accepted, Actionable.SIMULATE);
-        if (accepted == 0 || mode == Actionable.SIMULATE) return accepted;
+        // Finite legacy cells also have a per-key 126-bit encoding boundary.
+        if (mode == Actionable.SIMULATE) return storage.insert(key, accepted, mode);
 
         boolean projectedTotal = storage.isTypeTotalSaturated(key.getType());
         accepted = storage.insert(key, accepted, Actionable.MODULATE);

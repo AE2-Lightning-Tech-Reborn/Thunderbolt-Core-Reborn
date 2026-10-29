@@ -91,6 +91,17 @@ final class BoundedIntegerLinearSolver {
             long maxValue,
             int nodeBudget,
             WorkBudget workBudget) {
+        return solve(variableCount, constraints, maxValue, nodeBudget, workBudget, false);
+    }
+
+    /** Exact domain propagation only; null means a search is still needed, never infeasibility. */
+    static Result tryPropagate(int variableCount, List<Constraint> constraints, long maxValue,
+            int nodeBudget, WorkBudget workBudget) {
+        return solve(variableCount, constraints, maxValue, nodeBudget, workBudget, true);
+    }
+
+    private static Result solve(int variableCount, List<Constraint> constraints, long maxValue,
+            int nodeBudget, WorkBudget workBudget, boolean propagationOnly) {
         if (variableCount <= 0 || constraints == null || maxValue < 0 || nodeBudget <= 0) {
             return result(Status.INVALID_INPUT, 0);
         }
@@ -175,6 +186,7 @@ final class BoundedIntegerLinearSolver {
             return new Result(Status.SOLVED, reduced.lower(), 1);
         }
         if (activeCount == 0) return result(Status.INFEASIBLE, 1);
+        if (propagationOnly) return null;
         variableCount = activeCount;
         int positiveMinimums = 0;
         for (ExactConstraint row : base) if (row.minimum.signum() > 0) positiveMinimums++;

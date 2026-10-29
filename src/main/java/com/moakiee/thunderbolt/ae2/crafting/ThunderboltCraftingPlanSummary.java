@@ -1,5 +1,6 @@
 package com.moakiee.thunderbolt.ae2.crafting;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,30 +55,33 @@ public final class ThunderboltCraftingPlanSummary {
             var summary = new CraftingPlanSummary(ExactPlanReport.project(exact.bytes()), true, List.copyOf(entries));
             ExactPlanReports.attach(summary, exact);
             Ae2CraftingTreeSummaryBridge.attach(summary, plan);
+            GtlCraftingPlanSummaryBridge.attach(summary, plan);
             return summary;
         }
         var stats = new HashMap<AEKey, KeyStats>();
 
         for (var entry : plan.usedItems()) {
-            mapping(stats, entry.getKey()).stored += entry.getLongValue();
+            var keyStats = mapping(stats, entry.getKey());
+            keyStats.stored = keyStats.stored.add(BigInteger.valueOf(entry.getLongValue()));
         }
         for (var entry : plan.missingItems()) {
             var keyStats = mapping(stats, entry.getKey());
             if (plan.simulation()) {
-                keyStats.missing += entry.getLongValue();
+                keyStats.missing = keyStats.missing.add(BigInteger.valueOf(entry.getLongValue()));
             } else {
-                keyStats.stored += entry.getLongValue();
+                keyStats.stored = keyStats.stored.add(BigInteger.valueOf(entry.getLongValue()));
             }
         }
         for (var entry : plan.emittedItems()) {
             var keyStats = mapping(stats, entry.getKey());
-            keyStats.stored += entry.getLongValue();
-            keyStats.crafting += entry.getLongValue();
+            keyStats.stored = keyStats.stored.add(BigInteger.valueOf(entry.getLongValue()));
+            keyStats.crafting = keyStats.crafting.add(BigInteger.valueOf(entry.getLongValue()));
         }
         for (var patternEntry : plan.patternTimes().entrySet()) {
             for (var output : patternEntry.getKey().getOutputs()) {
-                mapping(stats, output.what()).crafting +=
-                        output.amount() * patternEntry.getValue();
+                var keyStats = mapping(stats, output.what());
+                keyStats.crafting = keyStats.crafting.add(BigInteger.valueOf(output.amount())
+                        .multiply(BigInteger.valueOf(patternEntry.getValue())));
             }
         }
 
@@ -85,13 +89,24 @@ public final class ThunderboltCraftingPlanSummary {
         for (var entry : stats.entrySet()) {
             var value = entry.getValue();
             entries.add(new CraftingPlanSummaryEntry(
-                    entry.getKey(), value.missing, value.stored, value.crafting));
+                    entry.getKey(), ExactPlanReport.project(value.missing),
+                    ExactPlanReport.project(value.stored), ExactPlanReport.project(value.crafting)));
         }
         Collections.sort(entries);
 
         var summary = new CraftingPlanSummary(
                 plan.bytes(), plan.simulation(), List.copyOf(entries));
+        if (stats.values().stream().anyMatch(value -> value.missing.bitLength() > 63
+                || value.stored.bitLength() > 63 || value.crafting.bitLength() > 63)) {
+            var amounts = new HashMap<AEKey, ExactPlanReport.Amounts>();
+            stats.forEach((key, value) -> amounts.put(key,
+                    new ExactPlanReport.Amounts(value.stored, value.missing, value.crafting)));
+            // Display metadata only: do not turn an executable plan into a preview-only plan.
+            ExactPlanReports.attach(summary, new ExactPlanReport(
+                    BigInteger.valueOf(plan.bytes()), amounts, false, false));
+        }
         Ae2CraftingTreeSummaryBridge.attach(summary, plan);
+        GtlCraftingPlanSummaryBridge.attach(summary, plan);
         return summary;
     }
 
@@ -101,8 +116,8 @@ public final class ThunderboltCraftingPlanSummary {
     }
 
     private static final class KeyStats {
-        private long missing;
-        private long stored;
-        private long crafting;
+        private BigInteger missing = BigInteger.ZERO;
+        private BigInteger stored = BigInteger.ZERO;
+        private BigInteger crafting = BigInteger.ZERO;
     }
 }

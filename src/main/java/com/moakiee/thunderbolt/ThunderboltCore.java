@@ -22,6 +22,7 @@ import org.spongepowered.asm.mixin.MixinEnvironment;
 import com.moakiee.thunderbolt.api.crafting.CraftingPlanningEngines;
 import com.moakiee.thunderbolt.api.crafting.ICraftingPlanningService;
 import com.moakiee.thunderbolt.api.eject.EjectCapabilityRegistry;
+import com.moakiee.thunderbolt.compat.gtl.GtlCompat;
 import com.moakiee.thunderbolt.config.ThunderboltCommonConfig;
 import com.moakiee.thunderbolt.core.crafting.algorithm.CraftingPlanningService;
 import com.moakiee.thunderbolt.core.crafting.algorithm.ThunderboltMenus;
@@ -53,6 +54,7 @@ public final class ThunderboltCore {
                 ModConfig.Type.COMMON, ThunderboltCommonConfig.SPEC, "thunderbolt-common.toml");
         MinecraftForge.EVENT_BUS.addListener(this::onServerStarting);
         MinecraftForge.EVENT_BUS.addListener(this::onServerStopped);
+        GtlCompat.logStartupDecision(LOGGER);
         LOGGER.info("[Thunderbolt Core Reborn] initialized");
     }
 

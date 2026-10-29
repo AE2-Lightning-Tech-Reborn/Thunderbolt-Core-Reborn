@@ -26,6 +26,15 @@ public final class NeoEcoFastPathCompat {
         @Override
         protected Optional<Method> computeValue(Class<?> providerType) {
             try {
+                var facade = Class.forName("cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade",
+                        false, providerType.getClassLoader());
+                var push = facade.getMethod("pushPatternForJob", ICraftingProvider.class, IPatternDetails.class,
+                        KeyCounter[].class, UUID.class);
+                if (push.getReturnType() == boolean.class) return Optional.of(push);
+            } catch (ReflectiveOperationException | LinkageError unavailable) {
+                // Earlier Forge releases expose job identity on the pattern bus itself.
+            }
+            try {
                 var bus = Class.forName(
                         "cn.dancingsnow.neoecoae.blocks.entity.crafting.ECOCraftingPatternBusBlockEntity",
                         false, providerType.getClassLoader());
@@ -37,9 +46,6 @@ public final class NeoEcoFastPathCompat {
             }
         }
     };
-    private static final String ADAPTER_CLASS =
-            "com.moakiee.thunderbolt.compat.neoeco.NeoEcoFastPathBatchAdapter";
-
     private NeoEcoFastPathCompat() {
     }
 
@@ -64,9 +70,14 @@ public final class NeoEcoFastPathCompat {
         }
     }
 
-    /** Forge full-virtual preparation owns its native context and atomic dispatch callback. */
+    /** Exact allocation; the calling CPU owns its input/output reservation and settlement. */
     public static @Nullable ExactBatch prepareExact(ICraftingProvider provider, IPatternDetails pattern,
             KeyCounter[] oneCopy, java.math.BigInteger requested, Level level, UUID craftingId) {
+        var allocated = NeoEcoAllocatedApi.forProvider(provider);
+        if (allocated != null && allocated.hasExactApi()) {
+            // A modern decline is authoritative; never bypass it through an older protocol.
+            return allocated.prepareExact(provider, pattern, oneCopy, requested, level, craftingId);
+        }
         var api = EXACT_API.get(provider.getClass()).orElse(null);
         return api == null ? null : api.prepareExact(provider, pattern, oneCopy, requested, level, craftingId);
     }
@@ -91,7 +102,9 @@ public final class NeoEcoFastPathCompat {
         var method = JOB_PUSH.get(provider.getClass()).orElse(null);
         if (method == null) return provider.pushPattern(pattern, inputs);
         try {
-            return (boolean) method.invoke(provider, pattern, inputs, craftingId);
+            return java.lang.reflect.Modifier.isStatic(method.getModifiers())
+                    ? (boolean) method.invoke(null, provider, pattern, inputs, craftingId)
+                    : (boolean) method.invoke(provider, pattern, inputs, craftingId);
         } catch (InvocationTargetException failure) {
             if (failure.getCause() instanceof RuntimeException runtime) throw runtime;
             if (failure.getCause() instanceof Error error) throw error;
@@ -113,25 +126,7 @@ public final class NeoEcoFastPathCompat {
     static @Nullable BatchProviderAdapter loadAdapter(ClassLoader loader) {
         var forgeApi = NeoEcoBatchApi.load(loader);
         if (forgeApi != null) return new NeoEcoBatchAdapter(forgeApi);
-        try {
-            // Validate lazy API references before registration; older releases use ordinary dispatch.
-            Class.forName("cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider", false, loader);
-            var facade = Class.forName("cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade", false, loader);
-            var prepared = facade.getMethod("prepareAllocated", ICraftingProvider.class, IPatternDetails.class,
-                    KeyCounter[].class, long.class, Level.class, UUID.class).getReturnType();
-            var energy = Class.forName("cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade$EnergyAccount", false, loader);
-            if (prepared.getMethod("craftCount").getReturnType() != long.class
-                    || prepared.getMethod("submit", energy).getReturnType() != boolean.class) {
-                throw new NoSuchMethodException("Incompatible allocated FastPath contract");
-            }
-            return (BatchProviderAdapter) Class.forName(ADAPTER_CLASS, true, loader)
-                    .getDeclaredConstructor()
-                    .newInstance();
-        } catch (ReflectiveOperationException | LinkageError unavailable) {
-            appeng.core.AELog.warn(
-                    "[thunderbolt] NeoECO FastPath API is unavailable; CPUs will use ordinary provider dispatch. %s",
-                    unavailable);
-            return null;
-        }
+        var allocated = NeoEcoAllocatedApi.load(loader);
+        return allocated == null ? null : new NeoEcoFastPathBatchAdapter(allocated);
     }
 }

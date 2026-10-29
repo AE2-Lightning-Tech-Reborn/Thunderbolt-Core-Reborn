@@ -3,10 +3,12 @@ package com.moakiee.thunderbolt.ae2.crafting;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import appeng.api.client.AEKeyRendering;
 import appeng.core.localization.GuiText;
 import appeng.menu.me.crafting.CraftingPlanSummaryEntry;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 
 /** Shared by the native AE2 table and the Tianshu report. */
 public final class ExactPlanPresentation {
@@ -25,14 +27,43 @@ public final class ExactPlanPresentation {
     }
 
     private static void append(List<Component> lines, GuiText label, BigInteger amount, long units, boolean full) {
+        append(lines::add, label, amount, units, full);
+    }
+
+    /** Replaces an AE2 amount line while leaving the native method and addon hints running. */
+    public static boolean appendExactAmount(CraftingPlanSummaryEntry entry, Component line,
+            boolean full, Consumer<Component> append) {
+        var amounts = ExactPlanReports.amounts(entry);
+        if (amounts == null || !(line.getContents() instanceof TranslatableContents translation)) {
+            return false;
+        }
+        GuiText label;
+        BigInteger amount;
+        if (translation.getKey().equals(GuiText.FromStorage.getTranslationKey())) {
+            label = GuiText.FromStorage;
+            amount = amounts.stored();
+        } else if (translation.getKey().equals(GuiText.Missing.getTranslationKey())) {
+            label = GuiText.Missing;
+            amount = amounts.missing();
+        } else if (translation.getKey().equals(GuiText.ToCraft.getTranslationKey())) {
+            label = GuiText.ToCraft;
+            amount = amounts.crafting();
+        } else {
+            return false;
+        }
+        append(append, label, amount, entry.getWhat().getAmountPerUnit(), full);
+        return true;
+    }
+
+    private static void append(Consumer<Component> lines, GuiText label, BigInteger amount, long units, boolean full) {
         if (amount.signum() == 0) return;
         String text = full ? ExactAmountFormatter.full(amount, units) : ExactAmountFormatter.compact(amount, units);
         if (text.length() <= 72) {
-            lines.add(label.text(text));
+            lines.accept(label.text(text));
         } else {
-            lines.add(label.text(""));
+            lines.accept(label.text(""));
             for (int offset = 0; offset < text.length(); offset += 64) {
-                lines.add(Component.literal(text.substring(offset, Math.min(text.length(), offset + 64))));
+                lines.accept(Component.literal(text.substring(offset, Math.min(text.length(), offset + 64))));
             }
         }
     }

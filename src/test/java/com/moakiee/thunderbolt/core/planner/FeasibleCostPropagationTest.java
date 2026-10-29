@@ -13,6 +13,24 @@ import org.junit.jupiter.api.Test;
 /** Cost passes must remain independent after work-limited cycles and differently sized regions. */
 class FeasibleCostPropagationTest {
     @Test
+    void roundedPotentialsCannotHideAOneUnitDeficitBeyondDoublePrecision() throws Exception {
+        long exactInput = (1L << 53) + 1;
+        for (long input : new long[] {exactInput - 1, exactInput}) {
+            var graph = CraftGraph.<String>builder().stock("raw", input)
+                    .pattern("T", exactInput, List.of(CraftInput.of("raw", input))).build();
+            var harness = new Harness(graph);
+            Method bound = harness.search.getClass().getDeclaredMethod("exactPotentialBound", double[].class, int.class);
+            bound.setAccessible(true);
+            double[] proposed = new double[harness.keys.size()];
+            proposed[harness.keys.indexOf("raw")] = 1;
+            proposed[harness.keys.indexOf("T")] = 1;
+            // Doubles equate the two amounts; the original one-unit deficit invalidates the
+            // proposed stock bound. Equal original amounts do certify one stock unit per output.
+            assertEquals(input == exactInput ? 100L : 0L, bound.invoke(harness.search, proposed, 0));
+        }
+    }
+
+    @Test
     void partialCostCutoffPreservesFullArithmeticAtFloatingPointBoundaries() throws Exception {
         long[] amounts = {1, 7, (1L << 53) + 1, Sat.SAT - 1};
         double[] prices = {0, Double.MIN_VALUE, 1e-300, 1e-20, 1, 1e20, 1e300,

@@ -24,6 +24,35 @@ import org.objectweb.asm.AnnotationVisitor;
 
 /** Locks Thunderbolt's optional mixins to the published Forge 1.20.1 addon binaries. */
 class OptionalIntegrationBinaryShapeTest {
+    @Test
+    void nativeConfirmationTableHasThreeComposableAmountLinesPerMethod() throws IOException {
+        var counts = new HashMap<String, Integer>();
+        try (var stream = getClass().getResourceAsStream(
+                "/appeng/client/gui/me/crafting/CraftConfirmTableRenderer.class")) {
+            assertTrue(stream != null);
+            new ClassReader(stream).accept(new ClassVisitor(Opcodes.ASM9) {
+                @Override
+                public MethodVisitor visitMethod(int access, String name, String descriptor,
+                        String signature, String[] exceptions) {
+                    if (!(name.equals("getEntryDescription") || name.equals("getEntryTooltip"))
+                            || !descriptor.startsWith("(Lappeng/menu/me/crafting/CraftingPlanSummaryEntry;")) return null;
+                    counts.put(name, 0);
+                    return new MethodVisitor(Opcodes.ASM9) {
+                        @Override
+                        public void visitMethodInsn(int opcode, String owner, String invokedName,
+                                String invokedDescriptor, boolean isInterface) {
+                            if (owner.equals("java/util/List") && invokedName.equals("add")
+                                    && invokedDescriptor.equals("(Ljava/lang/Object;)Z")) {
+                                counts.merge(name, 1, Integer::sum);
+                            }
+                        }
+                    };
+                }
+            }, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+        }
+        assertEquals(Map.of("getEntryDescription", 3, "getEntryTooltip", 3), counts);
+    }
+
     private static final String PUSH_PATTERN_DESCRIPTOR =
             "(Lappeng/api/crafting/IPatternDetails;[Lappeng/api/stacks/KeyCounter;)Z";
     private static final String ADV_EXECUTE_CRAFTING =

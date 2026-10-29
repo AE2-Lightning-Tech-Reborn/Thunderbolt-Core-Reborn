@@ -6,12 +6,12 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 import appeng.api.stacks.AEKeyType;
 import appeng.crafting.execution.ElapsedTimeTracker;
 
-// AE2 classes have no obfuscation mappings in the Forge dev environment — remap must be off.
+// AE2 members have no SRG mappings. Namespace generated methods to avoid addon collisions.
 @Mixin(value = ElapsedTimeTracker.class, remap = false)
 public interface ElapsedTimeTrackerAccessor {
     @Invoker("decrementItems")
-    void invokeDecrementItems(long amount, AEKeyType keyType);
+    void thunderbolt$invokeDecrementItems(long amount, AEKeyType keyType);
 
     @Invoker("addMaxItems")
-    void invokeAddMaxItems(long amount, AEKeyType keyType);
+    void thunderbolt$invokeAddMaxItems(long amount, AEKeyType keyType);
 }

@@ -9,16 +9,16 @@ import appeng.api.stacks.AEKey;
 import appeng.crafting.execution.CraftingCpuLogic;
 import appeng.crafting.execution.ExecutingCraftingJob;
 
-// AE2 classes have no obfuscation mappings in the Forge dev environment — remap must be off.
+// AE2 members have no SRG mappings. Namespace generated methods to avoid addon collisions.
 @Mixin(value = CraftingCpuLogic.class, remap = false)
 public interface CraftingCpuLogicAccessor {
     @Accessor("job")
     @Nullable
-    ExecutingCraftingJob getJob();
+    ExecutingCraftingJob thunderbolt$getJob();
 
     @Invoker("finishJob")
-    void invokeFinishJob(boolean success);
+    void thunderbolt$invokeFinishJob(boolean success);
 
     @Invoker("postChange")
-    void invokePostChange(AEKey what);
+    void thunderbolt$invokePostChange(AEKey what);
 }

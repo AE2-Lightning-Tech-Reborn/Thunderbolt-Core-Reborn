@@ -8,6 +8,25 @@ import java.util.concurrent.CancellationException;
 import org.junit.jupiter.api.Test;
 
 class SmallConservativeSearchTest {
+    @Test void boundedDagCertificatesMatchIndependentReplayWithSideCreditsAndSharedStock() {
+        int checked = 0;
+        for (int raw = 1; raw <= 8; raw++) for (int a = 0; a <= 2; a++) for (int b = 0; b <= 2; b++) {
+            var graph = CraftGraph.<String>builder().stock("raw", raw).stock("A", a).stock("B", b)
+                    .pattern("A", 1, List.of(CraftInput.of("raw", 2)), List.of(CraftOutput.of("B", 1)))
+                    .pattern("B", 1, List.of(CraftInput.of("raw", 1)))
+                    .pattern("T", 1, List.of(CraftInput.of("A", 1), CraftInput.of("B", 1))).build();
+            var plan = SmallConservativeSearch.tryPlan(graph, "T", 1, 256);
+            if (plan == null) continue;
+            checked++;
+            var independent = MaterialDagReplay.tryPlan(graph, plan.firings(), "T", 1);
+            assertNotNull(independent);
+            assertEquals(independent.usedStock(), plan.usedStock());
+            assertEquals(independent.grossDemand(), plan.grossDemand());
+            ByproductReplaySafetyTest.assertEveryOrderFinishes(plan, "T", 1);
+        }
+        assertTrue(checked >= 50);
+    }
+
     @Test void repeatedPatternRegistrationsDoNotDisablePublicTerminalRecovery() {
         long[] sample = {1,3,3, 2,3,2, 9,1,5, 12,5,4, 4,1,2, 3,4,4, 10,6,6, 8,2,5};
         for (int repetitions : new int[] {1, 3, 4}) {

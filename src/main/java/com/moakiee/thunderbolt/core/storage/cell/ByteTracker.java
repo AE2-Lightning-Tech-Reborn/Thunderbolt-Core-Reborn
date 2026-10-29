@@ -109,31 +109,33 @@ public final class ByteTracker {
     // ══════════════════════════════════════════════════════════════════════
 
     public long computeMaxInsertable(AEKeyType type, boolean isNewKey) {
-        int apb = type.getAmountPerByte();
-
-        if (capacityHi == usedBytesHi) {
-            if (capacityLo <= usedBytesLo) return 0;
-            return maxFromFreeBytes(capacityLo - usedBytesLo, apb, type, isNewKey);
+        if (isNewKey && totalTypesGetter.getAsInt() >= maxTypes) return 0;
+        if (capacityHi < usedBytesHi
+                || (capacityHi == usedBytesHi && capacityLo < usedBytesLo)) return 0;
+        long freeLo = capacityLo - usedBytesLo;
+        long freeHi = capacityHi - usedBytesHi;
+        if (freeLo < 0) {
+            freeLo &= Long.MAX_VALUE;
+            freeHi--;
         }
-        if (capacityHi < usedBytesHi) return 0;
-        return Long.MAX_VALUE;
-    }
-
-    private long maxFromFreeBytes(long freeBytes, int apb, AEKeyType type, boolean isNewKey) {
-        int totalTypes = totalTypesGetter.getAsInt();
+        if (freeHi < 0) return 0;
         if (isNewKey) {
-            if (totalTypes >= maxTypes) return 0;
-            if (freeBytes < bytesPerType) return 0;
-            freeBytes -= bytesPerType;
+            freeLo -= bytesPerType;
+            if (freeLo < 0) {
+                freeLo &= Long.MAX_VALUE;
+                freeHi--;
+            }
         }
+        if (freeHi < 0) return 0;
+        if (freeHi > 0) return Long.MAX_VALUE;
+
+        int apb = type.getAmountPerByte();
         int index = findType(type);
         long r = index < 0 ? 0 : channels[index].remainder;
         long freeInPartial = (r > 0) ? (apb - r) : 0;
-        if (freeBytes > Long.MAX_VALUE / apb) return Long.MAX_VALUE;
-        long result = freeBytes * apb + freeInPartial;
-        return result < 0 ? Long.MAX_VALUE : result;
+        if (freeLo > (Long.MAX_VALUE - freeInPartial) / apb) return Long.MAX_VALUE;
+        return freeLo * apb + freeInPartial;
     }
-
     // ══════════════════════════════════════════════════════════════════════
     //  Hot-path: insert delta
     // ══════════════════════════════════════════════════════════════════════
@@ -154,15 +156,16 @@ public final class ByteTracker {
                 + (newR > 0 ? 1L : 0L) - (oldR > 0 ? 1L : 0L);
 
         if (isNewKey) {
-            byteDelta += bytesPerType;
-            // With one unit per byte, the request plus key charge can carry on
-            // its own before it is added to the existing low word.
-            if (byteDelta < 0) { byteDelta &= Long.MAX_VALUE; usedBytesHi++; }
             channel.keyCount++;
         }
 
+        // Apply amount and key metadata separately: their sum can overflow a signed long.
         usedBytesLo += byteDelta;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
+        if (isNewKey) {
+            usedBytesLo += bytesPerType;
+            if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -190,8 +193,6 @@ public final class ByteTracker {
 
         channel.remainder = newR;
         if (keyRemoved) {
-            bytesFreed += bytesPerType;
-            if (bytesFreed < 0) { bytesFreed &= Long.MAX_VALUE; usedBytesHi--; }
             if (--channel.keyCount <= 0) {
                 removeType(index);
             }
@@ -199,6 +200,10 @@ public final class ByteTracker {
 
         usedBytesLo -= bytesFreed;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi--; }
+        if (keyRemoved) {
+            usedBytesLo -= bytesPerType;
+            if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi--; }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════

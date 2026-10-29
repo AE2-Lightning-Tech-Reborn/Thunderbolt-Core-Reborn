@@ -164,6 +164,38 @@ class ReleaseContractTest(unittest.TestCase):
                 artifact = "thunderbolt-reborn-forge-1.20.1" if forge else "thunderbolt-reborn"
                 self.assertEqual(outputs["thunderbolt_maven_notation"], f"com.moakiee.thunderbolt:{artifact}:2.0.1")
 
+    def test_forge_dependencies_fall_back_to_unprefixed_tag(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            props = {"minecraft_version": "1.20.1", "mod_id": "ae2lt", "thunderbolt_version": "2.0.1"}
+            requests = []
+
+            def download(command, check):
+                requests.append(command[3])
+                if command[3] != "2.0.1":
+                    raise subprocess.CalledProcessError(1, command)
+                self.assertEqual(command[7], "thunderbolt-forge-1.20.1-2.0.1.jar")
+                jar_fixture(Path(command[9]) / command[7], "thunderbolt", "2.0.1", True)
+
+            with patch.object(release.subprocess, "run", side_effect=download):
+                outputs = release.download_dependencies(root, props, "AE2-Lightning-Tech-Reborn")
+            self.assertEqual(requests, ["1.20.1-2.0.1", "forge-1.20.1-v2.0.1", "2.0.1"])
+            self.assertEqual(outputs["thunderbolt_maven_notation"],
+                             "com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1:2.0.1")
+            staged = root / "release-dependencies/maven/com/moakiee/thunderbolt/thunderbolt-reborn-forge-1.20.1/2.0.1/thunderbolt-reborn-forge-1.20.1-2.0.1.jar"
+            release.validate_jar(staged, "thunderbolt", "2.0.1", "META-INF/mods.toml")
+
+    def test_missing_forge_dependencies_fail_after_all_three_tags(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            props = {"minecraft_version": "1.20.1", "mod_id": "ae2lt", "thunderbolt_version": "2.0.1"}
+            with patch.object(release.subprocess, "run", side_effect=subprocess.CalledProcessError(1, "gh")) as download:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    release.download_dependencies(root, props, "AE2-Lightning-Tech-Reborn")
+                self.assertEqual([call.args[0][3] for call in download.call_args_list],
+                                 ["1.20.1-2.0.1", "forge-1.20.1-v2.0.1", "2.0.1"])
+            self.assertFalse((root / "release-dependencies/maven").exists())
+
     def test_missing_dependency_releases_still_fail(self):
         with tempfile.TemporaryDirectory() as directory:
             props = {"minecraft_version": "1.21.1", "mod_id": "ae2lt", "thunderbolt_version": "2.0.1"}

@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -13,29 +14,38 @@ import appeng.api.stacks.KeyCounter;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderResolver;
 import com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider;
+import com.moakiee.thunderbolt.api.crafting.batch.PreparedBatch;
 
-/** Optional bridge for all crafting CPUs from its allocated batch contract to NeoECO's public FastPath API. */
+/** CPU-owned allocation and settlement through NeoECO's public facade and ordinary parallel contract. */
 public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
+    private final @Nullable NeoEcoAllocatedApi api;
+
+    public NeoEcoFastPathBatchAdapter() { this(null); }
+    NeoEcoFastPathBatchAdapter(@Nullable NeoEcoAllocatedApi api) { this.api = api; }
+
     @Override
-    public boolean cacheResolutionAcrossTicks() { return true; }
+    public boolean cacheResolutionAcrossTicks() { return false; }
 
     @Override
     public @Nullable IBatchCraftingProvider resolve(ICraftingProvider provider) {
-        // Allocated dispatch requires a native provider, not an inventory-owned bridge.
-        return NeoEcoAllocatedApi.supports(provider) ? new AdaptedProvider(provider) : null;
+        var resolved = api == null ? NeoEcoAllocatedApi.forProvider(provider) : api;
+        if (resolved == null) return null;
+        if (resolved.supports(provider)) return new AdaptedProvider(provider, resolved);
+        try { return resolved.parallel(provider) == null ? null : new AdaptedProvider(provider, resolved); }
+        catch (RuntimeException unavailable) { return null; }
     }
 
     static final class AdaptedProvider implements IBatchCraftingProvider {
         private final ICraftingProvider delegate;
-        // Capability identity is stable; ordinary fallback is only valid for its physical tick.
+        private final NeoEcoAllocatedApi api;
         private final Set<IPatternDetails> ordinaryPatterns =
                 Collections.newSetFromMap(new IdentityHashMap<>());
-
-        AdaptedProvider(ICraftingProvider delegate) {
-            this.delegate = delegate;
-        }
-
         private long dispatchTick = Long.MIN_VALUE;
+
+        AdaptedProvider(ICraftingProvider delegate, NeoEcoAllocatedApi api) {
+            this.delegate = delegate;
+            this.api = api;
+        }
 
         @Override
         public void beginDispatchTick(long tick) {
@@ -44,80 +54,105 @@ public final class NeoEcoFastPathBatchAdapter implements BatchProviderResolver {
             ordinaryPatterns.clear();
         }
 
-        @Override
-        public List<IPatternDetails> getAvailablePatterns() {
-            return delegate.getAvailablePatterns();
-        }
-
-        @Override
-        public boolean isBusy() {
-            return delegate.isBusy();
-        }
+        @Override public List<IPatternDetails> getAvailablePatterns() { return delegate.getAvailablePatterns(); }
+        @Override public boolean isBusy() { return delegate.isBusy(); }
 
         @Override
         public long getBatchCapacity(IPatternDetails details) {
-            // Concrete allocation performs recipe, coolant and lane checks.
             if (delegate.isBusy()) return 0L;
             return ordinaryPatterns.contains(details) ? 1L : Long.MAX_VALUE;
         }
 
         @Override
-        public long pushBatch(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft) {
-            // Allocated FastPath requires a current job. Leave ownership with context-free callers.
-            return Math.max(0L, maxCraft);
-        }
-
-        @Override
-        public long pushBatch(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft, BatchJobView job) {
-            var prepared = prepareBatch(details, oneCopy, maxCraft, job);
-            return prepared == null ? Math.max(0L, maxCraft) : prepared.push(maxCraft);
-        }
-
-        @Override
-        public com.moakiee.thunderbolt.api.crafting.batch.PreparedBatch prepareBatch(
-                IPatternDetails details, KeyCounter[] oneCopy, long maxCraft, BatchJobView job) {
-            if (maxCraft <= 0L || job == null) return null;
-            var template = copyInputs(oneCopy);
-            var prepared = NeoEcoAllocatedApi.prepareAllocated(
-                    delegate, details, copyInputs(template), maxCraft, job.level(), job.craftingId());
-            long capacity = prepared == null ? 1L : prepared.craftCount();
-            return new com.moakiee.thunderbolt.api.crafting.batch.PreparedBatch() {
-                private boolean used;
-                public long capacity() { return capacity; }
-                public long push(long offered) {
-                    if (used) throw new IllegalStateException("Batch already submitted");
-                    used = true;
-                    if (offered <= 0L) return 0L;
-                    if (offered > maxCraft) throw new IllegalArgumentException("Offer exceeds preparation");
-                    var current = offered < capacity ? NeoEcoAllocatedApi.prepareAllocated(
-                            delegate, details, copyInputs(template), offered, job.level(), job.craftingId()) : prepared;
-                    if (current != null && current.submit()) return offered - current.craftCount();
-                    return pushSingleCopy(details, template, offered, job.craftingId());
+        public @Nullable PreparedBatch prepareBatch(IPatternDetails details, KeyCounter[] oneCopy,
+                long maxCraft, @Nullable BatchJobView job) {
+            if (maxCraft <= 0 || job == null || delegate.isBusy()) return prepared(0, offered -> offered);
+            // The live job view is borrowed. Deferred submission captures only its values.
+            var level = job.level();
+            var craftingId = job.craftingId();
+            var inputs = NeoEcoBatchApi.cloneInputs(oneCopy, 1);
+            if (!ordinaryPatterns.contains(details)) {
+                var allocation = api.prepareAllocated(delegate, details, inputs, maxCraft, level, craftingId);
+                if (allocation != null) {
+                    long capacity = validCount(allocation, maxCraft);
+                    return prepared(capacity, offered -> {
+                        // Energy/provider balancing can reduce the offer after admission.
+                        NeoEcoAllocatedApi.Prepared bounded = allocation;
+                        long copies = capacity;
+                        if (offered != capacity) {
+                            try {
+                                bounded = api.prepareAllocated(delegate, details, inputs, offered, level, craftingId);
+                                if (bounded == null) return offered;
+                                copies = validCount(bounded, offered);
+                            } catch (RuntimeException unavailable) {
+                                return offered; // Preparation has no ownership.
+                            }
+                        }
+                        try {
+                            if (bounded.submit()) return offered - copies;
+                        } catch (NeoEcoAllocatedApi.RejectedBatchException rejected) {
+                            return offered; // The CPU still owns every copy after facade rollback.
+                        }
+                        // Uncertainty propagates to BatchExecutor: retain inputs and stop the job.
+                        return pushSingleCopy(details, inputs, offered, craftingId);
+                    });
                 }
-            };
+                var parallel = api.parallel(delegate);
+                if (parallel != null && details.supportsPushInputsToExternalInventory()) {
+                    long capacity = Math.min(maxCraft, api.parallelCapacity(parallel));
+                    if (capacity > 0) return prepared(capacity, offered -> {
+                        long copies;
+                        try { copies = Math.min(offered, api.parallelCapacity(parallel)); }
+                        catch (RuntimeException unavailable) { return offered; }
+                        if (copies <= 0) return offered;
+                        return api.pushParallel(parallel, details, inputs, copies, craftingId)
+                                ? offered - copies : offered;
+                    });
+                }
+            }
+            ordinaryPatterns.add(details);
+            return prepared(1, offered -> delegate.isBusy() ? offered
+                    : pushSingleCopy(details, inputs, offered, craftingId));
         }
 
-        private static KeyCounter[] copyInputs(KeyCounter[] source) {
-            var result = new KeyCounter[source.length];
-            for (int i = 0; i < source.length; i++) {
-                result[i] = new KeyCounter();
-                result[i].addAll(source[i]);
-            }
-            return result;
+        @Override
+        public long pushBatch(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft) {
+            // Allocated FastPath needs a live job; retain ownership for context-free callers.
+            return Math.max(0, maxCraft);
+        }
+
+        @Override
+        public long pushBatch(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft, @Nullable BatchJobView job) {
+            if (maxCraft <= 0) return 0;
+            if (job == null) return maxCraft;
+            var batch = prepareBatch(details, oneCopy, maxCraft, job);
+            long offered = Math.min(maxCraft, batch.capacity());
+            return offered <= 0 ? maxCraft : maxCraft - offered + batch.push(offered);
         }
 
         private long pushSingleCopy(IPatternDetails details, KeyCounter[] oneCopy, long maxCraft,
-                java.util.UUID craftingId) {
-            // Later visits use ordinary extraction instead of repeatedly refunding a full batch.
+                @Nullable UUID craftingId) {
             ordinaryPatterns.add(details);
-            // Try ordinary dispatch before blocking; pushPattern needs an owned input copy.
-            var inputs = new KeyCounter[oneCopy.length];
-            for (int slot = 0; slot < oneCopy.length; slot++) {
-                inputs[slot] = new KeyCounter();
-                inputs[slot].addAll(oneCopy[slot]);
-            }
-            return NeoEcoFastPathCompat.pushPattern(delegate, details, inputs, craftingId)
-                    ? maxCraft - 1L : maxCraft;
+            return NeoEcoFastPathCompat.pushPattern(delegate, details, NeoEcoBatchApi.cloneInputs(oneCopy, 1), craftingId)
+                    ? maxCraft - 1 : maxCraft;
         }
+
+        private static long validCount(NeoEcoAllocatedApi.Prepared allocation, long offered) {
+            long count = allocation.craftCount();
+            if (count <= 0 || count > offered) throw new IllegalArgumentException("Invalid NeoECO allocated count");
+            return count;
+        }
+    }
+
+    private static PreparedBatch prepared(long capacity, java.util.function.LongUnaryOperator dispatch) {
+        return new PreparedBatch() {
+            private boolean used;
+            @Override public long capacity() { return capacity; }
+            @Override public long push(long offered) {
+                if (used || offered <= 0 || offered > capacity) throw new IllegalStateException("Invalid prepared NeoECO batch");
+                used = true;
+                return dispatch.applyAsLong(offered);
+            }
+        };
     }
 }

@@ -66,9 +66,9 @@ V2 会在预算内继续优化可行方案，优先减少配方执行次数，�
 .\gradlew.bat publishToMavenLocal
 ```
 
-- 版本：`2.0.0-beta.5`
-- Maven 坐标：`com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0-beta.5`
-- 可分发 JAR：`build/libs/thunderbolt-forge-1.20.1-2.0.0-beta.5.jar`
+- 版本：`2.0.3-beta4`
+- Maven 坐标：`com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1:2.0.3-beta4`
+- 可分发 JAR：`build/libs/thunderbolt-forge-1.20.1-2.0.3-beta4.jar`
 
 带 `-slim.jar` 后缀的 JAR 不含运行时必需的 MixinExtras 内嵌依赖，只作为开发过程的中间产物。
 

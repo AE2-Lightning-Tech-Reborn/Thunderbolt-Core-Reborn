@@ -952,8 +952,8 @@ public final class CpSatBridge {
         zero.addEquality(LinearExpr.sum(missing), 0L);
         zero.minimize(executionObjective);
         // Zero-missing is a shortcut, not a prerequisite for returning a replenishment plan.
-        long zeroDeadline = cyclic ? Math.min(deadline,
-                deadlineNanos(Math.min(0.05D, maxSeconds / 4.0D))) : deadline;
+        long zeroDeadline = Math.min(deadline,
+                deadlineNanos(Math.min(0.05D, maxSeconds / 4.0D)));
         SolveAttempt attempt = solveOptimal(zero, zeroDeadline, cyclic);
         long branches = attempt.branches;
         if (attempt.status == CpSolverStatus.MODEL_INVALID) {
