@@ -1,0 +1,184 @@
+[
+  {
+    "scenario": "empty",
+    "signature": "b51f08b698d88d8027a935d9db649774949f5fb41a0c559bfee6a9a13225c72d",
+    "baseline": {
+      "ns_per_op": 17.112499999999997,
+      "bytes_per_op": 40.0
+    },
+    "optimized": {
+      "ns_per_op": 17.0815,
+      "bytes_per_op": 40.0
+    },
+    "time_change_percent": -0.1811541271000694
+  },
+  {
+    "scenario": "input-free",
+    "signature": "6abad2b71e048b40f6c30e5e351b84eaced7949a2b10d128012a1b35e28e1d66",
+    "baseline": {
+      "ns_per_op": 478.398,
+      "bytes_per_op": 6456.0
+    },
+    "optimized": {
+      "ns_per_op": 408.2385,
+      "bytes_per_op": 5172.0
+    },
+    "time_change_percent": -14.665508635069546
+  },
+  {
+    "scenario": "chain-1-forward",
+    "signature": "6f8d7b1d3fc6af0990c94fc7cd8a3799765e9904f6ef975bfc354e183f771369",
+    "baseline": {
+      "ns_per_op": 1521.0975,
+      "bytes_per_op": 15640.0
+    },
+    "optimized": {
+      "ns_per_op": 1124.6309999999999,
+      "bytes_per_op": 11624.0
+    },
+    "time_change_percent": -26.064502768560217
+  },
+  {
+    "scenario": "chain-32-forward",
+    "signature": "d9a964fc0d7426e2fa311a64e712fc3cab040339f83ce0dd508966cac225dd5c",
+    "baseline": {
+      "ns_per_op": 42869.9795,
+      "bytes_per_op": 341944.0
+    },
+    "optimized": {
+      "ns_per_op": 29031.722,
+      "bytes_per_op": 227120.0
+    },
+    "time_change_percent": -32.27959906069001
+  },
+  {
+    "scenario": "chain-128-forward",
+    "signature": "809ffd6358cb662a5df2b2bb298391adc36bc60d9894b41da5bbcbacf145b899",
+    "baseline": {
+      "ns_per_op": 180452.7765,
+      "bytes_per_op": 1356020.0
+    },
+    "optimized": {
+      "ns_per_op": 125114.62599999999,
+      "bytes_per_op": 900272.0
+    },
+    "time_change_percent": -30.666278221549014
+  },
+  {
+    "scenario": "chain-32-reverse",
+    "signature": "87b49d8d060738cc0696cd1ea17127595d63daee945beeb08c1e83cec8159097",
+    "baseline": {
+      "ns_per_op": 100175.7555,
+      "bytes_per_op": 962416.0
+    },
+    "optimized": {
+      "ns_per_op": 41800.176999999996,
+      "bytes_per_op": 364184.0
+    },
+    "time_change_percent": -58.273160215896745
+  },
+  {
+    "scenario": "chain-128-reverse",
+    "signature": "e9f33b256b3bd4b0175c7b37843870cf53a18627bdb96d140f29f8976feebd54",
+    "baseline": {
+      "ns_per_op": 1026888.233,
+      "bytes_per_op": 10090048.0
+    },
+    "optimized": {
+      "ns_per_op": 242629.486,
+      "bytes_per_op": 1897064.0
+    },
+    "time_change_percent": -76.37235697100446
+  },
+  {
+    "scenario": "chain-512-reverse",
+    "signature": "0e1e48b405beaf005d1e8c4d8dc0d9a7ba57ba95e25bc5fb5645b3512fd1dfc4",
+    "baseline": {
+      "ns_per_op": 14341887.2945,
+      "bytes_per_op": 140230976.0
+    },
+    "optimized": {
+      "ns_per_op": 2715751.8375000004,
+      "bytes_per_op": 14659944.0
+    },
+    "time_change_percent": -81.06419481805948
+  },
+  {
+    "scenario": "chain-640-reverse",
+    "signature": "declined",
+    "baseline": {
+      "ns_per_op": 21085750.0,
+      "bytes_per_op": 207930872.0
+    },
+    "optimized": {
+      "ns_per_op": 2972362.1325,
+      "bytes_per_op": 17471056.0
+    },
+    "time_change_percent": -85.90345549719598
+  },
+  {
+    "scenario": "cycle-seeded",
+    "signature": "b1d382a0e6303ac33935bad0725b4b5592b7b4d179194830b86d53108e084149",
+    "baseline": {
+      "ns_per_op": 3926.008,
+      "bytes_per_op": 30364.0
+    },
+    "optimized": {
+      "ns_per_op": 2990.59,
+      "bytes_per_op": 22240.0
+    },
+    "time_change_percent": -23.826186803490966
+  },
+  {
+    "scenario": "cycle-unseeded",
+    "signature": "declined",
+    "baseline": {
+      "ns_per_op": 337.00800000000004,
+      "bytes_per_op": 3128.0
+    },
+    "optimized": {
+      "ns_per_op": 377.116,
+      "bytes_per_op": 3231.7835
+    },
+    "time_change_percent": 11.901201158429453
+  },
+  {
+    "scenario": "catalysts-containers-32",
+    "signature": "e4a567be05f1bad527c816381a5e911c450408abea1112f00b7f0419bfd21757",
+    "baseline": {
+      "ns_per_op": 72434.672,
+      "bytes_per_op": 481596.0
+    },
+    "optimized": {
+      "ns_per_op": 51589.7935,
+      "bytes_per_op": 333276.136
+    },
+    "time_change_percent": -28.777487250856893
+  },
+  {
+    "scenario": "plan-chain-32",
+    "signature": "c59cb7c68807c294aaa1d7bbecfbd302bc8965dd8e88d21cd76cce8205e0706c",
+    "baseline": {
+      "ns_per_op": 109986.4185,
+      "bytes_per_op": 840303.755
+    },
+    "optimized": {
+      "ns_per_op": 76598.11,
+      "bytes_per_op": 504590.9545
+    },
+    "time_change_percent": -30.356755820719805
+  },
+  {
+    "scenario": "plan-chain-128",
+    "signature": "d33060b728c4750ac1ce7e92606b28cadac83f78f75658f8a92e4d3f2ca80ee2",
+    "baseline": {
+      "ns_per_op": 756982.1410000001,
+      "bytes_per_op": 6323984.0
+    },
+    "optimized": {
+      "ns_per_op": 357175.2215,
+      "bytes_per_op": 2192044.0
+    },
+    "time_change_percent": -52.81589853253883
+  }
+]

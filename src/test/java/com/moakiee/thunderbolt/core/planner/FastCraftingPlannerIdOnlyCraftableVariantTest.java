@@ -465,6 +465,142 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
         }
     }
 
+    @ParameterizedTest
+    @CsvSource({"false,false", "true,false", "false,true", "true,true"})
+    void lateBoundByproductFeedsFuzzyDemandWithOrWithoutStrictSibling(boolean strictSibling, boolean cpSat) {
+        var producer = new FakeLateMultiOutputPattern(
+                new IPatternDetails.IInput[] {new StrictInput(BASE, 1)},
+                List.of(new appeng.api.stacks.GenericStack(MAT_CRAFTABLE, 1),
+                        new appeng.api.stacks.GenericStack(E, 1)));
+        var inputs = new ArrayList<IPatternDetails.IInput>();
+        inputs.add(new FakeInput(MAT_CRAFTABLE, 1));
+        inputs.add(new FakeInput(new VariantKey("e", "captured-consumer"), 1));
+        if (strictSibling) inputs.add(new StrictInput(E, 1));
+        var consumer = new FakeOverloadPattern(TARGET,
+                inputs.toArray(IPatternDetails.IInput[]::new), Set.of(0, 1));
+        var service = new FakeCraftingService().pattern(TARGET, consumer)
+                .pattern(MAT_CRAFTABLE, producer)
+                .craftable(TARGET).craftable(MAT_CRAFTABLE);
+        var stock = new HashMap<AEKey, Long>(Map.of(BASE, 1L));
+        if (strictSibling) stock.put(E, 1L);
+        if (cpSat) assertTrue(CpSatIntegerLinearSolver.initializeFromTestClasspath());
+        var session = cpSat ? FastCraftingPlanner.CalculationSession.cpSat()
+                : new FastCraftingPlanner.CalculationSession();
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(stock)),
+                null, TARGET, 1, false, null, session);
+
+        assertNotNull(attempt.plan(), "one producer supplies both same-id ingredients");
+        assertTrue(attempt.plan().missingItems().isEmpty());
+        assertEquals(Map.of(producer, 1L, consumer, 1L), attempt.plan().patternTimes());
+        assertEquals(1L, attempt.plan().usedItems().get(BASE));
+        assertEquals(strictSibling ? 1L : 0L, attempt.plan().usedItems().get(E));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false,false,false", "false,false,true", "false,true,false", "false,true,true",
+            "true,false,false", "true,false,true", "true,true,false", "true,true,true"})
+    void byproductMatchingUsesBothSlotModesAndConcreteComponents(
+            boolean outputFuzzy, boolean inputFuzzy, boolean sameComponents) {
+        var sideOutput = new VariantKey("side", "producer");
+        var sideInput = sameComponents ? sideOutput : new VariantKey("side", "consumer");
+        var producer = new FakeLateMultiOutputPattern(
+                new IPatternDetails.IInput[] {new StrictInput(BASE, 1)},
+                List.of(new appeng.api.stacks.GenericStack(MAT_CRAFTABLE, 1),
+                        new appeng.api.stacks.GenericStack(sideOutput, 1)),
+                outputFuzzy ? Set.of(1) : Set.of());
+        IPatternDetails.IInput input = inputFuzzy ? new FakeInput(sideInput, 1) : new StrictInput(sideInput, 1);
+        var consumer = new FakeOverloadPattern(TARGET,
+                new IPatternDetails.IInput[] {input, new StrictInput(MAT_CRAFTABLE, 1)},
+                inputFuzzy ? Set.of(0) : Set.of());
+        var service = new FakeCraftingService().pattern(TARGET, consumer)
+                .pattern(MAT_CRAFTABLE, producer).craftable(TARGET).craftable(MAT_CRAFTABLE);
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(BASE, 1L))),
+                null, TARGET, 1, false);
+        if (inputFuzzy || !outputFuzzy && sameComponents) {
+            assertNotNull(attempt.plan());
+            assertEquals(Map.of(producer, 1L, consumer, 1L), attempt.plan().patternTimes());
+            assertEquals(1L, attempt.plan().usedItems().get(BASE));
+        } else {
+            assertNull(attempt.plan(), "unknown or different components cannot pay strict demand");
+            assertEquals(1L, attempt.simulationFallback().missingItems().get(sideInput));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void byproductDiscoveryIsIndependentOfConsumerDepthAndOrder(boolean sideFirst) {
+        var producer = new FakeLateMultiOutputPattern(
+                new IPatternDetails.IInput[] {new StrictInput(BASE, 1)},
+                List.of(new appeng.api.stacks.GenericStack(MAT_CRAFTABLE, 1),
+                        new appeng.api.stacks.GenericStack(E, 1)));
+        var sideConsumer = new FakeOverloadPattern(D,
+                new IPatternDetails.IInput[] {new FakeInput(new VariantKey("e", "consumer"), 1)}, Set.of(0));
+        var primaryConsumer = new FakeOverloadPattern(C,
+                new IPatternDetails.IInput[] {new FakeInput(MAT_DECLARED, 1)}, Set.of(0));
+        var consumer = new FakePattern(TARGET, sideFirst
+                ? new IPatternDetails.IInput[] {new StrictInput(D, 1), new StrictInput(C, 1)}
+                : new IPatternDetails.IInput[] {new StrictInput(C, 1), new StrictInput(D, 1)});
+        var service = new FakeCraftingService().pattern(TARGET, consumer).pattern(C, primaryConsumer)
+                .pattern(D, sideConsumer).pattern(MAT_CRAFTABLE, producer)
+                .craftable(TARGET).craftable(C).craftable(D).craftable(MAT_CRAFTABLE);
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(BASE, 1L))),
+                null, TARGET, 1, false);
+        assertNotNull(attempt.plan());
+        assertEquals(Map.of(producer, 1L, primaryConsumer, 1L, sideConsumer, 1L, consumer, 1L),
+                attempt.plan().patternTimes());
+    }
+
+    @Test
+    void twoFuzzySlotsCannotSpendTheSameByproductTwice() {
+        var producer = new FakeLateMultiOutputPattern(
+                new IPatternDetails.IInput[] {new StrictInput(BASE, 1)},
+                List.of(new appeng.api.stacks.GenericStack(MAT_CRAFTABLE, 1),
+                        new appeng.api.stacks.GenericStack(E, 1)));
+        var consumer = new FakeOverloadPattern(TARGET,
+                new IPatternDetails.IInput[] {new FakeInput(MAT_DECLARED, 1),
+                        new FakeInput(new VariantKey("e", "first"), 1),
+                        new FakeInput(new VariantKey("e", "second"), 1)}, Set.of(0, 1, 2));
+        var service = new FakeCraftingService().pattern(TARGET, consumer)
+                .pattern(MAT_CRAFTABLE, producer).craftable(TARGET).craftable(MAT_CRAFTABLE);
+        var shortAttempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(BASE, 1L))),
+                null, TARGET, 1, false);
+        assertNull(shortAttempt.plan());
+        var stock = new HashMap<AEKey, Long>(Map.of(BASE, 1L));
+        for (var missing : shortAttempt.simulationFallback().missingItems()) {
+            assertTrue(missing.getKey() instanceof VariantKey, "logical keys must stay inside the graph");
+            stock.merge(missing.getKey(), missing.getLongValue(), Long::sum);
+        }
+        assertNotNull(FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(stock)), null, TARGET, 1, false).plan());
+    }
+
+    @Test
+    void lateBoundByproductExactPreviewKeepsPhysicalKeysAndSharedProductionCounts() {
+        var producer = new FakeLateMultiOutputPattern(
+                new IPatternDetails.IInput[] {new StrictInput(BASE, 1)},
+                List.of(new appeng.api.stacks.GenericStack(MAT_CRAFTABLE, 1),
+                        new appeng.api.stacks.GenericStack(E, 1)));
+        var consumer = new FakeOverloadPattern(TARGET, new IPatternDetails.IInput[] {
+                new MultipliedIdInput(MAT_DECLARED, 1, Sat.SAT),
+                new MultipliedIdInput(new VariantKey("e", "consumer"), 1, Sat.SAT)}, Set.of(0, 1));
+        var service = new FakeCraftingService().pattern(TARGET, consumer)
+                .pattern(MAT_CRAFTABLE, producer).craftable(TARGET).craftable(MAT_CRAFTABLE);
+        var attempt = FastCraftingPlanner.tryAttempt(service,
+                new ChildCraftingSimulationState(new StockInventory(Map.of(BASE, 1L))),
+                null, TARGET, 2, true);
+        var report = com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.get(attempt.plan());
+        assertNotNull(report);
+        var required = java.math.BigInteger.valueOf(Sat.SAT).multiply(java.math.BigInteger.TWO);
+        assertEquals(required.subtract(java.math.BigInteger.ONE), report.entries().get(BASE).missing());
+        assertEquals(required, report.entries().get(MAT_CRAFTABLE).crafting());
+        assertEquals(required, report.entries().get(E).crafting());
+        assertEquals(Set.of(BASE, MAT_CRAFTABLE, E, TARGET), report.entries().keySet());
+    }
+
     @Test
     void oneCalculationSessionBuildsTheAe2GraphOnlyOnceAcrossAmountProbes() {
         IPatternDetails consumer = new FakePattern(TARGET, new IPatternDetails.IInput[] {
@@ -665,13 +801,17 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
     }
 
     private record FakeLateMultiOutputPattern(
-            IInput[] inputs, List<appeng.api.stacks.GenericStack> outputs)
+            IInput[] inputs, List<appeng.api.stacks.GenericStack> outputs, Set<Integer> fuzzyOutputs)
             implements IPatternDetails, FuzzyPatternInputs {
+        private FakeLateMultiOutputPattern(IInput[] inputs, List<appeng.api.stacks.GenericStack> outputs) {
+            this(inputs, outputs, java.util.stream.IntStream.range(0, outputs.size()).boxed()
+                    .collect(java.util.stream.Collectors.toSet()));
+        }
         @Override public AEItemKey getDefinition() { return null; }
         @Override public IInput[] getInputs() { return inputs; }
         @Override public List<appeng.api.stacks.GenericStack> getOutputs() { return outputs; }
         @Override public boolean acceptsSameIdVariants(int slot) { return false; }
-        @Override public boolean producesSameIdVariants(int slot) { return true; }
+        @Override public boolean producesSameIdVariants(int slot) { return fuzzyOutputs.contains(slot); }
     }
 
     /**

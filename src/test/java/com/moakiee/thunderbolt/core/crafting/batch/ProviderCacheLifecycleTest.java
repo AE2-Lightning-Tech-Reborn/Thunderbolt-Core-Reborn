@@ -16,6 +16,47 @@ import org.junit.jupiter.api.Test;
 
 class ProviderCacheLifecycleTest {
     @Test
+    void oneShotProviderIterableProducesADetachedSnapshot() {
+        var schedule = new TickProviderDispatchSchedule();
+        var network = new Object();
+        var pattern = pattern();
+        var first = new Provider();
+        var second = new Provider();
+        var source = new ArrayList<ICraftingProvider>(java.util.Arrays.asList(first, null, second, first));
+        var scans = new AtomicInteger();
+        Iterable<ICraftingProvider> oneShot = () -> {
+            assertEquals(1, scans.incrementAndGet());
+            return source.iterator();
+        };
+        var candidates = schedule.candidates(network, 0, pattern, () -> oneShot);
+        source.clear();
+        assertEquals(List.of(first, second), copy(candidates));
+        assertSame(candidates, schedule.candidates(network, 0, pattern, () -> {
+            throw new AssertionError("Stable snapshot must not rescan its source");
+        }));
+    }
+
+    @Test
+    void failingEnumerationNeverPublishesAPartialSnapshot() {
+        var schedule = new TickProviderDispatchSchedule();
+        var network = new Object();
+        var pattern = pattern();
+        var first = new Provider();
+        var second = new Provider();
+        Iterable<ICraftingProvider> broken = () -> new java.util.Iterator<>() {
+            boolean firstReturned;
+            public boolean hasNext() { return true; }
+            public ICraftingProvider next() {
+                if (firstReturned) throw new IllegalStateException("enumeration interrupted");
+                firstReturned = true;
+                return first;
+            }
+        };
+        assertThrows(IllegalStateException.class, () -> schedule.candidates(network, 0, pattern, () -> broken));
+        assertEquals(List.of(first, second), copy(schedule.candidates(network, 0, pattern, () -> List.of(first, second))));
+    }
+
+    @Test
     void stableNetworkBuildsOnceAcrossOneThousandTicksAndKeepsCapacityLive() {
         var schedule = new TickProviderDispatchSchedule();
         var network = new Object();

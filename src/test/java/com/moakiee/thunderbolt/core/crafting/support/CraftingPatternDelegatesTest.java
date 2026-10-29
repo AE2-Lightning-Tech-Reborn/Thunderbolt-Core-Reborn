@@ -2,6 +2,7 @@ package com.moakiee.thunderbolt.core.crafting.support;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.reflect.Proxy;
 import java.util.function.Supplier;
@@ -51,6 +52,77 @@ class CraftingPatternDelegatesTest {
                 () -> CraftingPatternDelegates.forBatchExecution(missing));
         assertThrows(NullPointerException.class,
                 () -> CraftingPatternDelegates.forBatchExecution(null));
+    }
+
+    @Test
+    void invalidProviderDelegationFailsClosed() {
+        var self = new IPatternDetails[1];
+        self[0] = providerWrapper(() -> self[0]);
+        assertThrows(IllegalStateException.class,
+                () -> CraftingPatternDelegates.forProviderLookup(self[0]));
+
+        var cycle = new IPatternDetails[2];
+        cycle[0] = providerWrapper(() -> cycle[1]);
+        cycle[1] = providerWrapper(() -> cycle[0]);
+        assertThrows(IllegalStateException.class,
+                () -> CraftingPatternDelegates.forProviderLookup(cycle[0]));
+        assertThrows(NullPointerException.class,
+                () -> CraftingPatternDelegates.forProviderLookup(providerWrapper(() -> null)));
+        assertThrows(NullPointerException.class,
+                () -> CraftingPatternDelegates.forProviderLookup(null));
+    }
+
+    @Test
+    void shallowAndDeepChainsResolveEachDelegateOnlyOncePerCall() {
+        for (int depth : new int[]{1, 2, 64, 1_024}) {
+            var terminal = pattern();
+            var current = terminal;
+            var executionCalls = new int[depth];
+            var providerCalls = new int[depth];
+            for (int i = 0; i < depth; i++) {
+                int index = i;
+                var next = current;
+                current = taskWrapper(
+                        () -> {
+                            assertEquals(0, executionCalls[index]++);
+                            return next;
+                        },
+                        () -> {
+                            assertEquals(0, providerCalls[index]++);
+                            return next;
+                        });
+            }
+            assertSame(terminal, CraftingPatternDelegates.forBatchExecution(current));
+            assertSame(terminal, CraftingPatternDelegates.forProviderLookup(current));
+            for (int i = 0; i < depth; i++) {
+                assertEquals(1, executionCalls[i]);
+                assertEquals(1, providerCalls[i]);
+            }
+        }
+    }
+
+    @Test
+    void detectsACycleAfterAnAcyclicPrefixWithoutResolvingTheRepeatedNodeAgain() {
+        var chain = new IPatternDetails[8];
+        var executionCalls = new int[chain.length];
+        var providerCalls = new int[chain.length];
+        for (int i = 0; i < chain.length; i++) {
+            int index = i;
+            int next = i + 1 < chain.length ? i + 1 : 3;
+            chain[i] = taskWrapper(
+                    () -> {
+                        assertEquals(0, executionCalls[index]++);
+                        return chain[next];
+                    },
+                    () -> {
+                        assertEquals(0, providerCalls[index]++);
+                        return chain[next];
+                    });
+        }
+        assertThrows(IllegalStateException.class,
+                () -> CraftingPatternDelegates.forBatchExecution(chain[0]));
+        assertThrows(IllegalStateException.class,
+                () -> CraftingPatternDelegates.forProviderLookup(chain[0]));
     }
 
     private static IPatternDetails pattern() {

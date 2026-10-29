@@ -60,16 +60,12 @@ class PlannedInputDispatchTest {
                                 default -> null;
                             });
             var schedule = new TickProviderDispatchSchedule();
-            var scheduleClass = Class.forName(TickProviderDispatchSchedule.class.getName() + "$PatternSchedule");
-            var constructor = scheduleClass.getDeclaredConstructor(List.class);
-            constructor.setAccessible(true);
-            var schedules = TickProviderDispatchSchedule.class.getDeclaredField("patterns");
-            schedules.setAccessible(true);
             // Two providers reserve ten copies; the first receives five. Failure must leave
             // the second half available without attempting the second provider.
             var secondProvider = java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),
                     new Class<?>[] {providerType}, java.lang.reflect.Proxy.getInvocationHandler(provider));
-            ((Map) schedules.get(schedule)).put(source, constructor.newInstance(List.of(provider, secondProvider)));
+            schedule.candidates(null, Long.MIN_VALUE, source, () -> List.of(provider,
+                    (appeng.api.networking.crafting.ICraftingProvider) secondProvider));
             var handle = new com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle() {
                 public IPatternDetails details() { return planned; }
                 public long getValue() { return progress[0]; }
@@ -98,6 +94,75 @@ class PlannedInputDispatchTest {
             assertEquals(1, calls[0], mode);
             assertEquals(5, held(stock, A), mode);
             assertEquals(10, progress[0], mode);
+        }
+    }
+
+    @Test
+    void dispatchSelectionKeepsSharedSeedOwnershipAndOrdinaryCopyBudgets() {
+        for (boolean shared : List.of(false, true)) {
+            var source = pattern(new Input(new AEKey[]{A}, 1, false, shared ? A : null), input(1, B));
+            var planned = new PlannedInputPattern(source, List.of(Map.of(A, 1L), Map.of(B, 1L)));
+            var stock = inventory(shared ? 1 : 20, 20);
+            var waiting = inventory(0, 0);
+            var calls = new java.util.ArrayList<String>();
+            class Provider implements com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider {
+                final String name;
+                final long capacity;
+                final com.moakiee.thunderbolt.api.crafting.batch.BatchDispatchMode mode;
+                Provider(String name, long capacity, boolean unbounded) {
+                    this.name = name;
+                    this.capacity = capacity;
+                    this.mode = unbounded ? com.moakiee.thunderbolt.api.crafting.batch.BatchDispatchMode.UNBOUNDED
+                            : com.moakiee.thunderbolt.api.crafting.batch.BatchDispatchMode.NORMAL;
+                }
+                public List<IPatternDetails> getAvailablePatterns() { return List.of(source); }
+                public boolean isBusy() { return false; }
+                public boolean supportsSharedBatchInputs() { return true; }
+                public long getBatchCapacity(IPatternDetails details) { return capacity; }
+                public com.moakiee.thunderbolt.api.crafting.batch.BatchDispatchMode getBatchDispatchMode(IPatternDetails details) {
+                    return mode;
+                }
+                public long pushBatch(IPatternDetails details, KeyCounter[] inputs, long copies) {
+                    assertSame(source, details);
+                    assertEquals(1, inputs[0].get(A));
+                    assertEquals(1, inputs[1].get(B));
+                    calls.add(name + ":" + copies);
+                    return 0;
+                }
+            }
+            var providers = List.<appeng.api.networking.crafting.ICraftingProvider>of(
+                    new Provider("normal-large", 20, false), new Provider("unbounded-small", 3, true),
+                    new Provider("unbounded-large", 5, true), new Provider("unbounded-tie", 5, true));
+            var schedule = new TickProviderDispatchSchedule();
+            schedule.beginTick(0);
+            schedule.candidates(null, 0, source, () -> providers);
+            var remaining = new long[]{20};
+            var task = new com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle() {
+                public IPatternDetails details() { return planned; }
+                public long getValue() { return remaining[0]; }
+                public void setValue(long value) { remaining[0] = value; }
+            };
+            var job = new com.moakiee.thunderbolt.api.crafting.batch.BatchJobView() {
+                public Level level() { return null; }
+                public java.util.UUID craftingId() { return null; }
+                public java.util.Iterator<com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle> taskIterator() {
+                    return List.<com.moakiee.thunderbolt.api.crafting.batch.BatchTaskHandle>of(task).iterator();
+                }
+                public ListCraftingInventory waitingFor() { return waiting; }
+                public void addContainerMaxItems(long count, AEKeyType type) { }
+            };
+            var energyType = appeng.api.networking.energy.IEnergyService.class;
+            var energy = (appeng.api.networking.energy.IEnergyService) java.lang.reflect.Proxy.newProxyInstance(
+                    getClass().getClassLoader(), new Class<?>[]{energyType},
+                    (proxy, method, args) -> method.getName().equals("extractAEPower") ? args[0] : null);
+            var result = BatchExecutor.runBatchOnly(10, BatchCpuAccounting.Mode.SUCCESSFUL_DISPATCH,
+                    null, energy, job, stock, new java.util.HashMap<>(), () -> {}, Map.of(), 10, 7, false, schedule);
+            assertEquals(shared ? 5 : 7, result.dispatchedCopies());
+            assertEquals(shared ? List.of("unbounded-large:5") : List.of("unbounded-small:3", "unbounded-large:4"), calls);
+            assertEquals(shared ? 15 : 13, remaining[0]);
+            assertEquals(shared ? 0 : 13, held(stock, A));
+            assertEquals(shared ? 15 : 13, held(stock, B));
+            assertEquals(shared ? 1 : 0, held(waiting, A));
         }
     }
 

@@ -1,0 +1,183 @@
+{
+  "suite": "exact-preview",
+  "baseline_ref": "69e9af1b35b533f4593c122eff7b46a3ee4c37cf",
+  "java": "java version \"21.0.12\" 2026-07-21 LTS\nJava(TM) SE Runtime Environment Oracle GraalVM 21.0.12+7.1 (build 21.0.12+7-LTS-jvmci-23.1-b96)\nJava HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.12+7.1 (build 21.0.12+7-LTS-jvmci-23.1-b96, mixed mode, sharing)\n",
+  "jvm_flags": [
+    "-Xms512m",
+    "-Xmx512m",
+    "-Dbenchmark.warmupMillis=1500",
+    "-Dbenchmark.sampleMillis=150"
+  ],
+  "order": [
+    "baseline",
+    "optimized",
+    "optimized",
+    "baseline"
+  ],
+  "sha256": {
+    "baseline/src/main/java/com/moakiee/thunderbolt/core/crafting/planner/ExactPlanPreview.java": "48a3172a3ef8a6e2a784b1edc5163b62eca9b4ba2ddfe29eecc6d0d1b5179b59",
+    "optimized/src/main/java/com/moakiee/thunderbolt/core/crafting/planner/ExactPlanPreview.java": "3a65f7c9c7555dbac3aba524e93f99a3e5bcc1f47912c73ead488579b6ba4678"
+  },
+  "harness_sha256": "b42c4f2555630ed71b32b11f3c618c79ba9fd3dde222dca4be7cb6f01f1b45e0",
+  "warmup_ms": 1500,
+  "sample_ms": 150,
+  "samples_per_variant": 14,
+  "results": [
+    {
+      "scenario": "empty",
+      "signature": "false",
+      "baseline": {
+        "ns_per_op": 26.477,
+        "bytes_per_op": 184.0
+      },
+      "optimized": {
+        "ns_per_op": 13.6525,
+        "bytes_per_op": 0.0
+      },
+      "time_change_percent": -48.43637874381539
+    },
+    {
+      "scenario": "distinct-1",
+      "signature": "false",
+      "baseline": {
+        "ns_per_op": 147.56799999999998,
+        "bytes_per_op": 1400.0
+      },
+      "optimized": {
+        "ns_per_op": 72.529,
+        "bytes_per_op": 352.0
+      },
+      "time_change_percent": -50.850455383280924
+    },
+    {
+      "scenario": "distinct-32",
+      "signature": "false",
+      "baseline": {
+        "ns_per_op": 2305.6735,
+        "bytes_per_op": 15736.0
+      },
+      "optimized": {
+        "ns_per_op": 1432.576,
+        "bytes_per_op": 3016.0
+      },
+      "time_change_percent": -37.86735199064395
+    },
+    {
+      "scenario": "overlap-32",
+      "signature": "false",
+      "baseline": {
+        "ns_per_op": 1933.0355,
+        "bytes_per_op": 16808.0
+      },
+      "optimized": {
+        "ns_per_op": 747.6895,
+        "bytes_per_op": 616.0
+      },
+      "time_change_percent": -61.320446520511396
+    },
+    {
+      "scenario": "distinct-128",
+      "signature": "false",
+      "baseline": {
+        "ns_per_op": 10115.9525,
+        "bytes_per_op": 60312.0
+      },
+      "optimized": {
+        "ns_per_op": 6076.795,
+        "bytes_per_op": 12328.0
+      },
+      "time_change_percent": -39.928592982222874
+    },
+    {
+      "scenario": "overlap-128",
+      "signature": "false",
+      "baseline": {
+        "ns_per_op": 7851.1355,
+        "bytes_per_op": 64424.0
+      },
+      "optimized": {
+        "ns_per_op": 2616.683,
+        "bytes_per_op": 616.0
+      },
+      "time_change_percent": -66.67127958751954
+    },
+    {
+      "scenario": "distinct-1024",
+      "signature": "false",
+      "baseline": {
+        "ns_per_op": 90772.04000000001,
+        "bytes_per_op": 476104.0
+      },
+      "optimized": {
+        "ns_per_op": 70610.053,
+        "bytes_per_op": 98488.0
+      },
+      "time_change_percent": -22.211671126924116
+    },
+    {
+      "scenario": "overlap-1024",
+      "signature": "false",
+      "baseline": {
+        "ns_per_op": 64277.59,
+        "bytes_per_op": 508840.0
+      },
+      "optimized": {
+        "ns_per_op": 30062.8015,
+        "bytes_per_op": 616.0
+      },
+      "time_change_percent": -53.22973138849791
+    },
+    {
+      "scenario": "wide-summary",
+      "signature": "true",
+      "baseline": {
+        "ns_per_op": 22.4565,
+        "bytes_per_op": 164.0
+      },
+      "optimized": {
+        "ns_per_op": 17.649,
+        "bytes_per_op": 96.0
+      },
+      "time_change_percent": -21.40805557410994
+    },
+    {
+      "scenario": "wide-single-output",
+      "signature": "true",
+      "baseline": {
+        "ns_per_op": 104.63550000000001,
+        "bytes_per_op": 1168.0
+      },
+      "optimized": {
+        "ns_per_op": 36.7435,
+        "bytes_per_op": 408.0
+      },
+      "time_change_percent": -64.88428879300047
+    },
+    {
+      "scenario": "wide-merged-output",
+      "signature": "true",
+      "baseline": {
+        "ns_per_op": 170.61599999999999,
+        "bytes_per_op": 1336.0
+      },
+      "optimized": {
+        "ns_per_op": 53.022999999999996,
+        "bytes_per_op": 280.0
+      },
+      "time_change_percent": -68.92260983729544
+    },
+    {
+      "scenario": "signed-cancellation",
+      "signature": "false",
+      "baseline": {
+        "ns_per_op": 134.357,
+        "bytes_per_op": 1152.0
+      },
+      "optimized": {
+        "ns_per_op": 52.778999999999996,
+        "bytes_per_op": 408.0
+      },
+      "time_change_percent": -60.71734260217183
+    }
+  ]
+}

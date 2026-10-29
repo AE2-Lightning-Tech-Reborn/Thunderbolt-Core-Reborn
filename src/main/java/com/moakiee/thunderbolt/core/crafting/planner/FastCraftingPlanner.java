@@ -363,6 +363,7 @@ public final class FastCraftingPlanner {
         try {
             while (true) {
                 exportBudget.consume();
+                primaryIdentityCraftables.beginPass();
                 graphBuild = new GraphBuild();
                 GraphBuildDiscovery discovery = buildGraph(
                         craftingService, snapshot, reusableSeedSnapshot, level, output,
@@ -373,7 +374,8 @@ public final class FastCraftingPlanner {
                         discovery.durabilityConflicts());
                 boolean requirementChanged = mergeForcedRequirementModes(
                         forcedRequirementModes, discovery.lateRequirementModes());
-                if (!durabilityChanged && !requirementChanged) {
+                if (!durabilityChanged && !requirementChanged
+                        && !primaryIdentityCraftables.hasLateByproducts()) {
                     break;
                 }
             }
@@ -593,6 +595,7 @@ public final class FastCraftingPlanner {
                         AEKey byproductKey = isLateBoundOutput(details, out.what(), exportBudget)
                                 ? new LateBoundOutputKey(out.what()) : out.what();
                         byproducts.add(CraftOutput.of(byproductKey, out.amount()));
+                        primaryIdentityCraftables.addByproduct(byproductKey);
                     }
                 }
                 if (primary == null) {
@@ -712,11 +715,14 @@ public final class FastCraftingPlanner {
                         AEKey remaining = in.getRemainingKey(inputKey) instanceof AEKey r ? r : null;
                         if (remaining == null) {
                             opts.add(CraftInput.of(inputKey, template.amount()));
-                            // Exact stock/outputs remain shared by both consumers. Only the unknown
-                            // producer output gets its own resource, never a duplicate stock pool.
+                            // Exact stock/outputs remain shared by both consumers. Unknown
+                            // byproducts always have their own resource; unknown primary outputs
+                            // need that split when an exact consumer also demands the catalog key.
+                            // Connect both here, including a purely ID_ONLY byproduct consumer.
                             if (sameIdClosure
-                                    && forcedRequirementModes.get(inputKey) == RequirementMode.MIXED
                                     && lateBoundOutputs.computeIfAbsent(inputKey, candidate -> {
+                                        if (primaryIdentityCraftables.hasLateBoundByproduct(candidate)) return true;
+                                        if (forcedRequirementModes.get(candidate) != RequirementMode.MIXED) return false;
                                         for (var producer : craftingService.getCraftingFor(candidate)) {
                                             exportBudget.consume();
                                             if (isLateBoundOutput(producer, candidate, exportBudget)) return true;
@@ -1001,10 +1007,19 @@ public final class FastCraftingPlanner {
         }
     }
 
-    /** Builds one same-primary-identity index from AE2's full craftable snapshot, lazily. */
+    /**
+     * Indexes the native primary-output catalog once, then supplements it with byproducts of
+     * reachable recipes. AE2 does not advertise secondary outputs through getCraftables/getCraftingFor.
+     * A new byproduct in an already-queried family requires a bounded rebuild so discovery order
+     * cannot prevent an earlier input from seeing an accepted component variant.
+     */
     static final class PrimaryIdentityCraftables {
         private final Supplier<? extends Iterable<AEKey>> source;
         private final GraphExportBudget exportBudget;
+        private final Map<AEKey, Set<AEKey>> byproducts = new HashMap<>();
+        private final Set<AEKey> lateBoundByproducts = new HashSet<>();
+        private final Set<AEKey> queriedIdentities = new HashSet<>();
+        private boolean lateByproducts;
         private Map<AEKey, List<AEKey>> byIdentity;
 
         PrimaryIdentityCraftables(Supplier<? extends Iterable<AEKey>> source) {
@@ -1018,7 +1033,30 @@ public final class FastCraftingPlanner {
             this.exportBudget = exportBudget;
         }
 
+        void beginPass() {
+            queriedIdentities.clear();
+            lateByproducts = false;
+        }
+
+        void addByproduct(AEKey output) {
+            AEKey physical = LateBoundOutputKey.physical(output);
+            AEKey identity = physical.dropSecondary();
+            boolean changed = byproducts.computeIfAbsent(identity,
+                    ignored -> new java.util.LinkedHashSet<>()).add(physical);
+            if (output instanceof LateBoundOutputKey) changed |= lateBoundByproducts.add(physical);
+            if (changed && queriedIdentities.contains(identity)) lateByproducts = true;
+        }
+
+        boolean hasLateByproducts() {
+            return lateByproducts;
+        }
+
+        boolean hasLateBoundByproduct(AEKey key) {
+            return lateBoundByproducts.contains(key);
+        }
+
         List<AEKey> get(AEKey identity) {
+            queriedIdentities.add(identity);
             if (byIdentity == null) {
                 var mutable = new LinkedHashMap<AEKey, List<AEKey>>();
                 var craftables = source.get();
@@ -1037,7 +1075,12 @@ public final class FastCraftingPlanner {
                 }
                 byIdentity = Map.copyOf(frozen);
             }
-            return byIdentity.getOrDefault(identity, List.of());
+            var primary = byIdentity.getOrDefault(identity, List.of());
+            var secondary = byproducts.get(identity);
+            if (secondary == null) return primary;
+            var combined = new java.util.LinkedHashSet<>(primary);
+            combined.addAll(secondary);
+            return List.copyOf(combined);
         }
     }
 

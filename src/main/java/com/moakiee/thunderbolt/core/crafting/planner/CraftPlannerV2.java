@@ -396,7 +396,7 @@ public final class CraftPlannerV2<K> {
     // Exact failure memo for speculative calls. availabilityState is restored with trail rollback,
     // so a proof is reused only when node, amount and every availability-affecting map are identical.
     private Set<SearchFailure<K>> failedSpeculativeSearches;
-    private Deque<Runnable> trail;
+    private UndoTrail trail;
     private long availabilityState;
     private long nextAvailabilityState;
     private int processed;
@@ -1879,7 +1879,7 @@ public final class CraftPlannerV2<K> {
         fixedFallbackItems = new HashSet<>();
         visit = new HashMap<>();
         failedSpeculativeSearches = new HashSet<>();
-        trail = new ArrayDeque<>();
+        trail = new UndoTrail();
     }
 
     private void resetRecursiveExecution(int trailMark, int processedAtMark) {
@@ -6518,16 +6518,7 @@ public final class CraftPlannerV2<K> {
         Long old = m.get(k);
         long oldAvailabilityState = availabilityState;
         boolean tracksAvailability = tracksAvailability(m);
-        trail.push(() -> {
-            if (old == null) {
-                m.remove(k);
-            } else {
-                m.put(k, old);
-            }
-            if (tracksAvailability) {
-                availabilityState = oldAvailabilityState;
-            }
-        });
+        trail.recordMap(m, k, old, tracksAvailability, oldAvailabilityState);
         if (tracksAvailability) {
             availabilityState = ++nextAvailabilityState;
         }
@@ -6564,25 +6555,109 @@ public final class CraftPlannerV2<K> {
         }
         put(missing, k, Sat.add(get(missing, k), amt));
         long old = missingTotal;
-        trail.push(() -> missingTotal = old);
+        trail.recordMissingTotal(old);
         missingTotal = Sat.add(missingTotal, amt);
     }
 
     private void bumpFiring(CraftPattern<K> r, long delta) {
         Long old = firings.get(r);
-        trail.push(() -> {
-            if (old == null) {
-                firings.remove(r);
-            } else {
-                firings.put(r, old);
-            }
-        });
+        trail.recordMap(firings, r, old, false, 0L);
         firings.put(r, Sat.add(old == null ? 0L : old, delta));
     }
 
     private void rollback(int mark) {
         while (trail.size() > mark) {
-            trail.pop().run();
+            trail.undoLast();
+        }
+    }
+
+    /** Same LIFO mutations, in reusable segments that never copy earlier undo records. */
+    private final class UndoTrail {
+        private static final byte MAP = 0;
+        private static final byte AVAILABILITY_MAP = 1;
+        private static final byte MISSING_TOTAL = 2;
+        private static final int MAX_SEGMENT_CAPACITY = 1024;
+
+        private Segment current = new Segment(16, null);
+        private int offset;
+        private int size;
+
+        int size() {
+            return size;
+        }
+
+        void recordMap(Map<?, Long> map, Object key, Long old, boolean tracksAvailability, long state) {
+            ensureCapacity();
+            current.maps[offset] = map;
+            current.keys[offset] = key;
+            current.oldValues[offset] = old;
+            current.oldStates[offset] = state;
+            current.kinds[offset] = tracksAvailability ? AVAILABILITY_MAP : MAP;
+            offset++;
+            size++;
+        }
+
+        void recordMissingTotal(long old) {
+            ensureCapacity();
+            current.oldStates[offset] = old;
+            current.kinds[offset] = MISSING_TOTAL;
+            offset++;
+            size++;
+        }
+
+        private void ensureCapacity() {
+            if (offset < current.kinds.length) return;
+            if (current.next == null) {
+                int capacity = Math.min(current.kinds.length * 2, MAX_SEGMENT_CAPACITY);
+                current.next = new Segment(capacity, current);
+            }
+            current = current.next;
+            offset = 0;
+        }
+
+        @SuppressWarnings("unchecked") // Each key is restored only to the map that recorded it.
+        void undoLast() {
+            if (offset == 0) {
+                current = current.previous;
+                offset = current.kinds.length;
+            }
+            int index = --offset;
+            size--;
+            var map = (Map<Object, Long>) current.maps[index];
+            Object key = current.keys[index];
+            Long old = current.oldValues[index];
+            long state = current.oldStates[index];
+            byte kind = current.kinds[index];
+            // Rolled-back branches must not remain reachable through reusable array capacity.
+            current.maps[index] = null;
+            current.keys[index] = null;
+            current.oldValues[index] = null;
+            if (kind == MISSING_TOTAL) {
+                missingTotal = state;
+            } else {
+                if (old == null) map.remove(key);
+                else map.put(key, old);
+                if (kind == AVAILABILITY_MAP) availabilityState = state;
+            }
+        }
+
+        private static final class Segment {
+            final Object[] maps;
+            final Object[] keys;
+            final Long[] oldValues;
+            final long[] oldStates;
+            final byte[] kinds;
+            final Segment previous;
+            Segment next;
+
+            Segment(int capacity, Segment previous) {
+                maps = new Object[capacity];
+                keys = new Object[capacity];
+                oldValues = new Long[capacity];
+                oldStates = new long[capacity];
+                kinds = new byte[capacity];
+                this.previous = previous;
+            }
         }
     }
 

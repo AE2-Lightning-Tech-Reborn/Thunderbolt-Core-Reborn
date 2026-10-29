@@ -13,6 +13,174 @@ class BigExecutionProgramTest {
     static final BigInteger N = BigInteger.TEN.pow(100);
 
     @Test
+    void reverseDependencyOrderKeepsExactCountsAndDoesNotMutateCallerInputs() {
+        var counts = reverseChain(128, N);
+        var original = new LinkedHashMap<>(counts);
+        var supplied = Map.of("p0", N);
+        var program = BigExecutionProgram.certify(Collections.unmodifiableMap(counts), supplied).orElseThrow();
+
+        assertEquals(original, counts);
+        assertEquals(Map.of("p0", N), program.required());
+        assertEquals(Map.of("p0", N.negate(), "p128", N), program.delta());
+        assertEquals(1, program.blocks().size());
+        assertCounts(program, counts);
+        for (int i = 0; i < 128; i++) {
+            assertEquals("p" + (i + 1), program.blocks().getFirst().steps().get(i).recipe().output());
+        }
+    }
+
+    @Test
+    void thousandLevelCompressionChainCertifiesOneExactOrder() {
+        var target = BigInteger.valueOf(9).multiply(BigInteger.TEN.pow(99));
+        var counts = new LinkedHashMap<CraftPattern<String>, BigInteger>();
+        var copies = target;
+        for (int i = 1000; i > 0; i--) {
+            counts.put(new CraftPattern<>("p" + i, 1,
+                    List.of(CraftInput.of("p" + (i - 1), 9)), null), copies);
+            copies = copies.multiply(BigInteger.valueOf(9));
+        }
+        var raw = copies;
+        var program = BigExecutionProgram.certify(counts, Map.of("p0", raw)).orElseThrow();
+        assertEquals(Map.of("p0", raw), program.required());
+        assertEquals(Map.of("p0", raw.negate(), "p1000", target), program.delta());
+        assertEquals(1, program.blocks().size());
+        assertEquals(1000, program.blocks().getFirst().steps().size());
+        assertCounts(program, counts);
+        assertTrue(BigExecutionProgram.certify(counts, Map.of("p0", raw.subtract(BigInteger.ONE))).isEmpty());
+    }
+
+    @Test
+    void branchingDagIncludesByproductDependenciesAndSharedInputs() {
+        var source = new CraftPattern<>("left", 1, List.of(CraftInput.of("raw", 2)),
+                List.of(CraftOutput.of("right", 1)), null);
+        var left = new CraftPattern<>("A", 1, List.of(CraftInput.of("left", 1), CraftInput.of("fuel", 1)), null);
+        var right = new CraftPattern<>("B", 1, List.of(CraftInput.of("right", 1), CraftInput.of("fuel", 1)), null);
+        var merge = new CraftPattern<>("result", 1, List.of(CraftInput.of("A", 1), CraftInput.of("B", 1)), null);
+        var counts = new LinkedHashMap<CraftPattern<String>, BigInteger>();
+        for (var recipe : List.of(merge, right, left, source)) counts.put(recipe, N);
+        var supplied = Map.of("raw", N.multiply(BigInteger.TWO), "fuel", N.multiply(BigInteger.TWO));
+        var program = BigExecutionProgram.certify(counts, supplied).orElseThrow();
+        assertEquals(supplied, program.required());
+        assertEquals(N, program.delta().get("result"));
+        assertCounts(program, counts);
+        assertTrue(BigExecutionProgram.certify(counts, Map.of("raw", N.multiply(BigInteger.TWO), "fuel", N)).isEmpty());
+    }
+
+    @Test
+    void cyclicFallbackKeepsWorkLimitAndDoesNotPublishPartialCertificate() {
+        var counts = reverseChain(640, N);
+        counts.put(new CraftPattern<>("seed", 2, List.of(CraftInput.of("seed", 1)), null), BigInteger.ONE);
+        // A self-dependent producer retains the bounded general sweep algorithm.
+        assertTrue(BigExecutionProgram.certify(counts, Map.of("p0", N, "seed", BigInteger.ONE)).isEmpty());
+    }
+
+    @Test
+    void recipeIdentityAndFreshInventoryRemainIndependentAcrossAttempts() {
+        var sharedSource = new Object();
+        var a = new CraftPattern<>("A", 1, List.of(CraftInput.of("raw", 1)), sharedSource);
+        var b = new CraftPattern<>("B", 2, List.of(CraftInput.of("raw", 1)), sharedSource);
+        var counts = new LinkedHashMap<CraftPattern<String>, BigInteger>();
+        counts.put(a, N);
+        counts.put(b, N);
+        var enough = Map.of("raw", N.multiply(BigInteger.TWO));
+        var first = BigExecutionProgram.certify(counts, enough).orElseThrow();
+        assertEquals(N, first.delta().get("A"));
+        assertEquals(N.multiply(BigInteger.TWO), first.delta().get("B"));
+        assertTrue(BigExecutionProgram.certify(counts, Map.of("raw", N)).isEmpty());
+        assertEquals(first, BigExecutionProgram.certify(counts, enough).orElseThrow());
+    }
+
+    @Test
+    void cancellationDoesNotConsumeCountsOrInventory() {
+        var counts = reverseChain(8, N);
+        var before = new LinkedHashMap<>(counts);
+        var supplied = new LinkedHashMap<>(Map.of("p0", N));
+        try {
+            Thread.currentThread().interrupt();
+            assertThrows(java.util.concurrent.CancellationException.class,
+                    () -> BigExecutionProgram.certify(counts, supplied));
+        } finally {
+            Thread.interrupted();
+        }
+        assertEquals(before, counts);
+        assertEquals(Map.of("p0", N), supplied);
+        assertTrue(BigExecutionProgram.certify(counts, supplied).isPresent());
+    }
+
+    @Test
+    void randomCertificatesReplayAllFiringsWithCatalystsContainersAndByproducts() {
+        var random = new Random(0xB16CE47L);
+        for (int run = 0; run < 500; run++) {
+            var counts = new LinkedHashMap<CraftPattern<String>, BigInteger>();
+            for (int recipe = 0; recipe < 8; recipe++) {
+                var inputs = new ArrayList<CraftInput<String>>();
+                inputs.add(CraftInput.of("m" + random.nextInt(4), 1 + random.nextInt(3)));
+                if (random.nextBoolean()) inputs.add(CraftInput.returned("catalyst", 1));
+                if (random.nextBoolean()) inputs.add(CraftInput.consumedReturning("full", 1, "empty"));
+                var pattern = new CraftPattern<>("m" + random.nextInt(4), 1 + random.nextInt(3),
+                        inputs, List.of(CraftOutput.of("byproduct", 1 + random.nextInt(2))), null);
+                counts.put(pattern, BigInteger.valueOf(1 + random.nextInt(5)));
+            }
+            var supplied = new HashMap<String, BigInteger>();
+            for (int key = 0; key < 4; key++) supplied.put("m" + key, BigInteger.valueOf(120));
+            supplied.put("full", BigInteger.valueOf(40));
+            supplied.put("catalyst", BigInteger.ONE);
+            var program = BigExecutionProgram.certify(counts, supplied).orElseThrow();
+            assertCounts(program, counts);
+            var sequential = replay(program, supplied);
+            var aggregate = new HashMap<>(supplied);
+            BigExecutionProgram.apply(aggregate, program.delta(), BigInteger.ONE);
+            assertEquals(sequential, aggregate);
+            // The advertised prefix requirement alone must be enough for the same execution.
+            var minimumFinal = replay(program, program.required());
+            var aggregateMinimum = new HashMap<>(program.required());
+            BigExecutionProgram.apply(aggregateMinimum, program.delta(), BigInteger.ONE);
+            assertEquals(minimumFinal, aggregateMinimum);
+        }
+    }
+
+    private static LinkedHashMap<CraftPattern<String>, BigInteger> reverseChain(int length, BigInteger copies) {
+        var counts = new LinkedHashMap<CraftPattern<String>, BigInteger>();
+        for (int i = length; i > 0; i--) {
+            counts.put(new CraftPattern<>("p" + i, 1, List.of(CraftInput.of("p" + (i - 1), 1)), null), copies);
+        }
+        return counts;
+    }
+
+    private static void assertCounts(BigExecutionProgram<String> program,
+            Map<CraftPattern<String>, BigInteger> expected) {
+        var actual = new IdentityHashMap<CraftPattern<String>, BigInteger>();
+        for (var block : program.blocks()) for (var step : block.steps()) {
+            actual.merge(step.recipe(), step.copies().multiply(block.repetitions()), BigInteger::add);
+        }
+        assertEquals(expected, actual);
+    }
+
+    /** Direct single-firing oracle: no production arcs, summary, repeat or apply helpers. */
+    private static Map<String, BigInteger> replay(BigExecutionProgram<String> program,
+            Map<String, BigInteger> supplied) {
+        var stock = new HashMap<>(supplied);
+        for (var block : program.blocks()) for (int round = 0; round < block.repetitions().intValueExact(); round++) {
+            for (var step : block.steps()) for (int firing = 0; firing < step.copies().intValueExact(); firing++) {
+                var recipe = step.recipe();
+                var needed = new HashMap<String, BigInteger>();
+                for (var input : recipe.inputs()) needed.merge(input.key(), input.exactAmount(), BigInteger::add);
+                for (var entry : needed.entrySet()) {
+                    assertTrue(stock.getOrDefault(entry.getKey(), BigInteger.ZERO).compareTo(entry.getValue()) >= 0);
+                    stock.merge(entry.getKey(), entry.getValue().negate(), BigInteger::add);
+                }
+                stock.merge(recipe.output(), recipe.exactOutputAmount(), BigInteger::add);
+                for (var output : recipe.byproducts()) stock.merge(output.key(), output.exactAmount(), BigInteger::add);
+                for (var input : recipe.inputs()) {
+                    if (input.returned()) stock.merge(input.key(), input.exactAmount(), BigInteger::add);
+                }
+            }
+        }
+        stock.values().removeIf(value -> value.signum() == 0);
+        return stock;
+    }
+
+    @Test
     void repeatedCycleKeepsOneSeedAndNeverExpandsTheQuantity() {
         var a =
                 new CraftPattern<>(

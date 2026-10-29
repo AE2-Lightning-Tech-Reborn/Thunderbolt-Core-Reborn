@@ -1,0 +1,134 @@
+[
+  {
+    "scenario": "delegates-mixed",
+    "baseline": {
+      "ns_per_op": 9.3275,
+      "bytes_per_op": 357.0
+    },
+    "optimized": {
+      "ns_per_op": 5.425,
+      "bytes_per_op": 170.0
+    },
+    "time_change_percent": -41.83864915572233
+  },
+  {
+    "scenario": "delegates-0",
+    "baseline": {
+      "ns_per_op": 1.0545,
+      "bytes_per_op": 0.0
+    },
+    "optimized": {
+      "ns_per_op": 1.165,
+      "bytes_per_op": 0.0
+    },
+    "time_change_percent": 10.478899952584175
+  },
+  {
+    "scenario": "delegates-1",
+    "baseline": {
+      "ns_per_op": 12.042000000000002,
+      "bytes_per_op": 544.0
+    },
+    "optimized": {
+      "ns_per_op": 1.748,
+      "bytes_per_op": 0.0
+    },
+    "time_change_percent": -85.48413884736755
+  },
+  {
+    "scenario": "delegates-2",
+    "baseline": {
+      "ns_per_op": 14.790500000000002,
+      "bytes_per_op": 544.0
+    },
+    "optimized": {
+      "ns_per_op": 14.1005,
+      "bytes_per_op": 544.0
+    },
+    "time_change_percent": -4.665156688414873
+  },
+  {
+    "scenario": "delegates-8",
+    "baseline": {
+      "ns_per_op": 49.726,
+      "bytes_per_op": 544.0
+    },
+    "optimized": {
+      "ns_per_op": 45.7715,
+      "bytes_per_op": 544.0
+    },
+    "time_change_percent": -7.952580139162602
+  },
+  {
+    "scenario": "clusters-0-stable",
+    "baseline": {
+      "ns_per_op": 16.362499999999997,
+      "bytes_per_op": 0.0
+    },
+    "optimized": {
+      "ns_per_op": 15.975999999999999,
+      "bytes_per_op": 0.0
+    },
+    "time_change_percent": -2.3621084797555314
+  },
+  {
+    "scenario": "clusters-1-stable",
+    "baseline": {
+      "ns_per_op": 66.044,
+      "bytes_per_op": 0.0
+    },
+    "optimized": {
+      "ns_per_op": 30.613,
+      "bytes_per_op": 0.0
+    },
+    "time_change_percent": -53.64756828780812
+  },
+  {
+    "scenario": "clusters-64-stable",
+    "baseline": {
+      "ns_per_op": 1071.004,
+      "bytes_per_op": 0.0
+    },
+    "optimized": {
+      "ns_per_op": 474.2155,
+      "bytes_per_op": 0.0
+    },
+    "time_change_percent": -55.722340906289794
+  },
+  {
+    "scenario": "clusters-1024-stable",
+    "baseline": {
+      "ns_per_op": 16952.789,
+      "bytes_per_op": 0.0
+    },
+    "optimized": {
+      "ns_per_op": 8076.4785,
+      "bytes_per_op": 0.0
+    },
+    "time_change_percent": -52.358998274561195
+  },
+  {
+    "scenario": "clusters-4096-stable",
+    "baseline": {
+      "ns_per_op": 76691.99900000001,
+      "bytes_per_op": 0.0
+    },
+    "optimized": {
+      "ns_per_op": 31550.650500000003,
+      "bytes_per_op": 0.0
+    },
+    "time_change_percent": -58.860570970382454
+  },
+  {
+    "scenario": "clusters-1024-changing",
+    "baseline": {
+      "ns_per_op": 15752.289499999999,
+      "bytes_per_op": 15.998000000000001
+    },
+    "optimized": {
+      "ns_per_op": 16244.856500000002,
+      "bytes_per_op": 20.1895
+    },
+    "time_change_percent": 3.1269549737516167
+  }
+]

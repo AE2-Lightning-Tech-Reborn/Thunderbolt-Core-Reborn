@@ -1,0 +1,12 @@
+allprojects {
+    afterEvaluate {
+        tasks.register('writeSmallExactTransferClasspath') {
+            dependsOn tasks.named('testClasses')
+            doLast {
+                def output = layout.buildDirectory.file('small-exact-transfer-benchmark/classpath.txt').get().asFile
+                output.parentFile.mkdirs()
+                output.text = (sourceSets.test.runtimeClasspath + sourceSets.test.compileClasspath).asPath
+            }
+        }
+    }
+}
