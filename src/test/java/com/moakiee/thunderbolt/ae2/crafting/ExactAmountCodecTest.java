@@ -85,6 +85,10 @@ class ExactAmountCodecTest {
         assertEquals("0.001", ExactAmountFormatter.compact(BigInteger.ONE, 1000));
         assertEquals("30.37Z", ExactAmountFormatter.compact(new BigInteger("30369403858680023055848"), 1));
         assertEquals("1QQ", ExactAmountFormatter.compact(BigInteger.TEN.pow(60), 1));
-        assertEquals("10K" + "Q".repeat(33), ExactAmountFormatter.compact(BigInteger.TEN.pow(994), 1));
+        assertEquals("1e994", ExactAmountFormatter.compact(BigInteger.TEN.pow(994), 1));
+        assertEquals("1.235e994", ExactAmountFormatter.compact(
+                BigInteger.valueOf(123456).multiply(BigInteger.TEN.pow(989)), 1));
+        assertEquals("1.235e988", ExactAmountFormatter.compact(
+                BigInteger.valueOf(123456).multiply(BigInteger.TEN.pow(989)), 1000000));
     }
 }
