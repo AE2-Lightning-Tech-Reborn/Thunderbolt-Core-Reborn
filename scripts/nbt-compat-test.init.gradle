@@ -1,0 +1,29 @@
+// Forge 1.20.1 NBT copy regression matrix: -PnbtCompatProfile=baseline|canary|radium.
+def profile = gradle.startParameter.projectProperties['nbtCompatProfile'] ?: 'baseline'
+def versions = [canary: 'lauzXB0n', radium: 'n947JjJH']
+if (profile != 'baseline' && !versions.containsKey(profile)) {
+    throw new GradleException('Unknown NBT compatibility profile: ' + profile)
+}
+
+allprojects {
+    afterEvaluate {
+        sourceSets.test.java.setIncludes(['**/OptionalMixinSelectorTest.java', '**/NbtCopyViewsTest.java'])
+        if (versions.containsKey(profile)) {
+            dependencies.add('runtimeOnly', fg.deobf("maven.modrinth:${profile}:${versions[profile]}"))
+        }
+        minecraft.runs.gameTestServer {
+            workingDirectory project.file('build/nbt-compat-' + profile)
+            property 'forge.logging.console.level', 'info'
+        }
+        // Dedicated GameTests do not use client textures, sounds or language assets.
+        tasks.matching { it.name == 'downloadAssets' }.configureEach { enabled = false }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                def log = project.file('build/nbt-compat-' + profile + '/logs/latest.log')
+                if (!log.isFile() || !log.text.contains('All 5 required tests passed')) {
+                    throw new GradleException('Expected all 5 NBT copy regressions to pass: ' + profile)
+                }
+            }
+        }
+    }
+}

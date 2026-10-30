@@ -7,6 +7,22 @@ import org.junit.jupiter.api.Test;
 
 class OptionalMixinSelectorTest {
     @Test
+    void letsLithiumAndForgePortsOwnCompoundCopies() {
+        for (String mod : java.util.List.of("lithium", "canary", "radium")) {
+            assertFalse(OptionalMixinSelector.shouldApply(
+                    "com.moakiee.thunderbolt.mixin.platform.objects.CompoundTagCopyMixin", mod::equals), mod);
+            assertTrue(OptionalMixinSelector.shouldApply("ListTagCopyMixin", mod::equals), mod);
+            assertTrue(OptionalMixinSelector.shouldApply("CraftingCalculationMixin", mod::equals), mod);
+        }
+    }
+
+    @Test
+    void keepsCompoundCopyOptimizationWithoutAnOverwritingMod() {
+        assertTrue(OptionalMixinSelector.shouldApply("CompoundTagCopyMixin", ignored -> false));
+        assertTrue(OptionalMixinSelector.shouldApply("CompoundTagCopyMixin", "ferritecore"::equals));
+    }
+
+    @Test
     void skipsAdvancedAeTargetsWhenAddonIsMissing() {
         assertFalse(OptionalMixinSelector.shouldApply(
                 "com.moakiee.thunderbolt.mixin.compat.advancedae.AdvCraftingCpuLogicBatchMixin",

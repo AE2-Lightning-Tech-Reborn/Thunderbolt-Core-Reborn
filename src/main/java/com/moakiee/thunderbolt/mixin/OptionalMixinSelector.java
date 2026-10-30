@@ -19,6 +19,11 @@ public final class OptionalMixinSelector {
     public static boolean shouldApply(String mixinClassName, Predicate<String> modLoaded) {
         int separator = mixinClassName.lastIndexOf('.');
         String simpleName = separator >= 0 ? mixinClassName.substring(separator + 1) : mixinClassName;
+        // Lithium and its Forge ports overwrite CompoundTag.copy at a higher priority.
+        // require=0 cannot suppress Mixin's rejection of injections into that merged method.
+        if (simpleName.equals("CompoundTagCopyMixin")) {
+            return !modLoaded.test("lithium") && !modLoaded.test("canary") && !modLoaded.test("radium");
+        }
         String requiredMod = REQUIRED_MODS.get(simpleName);
         return requiredMod == null || modLoaded.test(requiredMod);
     }
