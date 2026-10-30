@@ -1,5 +1,13 @@
 # Thunderbolt Core 变更日志
 
+## 2.0.4 — Forge 1.20.1
+
+对比版本：1.20.1-2.0.3
+
+- 修复与 Lithium 衍生优化模组（包括 Canary、Radium）同时安装时的 NBT 复制 Mixin 冲突，保留兼容的原生复制路径。
+- 补充可选 Mixin 选择和 NBT 复制回归校验。
+- 配套 AE2 Lightning Tech 2.1.3 的 Forge 1.20.1 版本。
+
 ## 2.0.3 — Forge 1.20.1
 
 对比版本：1.20.1-2.0.3-beta2（2026-10-11 发布）
