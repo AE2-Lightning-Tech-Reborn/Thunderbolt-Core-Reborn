@@ -1,0 +1,63 @@
+// Run separately from release packaging; fixture mixins must never enter the distributable.
+def releaseTaskNames = ['build', 'assemble', 'jar', 'jarJar', 'verifyReleaseJar']
+if (gradle.startParameter.taskNames.any {
+    it.tokenize(':').last() in releaseTaskNames
+}) {
+    throw new GradleException('Run summary compatibility fixtures separately from release packaging')
+}
+// Resolve abbreviations and indirect dependencies before any task mutates resources.
+gradle.taskGraph.whenReady { graph ->
+    if (graph.allTasks.any { it.name in releaseTaskNames }) {
+        throw new GradleException('Run summary compatibility fixtures separately from release packaging')
+    }
+}
+allprojects {
+    afterEvaluate {
+        dependencies.add('runtimeOnly', fg.deobf('curse.maven:ae2-crafting-tree-1086241:7182165'))
+        sourceSets.create('compatibilityVerification') {
+            java.srcDir rootProject.file('src/compatibilityGameTest/java')
+            resources.srcDir rootProject.file('src/compatibilityGameTest/resources')
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += output + sourceSets.main.runtimeClasspath
+        }
+        tasks.named('processResources') {
+            outputs.upToDateWhen { false }
+            doLast {
+                def configFile = rootProject.file('build/resources/main/thunderbolt.mixins.json')
+                def config = new groovy.json.JsonSlurper().parse(configFile)
+                config.mixins.add('compatfixture.CustomSummaryMixin')
+                configFile.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(config))
+            }
+        }
+        minecraft.runs.gameTestServer {
+            property 'forge.logging.console.level', 'info'
+            property 'forge.enabledGameTestNamespaces', 'thunderbolt,thunderbolt_nbt'
+            property 'fml.doNotBackup', 'true'
+            property 'fml.doNotConfirm', 'true'
+            // Crafting Tree declares client-only targets; tests explicitly execute public targets.
+            property 'thunderbolt.mixinAudit', 'false'
+            mods { thunderbolt { source sourceSets.compatibilityVerification } }
+        }
+        tasks.register('restoreSummaryCompatibilityMixinConfig') {
+            doLast {
+                rootProject.file('build/resources/main/thunderbolt.mixins.json').bytes =
+                        rootProject.file('src/main/resources/thunderbolt.mixins.json').bytes
+            }
+        }
+        tasks.named('compileCompatibilityVerificationJava') {
+            dependsOn 'classes'
+            options.compilerArgs += ['-proc:none']
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            dependsOn 'compatibilityVerificationClasses'
+            finalizedBy 'restoreSummaryCompatibilityMixinConfig'
+        }
+        // Also restore after a prerequisite fails before the server task can run its finalizer.
+        gradle.buildFinished {
+            def configFile = rootProject.file('build/resources/main/thunderbolt.mixins.json')
+            if (configFile.isFile()) {
+                configFile.bytes = rootProject.file('src/main/resources/thunderbolt.mixins.json').bytes
+            }
+        }
+    }
+}

@@ -50,6 +50,33 @@ class LoopCraftingPlanTest {
         assertFalse(LoopCraftingPlan.class.getPackageName().contains(".api."));
     }
 
+    @Test
+    void seedOnlyPatternRetainsItsIndependentOwnershipMetadata() {
+        var seed = new TestKey("seed_only");
+        var group = UUID.randomUUID();
+        class SeedOnlyPattern implements IPatternDetails, ReusableSeedPattern {
+            public AEItemKey getDefinition() { return null; }
+            public IInput[] getInputs() { return new IInput[0]; }
+            public GenericStack[] getOutputs() { return new GenericStack[] {new GenericStack(seed, 1)}; }
+            public Object reusableSeedStorageScope() { return "seed_host"; }
+            public UUID reusableSeedGroupId() { return group; }
+            public Set<AEKey> reusableSeedCycleKeys() { return Set.of(seed); }
+            public boolean hasSingleSeedInputPerMember() { return true; }
+            public Map<AEKey, Long> totalReusableSeedRequirements() { return Map.of(seed, 3L); }
+        }
+        var pattern = new SeedOnlyPattern();
+        var plan = new CraftingPlan(new GenericStack(seed, 1), 0, false, false,
+                new KeyCounter(), new KeyCounter(), new KeyCounter(), Map.of(pattern, 1L));
+        var wrapped = (LoopCraftingPlan) LoopCraftingPlan.wrapIfNeeded(plan);
+        assertTrue(wrapped.restrictions().isEmpty());
+        assertEquals(Map.of(seed, 3L), wrapped.totalReusableSeeds());
+        assertEquals(Map.of(group, Map.of(seed, 3L)), wrapped.reusableSeedGroups());
+        assertTrue(wrapped.canRunOn(new TestHost()));
+        var ordinary = new CraftingPlan(new GenericStack(seed, 1), 0, false, false,
+                new KeyCounter(), new KeyCounter(), new KeyCounter(), Map.of());
+        assertSame(ordinary, LoopCraftingPlan.wrapIfNeeded(ordinary));
+    }
+
     private static final class TestHost implements ExtendedCraftingCpuClusterHost {
         @Override
         public ExtendedCraftingCpuCluster getExtendedCraftingCpuCluster() {

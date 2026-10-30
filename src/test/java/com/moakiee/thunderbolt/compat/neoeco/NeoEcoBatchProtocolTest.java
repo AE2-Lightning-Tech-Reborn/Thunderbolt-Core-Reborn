@@ -33,6 +33,10 @@ class NeoEcoBatchProtocolTest {
         for (int i = 0; i < paths.length; i++) urls[i] = Path.of(paths[i]).toUri().toURL();
         loader = new URLClassLoader(urls, NeoEcoBatchProtocolTest.class.getClassLoader());
         api = NeoEcoBatchApi.load(loader);
+        if (api == null) {
+            assertNotNull(NeoEcoAllocatedApi.load(loader), "Actual NeoECO must expose a supported public protocol");
+            Assumptions.abort("Modern NeoECO facade is exercised by NeoEcoFacadeProtocolTest");
+        }
         assertNotNull(api, "Actual NeoECO protocol must link");
         assertInstanceOf(NeoEcoBatchAdapter.class, NeoEcoFastPathCompat.loadAdapter(loader));
     }

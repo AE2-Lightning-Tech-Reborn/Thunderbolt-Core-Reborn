@@ -1,0 +1,34 @@
+// Supply the same final harness checkout to each isolated product checkout.
+// This source set never participates in production packaging.
+allprojects {
+    afterEvaluate {
+        def harness = file(providers.gradleProperty('comparisonHarnessDir')
+                .getOrElse(rootProject.projectDir.absolutePath))
+        def label = providers.gradleProperty('optimizationBenchmarkLabel').getOrElse('comparison')
+        sourceSets.create('comparisonBenchmarks') {
+            java.setSrcDirs([new File(harness, 'src/test/java')])
+            java.include 'com/moakiee/thunderbolt/core/OptimizationBenchmark.java'
+            java.include 'com/moakiee/thunderbolt/core/IntegrationHotPathBenchmark.java'
+            resources.setSrcDirs([new File(harness, 'src/test/resources')])
+            resources.include 'neoeco-facade-contract/**'
+            compileClasspath += sourceSets.test.runtimeClasspath
+            runtimeClasspath += sourceSets.test.runtimeClasspath
+        }
+        tasks.named('compileComparisonBenchmarksJava') {
+            dependsOn 'testClasses'
+            options.compilerArgs += ['-proc:none']
+        }
+        ['Planning': 'OptimizationBenchmark', 'Integration': 'IntegrationHotPathBenchmark'].each { kind, main ->
+            tasks.register("compare${kind}Benchmark", JavaExec) {
+                group = 'verification'
+                dependsOn 'comparisonBenchmarksClasses'
+                mainClass = "com.moakiee.thunderbolt.core.${main}"
+                javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+                classpath = sourceSets.comparisonBenchmarks.runtimeClasspath
+                jvmArgs '-Xms512m', '-Xmx512m', '-XX:+UseG1GC', '-XX:ActiveProcessorCount=2'
+                args layout.buildDirectory.file("optimization-benchmark/${label}-${kind.toLowerCase()}.json")
+                        .get().asFile.absolutePath
+            }
+        }
+    }
+}

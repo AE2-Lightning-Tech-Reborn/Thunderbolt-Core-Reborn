@@ -33,8 +33,8 @@ import com.moakiee.thunderbolt.core.crafting.batch.DefaultBatchJobView;
 import com.moakiee.thunderbolt.core.crafting.batch.TickProviderDispatchSchedule;
 
 /**
- * Batches identical pattern firings on the vanilla crafting CPU within a tick.
- * Native fuzzy extraction can differ from planned keys unless the CPU applies the execution manifest.
+ * Batches identical native pattern firings within a tick. Fuzzy extraction resolves against the
+ * live CPU inventory through {@code ParallelBatchCpuHelper}; planned keys do not fix substitutes.
  */
 @Mixin(value = CraftingCpuLogic.class, remap = false)
 public abstract class CraftingCpuLogicBatchMixin {
@@ -93,7 +93,7 @@ public abstract class CraftingCpuLogicBatchMixin {
         }
 
         var jobAccessor = (ExecutingCraftingJobAccessor) job;
-        var timeTracker = (ElapsedTimeTrackerAccessor) jobAccessor.getTimeTracker();
+        var timeTracker = (ElapsedTimeTrackerAccessor) jobAccessor.thunderbolt$getTimeTracker();
         var batchResult = BatchExecutor.runBatchOnly(
                 remainingOps,
                 BatchCpuAccounting.Mode.LINEAR,
@@ -101,15 +101,15 @@ public abstract class CraftingCpuLogicBatchMixin {
                 energyService,
                 new DefaultBatchJobView(
                         level,
-                        jobAccessor.getLink().getCraftingID(),
-                        jobAccessor.getTasks(),
-                        jobAccessor.getWaitingFor(),
-                        task -> ((TaskProgressAccessor) task).getValue(),
-                        (task, value) -> ((TaskProgressAccessor) task).setValue(value),
+                        jobAccessor.thunderbolt$getLink().getCraftingID(),
+                        jobAccessor.thunderbolt$getTasks(),
+                        jobAccessor.thunderbolt$getWaitingFor(),
+                        task -> ((TaskProgressAccessor) task).thunderbolt$getValue(),
+                        (task, value) -> ((TaskProgressAccessor) task).thunderbolt$setValue(value),
                         timeTracker,
                         (tracker, count, type) -> ((ElapsedTimeTrackerAccessor) tracker)
-                                .invokeAddMaxItems(count, type)).onDispatchFailure(() -> {
-                                    jobAccessor.getLink().cancel();
+                                .thunderbolt$invokeAddMaxItems(count, type)).onDispatchFailure(() -> {
+                                    jobAccessor.thunderbolt$getLink().cancel();
                                     cluster.markDirty();
                                 }),
                 getInventory(),
@@ -118,7 +118,7 @@ public abstract class CraftingCpuLogicBatchMixin {
                 Map.of(), Integer.MAX_VALUE, Long.MAX_VALUE, false,
                 thunderbolt$dispatchSchedule);
 
-        if (jobAccessor.getLink().isCanceled()) return remainingOps;
+        if (jobAccessor.thunderbolt$getLink().isCanceled()) return remainingOps;
         if (batchResult.dispatchedCopies() > 0) {
             // Vanilla CPUs keep batch extraction/provider dispatch, but pay one operation per copy.
             // UNBOUNDED providers (such as creative item sources) still pay one operation per dispatch.

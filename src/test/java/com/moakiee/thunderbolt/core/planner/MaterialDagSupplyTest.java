@@ -159,7 +159,9 @@ class MaterialDagSupplyTest {
         field.setAccessible(true);
         var deadline = (ThreadLocal<Long>) field.get(null);
         var expired = new java.util.concurrent.atomic.AtomicBoolean();
-        var graph = stockedBranches(256, 1, false, true, 1);
+        // Two primary routes leave a real integer choice after propagation. This fixture must
+        // still reach optional search, whose forced expiry remains observable and recoverable.
+        var graph = stockedBranches(256, 1, false, true, 1, 0, true);
         var context = new com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext() {
             @Override public long deadlineNanos() { return Long.MAX_VALUE; }
             @Override public void report(com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot snapshot) {}
@@ -219,6 +221,23 @@ class MaterialDagSupplyTest {
     }
 
     @Test
+    void independentMaterialCertificatesReplenishSharedStockAtOrdinaryAndTrillionScale() {
+        for (int branches : new int[] {64, 128}) {
+            for (long n : new long[] {1, 1_000_000_000_000L}) {
+                var graph = stockedBranches(branches, n, false, true, 0, 1);
+                var first = CraftPlannerV2.planDetailed(graph, "T", n);
+                assertEquals(Map.of("raw", n), first.plan().missing(), () -> first.diagnostics().toString());
+                assertStockIsPhysical(graph, first.plan());
+                var supplied = graph.withAdditionalStock(first.plan().missing());
+                var ready = CraftPlannerV2.planDetailed(supplied, "T", n);
+                assertTrue(ready.plan().feasible(), () -> ready.diagnostics()+" missing="+ready.plan().missing());
+                assertFalse(ready.plan().budgetExhausted());
+                assertStockIsPhysical(supplied, ready.plan());
+            }
+        }
+    }
+
+    @Test
     void linearSideOutputSchedulingCoversGraphsBeyondTheFormerSixteenThousandWorkCap() {
         for (long n : new long[] {1, 1_000_000_000_000L}) {
             var graph = stockedBranches(4096, n, false, true, 0);
@@ -237,6 +256,11 @@ class MaterialDagSupplyTest {
 
     private static CraftGraph<String> stockedBranches(
             int branches, long n, boolean wrapped, boolean sharedRaw, long shortage, long rootRaw) {
+        return stockedBranches(branches, n, wrapped, sharedRaw, shortage, rootRaw, false);
+    }
+
+    private static CraftGraph<String> stockedBranches(int branches, long n, boolean wrapped,
+            boolean sharedRaw, long shortage, long rootRaw, boolean alternateRoutes) {
         var builder = CraftGraph.<String>builder();
         var root = new ArrayList<CraftInput<String>>();
         if (sharedRaw) builder.stock("raw", branches*n-shortage);
@@ -249,6 +273,9 @@ class MaterialDagSupplyTest {
                             List.of(CraftOutput.of(side, 1)))
                     .pattern(a, 2, List.of(CraftInput.of(seed, 1), CraftInput.of(side, 2)),
                             List.of(CraftOutput.of(b, 1)));
+            if (alternateRoutes)
+                builder.pattern(b, 1, List.of(CraftInput.of(raw, 1), CraftInput.of(fuel, 2)),
+                        List.of(CraftOutput.of(side, 1)));
             root.add(CraftInput.of(a, 2));
             if (wrapped) {
                 String wrapper = "C"+i;

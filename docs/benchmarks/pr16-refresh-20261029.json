@@ -1,0 +1,1935 @@
+{
+  "date": "2026-10-29",
+  "java": "Temurin 17.0.20+8",
+  "os": "Windows",
+  "cpu": [
+    {
+      "Name": "13th Gen Intel(R) Core(TM) i5-13400",
+      "NumberOfCores": 10,
+      "NumberOfLogicalProcessors": 16
+    }
+  ],
+  "jvm_args": [
+    "-Xms512m",
+    "-Xmx512m",
+    "-XX:+UseG1GC",
+    "-XX:ActiveProcessorCount=2"
+  ],
+  "methodology": "Three sequential rotated JVM forks per variant and suite; each scenario warms for at least one second and 20 batches, followed by 20 measurement batches. Main-thread allocation only. Every action checks correctness; mutation scenarios consume intermediate results.",
+  "upstream": "084ae420d4b76c433c717bb5ac768970231d2976",
+  "previous_pr": "e66742d78d2091ba82d69b8cb355479bab554236",
+  "byte_delta_candidate": "Merged capacity algorithm with upstream combined-delta carry/borrow; isolated class overlay, not adopted unless separately stated.",
+  "source_hash_encoding": "UTF-8 with LF line endings",
+  "source_sha256": {
+    "src/main/java/com/moakiee/thunderbolt/compat/OptionalBatchProviders.java": "595919864e0c6af1f662ef189854a98628dc69d97198a2d69c532cf3806db2f0",
+    "src/main/java/com/moakiee/thunderbolt/compat/neoeco/NeoEcoAllocatedApi.java": "5345da4b86051a97fe3656a6f46ff0f99efaf6e06b93aeb5f67baa9ffc81134f",
+    "src/main/java/com/moakiee/thunderbolt/compat/neoeco/NeoEcoFastPathBatchAdapter.java": "5e96863a57a4bdc546901c21a7e149ef0f6a2bfbd02839444f78e3260cb56f41",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/ByteTracker.java": "00d717951826536c5a080188c2eeda5bd395f626a0e75da2e5c0e50a0bf9dcde",
+    "src/main/java/com/moakiee/thunderbolt/core/storage/cell/IndexedStorage.java": "295cdff02cc1772433840888d13080558a6123e1cbb0adda44442c6cf8d5c382",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.java": "909e270a2f7667dc0c30574968675c5b605ee8df38bb17239b3ef55147eb9ca2",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/CraftConfirmMenuMixin.java": "f11caaa32198bf714e2320bac3517878ea661f2eac9fb1f6699af9015c762179",
+    "src/test/java/com/moakiee/thunderbolt/core/OptimizationBenchmark.java": "0a729b0670c57c0909984070f9a5148f892ebdf95bdad8e7df226057327083ca",
+    "src/test/java/com/moakiee/thunderbolt/core/IntegrationHotPathBenchmark.java": "f78cc80d21151857585875fd936336f22c2deb6857cf968d207b0e25f07a8a28"
+  },
+  "byte_delta_source_sha256": "9f36ed08d92540cb2716530ba2fbe50899a00fd599642c0fd43b0a0430fd5c3d",
+  "summaries": [
+    {
+      "variant": "byte-delta",
+      "scenario": "byte-capacity-existing",
+      "median_p50_ns": 6.7,
+      "min_p50_ns": 6.7,
+      "max_p50_ns": 13.1,
+      "median_p95_ns": 7.5,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "byte-delta",
+      "scenario": "byte-existing-key",
+      "median_p50_ns": 7.1,
+      "min_p50_ns": 7.1,
+      "max_p50_ns": 13.3,
+      "median_p95_ns": 8.1,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "byte-delta",
+      "scenario": "byte-new-key",
+      "median_p50_ns": 20.7,
+      "min_p50_ns": 20.5,
+      "max_p50_ns": 34.5,
+      "median_p95_ns": 28.6,
+      "median_bytes_per_op": 32.0
+    },
+    {
+      "variant": "byte-delta",
+      "scenario": "indexed-long-transfer",
+      "median_p50_ns": 11.6,
+      "min_p50_ns": 10.5,
+      "max_p50_ns": 30.7,
+      "median_p95_ns": 12.4,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "byte-delta",
+      "scenario": "indexed-small-exact-transfer",
+      "median_p50_ns": 15.1,
+      "min_p50_ns": 14.0,
+      "max_p50_ns": 36.1,
+      "median_p95_ns": 16.0,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "byte-delta",
+      "scenario": "indexed-wide-exact-transfer",
+      "median_p50_ns": 356.8,
+      "min_p50_ns": 345.9,
+      "max_p50_ns": 373.0,
+      "median_p95_ns": 427.5,
+      "median_bytes_per_op": 1032.0
+    },
+    {
+      "variant": "byte-delta",
+      "scenario": "neoeco-allocated-offer-3",
+      "median_p50_ns": 334.4,
+      "min_p50_ns": 300.5,
+      "max_p50_ns": 643.0,
+      "median_p95_ns": 408.0,
+      "median_bytes_per_op": 3808.0
+    },
+    {
+      "variant": "byte-delta",
+      "scenario": "neoeco-allocated-offer-8",
+      "median_p50_ns": 240.4,
+      "min_p50_ns": 222.4,
+      "max_p50_ns": 513.4,
+      "median_p95_ns": 412.4,
+      "median_bytes_per_op": 2616.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "alternatives-1",
+      "median_p50_ns": 16460.0,
+      "min_p50_ns": 15740.0,
+      "max_p50_ns": 57332.0,
+      "median_p95_ns": 27434.0,
+      "median_bytes_per_op": 18723.7
+    },
+    {
+      "variant": "merged",
+      "scenario": "alternatives-1000000000000",
+      "median_p50_ns": 12618.0,
+      "min_p50_ns": 6492.0,
+      "max_p50_ns": 120116.0,
+      "median_p95_ns": 16678.0,
+      "median_bytes_per_op": 19471.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "byte-capacity-existing",
+      "median_p50_ns": 6.7,
+      "min_p50_ns": 6.6,
+      "max_p50_ns": 6.7,
+      "median_p95_ns": 7.3,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "byte-existing-key",
+      "median_p50_ns": 7.2,
+      "min_p50_ns": 7.1,
+      "max_p50_ns": 17.8,
+      "median_p95_ns": 7.7,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "byte-new-key",
+      "median_p50_ns": 20.8,
+      "min_p50_ns": 20.8,
+      "max_p50_ns": 37.8,
+      "median_p95_ns": 24.7,
+      "median_bytes_per_op": 32.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "chain-500",
+      "median_p50_ns": 508310.0,
+      "min_p50_ns": 435970.0,
+      "max_p50_ns": 970520.0,
+      "median_p95_ns": 695920.0,
+      "median_bytes_per_op": 437864.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "indexed-long-transfer",
+      "median_p50_ns": 11.7,
+      "min_p50_ns": 11.5,
+      "max_p50_ns": 28.3,
+      "median_p95_ns": 13.0,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "indexed-small-exact-transfer",
+      "median_p50_ns": 15.8,
+      "min_p50_ns": 15.0,
+      "max_p50_ns": 36.0,
+      "median_p95_ns": 16.6,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "indexed-wide-exact-transfer",
+      "median_p50_ns": 369.0,
+      "min_p50_ns": 351.9,
+      "max_p50_ns": 684.8,
+      "median_p95_ns": 429.7,
+      "median_bytes_per_op": 1032.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "neoeco-allocated-offer-3",
+      "median_p50_ns": 346.5,
+      "min_p50_ns": 314.0,
+      "max_p50_ns": 599.5,
+      "median_p95_ns": 467.3,
+      "median_bytes_per_op": 3712.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "neoeco-allocated-offer-8",
+      "median_p50_ns": 224.0,
+      "min_p50_ns": 218.0,
+      "max_p50_ns": 420.0,
+      "median_p95_ns": 405.8,
+      "median_bytes_per_op": 2520.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "ordinary-bulk-extract",
+      "median_p50_ns": 2022.5,
+      "min_p50_ns": 1839.1,
+      "max_p50_ns": 3115.0,
+      "median_p95_ns": 3044.9,
+      "median_bytes_per_op": 3952.0
+    },
+    {
+      "variant": "merged",
+      "scenario": "quantity-session-1",
+      "median_p50_ns": 87600.0,
+      "min_p50_ns": 67000.0,
+      "max_p50_ns": 347480.0,
+      "median_p95_ns": 131210.0,
+      "median_bytes_per_op": 120444.8
+    },
+    {
+      "variant": "merged",
+      "scenario": "quantity-session-1000000000000",
+      "median_p50_ns": 52760.0,
+      "min_p50_ns": 38450.0,
+      "max_p50_ns": 407450.0,
+      "median_p95_ns": 67870.0,
+      "median_bytes_per_op": 124321.6
+    },
+    {
+      "variant": "merged",
+      "scenario": "three-route-mixed",
+      "median_p50_ns": 223314.0,
+      "min_p50_ns": 222270.0,
+      "max_p50_ns": 716514.0,
+      "median_p95_ns": 301294.0,
+      "median_bytes_per_op": 176528.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "alternatives-1",
+      "median_p50_ns": 64886.0,
+      "min_p50_ns": 56236.0,
+      "max_p50_ns": 164418.0,
+      "median_p95_ns": 74388.0,
+      "median_bytes_per_op": 18815.5
+    },
+    {
+      "variant": "pr",
+      "scenario": "alternatives-1000000000000",
+      "median_p50_ns": 55908.0,
+      "min_p50_ns": 55086.0,
+      "max_p50_ns": 70434.0,
+      "median_p95_ns": 72896.0,
+      "median_bytes_per_op": 19628.2
+    },
+    {
+      "variant": "pr",
+      "scenario": "byte-capacity-existing",
+      "median_p50_ns": 12.8,
+      "min_p50_ns": 6.7,
+      "max_p50_ns": 13.6,
+      "median_p95_ns": 16.7,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "byte-existing-key",
+      "median_p50_ns": 13.7,
+      "min_p50_ns": 7.1,
+      "max_p50_ns": 13.9,
+      "median_p95_ns": 15.0,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "byte-new-key",
+      "median_p50_ns": 23.1,
+      "min_p50_ns": 10.4,
+      "max_p50_ns": 35.9,
+      "median_p95_ns": 28.8,
+      "median_bytes_per_op": 32.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "chain-500",
+      "median_p50_ns": 1007830.0,
+      "min_p50_ns": 935740.0,
+      "max_p50_ns": 1018840.0,
+      "median_p95_ns": 1225040.0,
+      "median_bytes_per_op": 437864.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "indexed-long-transfer",
+      "median_p50_ns": 29.4,
+      "min_p50_ns": 11.5,
+      "max_p50_ns": 30.3,
+      "median_p95_ns": 34.6,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "indexed-small-exact-transfer",
+      "median_p50_ns": 419.3,
+      "min_p50_ns": 182.8,
+      "max_p50_ns": 421.8,
+      "median_p95_ns": 477.5,
+      "median_bytes_per_op": 1056.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "indexed-wide-exact-transfer",
+      "median_p50_ns": 624.0,
+      "min_p50_ns": 355.5,
+      "max_p50_ns": 634.6,
+      "median_p95_ns": 669.1,
+      "median_bytes_per_op": 1232.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "neoeco-allocated-offer-3",
+      "median_p50_ns": 622.3,
+      "min_p50_ns": 323.1,
+      "max_p50_ns": 826.8,
+      "median_p95_ns": 909.5,
+      "median_bytes_per_op": 3744.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "neoeco-allocated-offer-8",
+      "median_p50_ns": 436.6,
+      "min_p50_ns": 238.6,
+      "max_p50_ns": 498.8,
+      "median_p95_ns": 681.5,
+      "median_bytes_per_op": 2560.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "ordinary-bulk-extract",
+      "median_p50_ns": 5288.5,
+      "min_p50_ns": 2261.9,
+      "max_p50_ns": 6781.5,
+      "median_p95_ns": 7069.4,
+      "median_bytes_per_op": 4088.0
+    },
+    {
+      "variant": "pr",
+      "scenario": "quantity-session-1",
+      "median_p50_ns": 391000.0,
+      "min_p50_ns": 372880.0,
+      "max_p50_ns": 444420.0,
+      "median_p95_ns": 503930.0,
+      "median_bytes_per_op": 123269.6
+    },
+    {
+      "variant": "pr",
+      "scenario": "quantity-session-1000000000000",
+      "median_p50_ns": 295000.0,
+      "min_p50_ns": 134550.0,
+      "max_p50_ns": 343310.0,
+      "median_p95_ns": 363990.0,
+      "median_bytes_per_op": 129991.2
+    },
+    {
+      "variant": "pr",
+      "scenario": "three-route-mixed",
+      "median_p50_ns": 532960.0,
+      "min_p50_ns": 209170.0,
+      "max_p50_ns": 578552.0,
+      "median_p95_ns": 675596.0,
+      "median_bytes_per_op": 176632.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "alternatives-1",
+      "median_p50_ns": 16904.0,
+      "min_p50_ns": 16524.0,
+      "max_p50_ns": 56394.0,
+      "median_p95_ns": 22734.0,
+      "median_bytes_per_op": 18683.7
+    },
+    {
+      "variant": "upstream",
+      "scenario": "alternatives-1000000000000",
+      "median_p50_ns": 12804.0,
+      "min_p50_ns": 6324.0,
+      "max_p50_ns": 27748.0,
+      "median_p95_ns": 20570.0,
+      "median_bytes_per_op": 18920.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "byte-capacity-existing",
+      "median_p50_ns": 6.4,
+      "min_p50_ns": 5.9,
+      "max_p50_ns": 11.5,
+      "median_p95_ns": 6.9,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "byte-existing-key",
+      "median_p50_ns": 7.2,
+      "min_p50_ns": 7.1,
+      "max_p50_ns": 13.8,
+      "median_p95_ns": 7.8,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "byte-new-key",
+      "median_p50_ns": 20.6,
+      "min_p50_ns": 20.5,
+      "max_p50_ns": 40.9,
+      "median_p95_ns": 21.8,
+      "median_bytes_per_op": 32.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "chain-500",
+      "median_p50_ns": 485340.0,
+      "min_p50_ns": 335440.0,
+      "max_p50_ns": 781970.0,
+      "median_p95_ns": 583660.0,
+      "median_bytes_per_op": 421832.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "indexed-long-transfer",
+      "median_p50_ns": 13.0,
+      "min_p50_ns": 12.4,
+      "max_p50_ns": 32.3,
+      "median_p95_ns": 14.2,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "indexed-small-exact-transfer",
+      "median_p50_ns": 15.9,
+      "min_p50_ns": 14.9,
+      "max_p50_ns": 39.0,
+      "median_p95_ns": 21.9,
+      "median_bytes_per_op": 0.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "indexed-wide-exact-transfer",
+      "median_p50_ns": 365.8,
+      "min_p50_ns": 350.1,
+      "max_p50_ns": 593.8,
+      "median_p95_ns": 414.9,
+      "median_bytes_per_op": 1032.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "neoeco-allocated-offer-3",
+      "median_p50_ns": 588.9,
+      "min_p50_ns": 360.4,
+      "max_p50_ns": 670.9,
+      "median_p95_ns": 728.3,
+      "median_bytes_per_op": 3728.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "neoeco-allocated-offer-8",
+      "median_p50_ns": 252.4,
+      "min_p50_ns": 221.0,
+      "max_p50_ns": 430.0,
+      "median_p95_ns": 322.4,
+      "median_bytes_per_op": 2536.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "ordinary-bulk-extract",
+      "median_p50_ns": 2290.6,
+      "min_p50_ns": 736.0,
+      "max_p50_ns": 3723.8,
+      "median_p95_ns": 3041.7,
+      "median_bytes_per_op": 3912.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "quantity-session-1",
+      "median_p50_ns": 88850.0,
+      "min_p50_ns": 36200.0,
+      "max_p50_ns": 256960.0,
+      "median_p95_ns": 108390.0,
+      "median_bytes_per_op": 119948.0
+    },
+    {
+      "variant": "upstream",
+      "scenario": "quantity-session-1000000000000",
+      "median_p50_ns": 38500.0,
+      "min_p50_ns": 38090.0,
+      "max_p50_ns": 84750.0,
+      "median_p95_ns": 53340.0,
+      "median_bytes_per_op": 123625.6
+    },
+    {
+      "variant": "upstream",
+      "scenario": "three-route-mixed",
+      "median_p50_ns": 264156.0,
+      "min_p50_ns": 216408.0,
+      "max_p50_ns": 599758.0,
+      "median_p95_ns": 296350.0,
+      "median_bytes_per_op": 219639.0
+    }
+  ],
+  "runs": [
+    {
+      "variant": "byte-delta",
+      "round": 1,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 76400000,
+          "p50_ns": 13.3,
+          "p95_ns": 15.3,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 22800000,
+          "p50_ns": 34.5,
+          "p95_ns": 42.5,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 100700000,
+          "p50_ns": 13.1,
+          "p95_ns": 14.6,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 31700000,
+          "p50_ns": 30.7,
+          "p95_ns": 33.6,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 25400000,
+          "p50_ns": 36.1,
+          "p95_ns": 46.0,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 1040000,
+          "p50_ns": 345.9,
+          "p95_ns": 725.0,
+          "bytes_per_op": 1072.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 1116000,
+          "p50_ns": 513.4,
+          "p95_ns": 900.8,
+          "bytes_per_op": 2616.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 1425000,
+          "p50_ns": 643.0,
+          "p95_ns": 886.6,
+          "bytes_per_op": 3808.0
+        }
+      ]
+    },
+    {
+      "variant": "byte-delta",
+      "round": 2,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 147000000,
+          "p50_ns": 7.1,
+          "p95_ns": 7.9,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 43700000,
+          "p50_ns": 20.5,
+          "p95_ns": 21.9,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 136200000,
+          "p50_ns": 6.7,
+          "p95_ns": 7.0,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 84000000,
+          "p50_ns": 11.6,
+          "p95_ns": 12.4,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 64900000,
+          "p50_ns": 15.1,
+          "p95_ns": 16.0,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 2260000,
+          "p50_ns": 373.0,
+          "p95_ns": 397.2,
+          "bytes_per_op": 1032.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 2988000,
+          "p50_ns": 222.4,
+          "p95_ns": 280.4,
+          "bytes_per_op": 2616.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 2796000,
+          "p50_ns": 334.4,
+          "p95_ns": 408.0,
+          "bytes_per_op": 3808.0
+        }
+      ]
+    },
+    {
+      "variant": "byte-delta",
+      "round": 3,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 151300000,
+          "p50_ns": 7.1,
+          "p95_ns": 8.1,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 43800000,
+          "p50_ns": 20.7,
+          "p95_ns": 28.6,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 142300000,
+          "p50_ns": 6.7,
+          "p95_ns": 7.5,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 77700000,
+          "p50_ns": 10.5,
+          "p95_ns": 11.2,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 66300000,
+          "p50_ns": 14.0,
+          "p95_ns": 14.6,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 2355000,
+          "p50_ns": 356.8,
+          "p95_ns": 427.5,
+          "bytes_per_op": 1032.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 3417000,
+          "p50_ns": 240.4,
+          "p95_ns": 412.4,
+          "bytes_per_op": 2568.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 2823000,
+          "p50_ns": 300.5,
+          "p95_ns": 349.9,
+          "bytes_per_op": 3760.0
+        }
+      ]
+    },
+    {
+      "variant": "merged",
+      "round": 1,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 101400000,
+          "p50_ns": 17.8,
+          "p95_ns": 20.3,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 21800000,
+          "p50_ns": 37.8,
+          "p95_ns": 44.9,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 72500000,
+          "p50_ns": 6.6,
+          "p95_ns": 7.3,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 24500000,
+          "p50_ns": 28.3,
+          "p95_ns": 31.3,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 27100000,
+          "p50_ns": 36.0,
+          "p95_ns": 41.5,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 1160000,
+          "p50_ns": 684.8,
+          "p95_ns": 811.1,
+          "bytes_per_op": 1032.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 1314000,
+          "p50_ns": 420.0,
+          "p95_ns": 615.2,
+          "bytes_per_op": 2520.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 1551000,
+          "p50_ns": 599.5,
+          "p95_ns": 720.0,
+          "bytes_per_op": 3712.0
+        }
+      ]
+    },
+    {
+      "variant": "merged",
+      "round": 1,
+      "suite": "planning",
+      "metrics": [
+        {
+          "scenario": "chain-500",
+          "iterations": 10,
+          "warmup_iterations": 640,
+          "p50_ns": 970520.0,
+          "p95_ns": 1060720.0,
+          "bytes_per_op": 437864.0
+        },
+        {
+          "scenario": "alternatives-1",
+          "iterations": 50,
+          "warmup_iterations": 9950,
+          "p50_ns": 57332.0,
+          "p95_ns": 72610.0,
+          "bytes_per_op": 18723.7
+        },
+        {
+          "scenario": "quantity-session-1",
+          "iterations": 10,
+          "warmup_iterations": 1930,
+          "p50_ns": 347480.0,
+          "p95_ns": 452080.0,
+          "bytes_per_op": 123143.2
+        },
+        {
+          "scenario": "alternatives-1000000000000",
+          "iterations": 50,
+          "warmup_iterations": 11750,
+          "p50_ns": 120116.0,
+          "p95_ns": 264568.0,
+          "bytes_per_op": 19471.0
+        },
+        {
+          "scenario": "quantity-session-1000000000000",
+          "iterations": 10,
+          "warmup_iterations": 2620,
+          "p50_ns": 407450.0,
+          "p95_ns": 658230.0,
+          "bytes_per_op": 129579.2
+        },
+        {
+          "scenario": "three-route-mixed",
+          "iterations": 50,
+          "warmup_iterations": 1000,
+          "p50_ns": 716514.0,
+          "p95_ns": 984736.0,
+          "bytes_per_op": 176528.0
+        },
+        {
+          "scenario": "ordinary-bulk-extract",
+          "iterations": 3000,
+          "warmup_iterations": 150000,
+          "p50_ns": 3115.0,
+          "p95_ns": 5576.4,
+          "bytes_per_op": 3952.0
+        }
+      ]
+    },
+    {
+      "variant": "merged",
+      "round": 2,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 150100000,
+          "p50_ns": 7.1,
+          "p95_ns": 7.7,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 42300000,
+          "p50_ns": 20.8,
+          "p95_ns": 24.7,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 138400000,
+          "p50_ns": 6.7,
+          "p95_ns": 7.6,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 84700000,
+          "p50_ns": 11.7,
+          "p95_ns": 12.3,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 60900000,
+          "p50_ns": 15.8,
+          "p95_ns": 16.6,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 2220000,
+          "p50_ns": 351.9,
+          "p95_ns": 367.6,
+          "bytes_per_op": 1112.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 3462000,
+          "p50_ns": 224.0,
+          "p95_ns": 405.8,
+          "bytes_per_op": 2568.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 2841000,
+          "p50_ns": 314.0,
+          "p95_ns": 387.6,
+          "bytes_per_op": 3760.0
+        }
+      ]
+    },
+    {
+      "variant": "merged",
+      "round": 2,
+      "suite": "planning",
+      "metrics": [
+        {
+          "scenario": "chain-500",
+          "iterations": 10,
+          "warmup_iterations": 1500,
+          "p50_ns": 508310.0,
+          "p95_ns": 695920.0,
+          "bytes_per_op": 437864.0
+        },
+        {
+          "scenario": "alternatives-1",
+          "iterations": 50,
+          "warmup_iterations": 45000,
+          "p50_ns": 15740.0,
+          "p95_ns": 22800.0,
+          "bytes_per_op": 18777.6
+        },
+        {
+          "scenario": "quantity-session-1",
+          "iterations": 10,
+          "warmup_iterations": 8500,
+          "p50_ns": 87600.0,
+          "p95_ns": 131210.0,
+          "bytes_per_op": 120444.8
+        },
+        {
+          "scenario": "alternatives-1000000000000",
+          "iterations": 50,
+          "warmup_iterations": 64250,
+          "p50_ns": 12618.0,
+          "p95_ns": 16678.0,
+          "bytes_per_op": 19593.1
+        },
+        {
+          "scenario": "quantity-session-1000000000000",
+          "iterations": 10,
+          "warmup_iterations": 13450,
+          "p50_ns": 52760.0,
+          "p95_ns": 67870.0,
+          "bytes_per_op": 124321.6
+        },
+        {
+          "scenario": "three-route-mixed",
+          "iterations": 50,
+          "warmup_iterations": 3950,
+          "p50_ns": 222270.0,
+          "p95_ns": 273916.0,
+          "bytes_per_op": 176543.4
+        },
+        {
+          "scenario": "ordinary-bulk-extract",
+          "iterations": 3000,
+          "warmup_iterations": 234000,
+          "p50_ns": 1839.1,
+          "p95_ns": 2266.1,
+          "bytes_per_op": 3984.0
+        }
+      ]
+    },
+    {
+      "variant": "merged",
+      "round": 3,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 148900000,
+          "p50_ns": 7.2,
+          "p95_ns": 7.7,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 43200000,
+          "p50_ns": 20.8,
+          "p95_ns": 21.8,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 131500000,
+          "p50_ns": 6.7,
+          "p95_ns": 6.8,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 84600000,
+          "p50_ns": 11.5,
+          "p95_ns": 13.0,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 63900000,
+          "p50_ns": 15.0,
+          "p95_ns": 16.3,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 2200000,
+          "p50_ns": 369.0,
+          "p95_ns": 429.7,
+          "bytes_per_op": 1032.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 3324000,
+          "p50_ns": 218.0,
+          "p95_ns": 273.8,
+          "bytes_per_op": 2520.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 2832000,
+          "p50_ns": 346.5,
+          "p95_ns": 467.3,
+          "bytes_per_op": 3712.0
+        }
+      ]
+    },
+    {
+      "variant": "merged",
+      "round": 3,
+      "suite": "planning",
+      "metrics": [
+        {
+          "scenario": "chain-500",
+          "iterations": 10,
+          "warmup_iterations": 1580,
+          "p50_ns": 435970.0,
+          "p95_ns": 513380.0,
+          "bytes_per_op": 437729.6
+        },
+        {
+          "scenario": "alternatives-1",
+          "iterations": 50,
+          "warmup_iterations": 51850,
+          "p50_ns": 16460.0,
+          "p95_ns": 27434.0,
+          "bytes_per_op": 18594.1
+        },
+        {
+          "scenario": "quantity-session-1",
+          "iterations": 10,
+          "warmup_iterations": 11030,
+          "p50_ns": 67000.0,
+          "p95_ns": 71580.0,
+          "bytes_per_op": 117836.8
+        },
+        {
+          "scenario": "alternatives-1000000000000",
+          "iterations": 50,
+          "warmup_iterations": 105800,
+          "p50_ns": 6492.0,
+          "p95_ns": 10306.0,
+          "bytes_per_op": 18692.8
+        },
+        {
+          "scenario": "quantity-session-1000000000000",
+          "iterations": 10,
+          "warmup_iterations": 24740,
+          "p50_ns": 38450.0,
+          "p95_ns": 48490.0,
+          "bytes_per_op": 123999.2
+        },
+        {
+          "scenario": "three-route-mixed",
+          "iterations": 50,
+          "warmup_iterations": 4050,
+          "p50_ns": 223314.0,
+          "p95_ns": 301294.0,
+          "bytes_per_op": 176379.0
+        },
+        {
+          "scenario": "ordinary-bulk-extract",
+          "iterations": 3000,
+          "warmup_iterations": 291000,
+          "p50_ns": 2022.5,
+          "p95_ns": 3044.9,
+          "bytes_per_op": 3912.0
+        }
+      ]
+    },
+    {
+      "variant": "pr",
+      "round": 1,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 69100000,
+          "p50_ns": 13.7,
+          "p95_ns": 15.0,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 24300000,
+          "p50_ns": 35.9,
+          "p95_ns": 39.1,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 68000000,
+          "p50_ns": 13.6,
+          "p95_ns": 17.6,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 31000000,
+          "p50_ns": 29.4,
+          "p95_ns": 34.6,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 2200000,
+          "p50_ns": 419.3,
+          "p95_ns": 477.5,
+          "bytes_per_op": 1056.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 1095000,
+          "p50_ns": 634.6,
+          "p95_ns": 767.5,
+          "bytes_per_op": 1232.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 1086000,
+          "p50_ns": 498.8,
+          "p95_ns": 938.3,
+          "bytes_per_op": 2512.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 1503000,
+          "p50_ns": 622.3,
+          "p95_ns": 909.5,
+          "bytes_per_op": 3696.0
+        }
+      ]
+    },
+    {
+      "variant": "pr",
+      "round": 1,
+      "suite": "planning",
+      "metrics": [
+        {
+          "scenario": "chain-500",
+          "iterations": 10,
+          "warmup_iterations": 550,
+          "p50_ns": 1007830.0,
+          "p95_ns": 1381800.0,
+          "bytes_per_op": 437864.0
+        },
+        {
+          "scenario": "alternatives-1",
+          "iterations": 50,
+          "warmup_iterations": 11100,
+          "p50_ns": 56236.0,
+          "p95_ns": 66744.0,
+          "bytes_per_op": 18815.5
+        },
+        {
+          "scenario": "quantity-session-1",
+          "iterations": 10,
+          "warmup_iterations": 2080,
+          "p50_ns": 391000.0,
+          "p95_ns": 503930.0,
+          "bytes_per_op": 123269.6
+        },
+        {
+          "scenario": "alternatives-1000000000000",
+          "iterations": 50,
+          "warmup_iterations": 14150,
+          "p50_ns": 55086.0,
+          "p95_ns": 72896.0,
+          "bytes_per_op": 19628.2
+        },
+        {
+          "scenario": "quantity-session-1000000000000",
+          "iterations": 10,
+          "warmup_iterations": 3160,
+          "p50_ns": 343310.0,
+          "p95_ns": 436440.0,
+          "bytes_per_op": 129996.0
+        },
+        {
+          "scenario": "three-route-mixed",
+          "iterations": 50,
+          "warmup_iterations": 1050,
+          "p50_ns": 532960.0,
+          "p95_ns": 675596.0,
+          "bytes_per_op": 176632.0
+        },
+        {
+          "scenario": "ordinary-bulk-extract",
+          "iterations": 3000,
+          "warmup_iterations": 105000,
+          "p50_ns": 5288.5,
+          "p95_ns": 7069.4,
+          "bytes_per_op": 4088.0
+        }
+      ]
+    },
+    {
+      "variant": "pr",
+      "round": 2,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 151100000,
+          "p50_ns": 7.1,
+          "p95_ns": 7.7,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 80200000,
+          "p50_ns": 10.4,
+          "p95_ns": 11.8,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 135200000,
+          "p50_ns": 6.7,
+          "p95_ns": 7.7,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 84400000,
+          "p50_ns": 11.5,
+          "p95_ns": 12.5,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 5000000,
+          "p50_ns": 182.8,
+          "p95_ns": 192.4,
+          "bytes_per_op": 1056.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 2305000,
+          "p50_ns": 355.5,
+          "p95_ns": 420.5,
+          "bytes_per_op": 1232.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 2949000,
+          "p50_ns": 238.6,
+          "p95_ns": 296.1,
+          "bytes_per_op": 2608.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 2757000,
+          "p50_ns": 323.1,
+          "p95_ns": 485.1,
+          "bytes_per_op": 3792.0
+        }
+      ]
+    },
+    {
+      "variant": "pr",
+      "round": 2,
+      "suite": "planning",
+      "metrics": [
+        {
+          "scenario": "chain-500",
+          "iterations": 10,
+          "warmup_iterations": 610,
+          "p50_ns": 935740.0,
+          "p95_ns": 1157250.0,
+          "bytes_per_op": 437864.0
+        },
+        {
+          "scenario": "alternatives-1",
+          "iterations": 50,
+          "warmup_iterations": 13950,
+          "p50_ns": 164418.0,
+          "p95_ns": 302726.0,
+          "bytes_per_op": 18815.5
+        },
+        {
+          "scenario": "quantity-session-1",
+          "iterations": 10,
+          "warmup_iterations": 1700,
+          "p50_ns": 444420.0,
+          "p95_ns": 666140.0,
+          "bytes_per_op": 123762.4
+        },
+        {
+          "scenario": "alternatives-1000000000000",
+          "iterations": 50,
+          "warmup_iterations": 13100,
+          "p50_ns": 70434.0,
+          "p95_ns": 192964.0,
+          "bytes_per_op": 19494.1
+        },
+        {
+          "scenario": "quantity-session-1000000000000",
+          "iterations": 10,
+          "warmup_iterations": 6270,
+          "p50_ns": 134550.0,
+          "p95_ns": 178650.0,
+          "bytes_per_op": 129637.6
+        },
+        {
+          "scenario": "three-route-mixed",
+          "iterations": 50,
+          "warmup_iterations": 4000,
+          "p50_ns": 209170.0,
+          "p95_ns": 239110.0,
+          "bytes_per_op": 176583.8
+        },
+        {
+          "scenario": "ordinary-bulk-extract",
+          "iterations": 3000,
+          "warmup_iterations": 348000,
+          "p50_ns": 2261.9,
+          "p95_ns": 2497.2,
+          "bytes_per_op": 3984.0
+        }
+      ]
+    },
+    {
+      "variant": "pr",
+      "round": 3,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 64700000,
+          "p50_ns": 13.9,
+          "p95_ns": 20.1,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 37400000,
+          "p50_ns": 23.1,
+          "p95_ns": 28.8,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 68900000,
+          "p50_ns": 12.8,
+          "p95_ns": 16.7,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 28000000,
+          "p50_ns": 30.3,
+          "p95_ns": 40.8,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 2000000,
+          "p50_ns": 421.8,
+          "p95_ns": 480.9,
+          "bytes_per_op": 1056.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 1290000,
+          "p50_ns": 624.0,
+          "p95_ns": 669.1,
+          "bytes_per_op": 1192.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 1326000,
+          "p50_ns": 436.6,
+          "p95_ns": 681.5,
+          "bytes_per_op": 2560.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 1476000,
+          "p50_ns": 826.8,
+          "p95_ns": 1098.8,
+          "bytes_per_op": 3744.0
+        }
+      ]
+    },
+    {
+      "variant": "pr",
+      "round": 3,
+      "suite": "planning",
+      "metrics": [
+        {
+          "scenario": "chain-500",
+          "iterations": 10,
+          "warmup_iterations": 600,
+          "p50_ns": 1018840.0,
+          "p95_ns": 1225040.0,
+          "bytes_per_op": 437729.6
+        },
+        {
+          "scenario": "alternatives-1",
+          "iterations": 50,
+          "warmup_iterations": 12900,
+          "p50_ns": 64886.0,
+          "p95_ns": 74388.0,
+          "bytes_per_op": 18810.7
+        },
+        {
+          "scenario": "quantity-session-1",
+          "iterations": 10,
+          "warmup_iterations": 2650,
+          "p50_ns": 372880.0,
+          "p95_ns": 479080.0,
+          "bytes_per_op": 123224.0
+        },
+        {
+          "scenario": "alternatives-1000000000000",
+          "iterations": 50,
+          "warmup_iterations": 16350,
+          "p50_ns": 55908.0,
+          "p95_ns": 67594.0,
+          "bytes_per_op": 19651.2
+        },
+        {
+          "scenario": "quantity-session-1000000000000",
+          "iterations": 10,
+          "warmup_iterations": 2960,
+          "p50_ns": 295000.0,
+          "p95_ns": 363990.0,
+          "bytes_per_op": 129991.2
+        },
+        {
+          "scenario": "three-route-mixed",
+          "iterations": 50,
+          "warmup_iterations": 1400,
+          "p50_ns": 578552.0,
+          "p95_ns": 856300.0,
+          "bytes_per_op": 176632.0
+        },
+        {
+          "scenario": "ordinary-bulk-extract",
+          "iterations": 3000,
+          "warmup_iterations": 111000,
+          "p50_ns": 6781.5,
+          "p95_ns": 7265.2,
+          "bytes_per_op": 4088.0
+        }
+      ]
+    },
+    {
+      "variant": "upstream",
+      "round": 1,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 76400000,
+          "p50_ns": 13.8,
+          "p95_ns": 16.8,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 25000000,
+          "p50_ns": 40.9,
+          "p95_ns": 81.5,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 73200000,
+          "p50_ns": 11.5,
+          "p95_ns": 12.9,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 26200000,
+          "p50_ns": 32.3,
+          "p95_ns": 42.8,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 23600000,
+          "p50_ns": 39.0,
+          "p95_ns": 47.3,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 990000,
+          "p50_ns": 593.8,
+          "p95_ns": 729.9,
+          "bytes_per_op": 1032.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 1206000,
+          "p50_ns": 430.0,
+          "p95_ns": 524.2,
+          "bytes_per_op": 2440.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 1497000,
+          "p50_ns": 588.9,
+          "p95_ns": 728.3,
+          "bytes_per_op": 3584.0
+        }
+      ]
+    },
+    {
+      "variant": "upstream",
+      "round": 1,
+      "suite": "planning",
+      "metrics": [
+        {
+          "scenario": "chain-500",
+          "iterations": 10,
+          "warmup_iterations": 770,
+          "p50_ns": 781970.0,
+          "p95_ns": 1101880.0,
+          "bytes_per_op": 421832.0
+        },
+        {
+          "scenario": "alternatives-1",
+          "iterations": 50,
+          "warmup_iterations": 12450,
+          "p50_ns": 56394.0,
+          "p95_ns": 74470.0,
+          "bytes_per_op": 18683.7
+        },
+        {
+          "scenario": "quantity-session-1",
+          "iterations": 10,
+          "warmup_iterations": 2970,
+          "p50_ns": 256960.0,
+          "p95_ns": 456740.0,
+          "bytes_per_op": 119948.0
+        },
+        {
+          "scenario": "alternatives-1000000000000",
+          "iterations": 50,
+          "warmup_iterations": 30050,
+          "p50_ns": 27748.0,
+          "p95_ns": 64818.0,
+          "bytes_per_op": 18920.0
+        },
+        {
+          "scenario": "quantity-session-1000000000000",
+          "iterations": 10,
+          "warmup_iterations": 7450,
+          "p50_ns": 84750.0,
+          "p95_ns": 104070.0,
+          "bytes_per_op": 123625.6
+        },
+        {
+          "scenario": "three-route-mixed",
+          "iterations": 50,
+          "warmup_iterations": 1250,
+          "p50_ns": 599758.0,
+          "p95_ns": 687722.0,
+          "bytes_per_op": 219639.0
+        },
+        {
+          "scenario": "ordinary-bulk-extract",
+          "iterations": 3000,
+          "warmup_iterations": 123000,
+          "p50_ns": 3723.8,
+          "p95_ns": 4106.4,
+          "bytes_per_op": 3984.0
+        }
+      ]
+    },
+    {
+      "variant": "upstream",
+      "round": 2,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 146500000,
+          "p50_ns": 7.2,
+          "p95_ns": 7.8,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 43800000,
+          "p50_ns": 20.5,
+          "p95_ns": 21.2,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 145400000,
+          "p50_ns": 6.4,
+          "p95_ns": 6.9,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 79700000,
+          "p50_ns": 12.4,
+          "p95_ns": 13.8,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 63000000,
+          "p50_ns": 14.9,
+          "p95_ns": 18.0,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 2275000,
+          "p50_ns": 350.1,
+          "p95_ns": 404.4,
+          "bytes_per_op": 1072.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 3138000,
+          "p50_ns": 221.0,
+          "p95_ns": 252.7,
+          "bytes_per_op": 2536.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 2532000,
+          "p50_ns": 360.4,
+          "p95_ns": 485.9,
+          "bytes_per_op": 3728.0
+        }
+      ]
+    },
+    {
+      "variant": "upstream",
+      "round": 2,
+      "suite": "planning",
+      "metrics": [
+        {
+          "scenario": "chain-500",
+          "iterations": 10,
+          "warmup_iterations": 2000,
+          "p50_ns": 335440.0,
+          "p95_ns": 411660.0,
+          "bytes_per_op": 405736.0
+        },
+        {
+          "scenario": "alternatives-1",
+          "iterations": 50,
+          "warmup_iterations": 67350,
+          "p50_ns": 16524.0,
+          "p95_ns": 22734.0,
+          "bytes_per_op": 18211.5
+        },
+        {
+          "scenario": "quantity-session-1",
+          "iterations": 10,
+          "warmup_iterations": 19430,
+          "p50_ns": 36200.0,
+          "p95_ns": 47540.0,
+          "bytes_per_op": 114426.4
+        },
+        {
+          "scenario": "alternatives-1000000000000",
+          "iterations": 50,
+          "warmup_iterations": 159550,
+          "p50_ns": 6324.0,
+          "p95_ns": 7940.0,
+          "bytes_per_op": 18614.7
+        },
+        {
+          "scenario": "quantity-session-1000000000000",
+          "iterations": 10,
+          "warmup_iterations": 25260,
+          "p50_ns": 38090.0,
+          "p95_ns": 53340.0,
+          "bytes_per_op": 123551.2
+        },
+        {
+          "scenario": "three-route-mixed",
+          "iterations": 50,
+          "warmup_iterations": 2850,
+          "p50_ns": 216408.0,
+          "p95_ns": 250276.0,
+          "bytes_per_op": 219517.0
+        },
+        {
+          "scenario": "ordinary-bulk-extract",
+          "iterations": 3000,
+          "warmup_iterations": 420000,
+          "p50_ns": 736.0,
+          "p95_ns": 939.8,
+          "bytes_per_op": 3744.0
+        }
+      ]
+    },
+    {
+      "variant": "upstream",
+      "round": 3,
+      "suite": "integration",
+      "metrics": [
+        {
+          "scenario": "byte-existing-key",
+          "iterations": 100000,
+          "warmup_iterations": 153400000,
+          "p50_ns": 7.1,
+          "p95_ns": 7.5,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "byte-new-key",
+          "iterations": 100000,
+          "warmup_iterations": 46000000,
+          "p50_ns": 20.6,
+          "p95_ns": 21.8,
+          "bytes_per_op": 32.0
+        },
+        {
+          "scenario": "byte-capacity-existing",
+          "iterations": 100000,
+          "warmup_iterations": 153400000,
+          "p50_ns": 5.9,
+          "p95_ns": 6.3,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-long-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 74100000,
+          "p50_ns": 13.0,
+          "p95_ns": 14.2,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-small-exact-transfer",
+          "iterations": 100000,
+          "warmup_iterations": 65300000,
+          "p50_ns": 15.9,
+          "p95_ns": 21.9,
+          "bytes_per_op": 0.0
+        },
+        {
+          "scenario": "indexed-wide-exact-transfer",
+          "iterations": 5000,
+          "warmup_iterations": 2185000,
+          "p50_ns": 365.8,
+          "p95_ns": 414.9,
+          "bytes_per_op": 1032.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-8",
+          "iterations": 3000,
+          "warmup_iterations": 2919000,
+          "p50_ns": 252.4,
+          "p95_ns": 322.4,
+          "bytes_per_op": 2632.0
+        },
+        {
+          "scenario": "neoeco-allocated-offer-3",
+          "iterations": 3000,
+          "warmup_iterations": 1617000,
+          "p50_ns": 670.9,
+          "p95_ns": 880.7,
+          "bytes_per_op": 3824.0
+        }
+      ]
+    },
+    {
+      "variant": "upstream",
+      "round": 3,
+      "suite": "planning",
+      "metrics": [
+        {
+          "scenario": "chain-500",
+          "iterations": 10,
+          "warmup_iterations": 1560,
+          "p50_ns": 485340.0,
+          "p95_ns": 583660.0,
+          "bytes_per_op": 437856.0
+        },
+        {
+          "scenario": "alternatives-1",
+          "iterations": 50,
+          "warmup_iterations": 50700,
+          "p50_ns": 16904.0,
+          "p95_ns": 20222.0,
+          "bytes_per_op": 18769.1
+        },
+        {
+          "scenario": "quantity-session-1",
+          "iterations": 10,
+          "warmup_iterations": 9880,
+          "p50_ns": 88850.0,
+          "p95_ns": 108390.0,
+          "bytes_per_op": 120373.6
+        },
+        {
+          "scenario": "alternatives-1000000000000",
+          "iterations": 50,
+          "warmup_iterations": 66300,
+          "p50_ns": 12804.0,
+          "p95_ns": 20570.0,
+          "bytes_per_op": 19410.1
+        },
+        {
+          "scenario": "quantity-session-1000000000000",
+          "iterations": 10,
+          "warmup_iterations": 17810,
+          "p50_ns": 38500.0,
+          "p95_ns": 48930.0,
+          "bytes_per_op": 123743.2
+        },
+        {
+          "scenario": "three-route-mixed",
+          "iterations": 50,
+          "warmup_iterations": 3350,
+          "p50_ns": 264156.0,
+          "p95_ns": 296350.0,
+          "bytes_per_op": 219773.1
+        },
+        {
+          "scenario": "ordinary-bulk-extract",
+          "iterations": 3000,
+          "warmup_iterations": 279000,
+          "p50_ns": 2290.6,
+          "p95_ns": 3041.7,
+          "bytes_per_op": 3912.0
+        }
+      ]
+    }
+  ]
+}

@@ -12,27 +12,27 @@ import appeng.crafting.execution.ElapsedTimeTracker;
 import appeng.crafting.execution.ExecutingCraftingJob;
 import appeng.crafting.inv.ListCraftingInventory;
 
-// AE2 classes have no obfuscation mappings in the Forge dev environment — remap must be off.
+// AE2 members have no SRG mappings. Namespace generated methods to avoid addon collisions.
 @Mixin(value = ExecutingCraftingJob.class, remap = false)
 public interface ExecutingCraftingJobAccessor {
     @Accessor("waitingFor")
-    ListCraftingInventory getWaitingFor();
+    ListCraftingInventory thunderbolt$getWaitingFor();
 
     @Accessor("timeTracker")
-    ElapsedTimeTracker getTimeTracker();
+    ElapsedTimeTracker thunderbolt$getTimeTracker();
 
     @Accessor("finalOutput")
-    GenericStack getFinalOutput();
+    GenericStack thunderbolt$getFinalOutput();
 
     @Accessor("remainingAmount")
-    long getRemainingAmount();
+    long thunderbolt$getRemainingAmount();
 
     @Accessor("remainingAmount")
-    void setRemainingAmount(long remainingAmount);
+    void thunderbolt$setRemainingAmount(long remainingAmount);
 
     @Accessor("link")
-    CraftingLink getLink();
+    CraftingLink thunderbolt$getLink();
 
     @Accessor("tasks")
-    Map<IPatternDetails, ?> getTasks();
+    Map<IPatternDetails, ?> thunderbolt$getTasks();
 }

@@ -253,6 +253,8 @@ dependencies {
     // Unit tests for the pure planner core (no Minecraft/AE2 needed).
     testImplementation platform("org.junit:junit-bom:5.10.2")
     testImplementation "org.junit.jupiter:junit-jupiter"
+    // Plain JUnit does not unpack the Forge Jar-in-Jar shell when reflecting on mixins.
+    testRuntimeOnly "io.github.llamalad7:mixinextras-common:0.4.1"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 
     optionalModShapeArtifacts "maven.modrinth:advancedae:${advancedae_version}"
@@ -358,11 +360,24 @@ tasks.register('optimizationBenchmark', JavaExec) {
     dependsOn 'testClasses'
     mainClass = 'com.moakiee.thunderbolt.core.OptimizationBenchmark'
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    jvmArgs '-Xms512m', '-Xmx512m', '-XX:+UseG1GC', '-XX:ActiveProcessorCount=2'
     def baseline = providers.gradleProperty('optimizationBaseline').getOrElse('false').toBoolean()
     classpath = baseline
             ? files(layout.buildDirectory.dir('optimization-baseline/classes')) + sourceSets.test.runtimeClasspath
             : sourceSets.test.runtimeClasspath
     def label = providers.gradleProperty('optimizationBenchmarkLabel').getOrElse(baseline ? 'before' : 'after')
+    args layout.buildDirectory.file("optimization-benchmark/${label}.json").get().asFile.absolutePath
+}
+
+tasks.register('integrationHotPathBenchmark', JavaExec) {
+    group = 'verification'
+    description = 'Runs opt-in storage and NeoECO facade benchmarks with conservation checks.'
+    dependsOn 'testClasses'
+    mainClass = 'com.moakiee.thunderbolt.core.IntegrationHotPathBenchmark'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs '-Xms512m', '-Xmx512m', '-XX:+UseG1GC', '-XX:ActiveProcessorCount=2'
+    def label = providers.gradleProperty('optimizationBenchmarkLabel').getOrElse('integration')
     args layout.buildDirectory.file("optimization-benchmark/${label}.json").get().asFile.absolutePath
 }
 

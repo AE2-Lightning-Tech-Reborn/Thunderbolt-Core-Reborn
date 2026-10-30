@@ -121,7 +121,7 @@ final class SmallConservativeSearch {
                 }
                 // A successful sequential witness alone is not safe to export to an unordered
                 // CPU. This also checks primary-demand support for every selected final batch.
-                CraftPlan<K> certified = MaterialDagReplay.tryPlan(graph, vector, target, amount);
+                CraftPlan<K> certified = dagPlan(keys, patterns, inputs, outputs, node.counts.values, stock, amount);
                 if (certified != null) return certified;
                 certified = MaterialDagReplay.trySmallPlan(graph, vector, target, amount);
                 if (certified != null && admittedMasks.computeIfAbsent(mask, ignored -> {
@@ -158,6 +158,62 @@ final class SmallConservativeSearch {
             }
         }
         return null;
+    }
+
+    /** Reuse the bounded search's exact tables for a DAG certificate. Rebuilding the material
+     * graph and loading the general replay portfolio here can consume the cold preflight slice
+     * after discovery has already found an inventory-backed alternative. Cyclic supports still
+     * go through the all-orders verifier below; this is not a sequential-schedule certificate. */
+    private static <K> CraftPlan<K> dagPlan(List<K> keys, List<CraftPattern<K>> patterns,
+            int[][] inputs, int[][] outputs, int[] counts, int[] stock, long amount) {
+        int n = keys.size();
+        long[] demand = new long[n], produced = new long[n], primary = new long[n];
+        int[] edges = new int[n], indegree = new int[n];
+        demand[0] = amount;
+        var fired = new LinkedHashMap<CraftPattern<K>, Long>();
+        for (int r = 0; r < counts.length; r++) {
+            PlanningCancellation.check();
+            int copies = counts[r];
+            if (copies == 0) continue;
+            var pattern = patterns.get(r);
+            fired.put(pattern, (long) copies);
+            int output = keys.indexOf(pattern.output());
+            primary[output] += pattern.outputAmount() * (copies - 1L) + 1L;
+            int post = 0;
+            for (int i = 0; i < n; i++) {
+                demand[i] += (long) inputs[r][i] * copies;
+                produced[i] += (long) outputs[r][i] * copies;
+                if (outputs[r][i] > 0) post |= 1 << i;
+            }
+            for (int i = 0; i < n; i++) if (inputs[r][i] > 0) edges[i] |= post;
+        }
+        for (int i = 0; i < n; i++) {
+            PlanningCancellation.check();
+            if (primary[i] > demand[i] || demand[i] - produced[i] > stock[i]) return null;
+            for (int j = 0; j < n; j++) if ((edges[i] & (1 << j)) != 0) indegree[j]++;
+        }
+        int ready = 0, visited = 0;
+        for (int i = 0; i < n; i++) if (indegree[i] == 0) ready |= 1 << i;
+        while (ready != 0) {
+            PlanningCancellation.check();
+            int i = Integer.numberOfTrailingZeros(ready);
+            ready &= ~(1 << i);
+            visited++;
+            for (int j = 0; j < n; j++) if ((edges[i] & (1 << j)) != 0 && --indegree[j] == 0)
+                ready |= 1 << j;
+        }
+        if (visited != n) return null;
+        var used = new LinkedHashMap<K, Long>();
+        var gross = new LinkedHashMap<K, Long>();
+        for (int i = 0; i < n; i++) {
+            long draw = Math.max(0L, demand[i] - produced[i]);
+            if (draw > 0L) used.put(keys.get(i), draw);
+            if (demand[i] > 0L) gross.put(keys.get(i), demand[i]);
+        }
+        // In a material DAG, the earliest unfinished producer always has its inputs. Complete
+        // balances therefore prove all enabled orders, independent of the BFS discovery order.
+        return new CraftPlan<>(true, true, Map.copyOf(fired), Map.copyOf(used), Map.of(), Map.of(),
+                Map.copyOf(gross), n, false);
     }
 
     private static final class Counts {

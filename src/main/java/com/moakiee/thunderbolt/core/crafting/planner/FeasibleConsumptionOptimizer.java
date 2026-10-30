@@ -1190,6 +1190,7 @@ final class FeasibleConsumptionOptimizer {
                 // This phase only proposes a whole-inventory policy. The local region uses the
                 // next, capped-stock propagation, so production prices are not needed yet.
                 prop.execBound = Math.max(0L, (long) Math.ceil(freeBound * (1 - 1e-9) - 1e-9));
+                prop.execBound = Math.max(prop.execBound, exactPotentialBound(free, 1));
                 prop.cost = free;
                 prop.argmin = prop.freeArgmin;
                 return prop;
@@ -1213,6 +1214,7 @@ final class FeasibleConsumptionOptimizer {
             for (int key : limited) charged -= limits[key] * priced[key] * (1 + 1e-9);
             double bound = Math.max(freeBound, Double.isInfinite(scale) ? 0 : charged / scale);
             prop.execBound = Math.max(0L, (long) Math.ceil(bound * (1 - 1e-9) - 1e-9));
+            prop.execBound = Math.max(prop.execBound, exactPotentialBound(priced, 1));
             prop.cost = priced;
             prop.argmin = argmin;
 
@@ -1238,8 +1240,44 @@ final class FeasibleConsumptionOptimizer {
                 exact = units[index.out[p]] * index.outAmount[p] <= consumed * (1 + 1e-9) + 1e-9;
             }
             prop.stockBound = exact ? Math.max(0L, (long) Math.ceil(amount * units[t] * (1 - 1e-9) - 1e-9)) : 0L;
+            prop.stockBound = Math.max(prop.stockBound, exactPotentialBound(units, 0));
             prop.stockBoundComputed = true;
             return prop.stockBound;
+        }
+
+        /**
+         * Small-denominator potentials often give an exact dual certificate on ordinary DAGs.
+         * Rounding only proposes the weights: original BigInteger amounts must validate every row,
+         * including routes outside a local region. A failed check leaves the floating bound intact.
+         */
+        private long exactPotentialBound(double[] proposed, int work) {
+            BigInteger scale = index.potentialScale();
+            var weights = new BigInteger[index.keys.size()];
+            for (int k = 0; k < weights.length; k++) {
+                if ((k & 255) == 0) PlanningCancellation.check();
+                double value = proposed[k] * scale.doubleValue();
+                if (Double.isNaN(value) || value < 0 || value > (1L << 53)) return 0L;
+                weights[k] = BigInteger.valueOf(Math.round(value));
+            }
+            if (work == 0) for (int k : limited)
+                if (weights[k].compareTo(scale) > 0) return 0L;
+            for (int p = 0; p < index.patterns.size(); p++) {
+                PlanningCancellation.check();
+                var pattern = index.patterns.get(p);
+                if (index.stateful[p] || !pattern.byproducts().isEmpty()) return 0L;
+                BigInteger cost = scale.multiply(BigInteger.valueOf((long) work * pattern.executionCost()));
+                for (var input : pattern.inputs()) {
+                    PlanningCancellation.check();
+                    cost = cost.add(weights[index.ids.get(input.key())].multiply(input.exactAmount()));
+                }
+                if (weights[index.out[p]].multiply(pattern.exactOutputAmount()).compareTo(cost) > 0)
+                    return 0L;
+            }
+            BigInteger bound = weights[index.ids.get(target)].multiply(BigInteger.valueOf(amount));
+            if (work != 0) for (int k : limited)
+                bound = bound.subtract(weights[k].multiply(BigInteger.valueOf(limits[k])));
+            return bound.max(BigInteger.ZERO).add(scale).subtract(BigInteger.ONE).divide(scale)
+                    .min(BigInteger.valueOf(Sat.SAT)).longValueExact();
         }
 
         /** Label-correcting shortest costs over reached patterns; false when the work cap stops it. */
@@ -1406,6 +1444,22 @@ final class FeasibleConsumptionOptimizer {
         int[] sideStart, sideKey;
         int[] producerStart, producer;
         private Topology fullTopology;
+        private BigInteger potentialScale;
+
+        BigInteger potentialScale() {
+            if (potentialScale != null) return potentialScale;
+            var scale = BigInteger.ONE;
+            for (var pattern : patterns) {
+                PlanningCancellation.check();
+                var output = pattern.exactOutputAmount();
+                scale = scale.divide(scale.gcd(output)).multiply(output);
+                // This is a certificate proposal, not an admission or numeric domain limit.
+                // Large denominators retain the existing floating bounds and optional search.
+                if (scale.bitLength() > 20) { scale = BigInteger.ONE; break; }
+            }
+            potentialScale = scale;
+            return scale;
+        }
 
         private Index(int keys, int patterns) {
             this.keys = keys == 0 ? new ArrayList<>() : new ArrayList<>(keys);

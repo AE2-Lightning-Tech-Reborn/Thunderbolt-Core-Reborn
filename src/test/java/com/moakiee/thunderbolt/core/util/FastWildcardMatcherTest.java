@@ -11,12 +11,12 @@ class FastWildcardMatcherTest {
     @Test
     void exactAndNamespaceRulesUseExpectedSemantics() {
         var matcher = FastWildcardMatcher.compile(List.of(
-                "neoecoae:crafting_pattern_bus",
+                "ae2:pattern_provider",
                 "mekanism:*"));
 
-        assertTrue(matcher.matches("neoecoae:crafting_pattern_bus"));
+        assertTrue(matcher.matches("ae2:pattern_provider"));
         assertTrue(matcher.matches("mekanism:chemical_dissolution_chamber"));
-        assertFalse(matcher.matches("neoecoae:crafting_worker"));
+        assertFalse(matcher.matches("ae2:molecular_assembler"));
         assertFalse(matcher.matches("mekanism_extras:advanced_solar_generator"));
     }
 
@@ -38,11 +38,11 @@ class FastWildcardMatcherTest {
     @Test
     void patternsAreNormalizedAndMalformedEntriesAreRejected() {
         var matcher = FastWildcardMatcher.compile(List.of(
-                "  NeoEcoAE:Crafting_*  ",
+                "  AE2:Pattern_*  ",
                 "missing_namespace",
                 "bad space:*"));
 
-        assertTrue(matcher.matches("neoecoae:crafting_pattern_bus"));
+        assertTrue(matcher.matches("ae2:pattern_provider"));
         assertFalse(matcher.matches("missing_namespace"));
         assertTrue(FastWildcardMatcher.isValidPattern("modid:path/*"));
         assertFalse(FastWildcardMatcher.isValidPattern("modid:"));

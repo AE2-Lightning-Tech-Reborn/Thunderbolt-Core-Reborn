@@ -102,7 +102,9 @@ jobs:
               if actual != value:
                   raise SystemExit(f'Unexpected Maven POM {name}: {actual!r} != {value!r}')
           PY
-            mv "$downloaded_jar" "$jar_path"
+            # Maven package versions are immutable. Keep the freshly built release JAR
+            # for this republish and use the existing package only as a validated coordinate.
+            echo "Keeping the freshly built release artifact; immutable Maven publication already exists for $ARTIFACT_ID:$VERSION."
             echo "Using the complete immutable Maven publication already available for $ARTIFACT_ID:$VERSION."
           elif [ "$jar_status" = 404 ] && [ "$pom_status" = 404 ]; then
             ./gradlew --no-daemon publishMavenJavaPublicationToGitHubPackagesRepository

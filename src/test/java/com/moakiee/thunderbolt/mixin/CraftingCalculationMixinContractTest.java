@@ -1,0 +1,51 @@
+package com.moakiee.thunderbolt.mixin;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.junit.jupiter.api.Test;
+
+/**
+ * GTLCore {@code @Overwrite}s {@code CraftingCalculation#run} but still calls
+ * {@code computePlan()} from that body. Thunderbolt must wrap the surviving
+ * method, not fight the overwrite.
+ */
+class CraftingCalculationMixinContractTest {
+    private static final Path SOURCE = Path.of(
+            "src", "main", "java", "com", "moakiee", "thunderbolt",
+            "mixin", "ae2", "crafting", "CraftingCalculationMixin.java");
+
+    @Test
+    void attachesAtComputePlanInsteadOfOverwrittenRun() throws IOException {
+        assertTrue(Files.exists(SOURCE), () -> "missing " + SOURCE.toAbsolutePath());
+        String source = Files.readString(SOURCE, StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("@WrapMethod(method = \"computePlan\")"),
+                "planner must wrap computePlan so GTLCore's overwritten run() still reaches it");
+        assertTrue(source.contains(
+                "com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod"),
+                "computePlan wrap must use MixinExtras WrapMethod, not a call-site WrapOperation");
+        assertFalse(source.contains("method = \"run\""),
+                "must not inject or wrap run(); GTLCore @Overwrites that method");
+        assertTrue(source.contains("GtlCompat.usesGtlCalculationScheduler()"),
+                "GTL yield must detect the scheduler even when CPU handover is disabled");
+        assertFalse(source.contains("GtlCompat.isCraftingHandoverActive()"),
+                "CPU handover cannot restore AE2's monitor under GTLCore's overwritten simulateFor");
+        assertTrue(source.contains("LockSupport.parkNanos"),
+                "GTL yield must park instead of waiting on AE2's per-tick monitor");
+        assertTrue(source.contains("ExactPlanReports.isPreview(result)"),
+                "exact previews must not be wrapped as LoopCraftingPlan");
+        assertTrue(source.contains("LoopCraftingPlan.wrapIfNeeded("),
+                "restricted plans still wrap after a complete calculation");
+        int previewGuard = source.indexOf(
+                "!com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(result)");
+        int wrap = source.indexOf("LoopCraftingPlan.wrapIfNeeded(");
+        assertTrue(previewGuard >= 0 && wrap > previewGuard,
+                "the preview skip must guard wrapIfNeeded in finishCalculation");
+    }
+}

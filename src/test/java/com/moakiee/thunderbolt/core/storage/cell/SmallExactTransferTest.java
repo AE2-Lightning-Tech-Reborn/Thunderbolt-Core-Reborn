@@ -29,16 +29,16 @@ class SmallExactTransferTest {
     @BeforeAll
     static void bootstrap() { BigIndexedStorageTest.bootstrap(); }
 
-    private Object previousKeyTypes;
+    private AutoCloseable keyRegistry;
 
     @BeforeEach
-    void installKeyTypes() throws ReflectiveOperationException {
-        previousKeyTypes = IndexedCellTestFixtures.installKeyTypes();
+    void installKeyTypes() {
+        keyRegistry = IndexedCellTestFixtures.openKeyRegistry();
     }
 
     @AfterEach
-    void restoreKeyTypes() throws ReflectiveOperationException {
-        IndexedCellTestFixtures.restoreKeyTypes(previousKeyTypes);
+    void restoreKeyTypes() throws Exception {
+        keyRegistry.close();
     }
 
     @Test

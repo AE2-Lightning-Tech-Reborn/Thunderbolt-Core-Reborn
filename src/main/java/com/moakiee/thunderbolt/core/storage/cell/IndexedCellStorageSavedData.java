@@ -31,14 +31,13 @@ public final class IndexedCellStorageSavedData extends SavedData {
 
     private final Map<StorageKey, CompoundTag> cells = new HashMap<>();
     private final transient Map<StorageKey, IndexedStorage> storageCache = new HashMap<>();
-    // Detached payloads are read-only, including while older saves compress on the I/O worker.
+    // Detached payloads stay read-only even after later incremental persists.
     private final transient Map<StorageKey, CompoundTag> writeSnapshots = new HashMap<>();
     private boolean legacyMigrationComplete;
 
     public static IndexedCellStorageSavedData get(MinecraftServer server) {
         var snapshot = cached;
         if (snapshot != null && snapshot.server() == server) return snapshot.data();
-        // Forge 1.20.1: no SavedData.Factory — computeIfAbsent(loader, factory, name).
         var data = server.overworld().getDataStorage().computeIfAbsent(
                 IndexedCellStorageSavedData::load,
                 IndexedCellStorageSavedData::new,
@@ -69,10 +68,8 @@ public final class IndexedCellStorageSavedData extends SavedData {
         var encoded = cells.get(key);
         if (encoded != null) {
             storage.load(encoded, registries);
-            if (storage.needsPersist()) {
-                // The loader repaired malformed/duplicate entries and scheduled a full rewrite.
-                setDirty();
-            }
+            // Keep the GTL loader's repairs scheduled for the next world save.
+            if (storage.needsPersist()) setDirty();
         }
         storageCache.put(key, storage);
         return storage;
@@ -114,10 +111,13 @@ public final class IndexedCellStorageSavedData extends SavedData {
 
     @Override
     public CompoundTag save(CompoundTag tag) {
-        return encode(tag, null, false);
+        // Forge 1.20.1 SavedData.save(File) compresses this result synchronously and adds
+        // the vanilla data/DataVersion envelope. Keep that lifecycle and return read-only
+        // detached payloads so later incremental persists cannot alter older saves.
+        return encode(tag, null);
     }
 
-    private CompoundTag encode(CompoundTag tag, HolderLookup.Provider registries, boolean snapshot) {
+    private CompoundTag encode(CompoundTag tag, HolderLookup.Provider registries) {
         for (var entry : storageCache.entrySet()) {
             if (entry.getValue().needsPersist()) {
                 cells.put(entry.getKey(), entry.getValue().persist(cells.get(entry.getKey()), registries));
@@ -127,10 +127,8 @@ public final class IndexedCellStorageSavedData extends SavedData {
         var storesTag = new CompoundTag();
         for (var entry : cells.entrySet()) {
             var typeTag = storesTag.getCompound(entry.getKey().type().toString());
-            var payload = snapshot
-                    ? writeSnapshots.computeIfAbsent(entry.getKey(), ignored ->
-                            snapshotEncodedCell(entry.getValue(), storageCache.get(entry.getKey())))
-                    : entry.getValue();
+            var payload = writeSnapshots.computeIfAbsent(entry.getKey(), ignored ->
+                    snapshotEncodedCell(entry.getValue(), storageCache.get(entry.getKey())));
             typeTag.put(entry.getKey().id().toString(), payload);
             storesTag.put(entry.getKey().type().toString(), typeTag);
         }
@@ -144,7 +142,7 @@ public final class IndexedCellStorageSavedData extends SavedData {
     }
 
     CompoundTag snapshotForWrite(HolderLookup.Provider registries) {
-        return encode(new CompoundTag(), registries, true);
+        return encode(new CompoundTag(), registries);
     }
 
     private void migrateLegacyIfNeeded(MinecraftServer server) {
@@ -180,9 +178,7 @@ public final class IndexedCellStorageSavedData extends SavedData {
         var storesTag = tag.getCompound(TAG_STORES);
         for (var typeString : storesTag.getAllKeys()) {
             var type = ResourceLocation.tryParse(typeString);
-            if (type == null) {
-                continue;
-            }
+            if (type == null) continue;
             var typeTag = storesTag.getCompound(typeString);
             for (var idString : typeTag.getAllKeys()) {
                 try {

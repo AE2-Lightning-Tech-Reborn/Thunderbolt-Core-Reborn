@@ -17,7 +17,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 
-import com.moakiee.thunderbolt.core.storage.cell.DualLong126;
 
 /**
  * Array-indexed storage engine for the infinite cell. Live state, including query caches,
@@ -410,6 +409,7 @@ public final class IndexedStorage {
         if (mode == Actionable.SIMULATE && arbitraryPrecision && !exactPathPossible) return amount;
         int id = resolveId(key);
         int slot = id < 0 ? -1 : slotOfId[id];
+        // Legacy keys remain bounded to their two persisted 63-bit limbs.
         if (!arbitraryPrecision && id >= 0 && hi[id] == Long.MAX_VALUE) {
             amount = Math.min(amount, Long.MAX_VALUE - lo[id]);
             if (amount == 0) return 0;
@@ -445,7 +445,25 @@ public final class IndexedStorage {
             slotCount[slot]++;
             slotOfId[id] = slot;
         }
-        updateTypeTotal(slot, amount);
+        if (slotExact[slot]) {
+            // Legacy cells can overflow a type total while each key still fits 126 bits.
+            projectTypeTotal(slotTypes[slot], typeTotalExact(slotTypes[slot])
+                    .add(java.math.BigInteger.valueOf(amount)));
+        } else {
+            long sumLo = slotLo[slot] + amount;
+            if (sumLo < 0) {
+                sumLo &= Long.MAX_VALUE;
+                if (slotHi[slot] == Long.MAX_VALUE) {
+                    projectTypeTotal(slotTypes[slot], exactAmount(slotHi[slot], slotLo[slot])
+                            .add(java.math.BigInteger.valueOf(amount)));
+                } else {
+                    if (++slotHi[slot] == Long.MAX_VALUE) exactPathPossible = true;
+                    slotLo[slot] = sumLo;
+                }
+            } else {
+                slotLo[slot] = sumLo;
+            }
+        }
 
         needsPersist = true;
         modCount++;
@@ -488,13 +506,22 @@ public final class IndexedStorage {
             enqueueDirty(id);
         }
 
-        updateTypeTotal(slot, -taken);
+        if (slotExact[slot]) {
+            projectTypeTotal(slotTypes[slot], typeTotalExact(slotTypes[slot])
+                    .subtract(java.math.BigInteger.valueOf(taken)));
+        } else {
+            long sumLo = slotLo[slot] - taken;
+            long sumHi = slotHi[slot];
+            if (sumLo < 0) { sumLo &= Long.MAX_VALUE; sumHi--; }
+            slotLo[slot] = sumLo;
+            slotHi[slot] = sumHi;
+        }
         if (keyRemoved && --slotCount[slot] <= 0) {
             slotCount[slot] = 0;
             slotLo[slot] = 0;
             slotHi[slot] = 0;
             slotExact[slot] = false;
-            exactTypeTotals.remove(key.getType());
+            exactTypeTotals.remove(slotTypes[slot]);
         }
 
         needsPersist = true;
@@ -502,41 +529,21 @@ public final class IndexedStorage {
         return taken;
     }
 
-    private void updateTypeTotal(int slot, long delta) {
-        if (slotExact[slot]) {
-            projectTypeTotal(slotTypes[slot], typeTotalExact(slotTypes[slot]).add(java.math.BigInteger.valueOf(delta)));
-            return;
-        }
-        long low = slotLo[slot] + delta;
-        long high = slotHi[slot];
-        if (low < 0 && delta > 0) {
-            if (high == Long.MAX_VALUE) {
-                projectTypeTotal(slotTypes[slot], exactAmount(high, slotLo[slot]).add(java.math.BigInteger.valueOf(delta)));
-                return;
-            }
-            low &= Long.MAX_VALUE;
-            high++;
-        } else if (low < 0 && delta < 0) {
-            low &= Long.MAX_VALUE;
-            high--;
-        }
-        slotLo[slot] = low;
-        slotHi[slot] = high;
-        if (high == Long.MAX_VALUE) exactPathPossible = true;
-    }
-
-    @FunctionalInterface
-    interface CappedAmountConsumer { void accept(AEKey key, long amount); }
-
-    void forEachCappedAmount(CappedAmountConsumer consumer) {
-        for (int id = 0; id < nextId; id++) {
-            if (idToKey[id] != null) consumer.accept(idToKey[id], DualLong126.cap(hi[id], lo[id]));
-        }
-    }
-
     // ══════════════════════════════════════════════════════════════════════
     //  Queries
     // ══════════════════════════════════════════════════════════════════════
+
+    @FunctionalInterface
+    interface CappedAmountConsumer {
+        void accept(AEKey key, long amount);
+    }
+
+    void forEachCappedAmount(CappedAmountConsumer consumer) {
+        for (int id = 0; id < nextId; id++) {
+            var key = idToKey[id];
+            if (key != null) consumer.accept(key, DualLong126.cap(hi[id], lo[id]));
+        }
+    }
 
     public void getAvailableStacks(KeyCounter out) {
         // A fresh counter is the common network-enumeration case: skip the read-modify-write
@@ -570,6 +577,7 @@ public final class IndexedStorage {
     // ══════════════════════════════════════════════════════════════════════
 
     public CompoundTag persist(@Nullable CompoundTag lastRoot, HolderLookup.Provider registries) {
+        // AE2 15 encodes keys without a registry context; reuse a stateless serializer.
         return persist(lastRoot, DEFAULT_SERIALIZER, registries);
     }
 
@@ -588,7 +596,7 @@ public final class IndexedStorage {
         long[] pHi = lastRoot.getLongArray("hi");
 
         int tagLen = alignPow2(nextId);
-        if (pLo.length < nextId) {
+        if (pLo.length < nextId || pHi.length < nextId) {
             pLo = Arrays.copyOf(pLo, tagLen);
             pHi = Arrays.copyOf(pHi, tagLen);
             lastRoot.put("lo", new LongArrayTag(pLo));
@@ -644,8 +652,6 @@ public final class IndexedStorage {
             keys.set(id, entry);
         }
     }
-
-
 
     /**
      * The {@code {"key": ...}} list entry for one id. Its contents never change while the id
@@ -759,7 +765,6 @@ public final class IndexedStorage {
     public interface KeyDeserializer {
         @Nullable AEKey fromTag(CompoundTag tag, HolderLookup.Provider registries);
     }
-
     //  Load
     public void load(CompoundTag root, HolderLookup.Provider registries) {
         load(root, (tag, reg) -> AEKey.fromTagGeneric(tag), registries);
@@ -771,13 +776,12 @@ public final class IndexedStorage {
             HolderLookup.Provider registries) {
         java.util.Objects.requireNonNull(root, "root");
         java.util.Objects.requireNonNull(keyDeserializer, "keyDeserializer");
-        wideAmounts.clear();
-        exactTypeTotals.clear();
-
-        arbitraryPrecision = root.getBoolean("arbitraryPrecision");
         invalidateLookup();
         writeSnapshot.reset();
         exactPathPossible = false;
+        wideAmounts.clear();
+        exactTypeTotals.clear();
+        arbitraryPrecision = root.getBoolean("arbitraryPrecision");
         keyToId.clear();
         Arrays.fill(idToKey, null);
         Arrays.fill(lo, 0L);
@@ -880,8 +884,6 @@ public final class IndexedStorage {
             int slot = typeSlot(key.getType());
             slotCount[slot]++;
             slotOfId[id] = slot;
-            keyEntries[id] = new CompoundTag();
-            keyEntries[id].put("key", serializedKey[id]);
             mergedInto[id] = id;
         }
 
@@ -896,12 +898,12 @@ public final class IndexedStorage {
                 int target = mergedInto[id];
                 if (target < 0 || target == id) continue;
                 var total = loadedAmounts[target];
-                if (total == null) total = amount(hi[target], lo[target]);
+                if (total == null) total = exactAmount(hi[target], lo[target]);
                 var duplicate = loadedAmounts[id];
                 if (duplicate == null) {
                     long duplicateHi = id < pHi.length ? pHi[id] : 0L;
                     long duplicateLo = id < pLo.length ? pLo[id] : 0L;
-                    duplicate = amount(duplicateHi, duplicateLo);
+                    duplicate = exactAmount(duplicateHi, duplicateLo);
                 }
                 loadedAmounts[target] = total.add(duplicate);
             }
@@ -912,15 +914,9 @@ public final class IndexedStorage {
                     healed |= setLoadedAmount(idToKey[id], loadedAmounts[id]);
             }
         }
-        rebuildLoadedTypeTotals();
+        rebuildExactTotals();
         needsCompact = healed || freeCount > Math.max(totalTypes, 1) * COMPACT_THRESHOLD;
         needsPersist = healed;
-    }
-
-    private static java.math.BigInteger amount(long high, long low) {
-        if (high == 0) return java.math.BigInteger.valueOf(low);
-        return java.math.BigInteger.valueOf(high).shiftLeft(63)
-                .add(java.math.BigInteger.valueOf(low));
     }
 
     private boolean setLoadedAmount(AEKey key, java.math.BigInteger amount) {
@@ -949,9 +945,6 @@ public final class IndexedStorage {
         hi[id] = projection.shiftRight(63).longValueExact();
     }
 
-    private void rebuildLoadedTypeTotals() {
-        rebuildExactTotals();
-    }
 
     // ══════════════════════════════════════════════════════════════════════
     //  ID lifecycle — stable: id = ListTag position
@@ -1007,13 +1000,14 @@ public final class IndexedStorage {
     private void ensureCapacity(int required) {
         if (required < lo.length) return;
         int newCap = Math.max(INITIAL_CAPACITY, Integer.highestOneBit(required) << 1);
+        int oldCapacity = lo.length;
         lo = Arrays.copyOf(lo, newCap);
         hi = Arrays.copyOf(hi, newCap);
         idToKey = Arrays.copyOf(idToKey, newCap);
         serializedKey = Arrays.copyOf(serializedKey, newCap);
         keyEntries = Arrays.copyOf(keyEntries, newCap);
         slotOfId = Arrays.copyOf(slotOfId, newCap);
-        Arrays.fill(slotOfId, required, newCap, -1);
+        Arrays.fill(slotOfId, oldCapacity, newCap, -1);
         inQueue = Arrays.copyOf(inQueue, newCap);
         isStructDirty = Arrays.copyOf(isStructDirty, newCap);
     }

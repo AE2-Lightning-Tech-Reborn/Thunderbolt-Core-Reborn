@@ -49,8 +49,8 @@ import com.moakiee.thunderbolt.core.crafting.algorithm.CraftingAlgorithmCalculat
 import com.moakiee.thunderbolt.core.crafting.algorithm.menu.CraftingAlgorithmNameMenu;
 
 /** Shared long/exact request entry and selected-algorithm tracking on AE2's native menu. */
-// Data Energistics adds its long-amount entry point at priority 1000. A higher
-// priority permits injecting into that merged method as well as AE2's native one.
+// Optional addons add long-amount entry points at priority 1000. A higher
+// priority permits injecting into those merged methods as well as AE2's native one.
 @Mixin(value = CraftConfirmMenu.class, remap = false, priority = 1100)
 public abstract class CraftConfirmMenuMixin extends AEBaseMenu
         implements CraftingAlgorithmNameMenu, CraftingRequestMenu {
@@ -169,7 +169,7 @@ public abstract class CraftConfirmMenuMixin extends AEBaseMenu
     @GuiSync(30_000)
     public Component thunderbolt$craftingAlgorithmName = Component.empty();
 
-    @Inject(method = {"planJob", "data_energistics$planJob"}, at = @At("HEAD"))
+    @Inject(method = {"planJob", "data_energistics$planJob", "gtlcore$planLongAmountJob"}, at = @At("HEAD"))
     private void thunderbolt$resetAlgorithmName(
             CallbackInfoReturnable<Boolean> cir) {
         CraftingAlgorithmCalculationStatus.forget(job);
@@ -183,7 +183,7 @@ public abstract class CraftConfirmMenuMixin extends AEBaseMenu
     }
 
     @WrapOperation(
-            method = {"planJob", "data_energistics$planJob"},
+            method = {"planJob", "data_energistics$planJob", "gtlcore$planLongAmountJob"},
             at = @At(
                     value = "INVOKE",
                     target = "Lappeng/api/networking/crafting/ICraftingService;"

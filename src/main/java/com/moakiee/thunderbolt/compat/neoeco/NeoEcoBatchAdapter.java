@@ -49,9 +49,10 @@ final class NeoEcoBatchAdapter implements BatchProviderResolver {
         @Override public PreparedBatch prepareBatch(IPatternDetails pattern, KeyCounter[] inputs,
                 long maxCraft, BatchJobView job) {
             if (maxCraft <= 0 || stopped.contains(pattern) || delegate.isBusy()) return prepared(0, count -> count);
+            var craftingId = job.craftingId();
             try {
                 if (!ordinary.contains(pattern)) {
-                    var context = api.context(pattern, inputs, job.level(), job.craftingId());
+                    var context = api.context(pattern, inputs, job.level(), craftingId);
                     if (context != null) {
                         if (api.hasCapacity(delegate)) {
                             long count = Math.min(Math.min(maxCraft, context.limit()), Math.max(0, api.capacity(delegate, context.value())));
@@ -66,7 +67,7 @@ final class NeoEcoBatchAdapter implements BatchProviderResolver {
                                 catch (RuntimeException unavailable) { return offered; }
                                 if (live <= 0) return offered;
                                 return settle(pattern, offered, api.pushParallel(parallel, pattern,
-                                        context.inputs(), live, job.craftingId()));
+                                        context.inputs(), live, craftingId));
                             });
                         }
                     }
@@ -77,7 +78,7 @@ final class NeoEcoBatchAdapter implements BatchProviderResolver {
             ordinary.add(pattern);
             var owned = NeoEcoBatchApi.cloneInputs(inputs, 1);
             return prepared(1, offered -> delegate.isBusy() ? offered
-                    : NeoEcoFastPathCompat.pushPattern(delegate, pattern, owned, job.craftingId())
+                    : NeoEcoFastPathCompat.pushPattern(delegate, pattern, owned, craftingId)
                             ? offered - 1 : offered);
         }
 
