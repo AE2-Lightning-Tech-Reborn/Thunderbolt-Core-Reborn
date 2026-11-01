@@ -1,5 +1,9 @@
 # Thunderbolt Core 变更日志
 
+## 未发布 — Forge 1.20.1
+
+- 修复与 ElementalCraft 同时安装时加载世界报 `IncompatibleClassChangeError: ... must be Methodref constant` 的问题：EJECT 能力拦截改为只作用于方块实体，不再注入 Forge 的公共父类 `CapabilityProvider`，避免触发 Mixin 0.8.5 改写其他模组 ItemStack 接口调用的缺陷（SpongePowered/Mixin#504）。
+
 ## 2.0.4 — Forge 1.20.1
 
 对比版本：1.20.1-2.0.3
