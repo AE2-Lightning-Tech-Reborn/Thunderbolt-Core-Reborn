@@ -4,6 +4,7 @@ import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapter;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchProviderAdapters;
 import com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusBatchAdapter;
 import com.moakiee.thunderbolt.compat.neoeco.NeoEcoGtoBatchAdapter;
+import com.moakiee.thunderbolt.compat.useless.UselessBatchCompat;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.ModList;
 
@@ -15,6 +16,9 @@ public final class OptionalBatchProviders {
         var mods = ModList.get();
         if (mods != null && mods.isLoaded("extendedae_plus")) {
             register("extendedae_plus", ExtendedAePlusBatchAdapter.createAdapter());
+        }
+        if (mods != null && mods.isLoaded("useless_mod")) {
+            register("useless", UselessBatchCompat.createAdapter());
         }
         if (mods != null && mods.isLoaded("neoecoae")) {
             register("neoeco_gto", NeoEcoGtoBatchAdapter.createAdapter());

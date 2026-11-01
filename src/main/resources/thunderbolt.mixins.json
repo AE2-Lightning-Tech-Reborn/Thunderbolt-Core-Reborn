@@ -7,6 +7,7 @@
   "refmap": "thunderbolt.refmap.json",
   "mixins": [
     "ae2.crafting.CraftConfirmMenuMixin",
+    "ae2.crafting.AEPatternInputIdentityMixin",
     "ae2.crafting.MenuTypeBuilderMixin",
     "ae2.crafting.ExactCraftConfirmPacketMixin",
     "ae2.crafting.Ae2CraftingTreeCompatibilityMixin",

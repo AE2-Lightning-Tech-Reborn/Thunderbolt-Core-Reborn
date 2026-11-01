@@ -140,6 +140,10 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
 
     @Override
     public void checkpoint() {
+        // Observing an interrupt also observes the state published before it. Sample it before
+        // the cooperative state so cancellation cannot arrive between those reads and
+        // turn the candidate's PlanningExitException into an outer CancellationException.
+        boolean interrupted = Thread.currentThread().isInterrupted();
         int current = state.get();
         long now = System.nanoTime();
         if (current == ISOLATED) {
@@ -163,7 +167,7 @@ final class PlanningAttemptMonitor implements PlanningAttemptContext, AutoClosea
             expireBudget();
             throw new PlanningExitException("planning candidate must exit: " + engineId);
         }
-        if (Thread.currentThread().isInterrupted()) {
+        if (interrupted) {
             throw new CancellationException("crafting calculation interrupted");
         }
     }

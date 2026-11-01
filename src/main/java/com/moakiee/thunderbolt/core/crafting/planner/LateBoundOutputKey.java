@@ -1,6 +1,8 @@
 package com.moakiee.thunderbolt.core.crafting.planner;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import appeng.api.stacks.AEKey;
@@ -21,10 +23,21 @@ import net.minecraft.world.level.Level;
  */
 final class LateBoundOutputKey extends AEKey {
     private final AEKey catalogKey;
+    private final Pool pool;
 
-    LateBoundOutputKey(AEKey catalogKey) {
+    private LateBoundOutputKey(AEKey catalogKey, Pool pool) {
         this.catalogKey = Objects.requireNonNull(catalogKey);
+        this.pool = pool;
         if (catalogKey instanceof LateBoundOutputKey) throw new IllegalArgumentException("nested key");
+    }
+
+    /** One canonical logical node per catalog entry, scoped to a single graph export. */
+    static final class Pool {
+        private final Map<AEKey, LateBoundOutputKey> keys = new HashMap<>();
+
+        LateBoundOutputKey get(AEKey catalogKey) {
+            return keys.computeIfAbsent(catalogKey, key -> new LateBoundOutputKey(key, this));
+        }
     }
 
     static AEKey physical(AEKey key) {
@@ -32,7 +45,7 @@ final class LateBoundOutputKey extends AEKey {
     }
 
     @Override public AEKeyType getType() { return catalogKey.getType(); }
-    @Override public AEKey dropSecondary() { return new LateBoundOutputKey(catalogKey.dropSecondary()); }
+    @Override public AEKey dropSecondary() { return pool.get(catalogKey.dropSecondary()); }
     @Override public Object getPrimaryKey() { return catalogKey.getPrimaryKey(); }
     @Override public ResourceLocation getId() { return catalogKey.getId(); }
     @Override protected Component computeDisplayName() { return catalogKey.getDisplayName(); }
@@ -45,9 +58,5 @@ final class LateBoundOutputKey extends AEKey {
     @Override public void addDrops(long amount, List<ItemStack> drops, Level level, BlockPos pos) {
         throw new IllegalStateException("planner-only late-bound output escaped into the world");
     }
-    @Override public boolean equals(Object other) {
-        return other instanceof LateBoundOutputKey late && catalogKey.equals(late.catalogKey);
-    }
-    @Override public int hashCode() { return 31 * catalogKey.hashCode() + 1; }
     @Override public String toString() { return "late-bound(" + catalogKey + ")"; }
 }

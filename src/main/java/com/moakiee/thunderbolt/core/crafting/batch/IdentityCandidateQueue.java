@@ -8,11 +8,11 @@ import java.util.NoSuchElementException;
 /** Identity-based candidate queue with O(1) removal and success affinity. */
 final class IdentityCandidateQueue<T> implements Iterable<T> {
     private final IdentityHashMap<T, Node<T>> active = new IdentityHashMap<>();
-    private final IdentityHashMap<T, Node<T>> blocked = new IdentityHashMap<>();
-    private final ArrayList<Node<T>> blockedNodes = new ArrayList<>();
+    private IdentityHashMap<T, Node<T>> blocked;
+    private ArrayList<Node<T>> blockedNodes;
     private Node<T> head;
     private Node<T> tail;
-    private T preferred;
+    private Node<T> preferred;
 
     IdentityCandidateQueue(Iterable<? extends T> candidates) {
         for (var candidate : candidates) {
@@ -30,27 +30,32 @@ final class IdentityCandidateQueue<T> implements Iterable<T> {
     }
 
     void block(T candidate) {
-        if (blocked.containsKey(candidate)) return;
         var node = active.remove(candidate);
+        if (blocked == null) {
+            blocked = new IdentityHashMap<>();
+            blockedNodes = new ArrayList<>();
+        } else if (node == null && blocked.containsKey(candidate)) return;
         blocked.put(candidate, node);
-        if (node != null) blockedNodes.add(node);
         if (node != null) {
+            blockedNodes.add(node);
             if (node.previous != null) node.previous.next = node.next;
             else head = node.next;
             if (node.next != null) node.next.previous = node.previous;
             else tail = node.previous;
-            // Existing iterators use the removed node's old next link to advance once, then reject
-            // it through active membership. Do not sever the links here.
+            // Keep next intact so in-flight iterators can walk past removed nodes. The unused
+            // predecessor marks inactivity without a per-node hash lookup or an extra field.
+            node.previous = node;
         }
-        if (preferred == candidate) preferred = null;
+        if (node != null && preferred == node) preferred = null;
     }
 
     void markSuccess(T candidate) {
-        if (active.containsKey(candidate)) preferred = candidate;
+        var node = active.get(candidate);
+        if (node != null) preferred = node;
     }
 
     boolean isBlocked(T candidate) {
-        return blocked.containsKey(candidate);
+        return blocked != null && blocked.containsKey(candidate);
     }
 
     int activeCount() {
@@ -58,12 +63,12 @@ final class IdentityCandidateQueue<T> implements Iterable<T> {
     }
 
     int blockedCount() {
-        return blocked.size();
+        return blocked == null ? 0 : blocked.size();
     }
 
     /** Re-enable only last tick's rejected candidates; stable active nodes are never rebuilt. */
     void restoreBlocked() {
-        if (blocked.isEmpty()) return;
+        if (blocked == null || blocked.isEmpty()) return;
         for (var node : blockedNodes) {
             node.previous = tail;
             node.next = null;
@@ -79,7 +84,7 @@ final class IdentityCandidateQueue<T> implements Iterable<T> {
     @Override
     public Iterator<T> iterator() {
         return new Iterator<>() {
-            private final T preferredFirst = preferred;
+            private final Node<T> preferredFirst = preferred;
             private boolean preferredVisited;
             private Node<T> cursor = head;
             private T next;
@@ -89,16 +94,16 @@ final class IdentityCandidateQueue<T> implements Iterable<T> {
                 while (next == null) {
                     if (!preferredVisited) {
                         preferredVisited = true;
-                        if (preferredFirst != null && active.containsKey(preferredFirst)) {
-                            next = preferredFirst;
+                        if (preferredFirst != null && preferredFirst.isActive()) {
+                            next = preferredFirst.value;
                             break;
                         }
                     }
                     if (cursor == null) break;
-                    var candidate = cursor.value;
+                    var node = cursor;
                     cursor = cursor.next;
-                    if (candidate != preferredFirst && active.containsKey(candidate)) {
-                        next = candidate;
+                    if (node != preferredFirst && node.isActive()) {
+                        next = node.value;
                     }
                 }
                 return next != null;
@@ -121,6 +126,10 @@ final class IdentityCandidateQueue<T> implements Iterable<T> {
 
         private Node(T value) {
             this.value = value;
+        }
+
+        private boolean isActive() {
+            return previous != this;
         }
     }
 }

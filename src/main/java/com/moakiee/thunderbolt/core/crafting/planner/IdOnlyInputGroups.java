@@ -26,12 +26,13 @@ import net.minecraft.world.level.Level;
  * of component variants or integer allocations of a large slot multiplier.
  */
 final class IdOnlyInputGroups {
-    private final Map<DemandKey, Group> groups = new HashMap<>();
+    private final Map<DemandIdentity, Group> groups = new HashMap<>();
 
     AEKey register(List<CraftInput<AEKey>> options, CraftGraph.Builder<AEKey> builder,
             Consumer<AEKey> discover, Runnable chargeWork) {
         CraftInput<AEKey> first = options.get(0);
-        var proposed = new DemandKey(LateBoundOutputKey.physical(first.key()), first.amount());
+        AEKey representative = LateBoundOutputKey.physical(first.key());
+        var proposed = new DemandIdentity(representative.dropSecondary(), first.amount());
         for (var option : options) {
             if (option.returned() || option.remainder() != null || option.reusableStockSource() != null
                     || option.amount() != first.amount()
@@ -40,7 +41,8 @@ final class IdOnlyInputGroups {
                 return null;
             }
         }
-        Group group = groups.computeIfAbsent(proposed, key -> new Group(key, new LinkedHashSet<>()));
+        Group group = groups.computeIfAbsent(proposed, key -> new Group(
+                new DemandKey(representative, key.unitAmount), new LinkedHashSet<>()));
         for (var option : options) {
             chargeWork.run();
             if (group.members.add(option.key())) {
@@ -100,6 +102,9 @@ final class IdOnlyInputGroups {
 
     private record Group(DemandKey key, Set<AEKey> members) {}
 
+    // Content lookup belongs outside AEKey: newer AE2 fixes its hashCode to object identity.
+    private record DemandIdentity(AEKey identity, long unitAmount) {}
+
     private static final class DemandKey extends AEKey {
         private final AEKey representative;
         private final AEKey identity;
@@ -125,11 +130,6 @@ final class IdOnlyInputGroups {
         @Override public void addDrops(long amount, List<ItemStack> drops, Level level, BlockPos pos) {
             throw new IllegalStateException("planner-only input group escaped into the world");
         }
-        @Override public boolean equals(Object other) {
-            return other instanceof DemandKey group
-                    && unitAmount == group.unitAmount && identity.equals(group.identity);
-        }
-        @Override public int hashCode() { return 31 * identity.hashCode() + Long.hashCode(unitAmount); }
         @Override public String toString() { return "id-only(" + identity + ", unit=" + unitAmount + ")"; }
     }
 }

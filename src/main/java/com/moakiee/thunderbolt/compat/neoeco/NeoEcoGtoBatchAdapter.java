@@ -1,9 +1,12 @@
 package com.moakiee.thunderbolt.compat.neoeco;
 
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +31,7 @@ public final class NeoEcoGtoBatchAdapter implements BatchProviderResolver {
     public static @Nullable BatchProviderResolver createAdapter() {
         try {
             return new NeoEcoGtoBatchAdapter(new Api());
-        } catch (ReflectiveOperationException | LinkageError unavailable) {
+        } catch (ReflectiveOperationException | LinkageError | SecurityException unavailable) {
             return null;
         }
     }
@@ -43,6 +46,8 @@ public final class NeoEcoGtoBatchAdapter implements BatchProviderResolver {
 
     private final class Endpoint implements IBatchCraftingProvider {
         private final ICraftingProvider provider;
+        private long dispatchTick = Long.MIN_VALUE;
+        private boolean ordinaryOnly;
 
         Endpoint(ICraftingProvider provider) { this.provider = provider; }
 
@@ -52,9 +57,16 @@ public final class NeoEcoGtoBatchAdapter implements BatchProviderResolver {
 
         @Override public boolean isBusy() { return provider.isBusy(); }
 
+        @Override public void beginDispatchTick(long tick) {
+            if (dispatchTick != tick) {
+                dispatchTick = tick;
+                ordinaryOnly = false;
+            }
+        }
+
         // Capability is cached; admission and worker availability are checked for every offer.
         @Override public long getBatchCapacity(IPatternDetails pattern) {
-            return isBusy() ? 0 : Long.MAX_VALUE;
+            return isBusy() ? 0 : ordinaryOnly ? 1 : Long.MAX_VALUE;
         }
 
         @Override public long pushBatch(IPatternDetails pattern, KeyCounter[] oneCopy, long copies) {
@@ -70,10 +82,10 @@ public final class NeoEcoGtoBatchAdapter implements BatchProviderResolver {
         @Override public PreparedBatch prepareBatch(IPatternDetails pattern, KeyCounter[] oneCopy,
                                                      long copies, BatchJobView job) {
             // BatchJobView is borrowed and may be reused for a different job immediately afterwards.
-            Level level = job.level();
-            UUID jobId = job.craftingId();
+            Level level = job == null ? null : job.level();
+            UUID jobId = job == null ? null : job.craftingId();
             KeyCounter[] inputs = copy(oneCopy);
-            Object admitted = copies > 0 && jobId != null
+            Object admitted = copies > 0 && jobId != null && !ordinaryOnly
                     ? api.prepare(provider, pattern, inputs, copies, level, jobId) : null;
             long capacity = admitted == null ? (copies > 0 && jobId != null ? 1 : 0)
                     : api.capacity(admitted, copies);
@@ -88,17 +100,25 @@ public final class NeoEcoGtoBatchAdapter implements BatchProviderResolver {
                     if (offered <= 0 || capacity <= 0) return offered;
                     long bounded = Math.min(offered, capacity);
                     if (admitted == null) {
-                        return (boolean) Api.invoke(api.pushForJob, null,
-                                provider, pattern, copy(inputs), jobId) ? offered - 1 : offered;
+                        return pushOrdinary(pattern, inputs, offered, jobId);
                     }
                     // Power limits and sharing among providers can shrink the CPU's final offer.
                     Object batch = bounded == capacity ? admitted
                             : api.prepare(provider, pattern, inputs, bounded, level, jobId);
                     if (batch == null) return offered;
                     long accepted = api.capacity(batch, bounded);
-                    return api.submit(batch) ? offered - accepted : offered;
+                    if (api.submit(batch)) return offered - accepted;
+                    // A definite rejection has rolled back. Only one fresh UUID-owned copy may
+                    // fall back; ambiguous acceptance propagates before reaching this branch.
+                    return pushOrdinary(pattern, inputs, offered, jobId);
                 }
             };
+        }
+
+        private long pushOrdinary(IPatternDetails pattern, KeyCounter[] inputs, long offered, UUID jobId) {
+            ordinaryOnly = true;
+            return (boolean) Api.invoke(api.pushForJob, null,
+                    provider, pattern, copy(inputs), jobId) ? offered - 1 : offered;
         }
     }
 
@@ -131,19 +151,33 @@ public final class NeoEcoGtoBatchAdapter implements BatchProviderResolver {
         private final Object energy;
 
         Api() throws ReflectiveOperationException {
-            if (prepareAllocated.getReturnType() != batchType || craftCount.getReturnType() != long.class
-                    || power.getReturnType() != double.class || submit.getReturnType() != boolean.class
-                    || pushForJob.getReturnType() != boolean.class) {
-                throw new NoSuchMethodException("Unsupported NeoECO allocated-input API");
+            requireMethod(prepareAllocated, batchType, true);
+            requireMethod(pushForJob, boolean.class, true);
+            requireMethod(craftCount, long.class, false);
+            requireMethod(power, double.class, false);
+            requireMethod(remainders, List.class, false);
+            requireMethod(submit, boolean.class, false);
+            if (!providerType.isInterface() || !Modifier.isPublic(providerType.getModifiers())
+                    || !RuntimeException.class.isAssignableFrom(indeterminate)) {
+                throw new NoSuchMethodException("Unsupported NeoECO provider contract");
             }
+            Method reserve = energyType.getMethod("reserve", double.class);
+            Method commit = reservationType.getMethod("commit");
+            Method refund = reservationType.getMethod("refund");
+            requireMethod(reserve, reservationType, false);
+            requireMethod(commit, void.class, false);
+            requireMethod(refund, void.class, false);
+            requireCallbacks(energyType, Set.of(reserve));
+            requireCallbacks(reservationType, Set.of(commit, refund));
             var loader = NeoEcoGtoBatchAdapter.class.getClassLoader();
             Object reservation = Proxy.newProxyInstance(loader, new Class<?>[]{reservationType},
-                    (proxy, method, args) -> switch (method.getName()) {
-                        case "commit", "refund" -> null; // The CPU settles its own energy exactly once.
-                        default -> objectMethod(proxy, method, args);
+                    (proxy, method, args) -> {
+                        if (method.equals(commit) || method.equals(refund)) return null;
+                        // The CPU settles its own energy exactly once; honor optional defaults.
+                        return callback(proxy, method, args);
                     });
             energy = Proxy.newProxyInstance(loader, new Class<?>[]{energyType}, (proxy, method, args) -> {
-                if (!method.getName().equals("reserve")) return objectMethod(proxy, method, args);
+                if (!method.equals(reserve)) return callback(proxy, method, args);
                 // prepareAllocated must never charge the already allocated CPU a second time.
                 return (double) args[0] == 0.0 ? reservation : null;
             });
@@ -156,7 +190,10 @@ public final class NeoEcoGtoBatchAdapter implements BatchProviderResolver {
 
         long capacity(Object batch, long offered) {
             long count = (long) invoke(craftCount, batch);
-            if (count <= 0 || count > offered || (double) invoke(power, batch) != 0.0
+            if (count <= 0 || count > offered) {
+                throw new IllegalArgumentException("NeoECO admission count is outside the offered range");
+            }
+            if ((double) invoke(power, batch) != 0.0
                     || !((List<?>) invoke(remainders, batch)).isEmpty()) {
                 throw new IllegalStateException("Invalid NeoECO allocated batch admission");
             }
@@ -179,6 +216,36 @@ public final class NeoEcoGtoBatchAdapter implements BatchProviderResolver {
             return Class.forName(name, false, NeoEcoGtoBatchAdapter.class.getClassLoader());
         }
 
+        private static void requireMethod(Method method, Class<?> result, boolean isStatic)
+                throws NoSuchMethodException {
+            if (method.getReturnType() != result || Modifier.isStatic(method.getModifiers()) != isStatic
+                    || !Modifier.isPublic(method.getDeclaringClass().getModifiers())) {
+                throw new NoSuchMethodException("Unsupported NeoECO method: " + method);
+            }
+        }
+
+        private static void requireCallbacks(Class<?> type, Set<Method> supported)
+                throws NoSuchMethodException {
+            if (!type.isInterface() || !Modifier.isPublic(type.getModifiers())) {
+                throw new NoSuchMethodException("Unsupported NeoECO callback type: " + type);
+            }
+            for (var method : type.getMethods()) {
+                if (Modifier.isAbstract(method.getModifiers()) && !supported.contains(method)
+                        && !isObjectMethod(method)) {
+                    throw new NoSuchMethodException("Unsupported NeoECO callback: " + method);
+                }
+            }
+        }
+
+        private static boolean isObjectMethod(Method method) {
+            try {
+                return Object.class.getMethod(method.getName(), method.getParameterTypes())
+                        .getReturnType() == method.getReturnType();
+            } catch (NoSuchMethodException absent) {
+                return false;
+            }
+        }
+
         private static Object invoke(Method method, Object receiver, Object... args) {
             try {
                 return method.invoke(receiver, args);
@@ -192,7 +259,10 @@ public final class NeoEcoGtoBatchAdapter implements BatchProviderResolver {
             }
         }
 
-        private static Object objectMethod(Object proxy, Method method, Object[] args) {
+        private static Object callback(Object proxy, Method method, Object[] args) throws Throwable {
+            if (method.isDefault()) {
+                return InvocationHandler.invokeDefault(proxy, method, args == null ? new Object[0] : args);
+            }
             return switch (method.getName()) {
                 case "equals" -> proxy == args[0];
                 case "hashCode" -> System.identityHashCode(proxy);

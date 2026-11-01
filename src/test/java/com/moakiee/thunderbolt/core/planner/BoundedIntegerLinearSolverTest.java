@@ -12,6 +12,72 @@ import org.junit.jupiter.api.Test;
 class BoundedIntegerLinearSolverTest {
 
     @Test
+    void propagationCertifiesOnlyARealIntegerWitnessAndLeavesSearchUndecided() {
+        var rows = List.of(row(3, 1, 0), row(2, 0, 1), row(-5, -1, -1));
+        var solved = BoundedIntegerLinearSolver.tryPropagate(2, rows, 100, 16,
+                BoundedIntegerLinearSolver.WorkBudget.unlimited());
+        assertTrue(solved.solved());
+        assertTrue(feasible(solved.values(), rows));
+        assertArrayEquals(new long[] {3, 2}, solved.values());
+
+        // Either variable can supply the request. A lower-domain vector of zero is not a witness,
+        // but failure to find one without branching must not become an infeasibility result.
+        var choice = List.of(row(1, 1, 1));
+        org.junit.jupiter.api.Assertions.assertNull(BoundedIntegerLinearSolver.tryPropagate(
+                2, choice, 10, 16, BoundedIntegerLinearSolver.WorkBudget.unlimited()));
+        assertTrue(BoundedIntegerLinearSolver.solve(2, choice, 10, 16).solved());
+        assertEquals(BoundedIntegerLinearSolver.Status.INFEASIBLE,
+                BoundedIntegerLinearSolver.tryPropagate(1, List.of(row(2, 1), row(-1, -1)),
+                        10, 16, BoundedIntegerLinearSolver.WorkBudget.unlimited()).status());
+    }
+
+    @Test
+    void propagationKeepsSharedWorkLimitsAndCancellation() {
+        var rows = List.of(row(3, 1, 0), row(2, 0, 1));
+        assertEquals(BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED,
+                BoundedIntegerLinearSolver.tryPropagate(2, rows, 10, 16,
+                        BoundedIntegerLinearSolver.WorkBudget.bounded(1, 1, Long.MAX_VALUE)).status());
+        try {
+            Thread.currentThread().interrupt();
+            org.junit.jupiter.api.Assertions.assertThrows(java.util.concurrent.CancellationException.class,
+                    () -> BoundedIntegerLinearSolver.tryPropagate(2, rows, 10, 16,
+                            BoundedIntegerLinearSolver.WorkBudget.unlimited()));
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    void propagationVerdictsAgreeWithExhaustiveFiniteDomains() {
+        var random = new Random(2026102101L);
+        int solved = 0, infeasible = 0, undecided = 0;
+        for (int sample = 0; sample < 512; sample++) {
+            int variables = 3, max = 4;
+            var rows = new java.util.ArrayList<BoundedIntegerLinearSolver.Constraint>();
+            for (int r = 0; r < 4; r++) {
+                long[] coefficients = new long[variables];
+                for (int v = 0; v < variables; v++) coefficients[v] = random.nextInt(7)-3;
+                rows.add(row(random.nextInt(15)-7, coefficients));
+            }
+            var witness = bruteForce(variables, max, rows);
+            var result = BoundedIntegerLinearSolver.tryPropagate(variables, rows, max, 16,
+                    BoundedIntegerLinearSolver.WorkBudget.unlimited());
+            if (result == null) { undecided++; continue; }
+            if (result.solved()) {
+                solved++;
+                assertTrue(witness != null);
+                assertTrue(feasible(result.values(), rows));
+                for (long value : result.values()) assertTrue(value >= 0 && value <= max);
+            } else {
+                infeasible++;
+                assertEquals(BoundedIntegerLinearSolver.Status.INFEASIBLE, result.status());
+                org.junit.jupiter.api.Assertions.assertNull(witness);
+            }
+        }
+        assertTrue(solved > 0 && infeasible > 0 && undecided > 0);
+    }
+
+    @Test
     void aSharedResourceRowReplacesItsRedundantIndividualBounds() {
         long[] demand = new long[12], resource = new long[12];
         java.util.Arrays.fill(demand, 1);

@@ -20,8 +20,7 @@ final class MultiRouteBatchOptimizer {
     static <K> BatchOptimizationResult<K> solve(CraftGraph<K> graph, K target, long amount,
             CraftPlan<K> initial, IntPredicate sharedWork) {
         PlanningCancellation.check();
-        List<CraftPattern<K>> routes = new ArrayList<>(graph.patternsFor(target));
-        OrdinaryBatchOptimizer.sortRoutes(routes);
+        List<CraftPattern<K>> routes = graph.patternsFor(target);
         int size = routes.size();
         if (size < 3 || size > 6 || amount <= 0 || amount >= Sat.SAT
                 || !initial.supported() || !initial.feasible() || !initial.missing().isEmpty()
@@ -34,6 +33,8 @@ final class MultiRouteBatchOptimizer {
         }
         if (initial.grossDemand().values().stream().anyMatch(Sat::isSaturated))
             return BatchOptimizationResult.unsupported(initial);
+        routes = new ArrayList<>(routes);
+        OrdinaryBatchOptimizer.sortRoutes(routes);
         int slots = 0;
         for (var route : routes) if ((slots += route.inputs().size()) > 32)
             return BatchOptimizationResult.unsupported(initial);

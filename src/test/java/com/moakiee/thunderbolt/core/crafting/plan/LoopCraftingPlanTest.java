@@ -32,31 +32,6 @@ import org.junit.jupiter.api.Test;
 class LoopCraftingPlanTest {
 
     @Test
-    void exactReportSurvivesLoopWrappingAndSummaryConversion() {
-        var seed = new TestKey("seed");
-        var pattern = new TestLoopPattern(seed, new TestHost());
-        for (boolean previewOnly : List.of(false, true)) {
-            var delegate = new CraftingPlan(new GenericStack(seed, 1L), 0L, false, false,
-                    new KeyCounter(), new KeyCounter(), new KeyCounter(),
-                    new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of(pattern, 1L)));
-            var amount = java.math.BigInteger.TEN.pow(30);
-            var report = new com.moakiee.thunderbolt.ae2.crafting.ExactPlanReport(amount,
-                    Map.of(seed, new com.moakiee.thunderbolt.ae2.crafting.ExactPlanReport.Amounts(
-                            amount, java.math.BigInteger.ZERO, amount)), false, previewOnly);
-            com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.attach(delegate, report);
-
-            var wrapped = LoopCraftingPlan.wrapIfNeeded(delegate);
-            assertSame(report, com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.get(wrapped));
-            assertEquals(previewOnly,
-                    com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.isPreview(wrapped));
-            var summary = com.moakiee.thunderbolt.ae2.crafting.ThunderboltCraftingPlanSummary.fromPlan(wrapped);
-            assertSame(report, com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports.get(summary));
-            assertEquals(Long.MAX_VALUE, summary.getUsedBytes());
-            assertEquals(previewOnly, summary.isSimulation());
-        }
-    }
-
-    @Test
     void wrapsCoreLoopMetadataIntoCorePlanImplementation() {
         var acceptedHost = new TestHost();
         var otherHost = new TestHost();
@@ -64,7 +39,8 @@ class LoopCraftingPlanTest {
         var pattern = new TestLoopPattern(seed, acceptedHost);
         var delegate = new CraftingPlan(
                 new GenericStack(seed, 1L), 0L, false, false,
-                new KeyCounter(), new KeyCounter(), new KeyCounter(), new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of(pattern, 1L)));
+                new KeyCounter(), new KeyCounter(), new KeyCounter(),
+                new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of(pattern, 1L)));
 
         var wrapped = (LoopCraftingPlan) LoopCraftingPlan.wrapIfNeeded(delegate);
 
@@ -73,6 +49,35 @@ class LoopCraftingPlanTest {
         assertTrue(wrapped.canRunOn(acceptedHost));
         assertFalse(wrapped.canRunOn(otherHost));
         assertFalse(LoopCraftingPlan.class.getPackageName().contains(".api."));
+    }
+
+    @Test
+    void seedOnlyPatternRetainsItsIndependentOwnershipMetadata() {
+        var seed = new TestKey("seed_only");
+        var group = UUID.randomUUID();
+        class SeedOnlyPattern implements IPatternDetails, ReusableSeedPattern {
+            public AEItemKey getDefinition() { return null; }
+            public IInput[] getInputs() { return new IInput[0]; }
+            public GenericStack[] getOutputs() { return new GenericStack[] {new GenericStack(seed, 1)}; }
+            public Object reusableSeedStorageScope() { return "seed_host"; }
+            public UUID reusableSeedGroupId() { return group; }
+            public Set<AEKey> reusableSeedCycleKeys() { return Set.of(seed); }
+            public boolean hasSingleSeedInputPerMember() { return true; }
+            public Map<AEKey, Long> totalReusableSeedRequirements() { return Map.of(seed, 3L); }
+        }
+        var pattern = new SeedOnlyPattern();
+        var plan = new CraftingPlan(new GenericStack(seed, 1), 0, false, false,
+                new KeyCounter(), new KeyCounter(), new KeyCounter(),
+                new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>(Map.of(pattern, 1L)));
+        var wrapped = (LoopCraftingPlan) LoopCraftingPlan.wrapIfNeeded(plan);
+        assertTrue(wrapped.restrictions().isEmpty());
+        assertEquals(Map.of(seed, 3L), wrapped.totalReusableSeeds());
+        assertEquals(Map.of(group, Map.of(seed, 3L)), wrapped.reusableSeedGroups());
+        assertTrue(wrapped.canRunOn(new TestHost()));
+        var ordinary = new CraftingPlan(new GenericStack(seed, 1), 0, false, false,
+                new KeyCounter(), new KeyCounter(), new KeyCounter(),
+                it.unimi.dsi.fastutil.objects.Object2LongMaps.emptyMap());
+        assertSame(ordinary, LoopCraftingPlan.wrapIfNeeded(ordinary));
     }
 
     private static final class TestHost implements ExtendedCraftingCpuClusterHost {

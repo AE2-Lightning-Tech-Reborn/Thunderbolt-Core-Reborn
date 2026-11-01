@@ -18,9 +18,11 @@ public final class ExactAmountFormatter {
                 new MathContext(4, RoundingMode.HALF_UP)).stripTrailingZeros();
         int group = Math.max(0, (scaled.precision() - scaled.scale() - 1) / 3);
         if (group == 0) return scaled.toPlainString();
-        // Continue beyond quetta with KQ, MQ, ... QQ, KQQ, etc.
+        // Preserve familiar prefixes while keeping thousand-digit amounts inside GUI columns.
+        if (group / 10 > 10) return scientific(scaled);
         String suffix = PREFIXES[group % 10] + "Q".repeat(group / 10);
-        return scaled.movePointLeft(group * 3).toPlainString() + suffix;
+        String label = scaled.movePointLeft(group * 3).toPlainString() + suffix;
+        return label.length() <= 12 ? label : scientific(scaled);
     }
 
     /** Native 16px inventory slots have room for roughly five small-font characters. */
@@ -29,6 +31,10 @@ public final class ExactAmountFormatter {
         if (label.length() <= 5) return label;
         BigDecimal value = new BigDecimal(amount).divide(BigDecimal.valueOf(Math.max(1, units)),
                 new MathContext(1, RoundingMode.DOWN)).stripTrailingZeros();
+        return scientific(value);
+    }
+
+    private static String scientific(BigDecimal value) {
         return value.toString().replace("E+", "e").replace("E", "e");
     }
 

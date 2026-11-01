@@ -2,7 +2,7 @@ package com.moakiee.thunderbolt.core.crafting.batch;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -13,6 +13,7 @@ import net.minecraft.world.level.Level;
 import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyLongMap;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.execution.CraftingCpuHelper;
 import appeng.crafting.inv.ICraftingInventory;
@@ -29,7 +30,7 @@ public final class ParallelBatchCpuHelper {
 
     @Nullable
     public static BulkResult bulkExtract(IPatternDetails details, ListCraftingInventory inv, long maxCraft) {
-        return bulkExtract(details, inv, maxCraft, true, Map.of());
+        return bulkExtract(details, inv, maxCraft, true, Collections.emptyMap());
     }
 
     @Nullable
@@ -46,7 +47,7 @@ public final class ParallelBatchCpuHelper {
         var units = new long[slots];
         var available = new long[slots];
         var shared = new boolean[slots];
-        var reserved = reservedStock != null ? reservedStock : Map.<AEKey, Long>of();
+        var reserved = reservedStock != null ? reservedStock : Collections.<AEKey, Long>emptyMap();
 
         for (int slot = 0; slot < slots; slot++) {
             var input = inputs[slot];
@@ -82,34 +83,34 @@ public final class ParallelBatchCpuHelper {
             shared[slot] = bestShared;
         }
 
-        var fixedByKey = new HashMap<AEKey, Long>(slots * 2);
-        var variableByKey = new HashMap<AEKey, Long>(slots * 2);
-        var availableByKey = new HashMap<AEKey, Long>(slots * 2);
+        var fixedByKey = new AEKeyLongMap<AEKey>(slots);
+        var variableByKey = new AEKeyLongMap<AEKey>(slots);
+        var availableByKey = new AEKeyLongMap<AEKey>(slots);
         for (int slot = 0; slot < slots; slot++) {
-            availableByKey.put(chosenKeys[slot], available[slot]);
-            (shared[slot] ? fixedByKey : variableByKey)
-                    .merge(chosenKeys[slot], units[slot], ParallelBatchCpuHelper::saturatingAdd);
+            BatchKeyAmounts.put(availableByKey, chosenKeys[slot], available[slot]);
+            BatchKeyAmounts.addTo(shared[slot] ? fixedByKey : variableByKey,
+                    chosenKeys[slot], units[slot]);
         }
 
         long actual = maxCraft;
-        for (var entry : availableByKey.entrySet()) {
-            long fixed = fixedByKey.getOrDefault(entry.getKey(), 0L);
-            long variable = variableByKey.getOrDefault(entry.getKey(), 0L);
-            if (fixed > entry.getValue()) return null;
-            if (variable > 0) actual = Math.min(actual, (entry.getValue() - fixed) / variable);
+        for (var entry : availableByKey) {
+            long fixed = fixedByKey.getLong(entry.getKey());
+            long variable = variableByKey.getLong(entry.getKey());
+            if (fixed > entry.getLongValue()) return null;
+            if (variable > 0) actual = Math.min(actual, (entry.getLongValue() - fixed) / variable);
             if (actual <= 0) return null;
         }
-        var extractedByKey = new HashMap<AEKey, Long>(availableByKey.size() * 2);
-        for (var entry : availableByKey.entrySet()) {
+        var extractedByKey = new AEKeyLongMap<AEKey>(availableByKey.size());
+        for (var entry : availableByKey) {
             long need = saturatingAdd(
-                    fixedByKey.getOrDefault(entry.getKey(), 0L),
-                    saturatingMultiply(variableByKey.getOrDefault(entry.getKey(), 0L), actual));
+                    fixedByKey.getLong(entry.getKey()),
+                    saturatingMultiply(variableByKey.getLong(entry.getKey()), actual));
             long got = inv.extract(entry.getKey(), need, Actionable.MODULATE);
-            extractedByKey.put(entry.getKey(), got);
+            BatchKeyAmounts.put(extractedByKey, entry.getKey(), got);
             if (got < need) {
-                for (var rollback : extractedByKey.entrySet()) {
-                    if (rollback.getValue() > 0) {
-                        inv.insert(rollback.getKey(), rollback.getValue(), Actionable.MODULATE);
+                for (var rollback : extractedByKey) {
+                    if (rollback.getLongValue() > 0) {
+                        inv.insert(rollback.getKey(), rollback.getLongValue(), Actionable.MODULATE);
                     }
                 }
                 return null;
@@ -118,7 +119,7 @@ public final class ParallelBatchCpuHelper {
 
         var scaled = new KeyCounter[slots];
         for (int slot = 0; slot < slots; slot++) {
-            scaled[slot] = new KeyCounter();
+            scaled[slot] = counterWithCapacity(1);
             long amount = shared[slot] ? units[slot] : saturatingMultiply(units[slot], actual);
             if (amount > 0) scaled[slot].add(chosenKeys[slot], amount);
         }
@@ -193,9 +194,8 @@ public final class ParallelBatchCpuHelper {
         int slots = resolved.inputs.length;
         var scalablePerCopy = new KeyCounter[slots];
         var sharedPerBatch = new KeyCounter[slots];
-        var scalableDemand = new HashMap<AEKey, Long>(slots * 2);
+        var scalableDemand = new AEKeyLongMap<AEKey>(slots);
         for (int slot = 0; slot < slots; slot++) {
-            sharedPerBatch[slot] = new KeyCounter();
             boolean hasShared = false;
             if (allowSharedInputs) {
                 for (var entry : resolved.inputs[slot]) {
@@ -207,7 +207,10 @@ public final class ParallelBatchCpuHelper {
             }
             // The resolved copy is owned here. Reuse it for ordinary slots, keeping
             // provider-owned copies and the mutable scaled inventory separate.
-            scalablePerCopy[slot] = hasShared ? new KeyCounter() : resolved.inputs[slot];
+            sharedPerBatch[slot] = hasShared
+                    ? counterWithCapacity(resolved.inputs[slot].size()) : new KeyCounter();
+            scalablePerCopy[slot] = hasShared
+                    ? counterWithCapacity(resolved.inputs[slot].size()) : resolved.inputs[slot];
             for (var entry : resolved.inputs[slot]) {
                 boolean shared = hasShared
                         && SharedBatchInputs.isSharedInput(details, slot, entry.getKey());
@@ -216,16 +219,15 @@ public final class ParallelBatchCpuHelper {
                     target.add(entry.getKey(), entry.getLongValue());
                 }
                 if (!shared) {
-                    scalableDemand.merge(
-                            entry.getKey(), entry.getLongValue(), ParallelBatchCpuHelper::saturatingAdd);
+                    BatchKeyAmounts.addTo(scalableDemand, entry.getKey(), entry.getLongValue());
                 }
             }
         }
 
         long additionalCopies = maxCraft - 1;
-        for (var entry : scalableDemand.entrySet()) {
+        for (var entry : scalableDemand) {
             long available = guardedInventory.extract(entry.getKey(), Long.MAX_VALUE, Actionable.SIMULATE);
-            additionalCopies = Math.min(additionalCopies, available / entry.getValue());
+            additionalCopies = Math.min(additionalCopies, available / entry.getLongValue());
         }
 
         if (capacityLimiter != null) {
@@ -244,15 +246,15 @@ public final class ParallelBatchCpuHelper {
             additionalCopies = limitedCopies - 1;
         }
 
-        var additionalExtracted = new HashMap<AEKey, Long>(scalableDemand.size() * 2);
         if (additionalCopies > 0) {
-            for (var entry : scalableDemand.entrySet()) {
-                long needed = saturatingMultiply(entry.getValue(), additionalCopies);
+            var additionalExtracted = new AEKeyLongMap<AEKey>(scalableDemand.size());
+            for (var entry : scalableDemand) {
+                long needed = saturatingMultiply(entry.getLongValue(), additionalCopies);
                 long extracted = guardedInventory.extract(entry.getKey(), needed, Actionable.MODULATE);
-                additionalExtracted.put(entry.getKey(), extracted);
+                BatchKeyAmounts.put(additionalExtracted, entry.getKey(), extracted);
                 if (extracted < needed) {
-                    for (var rollback : additionalExtracted.entrySet()) {
-                        guardedInventory.insert(rollback.getKey(), rollback.getValue(), Actionable.MODULATE);
+                    for (var rollback : additionalExtracted) {
+                        guardedInventory.insert(rollback.getKey(), rollback.getLongValue(), Actionable.MODULATE);
                     }
                     CraftingCpuHelper.reinjectPatternInputs(guardedInventory, resolved.inputs);
                     return null;
@@ -263,7 +265,7 @@ public final class ParallelBatchCpuHelper {
         long actualCopies = additionalCopies + 1;
         var scaled = new KeyCounter[slots];
         for (int slot = 0; slot < slots; slot++) {
-            scaled[slot] = new KeyCounter();
+            scaled[slot] = counterWithCapacity(sharedPerBatch[slot].size() + scalablePerCopy[slot].size());
             scaled[slot].addAll(sharedPerBatch[slot]);
             addScaled(scaled[slot], scalablePerCopy[slot], actualCopies);
         }
@@ -291,10 +293,11 @@ public final class ParallelBatchCpuHelper {
                                                Level level) {
         var inputs = details.getInputs();
         var resolved = new KeyCounter[inputs.length];
-        var remainders = new ArrayList<RemainderSpec>();
-        int[] extractionOrder = new int[inputs.length];
-        int next = 0;
+        ArrayList<RemainderSpec> remainders = null;
+        int[] extractionOrder = null;
         if (details instanceof PlannedInputPattern planned) {
+            extractionOrder = new int[inputs.length];
+            int next = 0;
             // Resolve fixed allocations before dynamic slots, which may also accept those keys.
             // Keep the result indexed by the original slot so provider semantics do not change.
             for (int slot = 0; slot < inputs.length; slot++) {
@@ -303,12 +306,11 @@ public final class ParallelBatchCpuHelper {
             for (int slot = 0; slot < inputs.length; slot++) {
                 if (planned.allocations().get(slot).isEmpty()) extractionOrder[next++] = slot;
             }
-        } else {
-            for (int slot = 0; slot < inputs.length; slot++) extractionOrder[next++] = slot;
         }
-        for (int slot : extractionOrder) {
+        for (int index = 0; index < inputs.length; index++) {
+            int slot = extractionOrder == null ? index : extractionOrder[index];
             var input = inputs[slot];
-            var holder = resolved[slot] = new KeyCounter();
+            var holder = resolved[slot] = counterWithCapacity(1);
             var slotInventory = details instanceof PlannedInputPattern planned
                     ? planned.inventoryForSlot(slot, inventory) : inventory;
             long remainingMultiplier = input.getMultiplier();
@@ -322,6 +324,7 @@ public final class ParallelBatchCpuHelper {
                 if (remaining != null) {
                     boolean shared = allowSharedInputs
                             && SharedBatchInputs.isSharedInput(details, slot, template.what());
+                    if (remainders == null) remainders = new ArrayList<>();
                     remainders.add(new RemainderSpec(remaining, extracted, shared));
                 }
                 remainingMultiplier -= extracted;
@@ -333,7 +336,8 @@ public final class ParallelBatchCpuHelper {
                 return null;
             }
         }
-        return new ResolvedCopy(resolved, List.copyOf(remainders));
+        // This list is locally owned and never exposed to providers or callers.
+        return new ResolvedCopy(resolved, remainders == null ? Collections.emptyList() : remainders);
     }
 
     public static void reinject(BulkResult result, long leftoverCopies, ListCraftingInventory inv) {
@@ -389,14 +393,16 @@ public final class ParallelBatchCpuHelper {
             BatchJobView job, IPatternDetails details, long dispatched, boolean sharedBatch) {
         var sharedPattern = sharedBatch && details instanceof SharedBatchInputPattern pattern
                 ? pattern : null;
-        var sharedOutputsLeft = sharedPattern == null ? null : new HashMap<AEKey, Long>();
-        for (var output : details.getOutputs()) {
+        var outputs = details.getOutputs();
+        var sharedOutputsLeft = sharedPattern == null ? null : new AEKeyLongMap<AEKey>(outputs.length);
+        for (var output : outputs) {
             long sharedAmount = 0L;
             if (sharedPattern != null) {
-                long remainingShared = sharedOutputsLeft.computeIfAbsent(
-                        output.what(), sharedPattern::sharedBatchOutputAmount);
+                long remainingShared = sharedOutputsLeft.containsKey(output.what())
+                        ? sharedOutputsLeft.getLong(output.what())
+                        : sharedPattern.sharedBatchOutputAmount(output.what());
                 sharedAmount = Math.min(output.amount(), Math.max(0L, remainingShared));
-                sharedOutputsLeft.put(output.what(), remainingShared - sharedAmount);
+                BatchKeyAmounts.put(sharedOutputsLeft, output.what(), remainingShared - sharedAmount);
             }
             long scalable = Math.max(0L, output.amount() - sharedAmount);
             job.insertWaitingFor(output.what(), saturatingAdd(
@@ -436,7 +442,12 @@ public final class ParallelBatchCpuHelper {
     public static KeyCounter[] copySlice(BulkResult result, long sliceCount) {
         var slice = new KeyCounter[result.scaledInputs.length];
         for (int slot = 0; slot < slice.length; slot++) {
-            slice[slot] = new KeyCounter();
+            if (sliceCount == 1 && result.sharedPerBatch[slot].isEmpty()) {
+                slice[slot] = result.scalablePerCopy[slot].copy();
+                continue;
+            }
+            slice[slot] = counterWithCapacity(
+                    result.sharedPerBatch[slot].size() + result.scalablePerCopy[slot].size());
             slice[slot].addAll(result.sharedPerBatch[slot]);
             addScaled(slice[slot], result.scalablePerCopy[slot], Math.max(0, sliceCount));
         }
@@ -466,9 +477,9 @@ public final class ParallelBatchCpuHelper {
     public static final class BulkResult {
         public final KeyCounter[] scaledInputs;
         public final long actualCopies;
-        final AEKey[] keys;
-        final long[] units;
-        final boolean[] sharedInputs;
+        @Nullable final AEKey[] keys;
+        @Nullable final long[] units;
+        @Nullable final boolean[] sharedInputs;
         final KeyCounter[] scalablePerCopy;
         final KeyCounter[] sharedPerBatch;
         @Nullable
@@ -486,9 +497,10 @@ public final class ParallelBatchCpuHelper {
             this.scalablePerCopy = new KeyCounter[scaledInputs.length];
             this.sharedPerBatch = new KeyCounter[scaledInputs.length];
             for (int slot = 0; slot < scaledInputs.length; slot++) {
-                this.scalablePerCopy[slot] = new KeyCounter();
-                this.sharedPerBatch[slot] = new KeyCounter();
-                if (keys[slot] != null && units[slot] > 0) {
+                boolean populated = keys[slot] != null && units[slot] > 0;
+                this.scalablePerCopy[slot] = counterWithCapacity(populated && !sharedInputs[slot] ? 1 : 0);
+                this.sharedPerBatch[slot] = counterWithCapacity(populated && sharedInputs[slot] ? 1 : 0);
+                if (populated) {
                     (sharedInputs[slot] ? this.sharedPerBatch[slot] : this.scalablePerCopy[slot])
                             .add(keys[slot], units[slot]);
                 }
@@ -502,9 +514,10 @@ public final class ParallelBatchCpuHelper {
                            List<RemainderSpec> remainders) {
             this.scaledInputs = scaledInputs;
             this.actualCopies = actualCopies;
-            this.keys = new AEKey[scaledInputs.length];
-            this.units = new long[scaledInputs.length];
-            this.sharedInputs = new boolean[scaledInputs.length];
+            // Legacy metadata is unused when concrete per-slot counters/remainders are present.
+            this.keys = null;
+            this.units = null;
+            this.sharedInputs = null;
             this.scalablePerCopy = scalablePerCopy;
             this.sharedPerBatch = sharedPerBatch;
             this.remainders = remainders;
@@ -513,7 +526,7 @@ public final class ParallelBatchCpuHelper {
 
         public boolean hasSharedInputs() {
             for (var counter : sharedPerBatch) {
-                if (counter.iterator().hasNext()) return true;
+                if (!counter.isEmpty()) return true;
             }
             return false;
         }
@@ -535,6 +548,10 @@ public final class ParallelBatchCpuHelper {
         }
     }
 
+    private static KeyCounter counterWithCapacity(int entries) {
+        return entries == 0 ? new KeyCounter() : new KeyCounter(new AEKeyLongMap<>(entries));
+    }
+
     private record ResolvedCopy(KeyCounter[] inputs, List<RemainderSpec> remainders) {
     }
 
@@ -547,7 +564,7 @@ public final class ParallelBatchCpuHelper {
 
         private ReservedInventory(ListCraftingInventory delegate, Map<AEKey, Long> reserved) {
             this.delegate = delegate;
-            this.reserved = reserved != null ? reserved : Map.of();
+            this.reserved = reserved != null ? reserved : Collections.emptyMap();
         }
 
         @Override

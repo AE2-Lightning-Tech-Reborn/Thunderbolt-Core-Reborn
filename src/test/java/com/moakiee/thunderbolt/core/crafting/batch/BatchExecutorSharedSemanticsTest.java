@@ -54,6 +54,63 @@ class BatchExecutorSharedSemanticsTest {
         assertTrue(BatchExecutor.sharedBatchSemanticsMatch(task, execution, result));
     }
 
+    @Test
+    void sharedInputScanHonorsExplicitMarkersAndLaterConcreteVariants() {
+        var seed = key();
+        assertTrue(SharedBatchInputs.hasSharedInputs(pattern(seed, true, 1L)));
+        assertFalse(SharedBatchInputs.hasSharedInputs(pattern(seed, false, 1L)));
+
+        var consumed = new TestKey("consumed");
+        var sameSeed = new TestKey("smithing_template");
+        var inputs = new IPatternDetails.IInput[]{
+                input(new GenericStack[]{new GenericStack(consumed, 1)}, null),
+                input(new GenericStack[]{new GenericStack(consumed, 1), new GenericStack(seed, 1)}, sameSeed)
+        };
+        var ordinary = inputPattern(inputs);
+        var allocated = new com.moakiee.thunderbolt.core.crafting.pattern.PlannedInputPattern(
+                ordinary, List.of(java.util.Map.of(), java.util.Map.of()));
+        assertTrue(SharedBatchInputs.hasSharedInputs(allocated));
+        assertFalse(SharedBatchInputs.isSharedInput(allocated, 1, consumed));
+        assertTrue(SharedBatchInputs.isSharedInput(allocated, 1, seed));
+    }
+
+    @Test
+    void changedKeysAndInvalidSlotsAreNotShared() {
+        var seed = key();
+        var changed = new TestKey("damaged_template");
+        var inputs = new IPatternDetails.IInput[]{
+                input(new GenericStack[]{new GenericStack(seed, 1)}, changed)
+        };
+        var details = inputPattern(inputs);
+        assertFalse(SharedBatchInputs.hasSharedInputs(details));
+        assertFalse(SharedBatchInputs.hasSharedInputs(null));
+        assertFalse(SharedBatchInputs.hasSharedInputs(inputPattern(new IPatternDetails.IInput[0])));
+        assertFalse(SharedBatchInputs.isSharedInput(details, -1, seed));
+        assertFalse(SharedBatchInputs.isSharedInput(details, 1, seed));
+        assertFalse(SharedBatchInputs.isSharedInput(details, 0, null));
+        inputs[0] = input(new GenericStack[]{new GenericStack(seed, 1)}, seed);
+        assertTrue(SharedBatchInputs.hasSharedInputs(details));
+    }
+
+    private static IPatternDetails.IInput input(GenericStack[] possible, AEKey remaining) {
+        return (IPatternDetails.IInput) Proxy.newProxyInstance(
+                BatchExecutorSharedSemanticsTest.class.getClassLoader(),
+                new Class<?>[]{IPatternDetails.IInput.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getPossibleInputs" -> possible.clone();
+                    case "getRemainingKey" -> remaining;
+                    default -> defaultValue(method.getReturnType());
+                });
+    }
+
+    private static IPatternDetails inputPattern(IPatternDetails.IInput[] inputs) {
+        return (IPatternDetails) Proxy.newProxyInstance(
+                BatchExecutorSharedSemanticsTest.class.getClassLoader(),
+                new Class<?>[]{IPatternDetails.class},
+                (proxy, method, args) -> method.getName().equals("getInputs")
+                        ? inputs.clone() : defaultValue(method.getReturnType()));
+    }
+
     private static AEKey key() {
         return new TestKey("smithing_template");
     }

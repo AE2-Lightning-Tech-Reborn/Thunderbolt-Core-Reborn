@@ -110,6 +110,8 @@ public final class ByteTracker {
 
     public long computeMaxInsertable(AEKeyType type, boolean isNewKey) {
         if (isNewKey && totalTypesGetter.getAsInt() >= maxTypes) return 0;
+        if (capacityHi < usedBytesHi
+                || (capacityHi == usedBytesHi && capacityLo < usedBytesLo)) return 0;
         long freeLo = capacityLo - usedBytesLo;
         long freeHi = capacityHi - usedBytesHi;
         if (freeLo < 0) {

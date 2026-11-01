@@ -6,6 +6,15 @@ import net.minecraft.world.item.ItemStack;
 final class IndexedCellTestFixtures {
     private IndexedCellTestFixtures() {}
 
+    static AutoCloseable openKeyRegistry() {
+        try {
+            var previous = installKeyTypes();
+            return () -> restoreKeyTypes(previous);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
     static Object installKeyTypes() throws ReflectiveOperationException {
         var field = appeng.api.stacks.AEKeyTypesInternal.class.getDeclaredField("registry");
         field.setAccessible(true);

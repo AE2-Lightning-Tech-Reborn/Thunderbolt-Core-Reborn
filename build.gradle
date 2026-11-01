@@ -306,6 +306,40 @@ test {
     }
 }
 
+// Compile against the minimum AE2, then exercise the same Core classes with either real fork.
+// Pass a production AE2 JAR to remap only Minecraft names; the AE2 API stays unmodified.
+def ae2AbiJar = providers.gradleProperty('thunderboltAe2AbiJar').getOrElse('').trim()
+def ae2AbiRuntime = sourceSets.test.runtimeClasspath
+def ae2AbiRemap
+if (!ae2AbiJar.isEmpty()) {
+    def ae2AbiMappings = tasks.register('ae2AbiMappings', net.minecraftforge.gradle.mcp.tasks.DownloadMCPMappings) {
+        mappings = "official_${minecraft_version}"
+        output = layout.buildDirectory.file('ae2-abi/mcp-mappings.zip')
+    }
+    ae2AbiRemap = tasks.register('remapAe2AbiJar', net.minecraftforge.gradle.userdev.tasks.RenameJarSrg2Mcp) {
+        input = file(ae2AbiJar)
+        mappings = ae2AbiMappings.flatMap { it.output }
+        output = layout.buildDirectory.file('ae2-abi/ae2-dev.jar')
+        signatureRemoval = true
+    }
+    ae2AbiRuntime = files(ae2AbiRemap.flatMap { it.output }) + ae2AbiRuntime.filter {
+        !it.name.startsWith('appliedenergistics2-forge-1.20.1-')
+    }
+}
+tasks.register('ae2AbiTest', Test) {
+    group = 'verification'
+    description = 'Checks native batch maps and logical planner keys against a real AE2 fork.'
+    dependsOn 'testClasses'
+    if (ae2AbiRemap != null) dependsOn ae2AbiRemap
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = ae2AbiRuntime
+    // Filter before JUnit discovery: older synthetic-key fixtures target the minimum ABI only.
+    include '**/*Ae2AbiTest.class'
+    filter { includeTestsMatching '*Ae2AbiTest' }
+    testLogging { events 'passed', 'skipped', 'failed' }
+}
+
 tasks.register("referenceCapabilityTest", Test) {
     description = "Runs the planner capability reference kit and prints its auditable result rows."
     group = "verification"
@@ -385,6 +419,20 @@ tasks.register('optimizationBenchmark', JavaExec) {
             : sourceSets.test.runtimeClasspath
     def label = providers.gradleProperty('optimizationBenchmarkLabel').getOrElse(baseline ? 'before' : 'after')
     args layout.buildDirectory.file("optimization-benchmark/${label}.json").get().asFile.absolutePath
+}
+
+tasks.register('batchAllocationBenchmark', JavaExec) {
+    group = 'verification'
+    description = 'Measures batch extraction/refund allocations against optional baseline classes.'
+    dependsOn 'testClasses'
+    mainClass = 'com.moakiee.thunderbolt.core.crafting.batch.BatchAllocationBenchmark'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+    def baseline = providers.gradleProperty('batchAllocationBaselineDir').getOrElse('').trim()
+    classpath = baseline.isEmpty() ? sourceSets.test.runtimeClasspath
+            : files(baseline) + sourceSets.test.runtimeClasspath
+    def label = providers.gradleProperty('batchAllocationLabel').getOrElse('current')
+    args layout.buildDirectory.file("batch-allocation-benchmark/${label}.json").get().asFile.absolutePath
+    maxHeapSize = '512m'
 }
 
 processResources {
@@ -479,6 +527,10 @@ def gtoTestAgent = tasks.register('gtoTestAgent', Jar) {
     manifest { attributes 'Premain-Class': 'com.moakiee.gtotest.GtoTestMixinAgent' }
 }
 tasks.withType(Test).configureEach {
+    dependsOn gtoTestAgent
+    doFirst { jvmArgs "-javaagent:${gtoTestAgent.get().archiveFile.get().asFile}" }
+}
+tasks.named('batchAllocationBenchmark', JavaExec) {
     dependsOn gtoTestAgent
     doFirst { jvmArgs "-javaagent:${gtoTestAgent.get().archiveFile.get().asFile}" }
 }
