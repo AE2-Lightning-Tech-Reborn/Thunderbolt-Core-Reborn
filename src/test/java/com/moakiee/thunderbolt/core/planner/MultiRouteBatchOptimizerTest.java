@@ -160,9 +160,11 @@ class MultiRouteBatchOptimizerTest {
     @Test void exhaustedSearchRetainsACertifiedCandidateWithoutClaimingCompletion() {
         var graph = CraftGraph.<String>builder().stock("raw", 100)
                 .pattern("T", 2, List.of(CraftInput.of("raw", 4)))
-                .pattern("T", 4, List.of(CraftInput.of("raw", 7)))
-                .pattern("T", 5, List.of(CraftInput.of("raw", 10))).build();
+                .pattern("T", 5, List.of(CraftInput.of("raw", 10)))
+                .pattern("T", 6, List.of(CraftInput.of("raw", 13))).build();
         var initial = initial(graph, new long[] {5, 0, 0}, 10);
+        // Stable output-first ordering leaves the feasible 5-output route in the solved pair.
+        // Ten units still expire after a certified candidate, before enumeration completes.
         var remaining = new AtomicInteger(10);
         var result = MultiRouteBatchOptimizer.solve(graph, "T", 10, initial,
                 n -> remaining.addAndGet(-n) >= 0);

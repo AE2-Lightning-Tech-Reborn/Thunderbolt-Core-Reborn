@@ -2,9 +2,9 @@ package com.moakiee.thunderbolt.mixin.platform.eject;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -21,11 +21,28 @@ import net.minecraftforge.items.IItemHandler;
 import com.moakiee.thunderbolt.api.eject.EjectOfflinePolicy;
 import com.moakiee.thunderbolt.core.eject.EjectEndpointIndex;
 
-// getCapability is declared on CapabilityProvider; the handler narrows to BlockEntity.
-// Cancellable priority-2000 HEAD injection gives registered EJECT endpoints ownership.
-// Forge's own method has no SRG mapping.
-@Mixin(value = CapabilityProvider.class, priority = 2000, remap = false)
-public abstract class EjectCapabilityMixin {
+// Forge 1.20.1 port: intercept BlockEntity#getCapability(Capability, Direction).
+//
+// getCapability is declared by Forge's CapabilityProvider, which is also the superclass of
+// ItemStack, Entity, Level and LevelChunk. Mixing into CapabilityProvider marks every one of those
+// subclasses as "inherits from mixin", and Mixin 0.8.5 then rebinds INVOKESPECIAL interface-super
+// calls in *other* mods' mixins on them (SpongePowered/Mixin#504). ElementalCraft's MixinItemStack
+// uses IForgeItemStack.super.getEnchantmentLevel/getAllEnchantments, which got rewritten to an
+// InterfaceMethodref owned by ItemStack and failed with
+// "IncompatibleClassChangeError: ... must be Methodref constant" during world load.
+//
+// So this mixin targets BlockEntity only and merges an override of getCapability into it
+// (BlockEntity does not declare one). Every BlockEntity subclass that delegates to
+// super.getCapability now reaches this override before CapabilityProvider, which is the same
+// coverage the old HEAD injection had, and the EJECT result still wins over any interceptor
+// injected into CapabilityProvider#getCapability. No Thunderbolt mixin touches CapabilityProvider
+// any more. getCapability is a Forge method without SRG names, hence remap = false.
+@Mixin(value = BlockEntity.class, priority = 2000, remap = false)
+public abstract class EjectCapabilityMixin extends CapabilityProvider<BlockEntity> {
+    private EjectCapabilityMixin(Class<BlockEntity> baseClass) {
+        super(baseClass);
+    }
+
     @Unique
     private static final ThreadLocal<Boolean> THUNDERBOLT_PROXYING =
             ThreadLocal.withInitial(() -> false);
@@ -51,15 +68,20 @@ public abstract class EjectCapabilityMixin {
         @Override public FluidStack drain(int maxDrain, FluidAction action) { return FluidStack.EMPTY; }
     };
 
+    @Override
+    @NotNull
+    public <T> LazyOptional<T> getCapability(@NotNull Capability<T> capability, @Nullable Direction side) {
+        var intercepted = thunderbolt$interceptEjectCapability(capability, side);
+        return intercepted != null ? intercepted : super.getCapability(capability, side);
+    }
+
+    /** Returns the EJECT-owned capability for this face, or {@code null} to fall through. */
+    @Unique
     @SuppressWarnings({"unchecked", "rawtypes"})
-    @Inject(method = "getCapability(Lnet/minecraftforge/common/capabilities/Capability;Lnet/minecraft/core/Direction;)Lnet/minecraftforge/common/util/LazyOptional;", at = @At("HEAD"), cancellable = true)
-    private <T> void thunderbolt$interceptEjectCapability(
-            Capability<T> capability,
-            Direction side,
-            CallbackInfoReturnable<LazyOptional<T>> callback) {
-        // 注入点位于父类 CapabilityProvider，所有方块实体都会经过 getCapability；
-        // 先守卫收窄到 BlockEntity，非方块实体的 capability 查询直接放行。
-        if (!((Object) this instanceof BlockEntity blockEntity)) return;
+    @Nullable
+    private <T> LazyOptional<T> thunderbolt$interceptEjectCapability(
+            Capability<T> capability, @Nullable Direction side) {
+        var blockEntity = (BlockEntity) (Object) this;
         // Registry-empty is the overwhelmingly common case on this global hot path; check it
         // before paying the ThreadLocal lookup.
         if (EjectEndpointIndex.INSTANCE.isEmpty()
@@ -67,31 +89,30 @@ public abstract class EjectCapabilityMixin {
                 || EjectEndpointIndex.INSTANCE.isBypassed()
                 || !(blockEntity.getLevel() instanceof ServerLevel)
                 || side == null) {
-            return;
+            return null;
         }
 
         var entry = EjectEndpointIndex.INSTANCE.lookupByFace(
                 blockEntity.getLevel().dimension(), blockEntity.getBlockPos().asLong(), side);
-        if (entry == null) return;
+        if (entry == null) return null;
         var host = EjectEndpointIndex.INSTANCE.resolveHost(entry);
         if (host == null) {
-            if (entry.endpoint().offlinePolicy() == EjectOfflinePolicy.ABSENT) return;
+            if (entry.endpoint().offlinePolicy() == EjectOfflinePolicy.ABSENT) return null;
             // Forge 1.20.1: ForgeCapabilities has no *_BLOCK variants (those are 1.20.2+);
             // ITEM_HANDLER/FLUID_HANDLER are the capability tokens for block entities here.
             if (capability == ForgeCapabilities.ITEM_HANDLER) {
-                callback.setReturnValue(LazyOptional.of(() -> THUNDERBOLT_REJECTING_ITEM_HANDLER).cast());
+                return LazyOptional.of(() -> THUNDERBOLT_REJECTING_ITEM_HANDLER).cast();
             } else if (capability == ForgeCapabilities.FLUID_HANDLER) {
-                callback.setReturnValue(LazyOptional.of(() -> THUNDERBOLT_REJECTING_FLUID_HANDLER).cast());
+                return LazyOptional.of(() -> THUNDERBOLT_REJECTING_FLUID_HANDLER).cast();
             }
-            return;
+            return null;
         }
 
-        var hostLevel = host.getLevel();
-        if (hostLevel == null) return;
+        if (host.getLevel() == null) return null;
         THUNDERBOLT_PROXYING.set(true);
         try {
             var result = host.getCapability((Capability) capability, side);
-            if (result.isPresent()) callback.setReturnValue((LazyOptional<T>) result);
+            return result.isPresent() ? (LazyOptional<T>) result : null;
         } finally {
             THUNDERBOLT_PROXYING.remove();
         }

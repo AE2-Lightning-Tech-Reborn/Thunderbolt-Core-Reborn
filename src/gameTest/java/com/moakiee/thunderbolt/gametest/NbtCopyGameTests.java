@@ -13,6 +13,7 @@ import com.moakiee.thunderbolt.core.nbt.NbtCopyOptions;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.*;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
@@ -38,8 +39,14 @@ public final class NbtCopyGameTests {
             NbtCopyOptions.configure(true);
             source.copy(); list.copy();
             check(mapLeaf.copies == 2 && listLeaf.copies == 2, "enabled path copied an element more than once");
-            check(mapLeaf.fusedMapCopies == 1, "CompoundTag Mixin did not reach fused collector");
-            check(listLeaf.fusedListCopies == 1, "ListTag Mixin did not reach fused collector");
+            var mods = ModList.get();
+            boolean compoundCopyReplaced = mods.isLoaded("lithium") || mods.isLoaded("canary")
+                    || container(source, Map.class).getClass() != HashMap.class;
+            check(mapLeaf.fusedMapCopies == (compoundCopyReplaced ? 0 : 1),
+                    "CompoundTag copy did not use the expected optimizer");
+            boolean listCopyReplaced = mods.isLoaded("lithium") || mods.isLoaded("canary");
+            check(listLeaf.fusedListCopies == (listCopyReplaced ? 0 : 1),
+                    "ListTag copy did not use the expected optimizer");
             helper.succeed();
         } finally { NbtCopyOptions.configure(previous); }
     }
@@ -58,7 +65,8 @@ public final class NbtCopyGameTests {
                 source.putLongArray("longs", new long[]{5, 6});
                 var copied = source.copy();
                 check(source.equals(copied), "copy changed serialized content");
-                check(container(copied, Map.class).getClass() == HashMap.class, "copy replaced HashMap");
+                check(container(copied, Map.class).getClass() == container(source, Map.class).getClass(),
+                        "copy replaced the active optimizer's native map");
                 var copiedChildren = (ListTag) copied.get("children");
                 check(container(copiedChildren, List.class).getClass() == ArrayList.class, "copy replaced ArrayList");
                 check(copied.get("value") == source.get("value"), "immutable tag was unnecessarily replaced");

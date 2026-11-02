@@ -123,10 +123,26 @@ public final class CpSatRankedFlowSolver<K> {
     }
 
     private Result<K> solve() {
+        var tail = CpSatUnitTail.prepare(graph, target, targetAmount, 512);
+        if (tail != null) {
+            Result<K> core;
+            if (tail.amount() == 0L) {
+                core = new Result<>(Status.SOLVED, new CraftPlan<>(true, true, Map.of(), Map.of(),
+                        Map.of(), Map.of(), Map.of(), 0, false), 0L);
+            } else {
+                // Keep the original calculation's session identity and shared refinement budget.
+                var reduced = new CpSatRankedFlowSolver<>(graph, tail.target(), tail.amount(), session);
+                core = reduced.solve();
+                weightedDomainLimited |= reduced.weightedDomainLimited;
+            }
+            return new Result<>(core.status, core.plan == null ? null : tail.expand(core.plan), core.branches);
+        }
         Result<K> sparse = CpSatSparseDag.trySolve(graph, target, targetAmount, 1_000_000L);
         if (sparse != null) return sparse;
         Compilation<K> compilation = compile();
         if (compilation == null) return Result.status(Status.UNSUPPORTED);
+        CraftPlan<K> deterministic = tryDeterministicUnitWitness(compilation);
+        if (deterministic != null) return new Result<>(Status.SOLVED, deterministic, 0L);
         Candidate<K> first = solveCandidate(compilation, new long[0], List.of(), false);
         // Cold model construction can leave no incumbent. Retry once from the shared
         // refinement allowance; neither a retry nor its witness proves optimality.
@@ -166,6 +182,66 @@ public final class CpSatRankedFlowSolver<K> {
         return refine(compilation, first);
     }
 
+    /** A long unit-flow graph can be certified without constructing a native model. */
+    private CraftPlan<K> tryDeterministicUnitWitness(Compilation<K> compilation) {
+        if (compilation.patterns.size() < 512 || compilation.conversionCycles.isEmpty())
+            return null;
+        int[] producers = new int[compilation.items.size()];
+        var itemIndices = new java.util.HashMap<K, Integer>();
+        for (int i = 0; i < compilation.items.size(); i++) itemIndices.put(compilation.items.get(i), i);
+        int[] inputs = new int[compilation.patterns.size()];
+        Arrays.fill(producers, -1);
+        for (int r = 0; r < compilation.patterns.size(); r++) {
+            PlanningCancellation.check();
+            var pattern = compilation.patterns.get(r);
+            if (pattern.executionCost() != 1 || pattern.exactOutputAmount().compareTo(BigInteger.ONE) != 0
+                    || !pattern.byproducts().isEmpty() || pattern.inputs().size() != 1
+                    || pattern.inputs().get(0).exactAmount().compareTo(BigInteger.ONE) != 0) return null;
+            int output = itemIndices.getOrDefault(pattern.output(), -1);
+            if (output < 0 || producers[output] >= 0) return null;
+            producers[output] = r;
+            var input = pattern.inputs().get(0);
+            if (input.returned() || input.remainder() != null || input.reusableStockSource() != null
+                    || input.exactAmount().compareTo(BigInteger.ONE) != 0
+                    || !itemIndices.containsKey(input.key())) return null;
+            inputs[r] = itemIndices.get(input.key());
+        }
+        int targetIndex = itemIndices.getOrDefault(target, -1);
+        if (targetIndex < 0) return null;
+        long[] stock = compilation.stocks.clone();
+        long[] firings = new long[compilation.patterns.size()];
+        long[] gross = new long[compilation.items.size()];
+        long[] used = new long[compilation.items.size()];
+        boolean[] active = new boolean[compilation.items.size()];
+        int currentItem = targetIndex;
+        long amount = targetAmount;
+        while (amount > 0L) {
+            PlanningCancellation.check();
+            if (Sat.isSaturated(amount) || !add(gross, currentItem, amount)) return null;
+            long fromStock = Math.min(stock[currentItem], amount);
+            stock[currentItem] -= fromStock;
+            if (!add(used, currentItem, fromStock)) return null;
+            amount -= fromStock;
+            if (amount == 0L) break;
+            int recipe = producers[currentItem];
+            if (recipe < 0 || active[currentItem] || !add(firings, recipe, amount)) return null;
+            active[currentItem] = true;
+            currentItem = inputs[recipe];
+        }
+        Map<CraftPattern<K>, Long> firingMap = new IdentityHashMap<>();
+        for (int recipe = 0; recipe < firings.length; recipe++) {
+            if (firings[recipe] > 0L) firingMap.put(compilation.patterns.get(recipe), firings[recipe]);
+        }
+        Map<K, Long> usedStock = new LinkedHashMap<>();
+        Map<K, Long> grossDemand = new LinkedHashMap<>();
+        for (int item = 0; item < compilation.items.size(); item++) {
+            if (used[item] > 0L) usedStock.put(compilation.items.get(item), used[item]);
+            if (gross[item] > 0L) grossDemand.put(compilation.items.get(item), gross[item]);
+        }
+        return new CraftPlan<>(true, true, Map.copyOf(firingMap), Map.copyOf(usedStock), Map.of(),
+                Map.of(), Map.copyOf(grossDemand), compilation.items.size(), false);
+    }
+
     private Candidate<K> solveCandidate(Compilation<K> compilation, long[] missingCaps,
                                         List<long[]> cuts, boolean enforceStartup) {
         return solveCandidate(compilation, missingCaps, cuts, enforceStartup, List.of());
@@ -186,10 +262,11 @@ public final class CpSatRankedFlowSolver<K> {
         if (remainingNanos <= 0L) return Candidate.status(Status.UNKNOWN);
 
         try (var cutoff = PlanningCancellation.limitOptionalWork(remainingNanos)) {
-            // Keep the certification reserve inside the full caller cutoff. The native solver
-            // may use its entire slice and still return an incumbent that needs independent replay.
+            // Certification shares the full stage deadline. Only the native call receives the
+            // shorter slice; applying it to the scope would discard an incumbent at native expiry.
+            long nativeNanos = remainingNanos - remainingNanos / 4L;
             return solveCandidateBounded(compilation, missingCaps, cuts, enforceStartup, blocks,
-                    witnessBounds, remainingNanos - remainingNanos / 4L);
+                    witnessBounds, nativeNanos);
         } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
             return Candidate.status(Status.UNKNOWN);
         }

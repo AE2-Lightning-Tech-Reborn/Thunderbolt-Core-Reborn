@@ -13,32 +13,72 @@ import appeng.api.stacks.KeyCounter;
 import appeng.crafting.CraftingPlan;
 import com.moakiee.thunderbolt.ae2.crafting.ExactPlanReport;
 import com.moakiee.thunderbolt.ae2.crafting.ExactPlanReports;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 /** Sole boundary from arbitrary precision planning to AE2's display-only long projection. */
 final class ExactPlanPreview {
+    private static final BigInteger EXACT_THRESHOLD = BigInteger.valueOf(Sat.SAT);
+
     private ExactPlanPreview() {}
 
-    static boolean needsExact(CraftPlan<AEKey> plan) {
-        if (wide(plan.grossDemand()) || wide(plan.firings()) || wide(plan.usedStock()) || wide(plan.missing())) {
+    static <K> boolean needsExact(CraftPlan<K> plan) {
+        if (wide(plan.grossDemand()) || wide(plan.usedStock()) || wide(plan.missing())) {
             return true;
         }
-        Map<AEKey, BigInteger> produced = new HashMap<>();
+        // Check all counts before an early output-saturation return. Signed external plans
+        // can cancel an earlier output and must retain the exact arithmetic fallback.
+        for (long count : plan.firings().values()) {
+            if (Sat.isSaturated(count)) return true;
+            if (count < 0) return needsExactSigned(plan);
+        }
+        if (plan.firings().isEmpty()) return false;
+        var produced = new Object2LongOpenHashMap<K>(Math.min(16, plan.firings().size()));
+        for (var entry : plan.firings().entrySet()) {
+            long times = entry.getValue();
+            var pattern = entry.getKey();
+            for (var input : pattern.inputs()) {
+                if (input.exactAmount().compareTo(EXACT_THRESHOLD) >= 0) return true;
+            }
+            if (accumulate(produced, pattern.output(), times, pattern.exactOutputAmount())) return true;
+            for (var output : pattern.byproducts()) {
+                if (accumulate(produced, output.key(), times, output.exactAmount())) return true;
+            }
+        }
+        return false;
+    }
+
+    private static <K> boolean accumulate(Object2LongOpenHashMap<K> produced, K key,
+            long times, BigInteger amount) {
+        // The exact field is authoritative: public input/output records can carry a
+        // separately clamped long projection. Zero firings still produce nothing.
+        if (times == 0) return false;
+        if (amount.compareTo(EXACT_THRESHOLD) >= 0) return true;
+        long total = Sat.add(produced.getLong(key), Sat.mul(times, amount.longValue()));
+        if (Sat.isSaturated(total)) return true;
+        produced.put(key, total);
+        return false;
+    }
+
+    private static <K> boolean needsExactSigned(CraftPlan<K> plan) {
+        if (wide(plan.firings())) return true;
+        Map<K, BigInteger> produced = new HashMap<>();
         for (var entry : plan.firings().entrySet()) {
             BigInteger times = BigInteger.valueOf(entry.getValue());
-            CraftPattern<AEKey> pattern = entry.getKey();
+            CraftPattern<K> pattern = entry.getKey();
             for (var input : pattern.inputs()) {
-                if (input.exactAmount().compareTo(BigInteger.valueOf(Sat.SAT)) >= 0) return true;
+                if (input.exactAmount().compareTo(EXACT_THRESHOLD) >= 0) return true;
             }
             produced.merge(pattern.output(), times.multiply(pattern.exactOutputAmount()), BigInteger::add);
             for (var output : pattern.byproducts()) {
                 produced.merge(output.key(), times.multiply(output.exactAmount()), BigInteger::add);
             }
         }
-        return produced.values().stream().anyMatch(value -> value.compareTo(BigInteger.valueOf(Sat.SAT)) >= 0);
+        return produced.values().stream().anyMatch(value -> value.compareTo(EXACT_THRESHOLD) >= 0);
     }
 
     private static boolean wide(Map<?, Long> amounts) {
-        return amounts.values().stream().anyMatch(Sat::isSaturated);
+        for (long amount : amounts.values()) if (Sat.isSaturated(amount)) return true;
+        return false;
     }
 
     static CraftingPlan create(AEKey output, long amount, boolean multiplePaths,
@@ -50,8 +90,8 @@ final class ExactPlanPreview {
         Map<AEKey, BigInteger> emitted = new HashMap<>();
         plan.usedStock().forEach((key, value) -> {
             if (emittable.contains(key)) {
-                // Virtual stock also includes requester-allowed physical inventory. Preserve the
-                // exact remainder even when the emitter shortfall is wider than a long.
+                // Match executable plans: virtual stock includes the physical inventory that the
+                // requester is allowed to use. Keep the remainder exact even beyond long range.
                 BigInteger fromStock = value.min(BigInteger.valueOf(usableStock.applyAsLong(key)));
                 if (fromStock.signum() > 0) used.merge(key, fromStock, BigInteger::add);
                 BigInteger fromEmitter = value.subtract(fromStock);
@@ -74,9 +114,12 @@ final class ExactPlanPreview {
         Map<IPatternDetails, BigInteger> firings = new HashMap<>();
         plan.firings().forEach((pattern, count) -> firings.merge(
                 (IPatternDetails) pattern.source(), count, BigInteger::add));
+        Map<AEKey, BigInteger> craftingTimes = new HashMap<>();
         firings.forEach((pattern, count) -> {
             for (var stack : pattern.getOutputs()) {
                 produced.merge(stack.what(), BigInteger.valueOf(stack.amount()).multiply(count), BigInteger::add);
+                // GTL's per-output hint counts executions, not the number of produced items.
+                if (count.signum() > 0) craftingTimes.merge(stack.what(), count, BigInteger::add);
             }
         });
         emitted.forEach((key, value) -> {
@@ -97,6 +140,7 @@ final class ExactPlanPreview {
         var projection = new CraftingPlan(new GenericStack(output, amount), ExactPlanReport.project(bytes),
                 true, multiplePaths, project(used), new KeyCounter(), project(missing), Map.of());
         ExactPlanReports.attach(projection, new ExactPlanReport(bytes, entries, plan.incomplete()));
+        ExactPlanReports.attachCraftingTimes(projection, craftingTimes);
         return projection;
     }
 

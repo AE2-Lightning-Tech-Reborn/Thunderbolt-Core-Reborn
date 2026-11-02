@@ -33,7 +33,9 @@ server.
 - max-flow channel allocation for compatible high-capacity networks,
   using a bidirectional tree seed and exact residual completion
 - optional compatibility hooks for Advanced AE, AE2 Crafting Tree,
-  ExtendedAE Plus, and NeoECO 20.5.1; hooks load only when the corresponding mod is present
+  ExtendedAE Plus, Useless, and NeoECO 20.5.1; hooks load only when the corresponding mod is present
+- shared long/exact crafting request APIs and bounded planner, dispatch, and
+  indexed-storage improvements ported from ordinary Forge `2.0.4`
 - coexistence with GTLCore (`gtlcore`): Thunderbolt yields CPU dispatch to
   GTLCore, attaches the planner at `CraftingCalculation#computePlan`,
   and keeps its other subsystems active
@@ -63,6 +65,8 @@ Common options are written to `config/thunderbolt-common.toml`:
   for an opted-in device, and `ON` enables it whenever a controller is present.
 - `objects.fastNbtCopies`: reduces temporary allocations during NBT deep copies
   (default: `true`). Set it to `false` to use the original copy operations.
+  Lithium and Canary disable the optional Core copy mixins before injection;
+  the verified Radium coexistence path remains active on this GTL branch.
 
 Advanced planner diagnostics and safety limits can be set as JVM system
 properties:
@@ -108,11 +112,11 @@ Publish it to the local Maven repository:
 .\gradlew.bat publishToMavenLocal
 ```
 
-- Version: `2.0.3-beta4`
+- Version: `2.0.4`
 - Maven coordinate:
-  `com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1-gtl:2.0.3-beta4`
+  `com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1-gtl:2.0.4`
 - Distributable JAR:
-  `build/libs/thunderbolt-forge-1.20.1-2.0.3-beta4.jar`
+  `build/libs/thunderbolt-forge-1.20.1-2.0.4.jar`
 
 The `-slim.jar` artifact does not contain the required MixinExtras jar-in-jar
 dependency and is only an intermediate development artifact.

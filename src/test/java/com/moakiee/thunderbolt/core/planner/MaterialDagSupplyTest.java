@@ -152,6 +152,63 @@ class MaterialDagSupplyTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void expiredIndependentProposalReportsCutoffAndKeepsAReplenishableFallback() throws Exception {
+        var field = PlanningCancellation.class.getDeclaredField("OPTIONAL_DEADLINE");
+        field.setAccessible(true);
+        var deadline = (ThreadLocal<Long>) field.get(null);
+        var expired = new java.util.concurrent.atomic.AtomicBoolean();
+        // Two primary routes leave a real integer choice after propagation. This fixture must
+        // still reach optional search, whose forced expiry remains observable and recoverable.
+        var graph = stockedBranches(256, 1, false, true, 1, 0, true);
+        var context = new com.moakiee.thunderbolt.api.crafting.PlanningAttemptContext() {
+            @Override public long deadlineNanos() { return Long.MAX_VALUE; }
+            @Override public void report(com.moakiee.thunderbolt.api.crafting.PlanningDiagnosticSnapshot snapshot) {}
+            @Override public void checkpoint() {
+                if (expired.get() || deadline.get() == null) return;
+                if (StackWalker.getInstance().walk(frames -> frames.anyMatch(frame ->
+                        frame.getClassName().equals(CraftPlannerV2.class.getName())
+                                && frame.getMethodName().equals("tryIndependentRawStock")))) {
+                    expired.set(true);
+                    deadline.set(System.nanoTime() - 1L);
+                }
+            }
+        };
+        PlanningResult<String> result;
+        try (var ignored = PlanningCancellation.bind(context)) {
+            result = CraftPlannerV2.planDetailed(graph, "T", 1);
+        }
+        assertTrue(expired.get(), "the original shared-raw proposal path must be reached");
+        assertFalse(result.plan().feasible());
+        assertTrue(result.plan().budgetExhausted(), "a timed-out proposal is not a completed shortage search");
+        assertTrue(result.diagnostics().lowWidthCutoffs() > 0);
+        assertStockIsPhysical(graph, result.plan());
+        var stocked = graph.withAdditionalStock(result.plan().missing());
+        var ready = CraftPlannerV2.plan(stocked, "T", 1);
+        assertTrue(ready.feasible());
+        assertStockIsPhysical(stocked, ready);
+        assertDoesNotThrow(PlanningCancellation::check);
+    }
+
+    @org.junit.jupiter.api.RepeatedTest(3)
+    void freshSharedRawIdentitiesKeepShortageAndReplanningStable() {
+        for (long shortage : new long[] {0, 1}) {
+            var graph = stockedBranches(1024, 1, false, true, shortage);
+            var first = assertTimeoutPreemptively(Duration.ofSeconds(3),
+                    () -> CraftPlannerV2.planDetailed(graph, "T", 1));
+            assertEquals(shortage == 0 ? Map.of() : Map.of("raw", 1L), first.plan().missing(),
+                    () -> first.diagnostics().toString());
+            assertFalse(first.plan().budgetExhausted(), () -> first.diagnostics().toString());
+            assertStockIsPhysical(graph, first.plan());
+            var supplied = graph.withAdditionalStock(first.plan().missing());
+            var ready = assertTimeoutPreemptively(Duration.ofSeconds(3), () -> CraftPlannerV2.plan(supplied, "T", 1));
+            assertTrue(ready.feasible(), () -> "missing=" + ready.missing());
+            assertFalse(ready.budgetExhausted());
+            assertStockIsPhysical(supplied, ready);
+        }
+    }
+
+    @Test
     void sharedRawStockMustAlsoPayForTheRootOutsideTheLocalModels() {
         var graph = stockedBranches(64, 1, false, true, 0, 1);
         var plan = CraftPlannerV2.plan(graph, "T", 1);
@@ -159,6 +216,23 @@ class MaterialDagSupplyTest {
         assertEquals(Map.of("raw", 1L), plan.missing());
         assertStockIsPhysical(graph, plan);
         assertTrue(CraftPlannerV2.plan(graph.withAdditionalStock(plan.missing()), "T", 1).feasible());
+    }
+
+    @Test
+    void independentMaterialCertificatesReplenishSharedStockAtOrdinaryAndTrillionScale() {
+        for (int branches : new int[] {64, 128}) {
+            for (long n : new long[] {1, 1_000_000_000_000L}) {
+                var graph = stockedBranches(branches, n, false, true, 0, 1);
+                var first = CraftPlannerV2.planDetailed(graph, "T", n);
+                assertEquals(Map.of("raw", n), first.plan().missing(), () -> first.diagnostics().toString());
+                assertStockIsPhysical(graph, first.plan());
+                var supplied = graph.withAdditionalStock(first.plan().missing());
+                var ready = CraftPlannerV2.planDetailed(supplied, "T", n);
+                assertTrue(ready.plan().feasible(), () -> ready.diagnostics()+" missing="+ready.plan().missing());
+                assertFalse(ready.plan().budgetExhausted());
+                assertStockIsPhysical(supplied, ready.plan());
+            }
+        }
     }
 
     @Test
@@ -366,6 +440,11 @@ class MaterialDagSupplyTest {
 
     private static CraftGraph<String> stockedBranches(
             int branches, long n, boolean wrapped, boolean sharedRaw, long shortage, long rootRaw) {
+        return stockedBranches(branches, n, wrapped, sharedRaw, shortage, rootRaw, false);
+    }
+
+    private static CraftGraph<String> stockedBranches(int branches, long n, boolean wrapped,
+            boolean sharedRaw, long shortage, long rootRaw, boolean alternateRoutes) {
         var builder = CraftGraph.<String>builder();
         var root = new ArrayList<CraftInput<String>>();
         if (sharedRaw) builder.stock("raw", branches*n-shortage);
@@ -378,6 +457,9 @@ class MaterialDagSupplyTest {
                             List.of(CraftOutput.of(side, 1)))
                     .pattern(a, 2, List.of(CraftInput.of(seed, 1), CraftInput.of(side, 2)),
                             List.of(CraftOutput.of(b, 1)));
+            if (alternateRoutes)
+                builder.pattern(b, 1, List.of(CraftInput.of(raw, 1), CraftInput.of(fuel, 2)),
+                        List.of(CraftOutput.of(side, 1)));
             root.add(CraftInput.of(a, 2));
             if (wrapped) {
                 String wrapper = "C"+i;

@@ -195,17 +195,18 @@ public final class EjectEndpointIndex implements EjectCapabilityRegistry.Runtime
         var faceMap = dimensionMap.get(endpoint.interceptPos().asLong());
         if (faceMap == null) return;
         var entries = faceMap.get(endpoint.interceptFace());
-        // Handles from an explicit unregister or a previous server must not affect replacements.
+        // An unregister/re-register cycle leaves old handles alive. They no longer own
+        // any entry and must not remove a replacement's persisted registration.
         if (entries == null || !entries.remove(target)) return;
         if (entries.isEmpty()) faceMap.remove(endpoint.interceptFace());
         if (faceMap.isEmpty()) dimensionMap.remove(endpoint.interceptPos().asLong());
         if (dimensionMap.isEmpty()) registrations.remove(endpoint.interceptDimension());
         if (savedData != null) {
-            var persisted = persistentRegistration(endpoint);
-            // Multiple live handles can share one persisted endpoint. Other hosts on this face
-            // have independent records, and closing one handle must preserve both kinds.
-            if (entries.stream().noneMatch(entry -> persistentRegistration(entry.endpoint).equals(persisted))) {
-                savedData.remove(persisted);
+            var registration = persistentRegistration(endpoint);
+            // Multiple handles can represent one persisted endpoint. Other hosts on the
+            // same face, and duplicate handles for this host, retain their registrations.
+            if (entries.stream().noneMatch(entry -> registration.equals(persistentRegistration(entry.endpoint)))) {
+                savedData.remove(registration);
             }
         }
     }

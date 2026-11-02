@@ -49,4 +49,24 @@ class OptionalMixinSelectorTest {
         assertTrue(OptionalMixinSelector.shouldApply(
                 "ExtendedCraftingCpuInsertMixin", ignored -> false));
     }
+
+    @Test
+    void nbtCopyWrappersStandDownForUnverifiedLithiumPortsBeforeInjection() {
+        for (String owner : new String[] {"lithium", "canary"}) {
+            assertFalse(OptionalMixinSelector.shouldApply(
+                    "com.moakiee.thunderbolt.mixin.platform.objects.CompoundTagCopyMixin", owner::equals));
+            assertFalse(OptionalMixinSelector.shouldApply("ListTagCopyMixin", owner::equals));
+            assertTrue(OptionalMixinSelector.shouldApply("CraftingCalculationMixin", owner::equals));
+            assertTrue(OptionalMixinSelector.shouldApply("CraftingCpuLogicBatchMixin", owner::equals));
+        }
+    }
+
+    @Test
+    void nbtCopyWrappersRetainTheVerifiedRadiumCoexistencePath() {
+        assertTrue(OptionalMixinSelector.shouldApply("CompoundTagCopyMixin", "radium"::equals));
+        assertTrue(OptionalMixinSelector.shouldApply("ListTagCopyMixin", "radium"::equals));
+        assertTrue(OptionalMixinSelector.shouldApply("CompoundTagCopyMixin", ignored -> false));
+        assertTrue(OptionalMixinSelector.shouldApply("ListTagCopyMixin", "gtlcore"::equals));
+        assertTrue(OptionalMixinSelector.shouldApply("CompoundTagCopyMixin", "modernfix"::equals));
+    }
 }

@@ -136,6 +136,21 @@ final class ConservativeReplenishment<K> {
     }
 
     CraftPlan<K> plan(K target, long amount, Map<K, Long> additionalStock) {
+        return plan(target, amount, additionalStock, false, null);
+    }
+
+    /** Quantity-local proposal only; unlike the fixed policy it makes no monotonicity claim. */
+    CraftPlan<K> planBatchAware(K target, long amount, BoundedIntegerLinearSolver.WorkBudget budget) {
+        return plan(target, amount, Map.of(), true, budget);
+    }
+
+    CraftPlan<K> planBatchAware(K target, long amount, Map<K, Long> additionalStock,
+            BoundedIntegerLinearSolver.WorkBudget budget) {
+        return plan(target, amount, additionalStock, true, budget);
+    }
+
+    private CraftPlan<K> plan(K target, long amount, Map<K, Long> additionalStock, boolean batchAware,
+            BoundedIntegerLinearSolver.WorkBudget budget) {
         if (amount >= Sat.SAT) return null;
         var need = new HashMap<K, BigInteger>();
         var fired = new IdentityHashMap<CraftPattern<K>, Long>();
@@ -160,6 +175,48 @@ final class ConservativeReplenishment<K> {
             if (route == null) {
                 missing.put(item, demand.longValueExact());
                 continue;
+            }
+            if (batchAware) {
+                // Reserve demands already queued for other branches before allocating a route.
+                // These are proposals inside an ordinary DAG, never local stock certificates.
+                for (int attempt = 0; demand.signum() > 0 && attempt <= graph.patternsFor(item).size(); attempt++) {
+                    PlanningCancellation.check();
+                    CraftPattern<K> selected = null;
+                    BigInteger selectedTimes = BigInteger.ZERO, largestSupply = BigInteger.ZERO, leastDraw = null;
+                    for (var alternative : graph.patternsFor(item)) {
+                        PlanningCancellation.check();
+                        if (!budget.tryConsume(4L * (1L + alternative.inputs().size()))) return null;
+                        var merged = new HashMap<K, BigInteger>();
+                        for (var input : alternative.inputs()) merged.merge(input.key(), input.exactAmount(), BigInteger::add);
+                        BigInteger times = ceilDivide(demand, alternative.outputAmount());
+                        for (var input : merged.entrySet()) {
+                            BigInteger availableInput = BigInteger.valueOf(graph.stock(input.getKey()))
+                                    .add(BigInteger.valueOf(additionalStock.getOrDefault(input.getKey(), 0L)))
+                                    .subtract(need.getOrDefault(input.getKey(), BigInteger.ZERO)).max(BigInteger.ZERO);
+                            times = times.min(availableInput.divide(input.getValue()));
+                        }
+                        BigInteger supply = times.multiply(alternative.exactOutputAmount()).min(demand);
+                        BigInteger draw = BigInteger.ZERO;
+                        for (var input : merged.values()) draw = draw.add(input.multiply(times));
+                        if (supply.signum() > 0 && (supply.compareTo(largestSupply) > 0
+                                || supply.equals(largestSupply) && (leastDraw == null || draw.compareTo(leastDraw) < 0))) {
+                            selected = alternative;
+                            selectedTimes = times;
+                            largestSupply = supply;
+                            leastDraw = draw;
+                        }
+                    }
+                    if (selected == null) break;
+                    fired.merge(selected, selectedTimes.longValueExact(), Math::addExact);
+                    for (var input : selected.inputs()) {
+                        BigInteger next = need.getOrDefault(input.key(), BigInteger.ZERO)
+                                .add(selectedTimes.multiply(input.exactAmount()));
+                        if (next.compareTo(EXECUTABLE_LIMIT) >= 0) return null;
+                        need.put(input.key(), next);
+                    }
+                    demand = demand.subtract(largestSupply);
+                }
+                if (demand.signum() == 0) continue;
             }
             BigInteger times = ceilDivide(demand, route.outputAmount());
             fired.put(route, times.longValueExact());

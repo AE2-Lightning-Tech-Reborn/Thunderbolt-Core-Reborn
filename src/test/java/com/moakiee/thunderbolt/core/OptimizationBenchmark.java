@@ -112,7 +112,12 @@ public final class OptimizationBenchmark {
         if (!bean.isThreadAllocatedMemorySupported()) throw new IllegalStateException("allocation metrics unavailable");
         bean.setThreadAllocatedMemoryEnabled(true);
         long thread = Thread.currentThread().getId();
-        for (int w = 0; w < 20; w++) for (int i = 0; i < iterations; i++) action.run();
+        long warmupStarted = System.nanoTime();
+        int warmupBatches = 0;
+        do {
+            for (int i = 0; i < iterations; i++) action.run();
+            warmupBatches++;
+        } while (warmupBatches < 20 || System.nanoTime() - warmupStarted < 1_000_000_000L);
         double[] nanos = new double[MEASUREMENT_SAMPLES], bytes = new double[MEASUREMENT_SAMPLES];
         for (int sample = 0; sample < nanos.length; sample++) {
             long beforeAllocation = bean.getThreadAllocatedBytes(thread), started = System.nanoTime();
@@ -124,8 +129,8 @@ public final class OptimizationBenchmark {
         int p50 = percentileIndex(nanos.length, 0.50D);
         int p95 = percentileIndex(nanos.length, 0.95D);
         return String.format(Locale.ROOT,
-                "{\"scenario\":\"%s\",\"iterations\":%d,\"p50_ns\":%.1f,\"p95_ns\":%.1f,\"bytes_per_op\":%.1f}",
-                name, iterations, nanos[p50], nanos[p95], bytes[p50]);
+                "{\"scenario\":\"%s\",\"iterations\":%d,\"warmup_iterations\":%d,\"p50_ns\":%.1f,\"p95_ns\":%.1f,\"bytes_per_op\":%.1f}",
+                name, iterations, (long) warmupBatches * iterations, nanos[p50], nanos[p95], bytes[p50]);
     }
 
     private static int percentileIndex(int sampleCount, double percentile) {

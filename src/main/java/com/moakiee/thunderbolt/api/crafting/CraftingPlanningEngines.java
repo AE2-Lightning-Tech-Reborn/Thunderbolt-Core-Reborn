@@ -13,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import appeng.api.networking.IGrid;
 
 /** Process-wide engine registry. Registration is only allowed during mod initialization. */
 public final class CraftingPlanningEngines {
@@ -25,6 +26,7 @@ public final class CraftingPlanningEngines {
 
     private static final Map<ResourceLocation, CraftingPlanningEngineDescriptor> ENGINES =
             new LinkedHashMap<>();
+    private static final Map<ResourceLocation, ExactCraftingBackend> EXACT_BACKENDS = new LinkedHashMap<>();
     private static volatile List<CraftingPlanningEngineDescriptor> ordered = List.of();
     private static volatile List<ResourceLocation> publicIds = List.of(VANILLA_ID);
 
@@ -68,6 +70,30 @@ public final class CraftingPlanningEngines {
     public static CraftingPlanningEngine get(ResourceLocation id) {
         var descriptor = ENGINES.get(id);
         return descriptor == null ? null : descriptor.engine();
+    }
+
+    /** Register during setup; adding exact support does not select or enable its algorithm. */
+    public static synchronized void registerExactBackend(ResourceLocation id, ExactCraftingBackend backend) {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(backend, "backend");
+        if (!ENGINES.containsKey(id)) throw new IllegalArgumentException("Unknown planning engine: " + id);
+        var previous = EXACT_BACKENDS.putIfAbsent(id, backend);
+        if (previous != null && previous != backend)
+            throw new IllegalArgumentException("Exact planning backend already registered: " + id);
+    }
+
+    /** The first resolved choice owns explicit requests; never skip a preferred algorithm. */
+    public static boolean isSelected(IGrid grid, ResourceLocation id) {
+        var choices = grid.getService(ICraftingPlanningService.class).resolve();
+        return !choices.isEmpty() && PlanningChoice.engine(id).equals(choices.get(0));
+    }
+
+    @Nullable
+    public static ExactCraftingBackend selectedExactBackend(IGrid grid) {
+        var choices = grid.getService(ICraftingPlanningService.class).resolve();
+        if (choices.isEmpty() || choices.get(0).kind() != PlanningChoice.Kind.ENGINE) return null;
+        var backend = EXACT_BACKENDS.get(choices.get(0).engineId());
+        return backend != null && backend.isAvailable(grid) ? backend : null;
     }
 
     @Nullable

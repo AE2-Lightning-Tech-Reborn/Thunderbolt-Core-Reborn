@@ -21,6 +21,7 @@ public final class ThunderboltMixinConfigPlugin implements IMixinConfigPlugin {
 
     /** One INFO line per suppressed GTL-owned mixin; everything else stays at debug. */
     private static final Set<String> GTL_STAND_DOWN_REPORTED = ConcurrentHashMap.newKeySet();
+    private static final Set<String> NBT_STAND_DOWN_REPORTED = ConcurrentHashMap.newKeySet();
 
     @Override
     public void onLoad(String mixinPackage) {
@@ -37,7 +38,15 @@ public final class ThunderboltMixinConfigPlugin implements IMixinConfigPlugin {
                 mixinClassName, ThunderboltMixinConfigPlugin::isModLoaded);
         String requiredMod = OptionalMixinSelector.requiredMod(mixinClassName);
         boolean requiredPresent = requiredMod == null || isModLoaded(requiredMod);
-        if (!apply && requiredPresent && OptionalMixinSelector.isGtlOwned(mixinClassName)
+        String nbtOwner = OptionalMixinSelector.nbtCopyOwner(
+                mixinClassName, ThunderboltMixinConfigPlugin::isModLoaded);
+        if (!apply && nbtOwner != null) {
+            if (NBT_STAND_DOWN_REPORTED.add(mixinClassName)) {
+                LOGGER.info("[Thunderbolt Core Reborn] NBT copy stand-down: mixin {} is not applied "
+                                + "because {} supplies NBT optimizations for {}.",
+                        mixinClassName, nbtOwner, targetClassName);
+            }
+        } else if (!apply && requiredPresent && OptionalMixinSelector.isGtlOwned(mixinClassName)
                 && GtlCompat.standDown(ThunderboltMixinConfigPlugin::isModLoaded)) {
             // Report GTL handover only when the owning addon is present.
             reportGtlStandDown(mixinClassName, targetClassName);

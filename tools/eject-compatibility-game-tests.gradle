@@ -1,0 +1,53 @@
+// Opt-in regression for EJECT and Mixin interface-super calls; never package the fixtures.
+def packaging = ['build', 'assemble', 'jar', 'jarJar', 'verifyReleaseJar']
+gradle.taskGraph.whenReady { graph ->
+    if (graph.allTasks.any { it.name in packaging }) {
+        throw new GradleException('Run EJECT compatibility fixtures separately from release packaging')
+    }
+}
+allprojects {
+    afterEvaluate {
+        sourceSets.create('ejectCompatibilityVerification') {
+            java.srcDir rootProject.file('src/ejectCompatibilityGameTest/java')
+            resources.srcDir rootProject.file('src/ejectCompatibilityGameTest/resources')
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += output + sourceSets.main.runtimeClasspath
+        }
+        tasks.named('processResources') {
+            outputs.upToDateWhen { false }
+            doLast {
+                def file = rootProject.file('build/resources/main/thunderbolt.mixins.json')
+                def config = new groovy.json.JsonSlurper().parse(file)
+                config.mixins.add('compatfixture.ItemStackInterfaceSuperMixin')
+                file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(config))
+            }
+        }
+        minecraft.runs.gameTestServer {
+            property 'forge.logging.console.level', 'info'
+            property 'forge.enabledGameTestNamespaces', 'thunderbolt_eject'
+            property 'thunderbolt.mixinAudit', 'false'
+            property 'mixin.debug.export', 'true'
+            mods { thunderbolt { source sourceSets.ejectCompatibilityVerification } }
+        }
+        tasks.named('compileEjectCompatibilityVerificationJava') {
+            dependsOn 'classes'
+            options.compilerArgs += ['-proc:none']
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            dependsOn 'ejectCompatibilityVerificationClasses'
+            doLast {
+                def world = rootProject.file(providers.gradleProperty('thunderboltDevGameDirectory')
+                        .getOrElse('build/nbt-game-test'))
+                def log = new File(world, 'logs/latest.log').getText('UTF-8')
+                if (!log.contains('All 3 required tests passed') || !log.contains('All dimensions are saved')
+                        || !log.contains('Game test server shutting down')) {
+                    throw new GradleException('Expected 3 EJECT/interface-super regressions and normal shutdown')
+                }
+            }
+        }
+        gradle.buildFinished {
+            def file = rootProject.file('build/resources/main/thunderbolt.mixins.json')
+            if (file.isFile()) file.bytes = rootProject.file('src/main/resources/thunderbolt.mixins.json').bytes
+        }
+    }
+}
