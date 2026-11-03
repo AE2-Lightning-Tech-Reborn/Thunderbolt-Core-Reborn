@@ -623,7 +623,7 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
     }
 
     @Test
-    void oversizedAdapterExportReturnsConservativeSimulationPlan() {
+    void oversizedAdapterExportDeclinesWithoutInventingMissingMaterials() {
         int extraOutputs = 66_000;
         var outputs = new ArrayList<appeng.api.stacks.GenericStack>(extraOutputs + 1);
         outputs.add(new appeng.api.stacks.GenericStack(TARGET, 1));
@@ -632,6 +632,7 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
                     new VariantKey("export-side-" + i, null), 1));
         }
         IPatternDetails fanout = new FakeMultiOutputPattern(TARGET, outputs);
+        assertEquals(0, fanout.getInputs().length, "one unconstrained firing can produce the target");
         var service = new FakeCraftingService().pattern(TARGET, fanout).craftable(TARGET);
         var networkInv = new ChildCraftingSimulationState(new StockInventory(Map.of()));
 
@@ -640,10 +641,10 @@ class FastCraftingPlannerIdOnlyCraftableVariantTest {
                 () -> FastCraftingPlanner.tryAttempt(
                         service, networkInv, null, TARGET, 1, false));
 
-        assertTrue(attempt.handled());
+        assertFalse(attempt.handled(), "an incomplete graph export is UNKNOWN");
         assertNull(attempt.plan());
-        assertNotNull(attempt.simulationFallback());
-        assertEquals(1L, attempt.simulationFallback().missingItems().get(TARGET));
+        assertNull(attempt.simulationFallback(), "the target must not be reported as proven missing");
+        assertTrue(service.craftingForCalls() > 0, "the real graph exporter must be reached");
     }
 
     @ParameterizedTest

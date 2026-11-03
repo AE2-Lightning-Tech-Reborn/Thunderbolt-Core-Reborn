@@ -1,0 +1,1480 @@
+{
+  "schema_version": 1,
+  "step": 3,
+  "captured_at_utc": "2026-11-02T16:08:36.094727+00:00",
+  "baseline_commit": "607c33e11374a7a49cb1a94bf28beeb2bb58ff83",
+  "baseline_product_commit": "bd510967eb1f9a376d80e74695bef27bafbaa5dd",
+  "baseline_artifact_sha256": "734d9bf152a66dee5bf69397106b6808a64305969459ba60c2e8f7139c08c7cd",
+  "scope": "Planner UNKNOWN/cancellation/deadline fixes; no batch changes, integration, release or LT verdict",
+  "environment": {
+    "minecraft": "1.20.1",
+    "forge": "47.4.20",
+    "java": "Microsoft OpenJDK 21.0.10+7-LTS",
+    "gradle": "8.14 wrapper",
+    "compile_ae2": "15.2610.31",
+    "actual_ae2_40_abi_this_step": "not_run"
+  },
+  "reference": {
+    "commit": "381e3f844beca250b0f824017f0fe585c9364144",
+    "selected_files_sha256_verified": 31,
+    "use": "Behavior reference only; no GPL implementation copied or neoecoae fixture restored"
+  },
+  "frozen_shared_files_unchanged": 82,
+  "preservation_anchors_unchanged": true,
+  "production_and_test_sha256_lf": {
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/CpSatIntegerLinearSolver.java": "eefe719bbe5b7a9831d5afa8fc26d6bce934d871b27bdf300a72c5d9aa82c5c9",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/FastCraftingPlanner.java": "e94754a1b355169d1af0260299f1e9d4a45f4615890af09521f3c2e5c1bbaba3",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/OptionalPlanningStages.java": "55288bfe58924d6d628ef2d6b7ec3ff9aa5977d5c418e368f7b752c39a39d0eb",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/SmallConservativeSearch.java": "4d6d9d2cbe361b852a403cc9c5ee9a607ed400e4b6d888c1024d72ea00c195a1",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/TerminalBatchRecovery.java": "cb2a400597e28a9030a741ff38c35ef82d899b486bf43c2307341d195dbeb824",
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/cpsatbridge/CpSatBridge.java": "8c7df1752f98f3e42d62334a5fc4fab63bbc766b949d3d96f8a2b424f35348da",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/CpSatBudgetBoundaryTest.java": "6b5ea150daeae04c193b4388f49db2840ae7e309586a0b0b1ae3e8e16d4b7251",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/FastCraftingPlannerIdOnlyCraftableVariantTest.java": "f6abb0db52decca516098754d4c0d329ccd7d4f11481e2e76ee5d7beee87a4a0",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/FastPlannerUnknownOutcomeTest.java": "4f266ccf25fd54a5efdd93820ac973fc57aa592baf7ac5c48ac8e91b4b05eea6",
+    "src/test/java/com/moakiee/thunderbolt/core/planner/SmallRecoveryBudgetStatusTest.java": "f34efde63017eedab24bca64e2dfec06b345021bd457204023a7541c6d8a6c94"
+  },
+  "original_behavior_red_controls": {
+    "red-CpSatBudgetBoundaryTest.xml": {
+      "tests": 5,
+      "failures": 5,
+      "errors": 0,
+      "skipped": 0
+    },
+    "red-FastPlannerUnknownOutcomeTest.xml": {
+      "tests": 2,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "red-graph-export.xml": {
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "red-recovery-expiry.xml": {
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "before_planning": {
+    "tests": 1291,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 1291
+  },
+  "after_focused": {
+    "tests": 16,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "first_full_planning_after": {
+    "tests": 1300,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0
+  },
+  "first_full_planning_failure": "Old oversized-export assertion required a fabricated missing preview; fixture/2s limit retained and assertion corrected to DECLINE.",
+  "final_full_junit": {
+    "tests": 1695,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "passed": 1693
+  },
+  "suites": {
+    "com.moakiee.thunderbolt.ae2.crafting.Ae2CraftingTreeSummaryBridgeTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.ae2.crafting.CraftConfirmPlanningCompositionContractTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.ae2.crafting.CraftingPlanSummaryAdapterTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.ae2.crafting.ExactAmountCodecTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.ae2.crafting.ExactPlanPresentationCompositionTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.ae2.crafting.ExtendedCraftingCpuServiceMixinContractTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.ae2.crafting.ThunderboltCraftingPlanSummaryTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.ae2.mixin.CraftingServiceStorageBinaryShapeTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.ae2.mixin.OptionalIntegrationBinaryShapeTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.api.channel.ChannelSourceRegistryContractTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.api.crafting.batch.BatchCraftingProviderContractTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.api.crafting.cpu.ExtendedCraftingCpuClusterCompatibilityTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.api.crafting.CraftingAlgorithmResolverTest": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.api.crafting.CraftingPlanningEngineCaptureTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.api.crafting.ExactBackendSelectionTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.api.crafting.PlanningEngineSessionContextTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.api.eject.EjectCapabilityRegistryContractTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.assets.PortMetadataContractTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.ae2lt.InventoryLoadSnapshotTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.appliede.AppliedEModuleBatchSupportTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "com.moakiee.thunderbolt.compat.gto.GtoAddonPatcherTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.gto.GtoChemicalCacheSynchronizationTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.gto.GtoDataInitializationTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.gto.GtoDataInitializationTransformerTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.gto.GtoModifierKeysTransformerTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.gto.GtoPlanningCalculationTest": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.neoeco.NeoEcoGtoOptionalDependencyTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.neoeco.NeoEcoGtoRemoteUiTransformerTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.useless.UselessBatchAdapterTest": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "com.moakiee.thunderbolt.compat.useless.UselessHybridBatchAdapterTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.compat.useless.UselessScaledBatchAdapterTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.channel.ChannelFlowNetworkKernelTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.channel.ChannelFlowNetworkTest": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.algorithm.CraftingAlgorithmCalculationStatusTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.algorithm.PlanningAttemptMonitorTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.algorithm.PlanningCandidateExecutorTest": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.algorithm.PlanningFailurePlansTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.algorithm.RegisteredPlanningEngineCancellationContractTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchAccountingOverloadsTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchAdmissionDispatchTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchAdmissionScopeTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchAe2AbiTest": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchCpuAccountingTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchExecutorCapacityTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchExecutorRuleRegistrationTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchExecutorSharedSemanticsTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchExtractionAccountingTest": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchProviderFallbackTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchProviderFilterIterableTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchProviderResolutionCacheTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.BatchProviderSelectionTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.GlobalBatchProviderAdaptersTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.IdentityCandidateQueueMutationTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.IdentityCandidateQueueTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.PlannedInputDispatchTest": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.ProviderCacheLifecycleTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.batch.ProviderScheduleCleanupTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.big.BigExecutionProgramTest": {
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.big.BigLongSliceTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.cpu.CraftingCpuSelectionOrderTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.cpu.DynamicCraftingCpuClusterIndexTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.pattern.PatternInputIdentityTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.plan.LoopCraftingPlanTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.AggregateDemandTraversalTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.BatchCertificationCancellationTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.BoundedCombinationsTest": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.BoundedIntegerLinearSolverTest": {
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ByproductReplaySafetyTest": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ByproductScheduleMetadataTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CapacityGroupOrderTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ClosedLoopBootstrapReproTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CombinedCycleOrientationTest": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CommonInputFlowTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ConservativeFeedbackPressureTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatBalanceCutsTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatBlockScheduleHintTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatDeadlineTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.CpSatFixedRanksTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.cpsatbridge.SparseLongMatrixTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatBudgetBoundaryTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatComplexCycleAdversarialTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatExecutionBlocksTest": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatIntegerLinearSolverTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatPetriRefinementTest": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatPreflightBoundsTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatQuantityPropagationTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatRankedFlowSolverTest": {
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatSeedPortfolioRegressionTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatSparseDagTest": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatSparseRankedTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatTagConversionTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatTimeoutFallbackTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatUnitTailTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CpSatWeightedExecutionCostTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerNpHardAdversarialTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CraftPlannerV2Test": {
+      "tests": 105,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CutPolicyRegressionTest": {
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CycleAnalysisTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.CycleCutReorientationTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.DiagnosticUnitCostsLazyTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.DirectRawConsumablesIndexTest": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.DurabilityChainTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.DurabilityConflictFallbackTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ExactCraftPlanBytesTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ExactDiagnosticPlannerTest": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ExactPlanPreviewTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerBoundaryCompatibilityTest": {
+      "tests": 38,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ExternalPlannerRecursionComparisonTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlannerDurabilityEligibilityTest": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlannerIdOnlyCraftableVariantTest": {
+      "tests": 51,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlannerOverloadMatchingTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FastPlannerEngineSessionTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FastPlannerUnknownOutcomeTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FeasibleConsumptionOptimizerTest": {
+      "tests": 41,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FeasibleCostPropagationTest": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FeasibleOptimizationBudgetTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FeasiblePolicyAlternativesTest": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FeasiblePolicyReuseTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FeedbackComponentIncidenceTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FeedbackFiringVectorTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FeedbackPreprocessingTest": {
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FeedbackReserveStockTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.FrameConstructionReuseTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.GenericLowWidthConflictSolverTest": {
+      "tests": 28,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.HostFeedbackMetadataTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.InputAcquisitionOrderTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.IntegerIntervalTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.IntegerResourceCutsTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.IntegerWitnessCacheTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagBudgetTest": {
+      "tests": 18,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagMaskTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagReplayCancellationTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagReplayTest": {
+      "tests": 41,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagReuseTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagSnapshotTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialDagSupplyTest": {
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintCancellationTest": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintCanonicalizationTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialFootprintIndexTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MaterialGraphCertificateTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MissingRefinementTest": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MixedRouteQuantityRegressionTest": {
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.MultiRouteBatchOptimizerTest": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.NonGrowingCycleReachabilityTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.OrdinaryBatchOptimizerTest": {
+      "tests": 26,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PairBatchAllocationTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PartialBatchExecutionTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PatternInputMatchPolicyTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PetriBlockCatalogPrefixTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PetriExecutionVerifierTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PetriReplenishmentSearchTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PlannerAe2AbiTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PlanningSessionDiagnosticsTest": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PlanningSessionProbeTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PositiveFeedbackCompilationTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PositiveFeedbackIndexTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PositiveIntegerLinearSolverTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PreparedGraphTableReuseTest": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PrimaryInputIndexTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.PrimaryRecipePolicyTest": {
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ProducibilityRankedOrientationTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ProducibleRouteOrderTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.RationalArithmeticTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.RawResourcePotentialTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ReachableGraphReuseTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.RecursiveUndoTrailTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.reference.CpSatReferenceCapabilitySuiteTest": {
+      "tests": 31,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.reference.ReferenceCapabilityRunnerTest": {
+      "tests": 18,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.reference.ThunderboltReferenceCapabilitySuiteTest": {
+      "tests": 30,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.reference.ThunderboltReferenceScenariosTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ReplenishmentContractTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ReusableStockFallbackTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.ReusableStockMatcherTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.SelfSeedReservationTest": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.SmallConservativeSearchTest": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.SmallDagPoliciesTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.SmallGraphRegressionTest": {
+      "tests": 23,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.SmallRecoveryBudgetStatusTest": {
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.SparseResourceFlowTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.StockCoveredCyclePlanningTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.TagConversionCostTest": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.TerminalBatchOptimizerTest": {
+      "tests": 18,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.TerminalBatchRecoveryTest": {
+      "tests": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.TerminalFixedDepthOptimizerTest": {
+      "tests": 18,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.TripleBatchAllocationTest": {
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.TwoRouteBatchOptimizerTest": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.UnitMaterialFlowTest": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.UpstreamBatchOptimizerAdditionalTest": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.UpstreamBatchOptimizerBoundaryTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.UpstreamBatchOptimizerBranchTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.UpstreamBatchOptimizerTest": {
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.UpstreamDefaultExpansionPruningTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.UpstreamPairGeometryReuseTest": {
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.UpstreamPrefixReuseTest": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.UpstreamSingleRouteTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.WeightedExecutionCostTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.WholeBatchAllocationTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.WideOrdinaryAllocationTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.X169ChainedContentionReproTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.X169FibonacciChainReproTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.planner.X169TwoRouteNetworkReproTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.PlannerPackageBoundaryTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.support.CraftingPatternDelegatesTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.support.CraftingProviderChangeTrackerTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.crafting.support.FinalOutputProgressTest": {
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.eject.EjectRegistrationSavedDataTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.nbt.NbtCopyViewsTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.storage.cell.BigIndexedStorageTest": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.storage.cell.ByteTrackerDeltaOverflowTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.storage.cell.ByteTrackerTest": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.storage.cell.ByteTrackerUnitReloadTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.storage.cell.IndexedCellConservationStressTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.storage.cell.IndexedCellStorageSavedDataMigrationTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.storage.cell.IndexedStorageCellUnitReloadTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.storage.cell.IndexedStorageFastPathTest": {
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.storage.cell.IndexedStoragePersistenceTest": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.storage.cell.SmallExactTransferTest": {
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.core.util.FastWildcardMatcherTest": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.mixin.ae2.crafting.support.FastCraftingPlannerPlanConversionTest": {
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.mixin.MixinConfigurationClassPresenceTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.mixin.OptionalMixinSelectorTest": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "com.moakiee.thunderbolt.mixin.platform.eject.EjectCapabilityMixinPriorityContractTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "not_run": [
+    "Formal production jar dual-AE2 loading/EJECT/GameTest",
+    "New release publication/PR update",
+    "LT new-artifact A1-A9 acceptance"
+  ],
+  "local_raw_evidence": "D:/CodexTaskData/thunderbolt-core-gto-algorithm-20261102",
+  "notes": [
+    "Initial FG HTTPS environment preflight hung before tests; task-owned daemon stopped and original log retained.",
+    "Offline retry bypassed only FG online preflight, using cached artifacts; compiler, assertions and budgets unchanged.",
+    "No performance improvement claimed; frozen gto.4 product not overwritten."
+  ],
+  "initial_step3_full_junit": {
+    "tests": 1686,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "passed": 1684
+  },
+  "review_recovery": {
+    "reviewer": "independent read-only child agent /root/review_core_algorithms; not the failed channel member task",
+    "initial_verdict": "reject",
+    "revision_verdict": "pass",
+    "channel_review_task": "e472fee6-a24c-469f-91a2-cce4a3370b4c",
+    "channel_task_status": "startup failed, no verdict",
+    "red_controls": {
+      "tests": 5,
+      "failures": 3,
+      "passed_controls": 2
+    },
+    "initial_fast_fixture_npe_retained_separately": true,
+    "focused_green": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "full_junit": {
+      "tests": 1695,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "passed": 1693
+    },
+    "fixes": [
+      "Same-session exhausted recovery time/shared-work keeps ambiguous missing UNKNOWN",
+      "Side-output choices included in ambiguity guard",
+      "Local state/depth cutoff receipt propagated through terminal recovery; natural queues and feasible witnesses retained"
+    ],
+    "test_precision_followup": "raw1 -> T2 depth fixture corrected; focused rerun 17/17 passed",
+    "raw_evidence_prefix": "review4-recovery-"
+  }
+}

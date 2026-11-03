@@ -13,7 +13,9 @@ import appeng.crafting.inv.ListCraftingInventory;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -91,8 +93,17 @@ public final class OptimizationBenchmark {
                 throw new AssertionError("refund changed inventory");
             sink = batch;
         }));
-        String json = "{\"java\":\"" + System.getProperty("java.version") + "\",\"samples\":["
-                + String.join(",", rows) + "]}";
+        String json = String.format(Locale.ROOT,
+                "{\"java\":\"%s\",\"vm\":\"%s\",\"processors\":%d,\"max_heap\":%d,"
+                        + "\"planner_sha256\":\"%s\",\"helper_sha256\":\"%s\","
+                        + "\"planner_source\":\"%s\",\"helper_source\":\"%s\","
+                        + "\"warmup_samples\":20,\"measurement_samples\":%d,"
+                        + "\"cold_definition\":\"first scenario invocation before its warmup; only the first scenario starts in a cold JVM\",\"samples\":[%s]}",
+                System.getProperty("java.version"), System.getProperty("java.vm.name"),
+                Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().maxMemory(),
+                classHash(CraftPlannerV2.class), classHash(ParallelBatchCpuHelper.class),
+                classSource(CraftPlannerV2.class), classSource(ParallelBatchCpuHelper.class),
+                MEASUREMENT_SAMPLES, String.join(",", rows));
         Path output = Path.of(args[0]);
         Files.createDirectories(output.toAbsolutePath().getParent());
         Files.writeString(output, json);
@@ -107,25 +118,64 @@ public final class OptimizationBenchmark {
         sink = plan;
     }
 
+    private static String classHash(Class<?> type) throws Exception {
+        try (var input = type.getResourceAsStream(type.getSimpleName() + ".class")) {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(input.readAllBytes()));
+        }
+    }
+
+    private static String classSource(Class<?> type) {
+        return type.getProtectionDomain().getCodeSource().getLocation().toExternalForm();
+    }
+
+    private static long[] gcMetrics() {
+        long count = 0, millis = 0;
+        for (var gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+            count += Math.max(0, gc.getCollectionCount());
+            millis += Math.max(0, gc.getCollectionTime());
+        }
+        return new long[] {count, millis};
+    }
+
     private static String measure(String name, int iterations, Runnable action) {
         var bean = (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
         if (!bean.isThreadAllocatedMemorySupported()) throw new IllegalStateException("allocation metrics unavailable");
         bean.setThreadAllocatedMemoryEnabled(true);
         long thread = Thread.currentThread().getId();
+        long[] coldGc = gcMetrics();
+        long coldBefore = bean.getThreadAllocatedBytes(thread), coldStarted = System.nanoTime();
+        action.run();
+        long coldNanos = System.nanoTime() - coldStarted;
+        long coldBytes = bean.getThreadAllocatedBytes(thread) - coldBefore;
+        long[] afterColdGc = gcMetrics();
+        long[] warmupGc = gcMetrics();
         for (int w = 0; w < 20; w++) for (int i = 0; i < iterations; i++) action.run();
+        long[] afterWarmupGc = gcMetrics();
         double[] nanos = new double[MEASUREMENT_SAMPLES], bytes = new double[MEASUREMENT_SAMPLES];
+        long[] gcCounts = new long[MEASUREMENT_SAMPLES], gcMillis = new long[MEASUREMENT_SAMPLES];
         for (int sample = 0; sample < nanos.length; sample++) {
+            long[] gcBefore = gcMetrics();
             long beforeAllocation = bean.getThreadAllocatedBytes(thread), started = System.nanoTime();
             for (int i = 0; i < iterations; i++) action.run();
             nanos[sample] = (System.nanoTime() - started) / (double) iterations;
             bytes[sample] = (bean.getThreadAllocatedBytes(thread) - beforeAllocation) / (double) iterations;
+            long[] gcAfter = gcMetrics();
+            gcCounts[sample] = gcAfter[0] - gcBefore[0];
+            gcMillis[sample] = gcAfter[1] - gcBefore[1];
         }
+        String rawNanos = Arrays.toString(nanos), rawBytes = Arrays.toString(bytes);
         Arrays.sort(nanos); Arrays.sort(bytes);
         int p50 = percentileIndex(nanos.length, 0.50D);
         int p95 = percentileIndex(nanos.length, 0.95D);
         return String.format(Locale.ROOT,
-                "{\"scenario\":\"%s\",\"iterations\":%d,\"p50_ns\":%.1f,\"p95_ns\":%.1f,\"bytes_per_op\":%.1f}",
-                name, iterations, nanos[p50], nanos[p95], bytes[p50]);
+                "{\"scenario\":\"%s\",\"iterations\":%d,\"p50_ns\":%.1f,\"p95_ns\":%.1f,\"bytes_per_op\":%.1f,"
+                        + "\"cold_ns\":%d,\"cold_bytes\":%d,\"cold_gc_count\":%d,\"cold_gc_ms\":%d,"
+                        + "\"warmup_gc_count\":%d,\"warmup_gc_ms\":%d,\"raw_ns_per_op\":%s,\"raw_bytes_per_op\":%s,"
+                        + "\"sample_gc_count\":%s,\"sample_gc_ms\":%s}",
+                name, iterations, nanos[p50], nanos[p95], bytes[p50], coldNanos, coldBytes,
+                afterColdGc[0] - coldGc[0], afterColdGc[1] - coldGc[1],
+                afterWarmupGc[0] - warmupGc[0], afterWarmupGc[1] - warmupGc[1],
+                rawNanos, rawBytes, Arrays.toString(gcCounts), Arrays.toString(gcMillis));
     }
 
     private static int percentileIndex(int sampleCount, double percentile) {

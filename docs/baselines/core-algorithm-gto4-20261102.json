@@ -1,0 +1,1287 @@
+{
+  "schema_version": 1,
+  "workflow": "Core算法续办与制品验收",
+  "step": 1,
+  "captured_at_utc": "2026-11-02T15:26:15.986196+00:00",
+  "authorization": "Read-only plan approved by the user in channel #ae2lt gto: 可以，实施",
+  "evidence_semantics": {
+    "source_hashes": "Git blob and SHA-256 of git show <baseline>:<path> bytes, independent of checkout newline conversion.",
+    "runtime_verdict": "not_run_in_step_1",
+    "contract_semantics": "Required acceptance constraints, not a claim that all .4 paths have already been proved correct.",
+    "local_evidence": "Write-once, hash-checked workspace copies; not a publicly hosted release location."
+  },
+  "recovery": {
+    "stopped_task": "d71c7c27-e17f-45ff-9faf-55171bcc01b4",
+    "active_step_task": "0bb5b34d-8d3e-4ccd-8210-15e3fc33ff0a",
+    "branch": "1.20.1_GTL",
+    "baseline_commit": "bd510967eb1f9a376d80e74695bef27bafbaa5dd",
+    "baseline_tree": "a959677e7500cd54e7fb0b08f3c71a498c14713e",
+    "tracked_changes_at_entry": [],
+    "untracked_preserved": [
+      "AGENTS.md"
+    ],
+    "source_archive": ".gradle/core-algorithm-20261102/baseline/734d9bf152a66dee5bf69397106b6808a64305969459ba60c2e8f7139c08c7cd/source-bd510967eb1f9a376d80e74695bef27bafbaa5dd.tar.gz",
+    "source_archive_sha256": "929285f76461704ed099520fe1e7013727ec519215daa0b972d57268325b019d"
+  },
+  "target": {
+    "minecraft": "1.20.1",
+    "forge": "47.4.20",
+    "java_major": 21,
+    "observed_java": "Microsoft OpenJDK 21.0.10+7-LTS",
+    "gradle_wrapper": "8.14",
+    "mappings": "official_1.20.1",
+    "ae2_variants": [
+      "15.2610.31",
+      "15.2610.40"
+    ]
+  },
+  "baseline_artifact": {
+    "version": "2.0.4-gto.4",
+    "filename": "thunderbolt-forge-1.20.1-2.0.4-gto.4.jar",
+    "maven": "com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1:2.0.4-gto.4",
+    "sha256": "734d9bf152a66dee5bf69397106b6808a64305969459ba60c2e8f7139c08c7cd",
+    "size_bytes": 5471709,
+    "verified_copies": [
+      "build/libs/thunderbolt-forge-1.20.1-2.0.4-gto.4.jar",
+      "repo/com/moakiee/thunderbolt/thunderbolt-reborn-forge-1.20.1/2.0.4-gto.4/thunderbolt-reborn-forge-1.20.1-2.0.4-gto.4.jar"
+    ],
+    "frozen_local_copy": ".gradle/core-algorithm-20261102/baseline/734d9bf152a66dee5bf69397106b6808a64305969459ba60c2e8f7139c08c7cd/thunderbolt-forge-1.20.1-2.0.4-gto.4.jar",
+    "static_inspection": {
+      "entry_count": 646,
+      "duplicate_entries": 0,
+      "refmaps": [
+        "thunderbolt.refmap.json"
+      ],
+      "license_entries": [
+        "META-INF/LICENSE",
+        "META-INF/THIRD_PARTY_NOTICES.md"
+      ],
+      "nested_entries": [
+        "META-INF/jarjar/metadata.json",
+        "META-INF/jarjar/mixinextras-forge-0.4.1.jar"
+      ],
+      "selected_release_classes": [
+        {
+          "entry": "com/moakiee/thunderbolt/core/crafting/batch/BatchExecutor.class",
+          "sha256": "52731f02abd6827eff8324f18dd57dbaa57fcdb92f7c6b0e2e869b0dba77c3c0"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/core/crafting/batch/BatchKeyAmounts.class",
+          "sha256": "98b7130935ed906b6fd5d56289226e1e7aa467a0413f22bb6ba92cf8827e1dbf"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/core/crafting/batch/ParallelBatchCpuHelper.class",
+          "sha256": "24c9d4fb593fd78f35a66f83d95496b231cced9bb862f92083233b7ca3496ced"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/core/crafting/planner/CraftPlannerV2.class",
+          "sha256": "bdd58ebac2a2dbfe9d2f0fe685297cb0f421e5428d8bbe8669f36ed951ef4e0f"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/core/crafting/planner/FastCraftingPlanner.class",
+          "sha256": "34b8c4d9393a8ef6697310e61cbfb56c9f3203ea8cdf40920c70db8031e4f625"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/core/crafting/planner/IdOnlyInputGroups.class",
+          "sha256": "be1e360643f16a6ae22a246c6f1235c4bd737f5079e658ccfe7f678004613428"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/core/crafting/planner/LateBoundOutputKey.class",
+          "sha256": "2b896fe1fd45f654a2492fc0b96394094a5992a1cb5e894ef16f311dd87a7d3e"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/core/crafting/planner/PetriExecutionVerifier.class",
+          "sha256": "91d62f7dbde429c89bb0c2cf160866538caef18c7ae53972b9b1d8de215b4c1f"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/core/crafting/planner/PlanningCancellation.class",
+          "sha256": "6986d2c5c51c945a24e156379fb837841cf4c62c910475c8760a60dffd000d06"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/mixin/platform/eject/EjectCapabilityMixin$1.class",
+          "sha256": "ec79c3eeff7bd224c48b1611054c17702834cebc79dc40aac6c518e7dfb83e1a"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/mixin/platform/eject/EjectCapabilityMixin$2.class",
+          "sha256": "9231e2e7bad20ef2532c32029344c9e171509df02e1b92f009b7149fcc2fd57a"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/mixin/platform/eject/EjectCapabilityMixin.class",
+          "sha256": "7ab91f54932514a4d63d20361e9d2a290caf0cebbd56301382798be1278bac3a"
+        },
+        {
+          "entry": "com/moakiee/thunderbolt/mixin/platform/eject/EjectGhostBlockEntityMixin.class",
+          "sha256": "441dc9600c6d65155d95603ac754e74eba03029f404c36d132290c41e2948065"
+        }
+      ],
+      "scope": "Static inspection of the unchanged .4 jar only; no runtime or new-release verdict."
+    },
+    "historical_report": "docs/GTO_EJECT_ELEMENTALCRAFT_PORT_20261102.zh-CN.md"
+  },
+  "algorithm_reference": {
+    "repository": "https://github.com/Yang120231/NeoECOAEExtension",
+    "commit": "381e3f844beca250b0f824017f0fe585c9364144",
+    "tree": "6f1bd9db8ab55ae7fbc50f370a6c60f5027b5ed8",
+    "license": "GPLv3",
+    "authors_from_fixed_properties": [
+      "DancingSnow",
+      "ZhuRuoLing",
+      "Yang120231",
+      "y271727uy"
+    ],
+    "reference_forge_only": "47.4.28",
+    "reference_version": "20.5.5-gto.1",
+    "usage": "Algorithm and behavior reference only; no GPL implementation copied into Core; no neoecoae integration or fixtures restored.",
+    "local_root": ".gradle/core-algorithm-20261102/reference/381e3f844beca250b0f824017f0fe585c9364144",
+    "tree_complete": true,
+    "source_subset_only": true,
+    "selected_files": [
+      {
+        "path": "LICENSE",
+        "git_blob": "e72bfddabc15be5718a7cc061ac10e47741d8219",
+        "sha256": "8b1ba204bb69a0ade2bfcf65ef294a920f6bb361b317dba43c7ef29d96332b9b",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/LICENSE"
+      },
+      {
+        "path": "README_ZH_CN.md",
+        "git_blob": "1ebbdaee6216acb589847515a0f80526177b0b00",
+        "sha256": "6cf65efe7d197750163c4d3b1407765dffb655b9880a3de0e0f5598b8ffd5daf",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/README_ZH_CN.md"
+      },
+      {
+        "path": "build.gradle",
+        "git_blob": "9e30f0097fbb1d779aa6a388f83faa46d21f33b0",
+        "sha256": "b93b259da39f06c5eac7fa2f44d1b4c5b545b7824636454cae7e5091f5c49937",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/build.gradle"
+      },
+      {
+        "path": "gradle.properties",
+        "git_blob": "36d25f158d7be2124a6c319dd040f04d0cb7b77c",
+        "sha256": "9c0d0970f1f4cbdc65a250c439d069e542cf050ed2e45fbe4ab8730dd7102fe0",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/gradle.properties"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/api/me/ECOFastPathFacade.java",
+        "git_blob": "454e6e28b1958276cdeb1dc04676778a4a906a40",
+        "sha256": "3e980d7bdd272376ef1a7f890e451aef6e5589d4f12f501a315a1827beb5ecf3",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/api/me/ECOFastPathFacade.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOBatchCapacityProvider.java",
+        "git_blob": "a325673afa17839636ab399ad2be203e94d44838",
+        "sha256": "6688b6562ef4adbac5a577beb87687bf4ca8c4c96111e2dcddd88ce68070156e",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOBatchCapacityProvider.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOBatchDispatchContext.java",
+        "git_blob": "115394db354046b9aa59e039827c101b79aef9ce",
+        "sha256": "cc6a5348577de2e33086bea0e4938979d8192d0c019cc92f2cf34c40bbae5d98",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOBatchDispatchContext.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOCraftingProviderRevision.java",
+        "git_blob": "5b660bd8a9072531c544deaf5b402d6a22731fcb",
+        "sha256": "420ea2206b00c482f29659d1647791c34d4153f11ee8d773f83981a6ac36a98d",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOCraftingProviderRevision.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOFastPathDispatchProvider.java",
+        "git_blob": "08d42cce572b1e83ea7e75662722ac16425a59a4",
+        "sha256": "b68817490e193217646578b3d83c1af534a213ae8b42a7691c8d7e36173be606",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOFastPathDispatchProvider.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOIndeterminateBatchException.java",
+        "git_blob": "1981fa9a3c90a810a09eb400c875ef72344ad281",
+        "sha256": "6867b5ecb1e7228e322efc7ad5a601b53d3262efbf7b3b1b7912d27bbfe10e7b",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOIndeterminateBatchException.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOJobAwareCraftingProvider.java",
+        "git_blob": "561293a376f660a872077bae50b69bd5632b563e",
+        "sha256": "5e40433a7a1a19ca9f492e06d90d46093a92a74495c0f45e210dd099b51f5e4b",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOJobAwareCraftingProvider.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOParallelCraftingProvider.java",
+        "git_blob": "8ef98f1d49230548438f490b3465e7ce370541bf",
+        "sha256": "2f295e1bc659887be0716568b73865ad97d64380b77ec6eb4a16b3ae663c6cdf",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOParallelCraftingProvider.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOParallelCraftingProviders.java",
+        "git_blob": "0d6570387a7e3ea963375bd971a6143092d7623e",
+        "sha256": "74cf6d11217627ed3990537e85a0dc7481d7990b8afa613f3235d7f523e98235",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/api/me/provider/ECOParallelCraftingProviders.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/execution/ECOCraftingDispatchAccounting.java",
+        "git_blob": "a6ad423aa63f2b1be16b5a42038d4a0afbd4b69a",
+        "sha256": "9cea6b0694cfcd16ef6ffe758ee432d457e3b8a481baaa06fa5ddde5d9570dc7",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/execution/ECOCraftingDispatchAccounting.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/execution/ECOCraftingDispatchBudget.java",
+        "git_blob": "cecb95017887b48a03c0cb46bb87955d310229aa",
+        "sha256": "ffceacb7345a6cafdeca8bd9881abe4840ff4f0b031e41a728c8f0007ad21544",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/execution/ECOCraftingDispatchBudget.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/execution/ECOCraftingEnergyTransaction.java",
+        "git_blob": "65063b91cef59994090521c224141194ef7dbda5",
+        "sha256": "7f1451afbab9ac0280388a56d3283a66a9c2950d79cd344e092879e4384c432f",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/execution/ECOCraftingEnergyTransaction.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/execution/batch/ECOBatchAdmission.java",
+        "git_blob": "0927c4591a1a9d6752dd31c2a44f8974b8a2da8e",
+        "sha256": "1d4b1ac8601a0d9311044b58c7caa113ed428ddb8a3c48ba62b146bc6b346ec4",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/execution/batch/ECOBatchAdmission.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/execution/batch/ECOBatchExecutor.java",
+        "git_blob": "3a30cb3936191313c96e5bb41324ad89335a22a7",
+        "sha256": "fa409423789bb32814dfed836d48316c04185adfd61cf2a4b025588ee7f48b2e",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/execution/batch/ECOBatchExecutor.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/execution/batch/ECOBatchInputLease.java",
+        "git_blob": "a15e37c21c7b531e937f2cc3aabc712258bc7345",
+        "sha256": "d7d66ca721586683c2361b3fe6d35d56214c886541f9869defc0e512f91474d9",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/execution/batch/ECOBatchInputLease.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/execution/batch/ECOBatchInputScaling.java",
+        "git_blob": "93797a2734cb7aff39c4875c1bd8b9569f6640b6",
+        "sha256": "7ca67a5e8dc1af3ae1f1b770b4179713a9262bd9c86c70139a288d37c6c2952d",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/execution/batch/ECOBatchInputScaling.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/execution/fastpath/ECOFastPathResult.java",
+        "git_blob": "83ff5929525da5aa1eb6d5733deaeab968d8e263",
+        "sha256": "d907cdafd6cec184e7f1d59a4fe50ba8b45914365d60b0c72313d0780c1ba5d2",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/execution/fastpath/ECOFastPathResult.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/planner/result/OwnershipReplayHarness.java",
+        "git_blob": "8991b7141657520ff0678c21febc0588ea0bffbc",
+        "sha256": "edc3d6c36015748225086adc6a739a3a0eab6eacfc3d20a7b36b28f35dd06dae",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/planner/result/OwnershipReplayHarness.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/planner/result/PlanningStatus.java",
+        "git_blob": "061eefdf890a72f0f05710f10755e04e57d55eec",
+        "sha256": "ebd911b5874e27274df13ac83714ba08c7564773ddddb4221074b527ad1b0e0b",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/planner/result/PlanningStatus.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/planner/result/ReferenceOwnershipLedger.java",
+        "git_blob": "c600660a1d7a9a94378f74d1ea92f10998ab1817",
+        "sha256": "22f802504a60cc0ed0b1d26fc17ebcaf0026c5139caacba8529ee078a24887af",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/planner/result/ReferenceOwnershipLedger.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/ComponentPlanner.java",
+        "git_blob": "d2f60c9a929b4e583c8f0df63ffa9b0bd94904a7",
+        "sha256": "3f59bc7878ad2ac1b952c5db9b2210c901dedebc4e7c3bd16da800700aee8b32",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/ComponentPlanner.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/CycleCandidateSearch.java",
+        "git_blob": "dfc6dbc9b1f528e805f0d9ec744c227b0cc4cde5",
+        "sha256": "f574a356e4d36e6e6b31e9634c8c95e46acab824d10f5e785b813b75eb44f279",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/CycleCandidateSearch.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/CycleFailureCache.java",
+        "git_blob": "406aa8826442a97fb8b27cf21b86b86a8542d589",
+        "sha256": "898d6c5c24f4d7d7c2952f4ea0a2a033e3428979da8b74129ae4f9a7ae8dc0c2",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/CycleFailureCache.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/ECOPlanMaterialValidator.java",
+        "git_blob": "4930d564cff112b0e2f08ba348b0bc4de562c1ea",
+        "sha256": "f8e6ce49df2a45d7b84ea4e26fe523d98f2e91c55f2b426000e860e7ce6af5f5",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/ECOPlanMaterialValidator.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/MaterialBalanceProof.java",
+        "git_blob": "641dcb2393112de2872b91ad9c2f4422b46e3db7",
+        "sha256": "c56cb78cc7b3ffdfdfdb0de7e82050ed127cbb49be0a996b29c17953d1ba796a",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/MaterialBalanceProof.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/SeedFloors.java",
+        "git_blob": "6827f6344659a4f438291729ab3dabb8399f2ff3",
+        "sha256": "07866d13124d195cba36bf1ec6e943983442a7b783ef47917acfdb43ad29b0a7",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/crafting/planner/solve/SeedFloors.java"
+      },
+      {
+        "path": "src/main/java/cn/dancingsnow/neoecoae/grid/PatternRefund.java",
+        "git_blob": "424ee4395203c8853b5b60e595cb3706758e47c0",
+        "sha256": "576b7e528603db5ec7b7ffbbe09ae5e7efaa635c481d37cb482a8d4d1cf216a0",
+        "url": "https://raw.githubusercontent.com/Yang120231/NeoECOAEExtension/381e3f844beca250b0f824017f0fe585c9364144/src/main/java/cn/dancingsnow/neoecoae/grid/PatternRefund.java"
+      }
+    ],
+    "old_cache_audit": {
+      "tree": "04fde3db6ce85eeb11b289d53c0f656ee39a2183",
+      "matching_files": 17,
+      "mismatched_files": [
+        "build.gradle"
+      ],
+      "absent_paths": [],
+      "action": "Old cache preserved; use the fixed-commit subset or obtain additional blobs from the fixed tree."
+    }
+  },
+  "ae2_dependency_inputs": [
+    {
+      "version": "15.2610.31",
+      "maven": "appeng:appliedenergistics2-forge-1.20.1:15.2610.31",
+      "sha256": "f63917bf5a2ca0692c0550ad2d045991f7a493d89021bfb30b51026d4ad31a3d",
+      "url_from_configured_maven_coordinate": "https://gtodyssey.com/maven/releases/appeng/appliedenergistics2-forge-1.20.1/15.2610.31/appliedenergistics2-forge-1.20.1-15.2610.31.jar",
+      "local_path": null,
+      "evidence": "historical_report_only",
+      "source": "docs/GTO_DUAL_AE2_ABI_FIX_20261031.zh-CN.md",
+      "acquisition_this_step": "Additional download attempt did not complete; this task-owned capture process was stopped. No actual-JAR verification result claimed.",
+      "required_in_step_7": "Acquire real production JAR, verify SHA-256, run ABI and final Core release loading against each variant.",
+      "abi_test_this_step": "not_run",
+      "formal_jar_load_this_step": "not_run"
+    },
+    {
+      "version": "15.2610.40",
+      "maven": "appeng:appliedenergistics2-forge-1.20.1:15.2610.40",
+      "sha256": "b0d97544e618d73ec0c8d8e54df36351bf7f98f7e1984c6455d81658b6320b5c",
+      "url_from_configured_maven_coordinate": "https://gtodyssey.com/maven/releases/appeng/appliedenergistics2-forge-1.20.1/15.2610.40/appliedenergistics2-forge-1.20.1-15.2610.40.jar",
+      "local_path": null,
+      "evidence": "historical_report_only",
+      "source": "docs/GTO_DUAL_AE2_ABI_FIX_20261031.zh-CN.md",
+      "acquisition_this_step": "Additional download attempt did not complete; this task-owned capture process was stopped. No actual-JAR verification result claimed.",
+      "required_in_step_7": "Acquire real production JAR, verify SHA-256, run ABI and final Core release loading against each variant.",
+      "abi_test_this_step": "not_run",
+      "formal_jar_load_this_step": "not_run"
+    }
+  ],
+  "shared_contract_owner_step": 1,
+  "frozen_shared_sources": [
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/ConfigurableCraftingAlgorithmProvider.java",
+      "git_blob": "6d3ddc472654655fca05591275107da624c989a3",
+      "sha256_git_content": "1864818a43667ee88c32b45f7b2b6151386b7cb647a9aec20f99b83decac826a"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/CraftingAlgorithmProvider.java",
+      "git_blob": "4dd9de4c4017212ff7fedd89a4ce1287cffcb594",
+      "sha256_git_content": "1edf457c81891e9f2d0284de12e5954387257ab6eda8546181bb47615facef28"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/CraftingAlgorithmResolver.java",
+      "git_blob": "decb29c269d39e2049aa22172bfcd7a5cd014e57",
+      "sha256_git_content": "480bccfaf463823356fdbd795f4f8e799ff66f1ed36db551219f27339982ca18"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/CraftingAlgorithmSelection.java",
+      "git_blob": "28087772665fc9a06627d4b1b0faefde6898c35e",
+      "sha256_git_content": "f57a95a136f95cde2350b8ea0ac862e1bca65c3ae911bdfe6caa9dd824dd2da5"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/CraftingAmountMenu.java",
+      "git_blob": "5783888c91f8fd1c186ba0b1c5af9d1ecd456e9e",
+      "sha256_git_content": "b416256ea8ffa8fe8d004b08099a1d0f94d7ac4289c613b98551af3ade556564"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/CraftingPlanningEngine.java",
+      "git_blob": "2425d80b351150b769a96cd7f77a32859658ed6e",
+      "sha256_git_content": "363cf0a236e8d387d73afdc8a8d3ce00ead75bd98525f38e6bceb83afef16194"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/CraftingPlanningEngineDescriptor.java",
+      "git_blob": "9917d1df969b4713b9b616c5c301cb3602674eb8",
+      "sha256_git_content": "1b518b25bfc957a46bdcd36875f124079ef2fa98e9d9e13c93b1af7954c255e1"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/CraftingPlanningEngines.java",
+      "git_blob": "cb7127993738a8d5791c6a86aa796a4354ca408e",
+      "sha256_git_content": "5bda827f49b9acee8c5d996f32d9f1d7387e6c42bed930a9fda73bc57bccd15d"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/CraftingRequestMenu.java",
+      "git_blob": "779d186c1f4a52a4981937af498273e6ec45c934",
+      "sha256_git_content": "3dd77920ffda56e742a89c5c6cfe2fe37515df32248a39a96560d0c4d92b2441"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/DefaultCraftingAlgorithmProviderState.java",
+      "git_blob": "852c40b79a0a26ce053ba460001c41e9cab48322",
+      "sha256_git_content": "b188ff8c42594b221b66523f6ae6eb9c89403718dc80239c308b2636cb6626fa"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/ExactCraftingBackend.java",
+      "git_blob": "8433531db03ce76f1a81cb44cfdae7132839f645",
+      "sha256_git_content": "9ce688410ba41c6300eef0e6d9cf345c28dca8818a3be0d37a3c3fcf711b6e4a"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/ExactCraftingPlan.java",
+      "git_blob": "3e7d1309fcdad3bdcdd31fee7ae36ba18484b8bd",
+      "sha256_git_content": "ff9f47c25de62e43fc76df5c59640ccaf5f67f74180b81df99c17c6c14a73299"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/ICraftingPlanningService.java",
+      "git_blob": "2e0fa418dea125b06f44f5d1df0d152f382b4ee8",
+      "sha256_git_content": "9f2a0290d0c31b641dfe6b1dcecf1fb8788abf14c5542b177dc5be6f6c0eaca8"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/PlanningAttempt.java",
+      "git_blob": "40e7c0f01a5b628fa77e58cfdecb9b40700dca5e",
+      "sha256_git_content": "143b09d8975240f81368df3530cc1c666ccedb84eb12f892856e0a5bbad7bd8c"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/PlanningAttemptContext.java",
+      "git_blob": "45eed7827e9c721ed59b6cb5ab37332283074419",
+      "sha256_git_content": "37c3b1929a84abfc337dddc600af00ea2253c5b7f2426b70513f79fae5186186"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/PlanningChoice.java",
+      "git_blob": "9381af224bc3a4ec33601d0e0506bd8373874bb5",
+      "sha256_git_content": "1b94e10a08d421616ad1eab42e240223a9ae3e95c2e8dedfb70abc83106d418d"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/PlanningDiagnosticSnapshot.java",
+      "git_blob": "9153c0d96a734f7072080c4d125840b3eea9a91b",
+      "sha256_git_content": "7cfb9b756d2bb65f7735e62a78288cc12cf964e01fb249c6ce20b4c12897cf80"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/PlanningEngineSession.java",
+      "git_blob": "4ef9fbc97e611ef4085a4d5b6945dde61f30c548",
+      "sha256_git_content": "3113caf92945c22eeeeebd5c2e5980a2c17a202336ae103f371fac67e6c09d42"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/PlanningExitException.java",
+      "git_blob": "1001ac61ae68d5f8df02d54cb6fc02a4c50b3d03",
+      "sha256_git_content": "5a17449a33169792f8f03144c8ec2839a4c31236c427ae5d1fce69543a3a2aac"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/PlanningRequest.java",
+      "git_blob": "070333260e7ec5e41c9ee01b7bae00cd581b2e2c",
+      "sha256_git_content": "55b0237c99ebc3799753c7caaeaf82b0429e7573e37eaf30be226df10bebb4a1"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/batch/BatchDispatchMode.java",
+      "git_blob": "7a103146ed90114473441e475dc905bab7eabf15",
+      "sha256_git_content": "045985bef0b8abbaddcbd95e513d2cb1cced1d63ccc190d447acd4b1fd7ac2e7"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/batch/BatchJobView.java",
+      "git_blob": "f5493bf015f5ba0c909f1809778231f78e472fd6",
+      "sha256_git_content": "818af5ed0bef57feefdb71755728869ec8da6cdd4ae99fd0d3f42b5cd69f10db"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/batch/BatchProviderAdapter.java",
+      "git_blob": "c4193ef258b5b77b942a3a56894d672386a1a94f",
+      "sha256_git_content": "333fdc484379dd468a71038c49685a44ac720be3aa90b3233a68fe86de9f665b"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/batch/BatchProviderAdapters.java",
+      "git_blob": "4be8324716762a0ca204f8a1b915605ce7840a58",
+      "sha256_git_content": "7267949fe18b3a2720e115fba8b6c7c66d8a06cb0425c2b78f8324f066ca7a99"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/batch/BatchProviderResolver.java",
+      "git_blob": "793418db510cf4b73ff9361566167d6bffe9955d",
+      "sha256_git_content": "ef9ad1680625c65068c954c3d7a70af411b794da53ef759b48e8c70aea709bf4"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/batch/BatchTaskHandle.java",
+      "git_blob": "3835afe52b934cc5e34938c3090b49947fe9c615",
+      "sha256_git_content": "c217c756d518bd3078a2178ab2d76f2bea55e26b24872756bb34c1557fe148c7"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/batch/IBatchCraftingProvider.java",
+      "git_blob": "a23296e36b255843513c6cba7adf650668282bde",
+      "sha256_git_content": "b9568e69904c12079ec3575d327cd6de0940cb6db981fddb4d3d9b4501eff4a2"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/batch/PreparedBatch.java",
+      "git_blob": "8fed846ba0a1290f2ec81ff0081fd4b07797a42b",
+      "sha256_git_content": "a0e43c7c2393e0003b845ccf325a53d9e7ee0d3daeda1c31c01196399bb5b2a9"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/batch/package-info.java",
+      "git_blob": "3efb3b028acf399bf0dca976ad9b5fefd4a2dda5",
+      "sha256_git_content": "b886641f5d2df53403c3f5cfa7a901f8971a77301bda6a8a3c94c7f4eb8888ca"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/cpu/ExtendedCraftingCpuCluster.java",
+      "git_blob": "eec3ea29a70690b72c7d858be3ef54cb930ee6cd",
+      "sha256_git_content": "60d72b008e4962d338642b90263ed95816cf9530852bde89de4c147cd7942208"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/cpu/ExtendedCraftingCpuClusterHost.java",
+      "git_blob": "cacf95ca85d20e8a52fc743e4a6ec7285028ddbb",
+      "sha256_git_content": "c34d4d5df966378aa557c0932aeb5c2648ea2a1f1b4ef0f779e64edc1f1f856c"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/crafting/cpu/ExtendedCraftingCpuClusterProvider.java",
+      "git_blob": "65f5aac8ee4f50dbe210872fb08f17eff741877d",
+      "sha256_git_content": "9914309a2131abb80408e6e00c0cbd0549a33a222329e27e4a7597086c069c4b"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/compat/gto/inv/ChildCraftingSimulationState.java",
+      "git_blob": "1410a52f4bdce99e1de4c3e84824974391ed1bbc",
+      "sha256_git_content": "a5a8d6023546b200b7e3662f1188be4c68ea13e23444d5452f869cced29c5dc8"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/compat/gto/inv/CraftingSimulationState.java",
+      "git_blob": "ecbf179501a5f9181c16a17cce25e0cec032aea4",
+      "sha256_git_content": "166c1a229e9529bfa580338e83e0b62cce315344e619ac79d446503041f3308c"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/compat/gto/inv/ICraftingSimulationState.java",
+      "git_blob": "698708690881bab1b1b6722152dcc1a3756c1b4c",
+      "sha256_git_content": "53a8cedfebdf63167c016b5517758d1927fe01d7835f683469eb9eb9769806ec"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/compat/gto/inv/NetworkCraftingSimulationState.java",
+      "git_blob": "7e867c7f890272e4ad47e361177f87ca6bf269a4",
+      "sha256_git_content": "22f3371e5061202c8a56cb2322c544136c09ad165a0725c2a119a98e0fe9594a"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/batch/BatchCopyLimitPattern.java",
+      "git_blob": "a71f67b2c26cfa2ae5e72f2f1e4d8386f005490f",
+      "sha256_git_content": "da8092798b22fa7704f88b64a92c381b19626ae0826c70d997af71b3c7e1905e"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/batch/SharedBatchInputPattern.java",
+      "git_blob": "ee28cff5e4954b4f01f1a0de263b068336c41a35",
+      "sha256_git_content": "2733dabbf9746cf02b52aeb3d4c109e16efac2d4934b56dbb1f0f81788c75f63"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/loop/ClosedLoopBatchPatternDetails.java",
+      "git_blob": "673709f093b694b0ab057de7492e06b857a277ae",
+      "sha256_git_content": "0257c9a59d8ccc184137b24283cfda36f041d20587c61cde98fe916120c5bb3a"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/loop/ClosedLoopPatternDetails.java",
+      "git_blob": "3ea0e87d882d6b098dd96e860250e580f6e7f03a",
+      "sha256_git_content": "a6e65eaff23a7af516ba7f6487a688736922b829f837a8053ffabd0b3014bd5a"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/loop/CraftingCpuRestrictedPattern.java",
+      "git_blob": "27152bad383ee18aee9ad87908a4f590567dca4c",
+      "sha256_git_content": "54ff700c3e170d5ef2d70b595b53883954027de1060912c826f89e35d2848115"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/loop/CraftingTaskPersistenceDefinition.java",
+      "git_blob": "713a33e120ca2f95304fea2f27f76178e81bb065",
+      "sha256_git_content": "8e1f8f2bb8cfab79d6b204e87a7fe130ae48871c73df48642ca4b58efcdce416"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/loop/IPlannedSeedSlotPattern.java",
+      "git_blob": "ded4c4ef72e70356e6baf76d8a47355fbe96ff8b",
+      "sha256_git_content": "e523385f8015a7c46f2587fc6101cc7306527b8e50dd5322742b5413ee1be5c8"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/loop/IPrioritizedCraftingTask.java",
+      "git_blob": "845e195bda7feeac2eb5b7217dda9eb29560ef26",
+      "sha256_git_content": "deafbf5c1fbde00b064aa0bbf97ba426c47363df07e7da5bef3bbba90afa4d1c"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/loop/ISeedPreservingCraftingTask.java",
+      "git_blob": "461315305f7e124db91df85497f9a6f3ba4b1df9",
+      "sha256_git_content": "66156bec6f95fb9f34d8d82dcb26cdc2d22df1fe1fa387cfe48121536121fd53"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/loop/PatternFiringExpander.java",
+      "git_blob": "1cb76764ed12bec9ad38505ab56ccf03f21e86a6",
+      "sha256_git_content": "ee1d81833f21f3afe4f25b54fa398e88e198734abf9604f117a1a5080af9649f"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/loop/ReusableSeedPattern.java",
+      "git_blob": "f48b686b13138fb8735e04e02bcb2099c3e91754",
+      "sha256_git_content": "1fd49972872197a4e5a0089d541f662a56ff758b1156e7e03278fb2955e8d2fe"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/loop/package-info.java",
+      "git_blob": "f590b9f375be646b65e5632e960c2dba478da4e1",
+      "sha256_git_content": "b3f8a8796b765a1ea9feb537e525821b0baabaf4854cc718afc5bffe4893732f"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/overload/OverloadedPatternDetails.java",
+      "git_blob": "e01507ed80d5f1dc4bfd167130e0c731751f3a39",
+      "sha256_git_content": "9bea7040c3d8423838d2e68a5a130975872ebb5e9626c16aeff944a782568c2f"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/overload/package-info.java",
+      "git_blob": "cb21922b951b380487ab10e10e93bfa94a80b7cc",
+      "sha256_git_content": "107ef693f91f576b2050b1ee6021ba44f90280b34ccf9b1c42e95825b013571c"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/pattern/CraftingStockPolicy.java",
+      "git_blob": "9ff4bde448ab3920e2594625c19b43f50c6f1aa8",
+      "sha256_git_content": "88dcc48b9421d1dc806c21f956a0c1bb0f1eb045999b5040f376ed1a79f84b92"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/pattern/FuzzyPatternInputs.java",
+      "git_blob": "87be972bfb738a51d26fbe5f48a81db0c053b562",
+      "sha256_git_content": "194eda1e7fb62c827fdd852e2f0aedd54a4ca4cb9d7d5e7f7a0a56b493145fea"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/pattern/IBatchExecutionPattern.java",
+      "git_blob": "d6bcca54b608bf9568d8b780c7101760b13ba54a",
+      "sha256_git_content": "fcfa2b97428057c3faf4b938d661f8e050b0d29cbb7228177d284794d2883b44"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/pattern/IProviderLookupPattern.java",
+      "git_blob": "dba5139a08fc5f851f96f18c2302011fd83bf7ca",
+      "sha256_git_content": "b0ab18a695f5fa0074bfef2b44267d92ec92770d1606246559be751f9286cdb0"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/pattern/IWrappedPatternDetails.java",
+      "git_blob": "4ee7360e6161e4e5b5b08f24fd36b8c7becc9134",
+      "sha256_git_content": "e926a42956266b0b7b21b868271aa8de24af1251955fc98249e664efd70d215d"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/pattern/PatternInputIdentity.java",
+      "git_blob": "95c66d12b378935b520592969aa38ecf33c1d044",
+      "sha256_git_content": "67e3147f761d43d17928eec2f9fe9217a9aac3f98c9f9320ab17ec95e0304bbb"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/pattern/PlannedInputPattern.java",
+      "git_blob": "ddb3b9aa028d65c4383139336ed123b797208384",
+      "sha256_git_content": "4fe0bf138dca0fced625c1b367c520d34d827610a60717beeabd938cc2b0f3b2"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/pattern/ReusableStockPattern.java",
+      "git_blob": "8fc2ec70bac5c001070aaf5faec7ab12d5daf584",
+      "sha256_git_content": "ee1ff5b47855da530b3c3b52cd6455d385c8648562a27691b91f41d503331f43"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/pattern/ReusableStockSource.java",
+      "git_blob": "62dbccfaaffbe1280e516d30fee3b40f3cf65214",
+      "sha256_git_content": "d8e4edb7b44d26d06506293ff2bcbf895803d0bddd2724cab5330c7fe68c6d8c"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/pattern/package-info.java",
+      "git_blob": "992278c21954e418bdf94cb2106797cfa4ba7ef8",
+      "sha256_git_content": "6db026fef2b2d24dd4d068700fbf4378010bd983fa7d5178a40bc05495cd235c"
+    },
+    {
+      "path": "src/test/java/com/moakiee/gtotest/GtoTestMixinAgent.java",
+      "git_blob": "bfbff4964ec9b965cd4f1fb629a070e7b41cebe0",
+      "sha256_git_content": "3e4c040d2b395395c139f7cdbc0f906b58c77681f51f9caf3d25edd5d552f66c"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/api/crafting/CraftingAlgorithmResolverTest.java",
+      "git_blob": "dac192a0807b3f2b7658ccabc2503ef06a35ba52",
+      "sha256_git_content": "54fd8776ba1824344b289343f5bbe44fee115808080830e290478af83ac9fc10"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/api/crafting/CraftingPlanningEngineCaptureTest.java",
+      "git_blob": "1741320006e347f6900634eb9866ad08679c40fc",
+      "sha256_git_content": "b35ace4c104cd132da12d8f8704c5d56b6ed9002e8966b449d4edb4a67a3353f"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/api/crafting/ExactBackendSelectionTest.java",
+      "git_blob": "5db7ab12b4bb8567d8c0759ae77a557acb25efbf",
+      "sha256_git_content": "281c4c3149f47bfa7f6afe0c8709d1b94c3e417a75c1c1bf48a0bb554ce5a9c3"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/api/crafting/PlanningEngineSessionContextTest.java",
+      "git_blob": "909fc985914096e283844224323527705554dd82",
+      "sha256_git_content": "a7fb1ddca68ed1549bb6b3c4954f6802b942146fa795f888be091d94c6c04e27"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/api/crafting/batch/BatchCraftingProviderContractTest.java",
+      "git_blob": "707728e614501f3991eea30e0bcb00c135d110b5",
+      "sha256_git_content": "f85c620dfc95fa805a77644e078fca3dcb3869a2608a9994c17c3086d9baa901"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/api/crafting/cpu/ExtendedCraftingCpuClusterCompatibilityTest.java",
+      "git_blob": "adb1712d2472cf7261a4c4aa62701466436574bc",
+      "sha256_git_content": "f1f8255b5cbdfd10c42501ff66a30e256c11752f60e1609f38ca9fea0699a08c"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/crafting/PlannerPackageBoundaryTest.java",
+      "git_blob": "6d589daa7743f037fabdb6f33cde56a2fd2b8d1d",
+      "sha256_git_content": "9f572cc94cd7c02ad9e0331597cf3c573a314a7b535a1ebf39fcf7e49881096a"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/CpSatReferenceCapabilitySuiteTest.java",
+      "git_blob": "d5aadffaf9e8e2a8cfd03b4862a498749763fc26",
+      "sha256_git_content": "2ec5170204ec41ec66eece14b15692527ca37f84f43f4ea26b3d4a29adb68ea9"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ReferenceCapability.java",
+      "git_blob": "72a18f15c597caec20d9c0cec787695042f1fda9",
+      "sha256_git_content": "1ef1a1747134d97707e7a3e26282d23d6fd4b252e2796afe951e3614eb60d8d9"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ReferenceCapabilityRunner.java",
+      "git_blob": "606c14a5bba9a6077610703c8863550616d36b4c",
+      "sha256_git_content": "cab66a57d409a8690366044072b048dc894378bb392b95cd83398fcf6d7112f0"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ReferenceCapabilityRunnerTest.java",
+      "git_blob": "e17cf58f46181ae51750bf8958c0592f7ef6ff3f",
+      "sha256_git_content": "be7746b91968771309c7cf2adc89e3dd0c5e1ac3f7951f391a605d764cb8859c"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ReferenceMaterialMode.java",
+      "git_blob": "afb5940d79acda4393150764b501ed25b88edf11",
+      "sha256_git_content": "0f0257ab3fb60fb1bc12c1f64859ffcd5789ebd5019676ae797bc1d799c10fa6"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ReferencePlanReplay.java",
+      "git_blob": "783df75ab281159063805058c35860981636b608",
+      "sha256_git_content": "9c331c6bc6564d3884337e643d7e29c0f404c773f573c40653b51d80cece44d2"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ReferencePlanner.java",
+      "git_blob": "0bbf7d5dfa3708d3270c77e5442d96b42f3bd7d7",
+      "sha256_git_content": "398975cc21896dcfa415ddc250536b2b2b38d585e0f7a513c3ed416df18d1504"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ReferenceRunResult.java",
+      "git_blob": "7f63861ea5dcd09b91c4a8fbcd86b791a73ba917",
+      "sha256_git_content": "7c2a2483c1e78216f75401019c6c95bba2e51bded4ea13ac3af619189c3e2460"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ReferenceScenario.java",
+      "git_blob": "a4dc67b7797ee21950f9f05aba5edc5b7fa59833",
+      "sha256_git_content": "b8009812db3ad70b2dfb1d978a876c8ffd46f99db5f728ee3b959341d4ca5df8"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ReferenceSupportStatus.java",
+      "git_blob": "14df3092e1fe8caf63670a6e7bdb0e64339699c5",
+      "sha256_git_content": "40d594549dbf7d700152d678dd507e64c8cbba7241a2d5a99fb829015c2ea90a"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ThunderboltReferenceCapabilitySuiteTest.java",
+      "git_blob": "ab78b18fac6c6c63d4d27f520e4fdfd2d904dfb7",
+      "sha256_git_content": "7799cb3ae86ea93d91cdf17bfdefe3f679bc92082ac19483fcf9ad831e6f5f9e"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ThunderboltReferenceScenarios.java",
+      "git_blob": "97c6a26714a036c6a268b0b91abbeb5635e14e8d",
+      "sha256_git_content": "2f9c6691366be22a6504e0096010fc805403eb52a79d12caf4dad2cabced66a2"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/core/planner/reference/ThunderboltReferenceScenariosTest.java",
+      "git_blob": "81e746846ac1b4264781504226892c951cec125c",
+      "sha256_git_content": "3a3a1e2b3e92fba304866f432dd3c517b1774cde445e1545c6493c6b3ae45f52"
+    },
+    {
+      "path": "src/test/java/com/moakiee/thunderbolt/test/MinecraftTestBootstrap.java",
+      "git_blob": "019dba2fe577b5218499312fb3ae0feae282b5c6",
+      "sha256_git_content": "5c70da44bb7447efd78c50c92101190702f3df4586ee9f031091b8b517b33ba3"
+    }
+  ],
+  "file_ownership": {
+    "precedence": "Exact frozen_shared_sources entries override every directory rule; unlisted cross-domain edits return to step 1.",
+    "step_1_tracked_outputs": [
+      "docs/GTO_CORE_ALGORITHM_CONTRACT_20261102.zh-CN.md",
+      "docs/baselines/core-algorithm-gto4-20261102.json"
+    ],
+    "step_3_production_prefixes": [
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/plan/"
+    ],
+    "step_3_production_files": [
+      "src/main/java/com/moakiee/thunderbolt/compat/gto/GtoPlanningCalculation.java",
+      "src/main/java/com/moakiee/thunderbolt/mixin/compat/gto/GtoCraftingPlannerMixin.java",
+      "src/main/java/com/moakiee/thunderbolt/ae2/crafting/CraftingPlanningControl.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/algorithm/CraftingPlanningService.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/algorithm/CraftingAlgorithmCalculationStatus.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/algorithm/PlanningAttemptMonitor.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/algorithm/PlanningCandidateExecutor.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/algorithm/PlanningCandidateDeclinedException.java",
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/algorithm/PlanningFailurePlans.java"
+    ],
+    "step_3_test_prefixes": [
+      "src/test/java/com/moakiee/thunderbolt/core/planner/",
+      "src/test/java/com/moakiee/thunderbolt/core/crafting/planner/",
+      "src/test/java/com/moakiee/thunderbolt/core/crafting/plan/",
+      "src/test/java/com/moakiee/thunderbolt/core/crafting/algorithm/"
+    ],
+    "step_5_production_prefixes": [
+      "src/main/java/com/moakiee/thunderbolt/core/crafting/batch/"
+    ],
+    "step_5_production_files": [
+      "src/main/java/com/moakiee/thunderbolt/compat/neoeco/NeoEcoGtoBatchAdapter.java"
+    ],
+    "step_5_test_prefixes": [
+      "src/test/java/com/moakiee/thunderbolt/core/crafting/batch/",
+      "src/test/java/com/moakiee/thunderbolt/ae2/batch/"
+    ],
+    "step_5_benchmark_files": [
+      "src/test/java/com/moakiee/thunderbolt/core/OptimizationBenchmark.java",
+      "src/test/java/com/moakiee/thunderbolt/core/crafting/batch/BatchAllocationBenchmark.java"
+    ],
+    "step_7_integration_scope": [
+      "build.gradle",
+      "gradle.properties",
+      "src/gameTest/",
+      "release metadata and final evidence"
+    ],
+    "step_2_and_8": "LT-owned work only within that member's authorization; Core does not operate other project directories.",
+    "step_4_and_6": "Read-only review, no source mutations.",
+    "step_9": "Evidence aggregation and responsibility report.",
+    "shared_change_protocol": "Return to step 1, revise the contract and ownership, then rerun affected dependent reviews and tests.",
+    "scheduling": "Steps 3 and 5 do not write concurrently. Step 4 may run alongside batch-only step 5. Step 7 waits for passes from 4 and 6; step 8 fixes step 7 artifact; step 9 consumes step 8."
+  },
+  "preservation_anchors": [
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/mixin/platform/eject/EjectCapabilityMixin.java",
+      "git_blob": "657e1f8122b25197dfa0f54a55333f5ac066e3e5",
+      "sha256_git_content": "3e6eebebf622d6de5331d06ec28a2d9d8924bba5029d217a9ae4f08e981e5739"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/eject/EjectCapabilityRegistry.java",
+      "git_blob": "1d6557be6fc9cf35c667df0209a5847418d5726b",
+      "sha256_git_content": "e005cf3c9e7bcd9df772bf470278bb9a1cce2343eab885ff3a08aeddb500c933"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/batch/BatchKeyAmounts.java",
+      "git_blob": "49d68afdc75923b22a2de21012ea9471b10fa1c6",
+      "sha256_git_content": "b8a35cef709c12984e0814c5f9d9ecb74f1454622c0af00e3b5e10105d7d27fd"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/IdOnlyInputGroups.java",
+      "git_blob": "b473ffcadb041d0973880376fee47d773488cc59",
+      "sha256_git_content": "87d5f2611576b352a0c95480979b85d609b0b117a92d202e102796471539f850"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/crafting/planner/LateBoundOutputKey.java",
+      "git_blob": "b910b593edf7530f9aa6282d3fdc93c8bce4fd09",
+      "sha256_git_content": "013185b3b5a2e781a80acd742d5324f48d6989c97b57aaae3b88963365cb0da6"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/compat/neoeco/NeoEcoGtoBatchAdapter.java",
+      "git_blob": "3232d614216a9cffc474802cd5208707d22dabb5",
+      "sha256_git_content": "b3ea9ebaabc5ed093a7833bb4ca155ad90531754af8dbc7a6c9a64ca99c07116"
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/compat/OptionalBatchProviders.java",
+      "git_blob": "c823d308265a6aa552f3f77733ba2461caa3ebaa",
+      "sha256_git_content": "26c8327750d5bed7c658c3950043766d302d1b4d1b6288ab43963674b2e18a03"
+    },
+    {
+      "path": "src/main/resources/thunderbolt.mixins.json",
+      "git_blob": "81db867f8d95ccb7f5b63a7f92c69df64df12116",
+      "sha256_git_content": "b21157a2cf60439dc609af1b1b34533cc1932073459783bb4b79bd2067f0b07b"
+    },
+    {
+      "path": "LICENSE",
+      "git_blob": "0a041280bd00a9d068f503b8ee7ce35214bd24a1",
+      "sha256_git_content": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "git_blob": "70d78aec6d0fd646d85a34f9c6c71eb11d3bf644",
+      "sha256_git_content": "8f4e1bc354607300154067198dbd368c49815bf23165de4eddd6e0088692baab"
+    }
+  ],
+  "benchmark_inputs": {
+    "implementation_before_commit": "bd510967eb1f9a376d80e74695bef27bafbaa5dd",
+    "harness_sources": [
+      {
+        "path": "src/test/java/com/moakiee/thunderbolt/core/OptimizationBenchmark.java",
+        "git_blob": "3cd5f526cfc9e5693d1264b88d8e98d920907fb0",
+        "sha256_git_content": "6c3199b255bac031cff15b0ca72b7061bda9aaa9838ccd6d7a366d017ed6a7be"
+      },
+      {
+        "path": "src/test/java/com/moakiee/thunderbolt/core/crafting/batch/BatchAllocationBenchmark.java",
+        "git_blob": "d4dae2a729a6d91a21a1feb56d673869d284b553",
+        "sha256_git_content": "5182d13bf5bef80ffedd4f697e2a2e7875d87256b4557b621d8e9ca1b0079bd7"
+      }
+    ],
+    "random_seed": null,
+    "randomness": "Existing harnesses use deterministic in-source inputs.",
+    "optimizationBenchmark": {
+      "warmup_samples": 20,
+      "measurement_samples": 20,
+      "scenarios": [
+        "chain-500",
+        "alternatives-1",
+        "quantity-session-1",
+        "alternatives-1000000000000",
+        "quantity-session-1000000000000",
+        "three-route-mixed",
+        "ordinary-bulk-extract"
+      ],
+      "iterations_by_scenario": [
+        10,
+        50,
+        10,
+        50,
+        10,
+        50,
+        3000
+      ]
+    },
+    "batchAllocationBenchmark": {
+      "warmup_samples": 20,
+      "measurement_samples": 20,
+      "iterations": 2000,
+      "stock_per_distinct_key": 1000000,
+      "offered_copies": 512,
+      "keys": [
+        "stone",
+        "dirt",
+        "sand",
+        "gravel",
+        "cobblestone",
+        "iron_ingot",
+        "gold_ingot",
+        "copper_ingot",
+        "diamond"
+      ],
+      "scenarios": [
+        "native-one-slot",
+        "native-nine-repeated",
+        "native-nine-distinct",
+        "native-nine-reserved",
+        "native-shared-seed",
+        "legacy-nine-repeated",
+        "legacy-nine-distinct"
+      ]
+    },
+    "runs_this_step": 0,
+    "required_comparison": "Same .4 harness inputs on both sides, >=3 independent JVMs per side; same hardware, Java, heap, dependencies, budgets and load; separate cold/warm and record raw samples, allocation, GC and actual loaded implementation hashes.",
+    "existing_harness_limitations": "Existing output aggregates warmed samples; additional instrumentation is required for cold startup, raw distributions and GC. Do not infer these metrics from existing aggregate JSON.",
+    "new_scenarios": "Step 5 owns additive fixed-seed, fixed-scale input files and both-side harness changes; preserve existing scenarios and assertions."
+  },
+  "lt_historical_evidence_only": {
+    "pr": 54,
+    "commit": "6135dcc2110d3b745682b854ce013e10c22583d5",
+    "source": "Channel-agreed baseline; not independently rerun in step 1.",
+    "core_version": "2.0.4-gto.3",
+    "core_sha256": "1ebff68ab9a2c7e041b8ca8338acb1a00aa9f5eacfa6604b4f55f2cd04be85a9",
+    "reported": {
+      "ci": "passed",
+      "gametest": "51/51",
+      "fx": "both AE2 versions",
+      "save_restore": "3 independent JVMs per AE2 version",
+      "graphics": "10/10",
+      "multiplayer": "4/4"
+    },
+    "counts_as_new_artifact_pass": false
+  },
+  "core_pr": {
+    "baseRefName": "gto",
+    "headRefName": "pr/core-2.0.4-gto.3",
+    "headRefOid": "2670dc3f9fff738b2416ba5d14fdb2a4575b4d17",
+    "headRepository": {
+      "id": "R_kgDOUcJeyQ",
+      "name": "Thunderbolt-Core-Reborn",
+      "nameWithOwner": "AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn"
+    },
+    "state": "OPEN",
+    "url": "https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/pull/17",
+    "action_this_step": "read_only",
+    "release_rule": "Step 7 rechecks the existing PR head and updates only that verified head and PR description; no base-branch push, process-branch upload or automatic tags."
+  },
+  "next_release": {
+    "candidate_maven": "com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1:2.0.4-gto.5",
+    "occupancy": "not_checked; reserve the first greater unpublished gto sequence if occupied",
+    "frozen_artifact": null,
+    "sha256": null,
+    "source_summary_commit": null,
+    "public_immutable_location": null
+  },
+  "checks_this_step": {
+    "baseline_jar_sha256": "passed",
+    "source_archive_equivalence": "passed",
+    "fixed_reference_git_blobs": "passed",
+    "actual_ae2_download_sha256": "not_completed_no_verdict",
+    "shared_source_manifest": "captured",
+    "json_and_ownership_validation": "passed",
+    "gradle_check": "not_run",
+    "referenceCapabilityTest": "not_run",
+    "ae2AbiTest_31": "not_run",
+    "ae2AbiTest_40": "not_run",
+    "verifyReleaseJar": "not_run",
+    "gameTests": "not_run",
+    "formal_jar_load_and_eject": "not_run",
+    "benchmarks": "not_run",
+    "lt_new_artifact_acceptance": "not_run",
+    "declared_public_descriptor_capture": "passed"
+  },
+  "shared_release_descriptors": {
+    "jar_sha256": "734d9bf152a66dee5bf69397106b6808a64305969459ba60c2e8f7139c08c7cd",
+    "tool": "javap 21 -public -s -constants",
+    "coverage": "Declared public descriptors of the frozen production types and their nested classes; excludes inherited method discovery; no runtime linkage verdict.",
+    "local_path": ".gradle/core-algorithm-20261102/baseline/734d9bf152a66dee5bf69397106b6808a64305969459ba60c2e8f7139c08c7cd/shared-public-descriptors.txt",
+    "sha256": "84d9abe00ef180d65c4cb2d552bbebe6f7b416445f9a3267469a4166bd2bd1b0",
+    "class_count": 65,
+    "classes": [
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/ConfigurableCraftingAlgorithmProvider.class",
+        "sha256": "88db71de4efa43f379c86513ee68f51efeb0aba3dd4adfd3d17cb6adec1aa4ba"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/CraftingAlgorithmProvider.class",
+        "sha256": "92382502866b347e1f51d7a05e9fbbb0c0525cd3b4d35dab28a78f91980acf0f"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/CraftingAlgorithmResolver$Candidate.class",
+        "sha256": "112d14fbb5c227aef3a3d36ad05a449fefb1df1272d9cf9a23dbb2e7325f7d05"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/CraftingAlgorithmResolver.class",
+        "sha256": "f2f52f98a7c01594b530e341340b59461bf59d38c028df1faef6a711bd4e37d6"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/CraftingAlgorithmSelection.class",
+        "sha256": "f5cdb3406fbd9ee53ea7d87bb01793473eb6ff6da988152f4793b5bca7dad59c"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/CraftingAmountMenu.class",
+        "sha256": "ee63f3b4add65de80ddb8e7f9d26cfef59333f99076c12146d1c7e4175e834bb"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/CraftingPlanningEngine.class",
+        "sha256": "03fb09eeeff4023bc1e7b4c230ee931173a300d4318eafdcbd5bf56817ba9714"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/CraftingPlanningEngineDescriptor.class",
+        "sha256": "b01a943d0adb7c90301d78957d41a9e407bb8ebdf4f818b5f8371be4da3235f4"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/CraftingPlanningEngines.class",
+        "sha256": "102621c254adf6373ae761b6a835e5019f2cda16c0031712f486a30f518951cb"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/CraftingRequestMenu.class",
+        "sha256": "fecc2cac0e23ed216e04471cc8a4ea856874407c9d1b0f5d487e29a0364f3938"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/DefaultCraftingAlgorithmProviderState.class",
+        "sha256": "714c5332c6a49c0c5cc0104f9d3db65bb7f00ba4fb954f36799649b35dc11592"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/ExactCraftingBackend.class",
+        "sha256": "2cdd3fb32d90a2ee329fec9966c24a96e6199c7cb55ec508e70af03964cbe6e8"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/ExactCraftingPlan.class",
+        "sha256": "b26e8eb2fa4a0b892f2a9112b28ed0b043f7ed5c9c50b0bf7878024c8e7b78fe"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/ICraftingPlanningService.class",
+        "sha256": "cbc9528acac7ef92089102bbe07c438731c8c584f9ae3fd2932dde4a22a2e032"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/PlanningAttempt$Status.class",
+        "sha256": "5ea6d18ff12c2474b660e8e09bcfcd01c49da096b4ee8b71bb701f3af9fcd7e6"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/PlanningAttempt.class",
+        "sha256": "2c4801179a633631ea7e1e4a3e05c374e54d1ffdd924cfb3a854156fffc89a23"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/PlanningAttemptContext.class",
+        "sha256": "c2cd746955552f1bf23905a8923e21c50b49311658a08d6396549735d85f8e30"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/PlanningChoice$Kind.class",
+        "sha256": "4eea80dc6b61cac403a4b5631e5a6d2f912ce75c89575dd007dc070d7367f596"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/PlanningChoice.class",
+        "sha256": "2dbcf9199f22e85b4b05aa74c9188cab2ed5ea4690e860c148be2dc14a3a3e06"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/PlanningDiagnosticSnapshot.class",
+        "sha256": "1360b52669c952cda78c7d86654163976c9a7b4006b853f96637ca1121fcc6fe"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/PlanningEngineSession.class",
+        "sha256": "ae9bf2b2bf7bca8c018ee73ff7380d5131d4c0f2b11bc59ae07501c7af3417de"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/PlanningExitException.class",
+        "sha256": "ddfa9e41bdb12450276119e3c7bef3ecd1baf145932d633b6006f7bb4a3b9762"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/PlanningRequest.class",
+        "sha256": "e5731f23b2c21090205d351549be1a6d2f12735dbda93582fddb3bbf43aa5758"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/batch/BatchDispatchMode.class",
+        "sha256": "474a7e870d28a9993a7e905030c778ba924d5dd45115a931add2d104225c6b12"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/batch/BatchJobView.class",
+        "sha256": "5b870bc93a8be72ce2c52f491255eff16e0556480a5347b94041b7a01250b64f"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/batch/BatchProviderAdapter.class",
+        "sha256": "afed690b90eb2285978c5c29cb31b30455b10c4e967bbac81ce2fa3382d7fdf4"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/batch/BatchProviderAdapters$Entry.class",
+        "sha256": "244a4b8b9405b3a6b076f220e1470387b10cb447c73cde906aa24f97d6617ba5"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/batch/BatchProviderAdapters.class",
+        "sha256": "a0703b4a6f9e8f26563003ea43b26a9857ccd56a0223422ccd70efb1b36f56ad"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/batch/BatchProviderResolver.class",
+        "sha256": "8a1de78032ff16faedafd2e4fa129e79743e3b072e82d1e4a57eb0c5ca4699d1"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/batch/BatchTaskHandle.class",
+        "sha256": "e42ebc88075763c4384ed35073161efdc59b15da8b94ea66c9aa7ba6c886d940"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/batch/IBatchCraftingProvider.class",
+        "sha256": "e2fd17e5ac3b6b8274ee365a4e522c9ce34822c5cc6ab4598621cd3a26b9c1a2"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/batch/PreparedBatch.class",
+        "sha256": "b3e5c5d3f942e17b65803f1766b61c72e4183a39f2a9ff9e3ffc1dadc483274f"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/cpu/ExtendedCraftingCpuCluster$1.class",
+        "sha256": "e85879c232446f45a150e58aba6212d91ee886ed1a51fdf39849657eacc3beb0"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/cpu/ExtendedCraftingCpuCluster.class",
+        "sha256": "02b25318109504e4f929707d3009aab458885afeb47695d7698251d603dc5ff5"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/cpu/ExtendedCraftingCpuClusterHost.class",
+        "sha256": "dc71f645170e7a00951484271881b5a9e26a04b8e202657f403a8f90681ef9a3"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/api/crafting/cpu/ExtendedCraftingCpuClusterProvider.class",
+        "sha256": "7906866569461aa7169e197421c8ad9ae5fa175dcef5a8dc6390852f15484f30"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/compat/gto/inv/ChildCraftingSimulationState.class",
+        "sha256": "5bb53562be7ee2d86f61b781fb280675c65797a9eaec6e3bb75671e8b4d7dad7"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/compat/gto/inv/CraftingSimulationState.class",
+        "sha256": "a6d2ffc9148d0ddd02f7bdc6bece60b44d3bbe3714b3560adfdcd4d58aec089c"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/compat/gto/inv/ICraftingSimulationState.class",
+        "sha256": "8789489da1b171d1d19853a06a667f7344d46a855d0488f6d129c763fd30e74d"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/compat/gto/inv/NetworkCraftingSimulationState.class",
+        "sha256": "255d6804842b76e642767a9455704e66bcc90a54b4893345e51f98c47550a935"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/batch/BatchCopyLimitPattern.class",
+        "sha256": "5ee6a0d7fd0d17ded4448181311361805ed8786b80c0096352bfa39f2dfe9185"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/batch/SharedBatchInputPattern.class",
+        "sha256": "a2d89828dad3e8808780ab5df6494d82101eb8b0992a4878fca0e9100b481add"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/ClosedLoopBatchPatternDetails.class",
+        "sha256": "1f2ed5bdbea8d2d3bb423e37d32389146e257e1e63cd1717df9ec84dcad27e95"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/ClosedLoopPatternDetails.class",
+        "sha256": "e3932caca3cd36c6b1bfccc4de976469529a560b906c27c43126fe0b079f7b80"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/CraftingCpuRestrictedPattern.class",
+        "sha256": "3043e5f7c9a89345c1f857f776a36a3297924728c368b2f1860b253c984c75a2"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/CraftingTaskPersistenceDefinition.class",
+        "sha256": "0ae13331715a6021b271d6f7d0ed4d005bbe643cb8860e8b601db60b15433d6e"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/IPlannedSeedSlotPattern.class",
+        "sha256": "22a4f187c42e08dba4ca66d1e26f9fd80c24a3ee1720d55757c71e34a690a78e"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/IPrioritizedCraftingTask.class",
+        "sha256": "6de1ce1e1d87d478f0314f5312f379d3e7c5a6f7b0c4529c2e480d885fe6719d"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/ISeedPreservingCraftingTask.class",
+        "sha256": "98df1ba96348ad74e14317b9c177fcdf3a82752f665bbfb0b21d8f373e6b55f7"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/PatternFiringExpander.class",
+        "sha256": "f2ff5a3499039c75e8a89552f47df26a0e842a5560e1354475ae799249f478f5"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/ReusableSeedPattern$DedicatedPool.class",
+        "sha256": "a7a5386f07a38d131b91a150aaab9b77eddbe74f9a3520570ea45acfd28a9715"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/ReusableSeedPattern$SharedPool.class",
+        "sha256": "15143efb13cc6bb94a889aee999341a8021a8638708d40c21fc212cf0264aafb"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/loop/ReusableSeedPattern.class",
+        "sha256": "cbe1a97d7479c3500c032a346e64f47428fe16b5f73ead318487cdf0d84ea14f"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/overload/OverloadedPatternDetails.class",
+        "sha256": "1a984ec5ca84ffa71d2005f3b62a1d3dfb510d00d9470900f06608b7160c1fc0"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/CraftingStockPolicy.class",
+        "sha256": "d26deafe0c9490eeabc8268c4672d5f0106ffe3caad4abe6b01c6368cc25d46b"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/FuzzyPatternInputs.class",
+        "sha256": "f6e216ee0c40f54c2be33a026de184edb92be54c3afc87b963b9269235cfcdea"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/IBatchExecutionPattern.class",
+        "sha256": "7d09ad461147048ce55e3cd03f2c1a713722872b0a6963addcfa5898980fc848"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/IProviderLookupPattern.class",
+        "sha256": "dcfc162c4b192ca3b7a0ceadb6ca8e8d0e61fca61f734c451b597be838965547"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/IWrappedPatternDetails.class",
+        "sha256": "9c968c33c27d2879a86392cb772d194da1f0a7d5124df38bb849130f926ca197"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/PatternInputIdentity.class",
+        "sha256": "ad68b65fe5ecf3119cff1d5d6586cd65c7365c98e62c6fc0de6062147527c7f1"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/PlannedInputPattern$1.class",
+        "sha256": "92dea639167e0a61c461167c8554ed09d687634ad2973d4b79c7159e0ef1df3e"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/PlannedInputPattern$AllocatedInput.class",
+        "sha256": "9752a41ba5b40ea6f12a1879c1fa25d80dc2c5d1365831d0f25bfee2b4a3c028"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/PlannedInputPattern.class",
+        "sha256": "495ff24e20776a2ed59b662aa16a508cb5a92ebbb6be1373bae65c40e94237a6"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/ReusableStockPattern.class",
+        "sha256": "8d3b3a5f8cdf738d701ad7a371bffb37de0478b4e22f1ab635c6fca4f2c1991f"
+      },
+      {
+        "entry": "com/moakiee/thunderbolt/core/crafting/pattern/ReusableStockSource.class",
+        "sha256": "10e1a3cbd22999d36a0735604c7ef3d14f00f16659a0b40c18410e6859a20cc0"
+      }
+    ]
+  },
+  "comparison_refs": {
+    "evidence": "Existing local remote-tracking refs, not fetched in this step. Recheck before later upstream comparison.",
+    "refs": {
+      "upstream/1.20.1": "d67e9560cff4bde405730cf5f9baa82542852cc6",
+      "upstream/main": "13ddfc3efcd5b20bb9558e71e93272b07fa804f6",
+      "upstream/alpha": "13ddfc3efcd5b20bb9558e71e93272b07fa804f6"
+    },
+    "usage": "1.20.1 same-version comparison; main/alpha cross-version reference only; ignore GTL upstream."
+  }
+}

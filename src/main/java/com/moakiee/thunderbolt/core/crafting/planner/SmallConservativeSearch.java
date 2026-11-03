@@ -31,7 +31,14 @@ final class SmallConservativeSearch {
 
     static <K> CraftPlan<K> tryPlan(CraftGraph<K> graph, K target, long amount, int stateLimit,
             BooleanSupplier tryConsumeWork) {
-        if (amount <= 0 || amount > MAX_STOCK || stateLimit <= 0) return null;
+        return tryPlan(graph, target, amount, stateLimit, tryConsumeWork, () -> {});
+    }
+
+    /** Reports an actual search truncation separately from an unsupported portfolio or exhausted queue. */
+    static <K> CraftPlan<K> tryPlan(CraftGraph<K> graph, K target, long amount, int stateLimit,
+            BooleanSupplier tryConsumeWork, Runnable searchCutoff) {
+        if (amount <= 0 || amount > MAX_STOCK) return null;
+        if (stateLimit <= 0) { searchCutoff.run(); return null; }
         var indices = new LinkedHashMap<K, Integer>();
         var keys = new ArrayList<K>();
         var patterns = new ArrayList<CraftPattern<K>>();
@@ -107,7 +114,7 @@ final class SmallConservativeSearch {
         var seen = new HashSet<Counts>();
         var first = new Counts(new int[m]);
         var admittedMasks = new HashMap<Integer, Boolean>();
-        if (!tryConsumeWork.getAsBoolean()) return null;
+        if (!tryConsumeWork.getAsBoolean()) { searchCutoff.run(); return null; }
         queue.add(new Node(first, stock, 0)); seen.add(first);
         while (!queue.isEmpty()) {
             PlanningCancellation.check();
@@ -140,7 +147,6 @@ final class SmallConservativeSearch {
                     // start together would wrongly reject seed reuse between partial batches.
                     return certified;
             }
-            if (node.depth == MAX_FIRINGS) continue;
             for (int r = 0; r < m; r++) {
                 boolean enabled = true;
                 for (int i = 0; i < n; i++) if (node.stock[i] < inputs[r][i]) { enabled = false; break; }
@@ -150,7 +156,11 @@ final class SmallConservativeSearch {
                 // Equal count vectors have equal inventory and the same all-orders obligation.
                 // Inventory alone is insufficient: two schedules can require different recipes.
                 if (seen.contains(key)) continue;
-                if (seen.size() >= stateLimit || !tryConsumeWork.getAsBoolean()) return null;
+                if (node.depth == MAX_FIRINGS) { searchCutoff.run(); continue; }
+                if (seen.size() >= stateLimit || !tryConsumeWork.getAsBoolean()) {
+                    searchCutoff.run();
+                    return null;
+                }
                 seen.add(key);
                 int[] next = node.stock.clone();
                 for (int i = 0; i < n; i++) next[i] += outputs[r][i] - inputs[r][i];

@@ -43,13 +43,18 @@ class SmallRecoveryBudgetStatusTest {
         assertNotNull(measured);
         int needed = consumed[0];
         var exact = new CraftPlannerV2.SharedCounterBudget(needed);
-        var recovered = SmallConservativeSearch.tryPlan(graph, "T", 23, 4096, () -> exact.tryConsume(1));
+        boolean[] cutoff = {false};
+        var recovered = SmallConservativeSearch.tryPlan(graph, "T", 23, 4096,
+                () -> exact.tryConsume(1), () -> cutoff[0] = true);
         assertNotNull(recovered);
         assertTrue(recovered.feasible());
         assertEquals(0, exact.remaining);
+        assertFalse(cutoff[0]);
         var insufficient = new CraftPlannerV2.SharedCounterBudget(needed - 1);
-        assertNull(SmallConservativeSearch.tryPlan(graph, "T", 23, 4096, () -> insufficient.tryConsume(1)));
+        assertNull(SmallConservativeSearch.tryPlan(graph, "T", 23, 4096,
+                () -> insufficient.tryConsume(1), () -> cutoff[0] = true));
         assertEquals(0, insufficient.remaining);
+        assertTrue(cutoff[0]);
         assertTrue(UnorderedByproductSafety.allOrdersFinishSmall(recovered, "T", 23));
     }
 
@@ -67,20 +72,50 @@ class SmallRecoveryBudgetStatusTest {
         var graph = CraftGraph.<String>builder().stock("raw", 1)
                 .pattern("T", 2, List.of(CraftInput.of("raw", 1))).build();
         int[] calls = {0};
+        boolean[] cutoff = {false};
         assertNull(SmallConservativeSearch.tryPlan(graph, "T", 1, 1, () -> {
             assertEquals(1, ++calls[0], "the local state cutoff must precede another shared work request");
             return true;
-        }));
+        }, () -> cutoff[0] = true));
         assertEquals(1, calls[0]);
+        assertTrue(cutoff[0]);
     }
 
-    @Test void optionalRecoveryDeadlineKeepsTheExistingMissingStatus() {
+    @Test void naturallyExhaustedRecoveryQueueDoesNotReportACutoffAtAnExactWorkBoundary() {
+        var graph = CraftGraph.<String>builder().pattern("T", 2, List.of(CraftInput.of("raw", 1))).build();
+        var work = new CraftPlannerV2.SharedCounterBudget(1);
+        boolean[] cutoff = {false};
+        assertNull(SmallConservativeSearch.tryPlan(graph, "T", 1, 4096,
+                () -> work.tryConsume(1), () -> cutoff[0] = true));
+        assertEquals(0, work.remaining);
+        assertFalse(cutoff[0]);
+    }
+
+    @Test void depthLimitReportsOnlyAnUnexploredEnabledSuccessor() {
+        int limit = SmallConservativeSearch.MAX_FIRINGS;
+        for (int stock : new int[] {limit, limit + 1}) {
+            var graph = CraftGraph.<String>builder().stock("raw", stock)
+                    .pattern("T", 2, List.of(CraftInput.of("raw", 1))).build();
+            boolean[] cutoff = {false};
+            assertNull(SmallConservativeSearch.tryPlan(graph, "T", 2L * limit + 1L, 4096,
+                    () -> true, () -> cutoff[0] = true));
+            assertEquals(stock > limit, cutoff[0], "a dead end is complete; another enabled firing is truncated");
+            cutoff[0] = false;
+            var exact = SmallConservativeSearch.tryPlan(graph, "T", 2L * limit, 4096,
+                    () -> true, () -> cutoff[0] = true);
+            assertNotNull(exact);
+            assertTrue(exact.feasible());
+            assertFalse(cutoff[0]);
+        }
+    }
+
+    @Test void optionalRecoveryDeadlineMarksMissingAsAnIncompleteSearch() {
         var result = optionalRecoveryExpires(terminalMixture(), 48);
         assertFalse(result.plan().feasible());
         assertEquals(Map.of("B", 1L), result.plan().missing());
         assertTrue(result.diagnostics().consumedSearchBudget() < result.diagnostics().configuredSearchBudget());
-        assertFalse(result.plan().budgetExhausted());
-        assertFalse(result.diagnostics().searchCutoff());
+        assertTrue(result.plan().budgetExhausted(), "expiry is UNKNOWN, not a completed missing proof");
+        assertTrue(result.diagnostics().searchCutoff());
     }
 
     @Test void externalCancellationDuringRecoveryStillPropagates() {
@@ -91,6 +126,56 @@ class SmallRecoveryBudgetStatusTest {
                     () -> CraftPlannerV2.planDetailed(terminalMixture(), "T", 23, 256, 48)));
         }
         assertTrue(context.enteredRecovery);
+    }
+
+    @Test void exhaustedRecoveryAllowanceKeepsTheNextQuantityProbeUnknown() {
+        var graph = terminalMixture();
+        var session = new CraftPlannerV2.PlanningSession<String>();
+        session.optimizeFeasible = false;
+        assertTrue(CraftPlannerV2.planDetailed(graph, "T", 1, session).plan().feasible());
+        // This calculation has already spent the optional allowance on earlier probes.
+        session.conservativeSearchNanos = SmallConservativeSearch.MAX_NANOS;
+        var result = CraftPlannerV2.planDetailed(graph, "T", 23, session);
+        assertFalse(result.plan().feasible());
+        assertEquals(Map.of("B", 1L), result.plan().missing());
+        // Independent sequential witness: two 9T batches and two 4T batches use A4/B14.
+        long a = 5, b = 14, produced = 0;
+        for (long[] firing : new long[][] {{9, 1, 5}, {9, 1, 5}, {4, 1, 2}, {4, 1, 2}}) {
+            assertTrue(a >= firing[1] && b >= firing[2]);
+            a -= firing[1]; b -= firing[2]; produced += firing[0];
+        }
+        assertTrue(produced >= 23);
+        assertTrue(result.plan().budgetExhausted(), "skipped recovery is not an infeasibility proof");
+        assertTrue(result.diagnostics().searchCutoff());
+    }
+
+    @Test void exhaustedOptionalAllowanceStillKeepsACertifiedFeasibleProbe() {
+        var graph = terminalMixture();
+        var session = new CraftPlannerV2.PlanningSession<String>();
+        session.conservativeSearchNanos = SmallConservativeSearch.MAX_NANOS;
+        var result = CraftPlannerV2.planDetailed(graph, "T", 1, session);
+        assertTrue(result.plan().feasible());
+        assertFalse(result.plan().budgetExhausted());
+    }
+
+    @Test void exhaustedSharedWorkDoesNotCertifyAnAmbiguousMissingRoute() {
+        var result = CraftPlannerV2.planDetailed(terminalMixture(), "T", 23, 256, 4);
+        assertFalse(result.plan().feasible());
+        assertEquals(Map.of("B", 1L), result.plan().missing());
+        assertEquals(4, result.diagnostics().consumedSearchBudget());
+        assertTrue(result.plan().budgetExhausted(), "the feasible mixture still needs recovery");
+        assertTrue(result.diagnostics().searchCutoff());
+    }
+
+    @Test void exhaustedOptionalAllowanceDoesNotInvalidateAnUnambiguousRawShortage() {
+        var graph = CraftGraph.<String>builder().pattern("T", 2, List.of(CraftInput.of("raw", 1))).build();
+        var session = new CraftPlannerV2.PlanningSession<String>();
+        session.conservativeSearchNanos = SmallConservativeSearch.MAX_NANOS;
+        var result = CraftPlannerV2.planDetailed(graph, "T", 1, session);
+        assertFalse(result.plan().feasible());
+        assertEquals(Map.of("raw", 1L), result.plan().missing());
+        assertFalse(result.plan().budgetExhausted());
+        assertFalse(result.diagnostics().searchCutoff());
     }
 
     private static CraftGraph<String> terminalMixture() {

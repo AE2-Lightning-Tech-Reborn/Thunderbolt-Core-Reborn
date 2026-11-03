@@ -225,6 +225,7 @@ public final class FastCraftingPlanner {
                     level,
                     output,
                     reservedStock);
+            if (compiled == null) return FastAttempt.decline();
             session.compiledGraph = compiled;
         }
 
@@ -247,6 +248,12 @@ public final class FastCraftingPlanner {
         if (!plan.supported()) {
             return FastAttempt.decline();
         }
+        // A truncated search may provide useful diagnostics, but it has not proved this amount
+        // impossible. Do not publish it as HANDLED + null or as an authoritative missing preview.
+        // A certified feasible incumbent remains usable even when optional optimization ran out.
+        if (!plan.feasible() && plan.budgetExhausted()) {
+            return FastAttempt.decline();
+        }
         boolean needsExact = ExactPlanPreview.needsExact(plan);
         plan = IdOnlyInputGroups.project(plan);
         boolean multi = compiled.multiplePaths;
@@ -267,10 +274,8 @@ public final class FastCraftingPlanner {
                             compiled.patternSources, compiled.emittable, snapshot, reservedStock),
                     plan.usedReusableStock());
         }
-        // Infeasible at this amount. A completed search reports proven shortfalls; a budget-limited
-        // search reports the missing leaves of its best concrete diagnostic route. In both cases keep
-        // the attempt inside Thunderbolt so AE2 can show replenishment targets without re-entering the
-        // exhaustive simulator that this fast path is protecting.
+        // The completed search reports missing materials. Truncated searches have already declined
+        // above; a diagnostic route alone is not a mathematical infeasibility proof.
         if (!simulate) {
             // AE2 asks for this exact amount again with simulate=true to build the missing-material
             // page. Build that cheap representation now while the graph/snapshot are still available;
@@ -286,6 +291,7 @@ public final class FastCraftingPlanner {
                 plan.usedReusableStock()); // partial + missing
     }
 
+    @Nullable
     private static CompiledGraph compileGraph(
             ICraftingService craftingService,
             ChildCraftingSimulationState snapshot,
@@ -321,7 +327,9 @@ public final class FastCraftingPlanner {
                 }
             }
         } catch (GraphExportLimitExceeded ignored) {
-            return CompiledGraph.empty();
+            // A partial export is UNKNOWN. Publishing an empty graph would fabricate a raw
+            // shortage and cache it for the remaining amount probes in this calculation.
+            return null;
         }
         return new CompiledGraph(
                 graphBuild.builder.build(),
@@ -362,10 +370,6 @@ public final class FastCraftingPlanner {
             this.emittable = Set.copyOf(emittable);
         }
 
-        private static CompiledGraph empty() {
-            return new CompiledGraph(
-                    CraftGraph.<AEKey>builder().build(), false, Map.of(), Map.of(), Set.of());
-        }
     }
 
     private static final class GraphExportBudget {

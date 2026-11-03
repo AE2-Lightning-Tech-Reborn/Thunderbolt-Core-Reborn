@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "workflow": "Core算法续办与制品验收",
+  "step": "1_addendum_for_step8_A6",
+  "captured_at_utc": "2026-11-02T18:25:08.020506+00:00",
+  "task": "9ccb1aba-af08-41f7-aaa2-28d938a3331e",
+  "decision": {
+    "existing_public_core_interfaces_suffice_for_lt_quarantine": true,
+    "core_api_change_required": false,
+    "core_jar_change_required": false,
+    "lt_product_changes_required": true,
+    "lt_a6_verdict": "reported_red_pending_LT_fix_and_retest",
+    "automatic_exactly_once_refund_not_guaranteed": true,
+    "arbitrary_crash_safety_not_proven_by_NBT_serialization": true
+  },
+  "fixed_core": {
+    "version": "2.0.4-gto.5",
+    "coordinate": "com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1:2.0.4-gto.5",
+    "sha256": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+    "size_bytes": 5472513,
+    "source_commit": "19e1e6fa3f9b93330f038b2d4d76f1d4fc3f9afb",
+    "frozen_jar": "release/902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1/thunderbolt-forge-1.20.1-2.0.4-gto.5.jar",
+    "frozen_and_two_published_copies_hashes_verified": true,
+    "not_rebuilt_or_overwritten": true
+  },
+  "lt_context": {
+    "reported_start_commit": "093d71d950220b71463ab514d86b4a1f42014b2c",
+    "commit_from_report_not_additional_LT_git_access": true,
+    "sources": [
+      {
+        "path": "LT/src/main/java/com/moakiee/ae2lt/crafting/big/BigCraftingService.java",
+        "sha256_raw_observed_at_source_review": "c6d0a95c5f677ce13e5f973fecfdb6759aab19d9f96199833487dc795a0a608e",
+        "sha256_raw_at_documentation": "c6d0a95c5f677ce13e5f973fecfdb6759aab19d9f96199833487dc795a0a608e",
+        "changed_while_lt_continues": false,
+        "access": "read_only_explicitly_authorized"
+      },
+      {
+        "path": "LT/src/main/java/com/moakiee/ae2lt/crafting/big/BigCraftingJob.java",
+        "sha256_raw_observed_at_source_review": "ca165e27a82a067798c5307ee2da06ea2f97ef0a19f9e62118aff4fc553ce05f",
+        "sha256_raw_at_documentation": "ca165e27a82a067798c5307ee2da06ea2f97ef0a19f9e62118aff4fc553ce05f",
+        "changed_while_lt_continues": false,
+        "access": "read_only_explicitly_authorized"
+      },
+      {
+        "path": "LT/src/jdb/java/com/moakiee/ae2lt/crafting/big/CoreAlgorithmAcceptanceGameTests.java",
+        "sha256_raw_observed_at_source_review": "edd0a2e91a51de73b239a9b0a61724dc2905bffd1521047a373a18f5ad25073e",
+        "sha256_raw_at_documentation": "ce89f1139085d7791e2361bd178b3180d0a8e817e751dc0dfdde6547407007b9",
+        "changed_while_lt_continues": true,
+        "access": "read_only_explicitly_authorized"
+      }
+    ],
+    "lt_writes_by_core": false
+  },
+  "evidence": {
+    "log_path": "server-results/dev23-core5-ownership-r2.log",
+    "log_sha256_raw": "fbc5d28153c01c05b8a7de4ea3e4733fd84603879832e0a79c56c2ff28031aa2",
+    "error": "UNKNOWN external refund was blindly replayed after NBT restore: initial=10, actual=12",
+    "original_async_assertion_crashed_server": true,
+    "original_log_is_not_normally_completed_GameTest_report": true,
+    "core_did_not_rerun_LT_game_tests": true,
+    "zero_and_partial_controls": "present_in_authorized_QA_source; final_LT_verdict_not_supplied_by_Core",
+    "observed_qa_source_has_h_fail_transport_correction": true
+  },
+  "frozen_core_apis": [
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/storage/big/BigStorageOps.java",
+      "sha256_git_bytes": "145feabb25949dde1c96426e881f6a56f1a6ecd9f35f7462a75d45329c76b34a",
+      "public_or_internal_source_not_changed": true
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/core/storage/big/BigAmounts.java",
+      "sha256_git_bytes": "6a793bc5627291c7f08fe849b2fb478dae756acd9fb1cb392ea1e29a337abc7b",
+      "public_or_internal_source_not_changed": true
+    },
+    {
+      "path": "src/main/java/com/moakiee/thunderbolt/api/storage/BigMEStorage.java",
+      "sha256_git_bytes": "39c34fb1a5e7caae4d226222de3445214a646ff030fdce659edaadcc941a1916",
+      "public_or_internal_source_not_changed": true
+    }
+  ],
+  "receipt_semantics": {
+    "storage_insert": "accepted_amount",
+    "batch_push": "unaccepted_copies_leftover",
+    "exception_without_guaranteed_no_effect": "UNKNOWN_never_assume_zero_or_rollback",
+    "normal_validation": "0 <= accepted <= actual_endpoint_offer",
+    "legacy_bridge": "one long call, S=min(R,Long.MAX_VALUE)",
+    "exact_bridge": "S=R through BigMEStorage.insertBig"
+  },
+  "required_lt_states": [
+    "READY",
+    "INVOKING",
+    "UNKNOWN",
+    "SETTLED"
+  ],
+  "transitions": [
+    {
+      "before": "READY",
+      "event": "before_external_MODULATE",
+      "after": "INVOKING",
+      "requirement": "register attempt and exclude offered S from spendable/refundable/materializable balance before invocation; dirty/save includes journal"
+    },
+    {
+      "before": "INVOKING",
+      "event": "valid_known_accepted_A",
+      "after": "SETTLED",
+      "requirement": "settle once; known balance R-A; only unaccepted S-A may become available again"
+    },
+    {
+      "before": "INVOKING",
+      "event": "exception_absent_or_invalid_receipt",
+      "after": "UNKNOWN",
+      "requirement": "no automatic replay, compensation extract or normal fallback"
+    },
+    {
+      "before": "INVOKING",
+      "event": "load_without_completed_receipt",
+      "after": "UNKNOWN",
+      "requirement": "never reset to READY"
+    },
+    {
+      "before": "UNKNOWN",
+      "event": "tick_cancel_load_reconnect_cleanup_removal",
+      "after": "UNKNOWN",
+      "requirement": "retain original identity and sole reconciliation owner; no materialization or job deletion"
+    },
+    {
+      "before": "UNKNOWN",
+      "event": "authoritative_correlated_receipt_or_proven_no_effect",
+      "after": "SETTLED",
+      "requirement": "reconcile once; local UUID or network balance delta alone is insufficient"
+    }
+  ],
+  "persistence_fields": [
+    "job_uuid",
+    "attempt_id",
+    "full_AEKey",
+    "exact_endpoint_offer_S",
+    "known_unattempted_tail_or_source_relation",
+    "refund_state",
+    "available_destination_locator_or_scope",
+    "existing_seed_group_metadata_if_relevant"
+  ],
+  "ownership": {
+    "exposure_record_is_inventory": false,
+    "lt_claims_physical_possession_of_full_exposure": false,
+    "unique_reconciliation_responsibility": "LT",
+    "known_unattempted_tail": "R-S remains a known separately accounted balance",
+    "job_can_be_cleared_while_unknown_exists": false,
+    "host_removal": "transfer record to one durable non-materializing owner before detach, or prevent/defer cleanup/removal"
+  },
+  "lt_boundaries": [
+    "returnEscrow intent/receipt/unknown handling",
+    "returning bypass of suspended/dispatchFailed",
+    "cancel reentry into tick",
+    "BigCraftingJob save/load and format handling",
+    "empty escrow job completion and external complete callback",
+    "inventory/UI/planning/materialization views",
+    "host removal and sole durable owner transfer; source not inspected by Core"
+  ],
+  "conditional_future_shared_contract": {
+    "required_now": false,
+    "only_if": "automatic completion/retry after missing receipt or cross-mod crash recovery is requested",
+    "capabilities": [
+      "stable operation id bound to source/destination scope, full key and exact offer",
+      "recipient durable atomic association of effect with deduplication/receipt",
+      "retry idempotence or authoritative receipt lookup",
+      "explicit UNKNOWN; absence is not zero-accepted proof"
+    ],
+    "wrapper_of_unstructured_exception_cannot_infer_accepted_amount": true
+  },
+  "acceptance_required": [
+    "actual receiver accepts 2 then throws; call count remains one and actual receiver balance remains 2 after repeated tick/NBT restore/cancel",
+    "stable job/attempt/key/amount plus unresolved record, no success cleanup or materialization",
+    "zero accepts leave 10; partial 3 leaves 7; known remainder retry ends at actual 10 once",
+    "real save/stop and three independent JVM restore, including unresolved intent",
+    "new LT product bytes rerun affected A6/A8/exact/cancel/cleanup coverage"
+  ],
+  "core_checks_this_step": [
+    "authorized source and stated log read only",
+    "frozen .5 and two published jar hashes",
+    "document/JSON consistency and links",
+    "Core source/API/frozen files unchanged"
+  ],
+  "core_tests_run_this_step": [],
+  "unchanged_release_validation_not_relabelled_as_A6": true,
+  "report": "docs/GTO_CORE_REFUND_UNKNOWN_CONTRACT_20261102.zh-CN.md",
+  "status_scope": "Historical A6 red capture before LT product fix; subsequent acceptance is separately recorded.",
+  "follow_up_summary": "docs/baselines/core-joint-test-20261103.json"
+}

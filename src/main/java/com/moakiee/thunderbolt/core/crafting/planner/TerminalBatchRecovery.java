@@ -39,6 +39,11 @@ final class TerminalBatchRecovery {
     /** Null means uncertified or outside this portfolio, never a proof of infeasibility. */
     static <K> CraftPlan<K> tryPlan(CraftGraph<K> graph, K target, long amount, int stateLimit,
             IntPredicate spendWork) {
+        return tryPlan(graph, target, amount, stateLimit, spendWork, () -> {});
+    }
+
+    static <K> CraftPlan<K> tryPlan(CraftGraph<K> graph, K target, long amount, int stateLimit,
+            IntPredicate spendWork, Runnable searchCutoff) {
         PlanningCancellation.check();
         if (amount <= 0 || amount > SmallConservativeSearch.MAX_STOCK || stateLimit <= 0) return null;
         if (graph.patternsFor(target).size() < MIN_ROUTES) return null;
@@ -140,7 +145,7 @@ final class TerminalBatchRecovery {
         if (!budget.spend(setupWork)) return null;
         var projection = graph.withPatterns(Map.of(target, selected));
         var proposal = SmallConservativeSearch.tryPlan(projection, target, amount,
-                Math.min(stateLimit, SmallConservativeSearch.MAX_STATES), () -> budget.spend(1));
+                Math.min(stateLimit, SmallConservativeSearch.MAX_STATES), () -> budget.spend(1), searchCutoff);
         if (proposal == null || budget.exhausted) return null;
         long replayWork = 1L + proposal.firings().size();
         for (var pattern : proposal.firings().keySet()) replayWork += 2L * pattern.inputs().size();

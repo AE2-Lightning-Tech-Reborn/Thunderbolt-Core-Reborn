@@ -343,6 +343,9 @@ public final class ParallelBatchCpuHelper {
     public static void reinject(BulkResult result, long leftoverCopies, ListCraftingInventory inv) {
         if (leftoverCopies <= 0) return;
         long returnedCopies = Math.min(leftoverCopies, result.remainingCopies);
+        // A completed refund also released the one shared seed. Do not repeat that transfer
+        // when the caller retries with a stale leftover count.
+        if (returnedCopies <= 0) return;
         for (int slot = 0; slot < result.scaledInputs.length; slot++) {
             for (var entry : result.scalablePerCopy[slot]) {
                 long amount = saturatingMultiply(entry.getLongValue(), returnedCopies);

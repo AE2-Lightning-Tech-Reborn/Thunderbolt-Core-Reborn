@@ -1,0 +1,1596 @@
+{
+  "schema_version": 1,
+  "step": 7,
+  "captured_at_utc": "2026-11-02T17:37:52.878405+00:00",
+  "artifact": {
+    "version": "2.0.4-gto.5",
+    "coordinate": "com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1:2.0.4-gto.5",
+    "path": "D:/CodexTaskData/thunderbolt-core-gto-algorithm-20261102/release/902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1/thunderbolt-forge-1.20.1-2.0.4-gto.5.jar",
+    "sha256": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+    "size_bytes": 5472513,
+    "own_classes": 557,
+    "nested": {
+      "jars": [
+        {
+          "identifier": {
+            "group": "io.github.llamalad7",
+            "artifact": "mixinextras-forge"
+          },
+          "version": {
+            "range": "[0.4.1,)",
+            "artifactVersion": "0.4.1"
+          },
+          "path": "META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+          "isObfuscated": false
+        }
+      ]
+    },
+    "tests": {
+      "cpSatColdRefinementTest": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 1
+      },
+      "materialDagColdReplayTest": {
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 20
+      },
+      "materialDagColdReplenishmentTest": {
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 2
+      },
+      "referenceCapabilityTest": {
+        "tests": 82,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 82
+      },
+      "test": {
+        "tests": 1695,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 2,
+        "passed": 1693
+      }
+    }
+  },
+  "publication": {
+    "status": "published_hashes_verified",
+    "repositories": [
+      "Project repo",
+      "Maven Local"
+    ],
+    "jar_name": "thunderbolt-reborn-forge-1.20.1-2.0.4-gto.5.jar",
+    "coordinate": "com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1:2.0.4-gto.5",
+    "sha256": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+    "old_jars_unchanged": 14
+  },
+  "reviews": {
+    "step4": "pass after correction",
+    "step6": "pass",
+    "final_benchmark_supplement": "pass",
+    "record": "docs/GTO_CORE_ALGORITHM_REVIEW_20261102.zh-CN.md",
+    "reviewer": "independent read-only child agent; channel review card failed to start"
+  },
+  "source": {
+    "production_java_tree": "3b53b40fb146a06ea41d5abaa7096a24be4a95a7",
+    "implementation_commit": "a30b789",
+    "final_summary_commit": "Containing PR17 source commit; recorded on PR and handoff",
+    "properties_lf_sha256": "d407927136bfbd4f27a8919d289ed5f9382826f4d7e8d04eb78681ecf3eca11b"
+  },
+  "shared_frozen_sources_unchanged": 82,
+  "preservation_anchors_unchanged": 10,
+  "actual_ae2_development_mapped_abi": {
+    "31": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "40": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "original_final_jar_runtime": {
+    "dev23-final": {
+      "result": {
+        "profile": "dev23-final",
+        "pid": 99760,
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 51.28,
+        "tests": [
+          {
+            "name": "registeredfaceforwardsitemsandfluidswhileotherfacesstaynative",
+            "status": "PASS"
+          },
+          {
+            "name": "itemstackinterfacesuperenchantmentcallsremainvalid",
+            "status": "PASS"
+          },
+          {
+            "name": "offlinerejectnevermutatesnativeinventoryorfluidtank",
+            "status": "PASS"
+          },
+          {
+            "name": "absentofflineandnestedbypasskeepnativecapabilityownership",
+            "status": "PASS"
+          },
+          {
+            "name": "selfprojectioncannotrecurseandguardclearsafterfailure",
+            "status": "PASS"
+          },
+          {
+            "name": "closingonehostpreservesanotheronthesameface",
+            "status": "PASS"
+          },
+          {
+            "name": "duplicatehandleskeeppersistenceuntilthelastclose",
+            "status": "PASS"
+          },
+          {
+            "name": "stalehandlecannoteraseareplacementregistration",
+            "status": "PASS"
+          }
+        ],
+        "totals": [
+          [
+            "PASS",
+            "8",
+            "0"
+          ]
+        ],
+        "artifact_hashes_unchanged": true,
+        "success": true
+      },
+      "inputs": {
+        "profile": "dev23-final",
+        "core_sha256": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+        "source": "D:\\CodexTaskData\\thunderbolt-core-gto-eject-20261102\\dev23-green",
+        "excluded": [
+          "neoecoae-20.5.2-gto.1.jar",
+          "thunderbolt-eject-qa.jar",
+          "thunderbolt-forge-1.20.1-2.0.4-gto.4.jar"
+        ],
+        "platform": "Forge 47.4.20 Java 21 Minecraft 1.20.1",
+        "scope": "Core standalone EJECT/ElementalCraft; LT and NeoECO external acceptance is step 8",
+        "mods": {
+          "AdvancedBackups-forge-1.20-3.7.1.jar": "eb471fbd7de564e6b12890359546d280d5723e09867a3104ea31c7285ada6942",
+          "advancementnomore-1.20.1-1.0.1.jar": "a8cbe435db7a3c83bfb56d64e33b27d5cf44d048b3e5f156df106d6dedd8b050",
+          "ad_astra-forge-1.20.1-1.15.21.jar": "d84dc1182b4c570d955df67b80703dc058ce944c7d9b0702e3577934c96d864c",
+          "ad_astra_rocketed-forge-1.20.1-1.0.5.jar": "5c8aac1f11daf225afb2da30ed1672e944c9426bca135dc9fae20ee4b3220e80",
+          "ae2insertexportcard-1.20.1-1.3.0.jar": "329dff2184edc476e7261b073f17239015636543a22c16df1161fafe547d6b1c",
+          "AE2NetworkAnalyzer-1.20-1.0.6-forge.jar": "9c10ab288402b6a01815d58029298fc56dd482f045511ad35104b17e9b6c4393",
+          "AE2ToggleableViewCell-1.20.1-1.1.0.jar": "c08a7e4c180310a457b0b83b76863ad4017bd25b64dc07b9ad14d4293b97bb47",
+          "ae2wtlib-15.3.3-forge.jar": "39e5cede37d5c6a07592d6c1e83398791e037f3d434bc44f7460cd085a4de5f4",
+          "AI-Improvements-1.20-0.5.2.jar": "575a4a8e00f982c064d54bb3e73e5cda2d14414de054a471a3daf3f58bdf560a",
+          "alltheleaks-1.1.4+1.20.1-forge.jar": "fb72063a7d17df97740d24355444ef2f95eab97728e1256c639bb432c61b7716",
+          "alternate_current-mc1.20-1.7.0.jar": "9dfa5365ef170323612d6ada820b7cac12e05135f00f16d0f627488426f59565",
+          "Apotheosis-1.20.1-7.4.8.jar": "5ed8c17cf62837bb649d1054e3e4fe93c4d9bdec98fe9f332e2637a260da30da",
+          "ApothicAttributes-1.20.1-1.3.7.jar": "68487b11c0d4e2f67a85f2b04bf65e99ac15294f2923f4391f83e9542293187a",
+          "applied-flux-965012-7651647.jar": "7673b0e44ee5f247fe224c09b8178f500a01a96e7d07baa77a4a5a110462eaea",
+          "appliedenergistics2-forge-1.20.1-15.2610.31.jar": "f63917bf5a2ca0692c0550ad2d045991f7a493d89021bfb30b51026d4ad31a3d",
+          "architectury-9.2.14-forge.jar": "218b471d0b8a1f6cda14cfc1beb9eeb0df54304500acc6c5613d9b88ec65d9af",
+          "arsmeteorites-1.20.1-1.2.0.jar": "f61b28910cec3d703790ef5266dfe3be91da7126d7ae8f48e24189e0d4046414",
+          "ars_nouveau-1.20.1-forge-1.20.1-4.12.19.jar": "f96979a173042dad4a86b35652586b8efc66581b1b819cbd1bcbd8ceb98e053b",
+          "async-locator-forge-1.20-1.3.0.jar": "d171fdddd8dad64cba4c8c67cd2a0bdfc2697ff35e11f9fb666b7464e1e9468b",
+          "AttributeFix-Forge-1.20.1-21.0.5.jar": "43ccfd91c1a24d1b3c9d3ccf2dd6a86e9f0c2ba442b111a2238fbff3cf88af11",
+          "balm-forge-1.20.1-7.3.44.jar": "ad11d968770bb1ce73377626b6f1dcd4ae6f8be1ef6f37cee9b872b8176aebd3",
+          "betterp2p-1.5.0-forge.jar": "af3db500145f352a21bc2cd86d1f854e5f3c1486a8659b493a5b2fbc3ba0776f",
+          "Botania-forge-1.20.1-457.2610.17.jar": "f2cc53ec9c2705dc048f6878a515aa2558832ee05bb1ee7f757b358ea69b42ca",
+          "botarium-forge-1.20.1-2.3.4.jar": "470810a364ff4ad4d4fcd4e55798263938fc893970eacecc58e8b741a392b1cf",
+          "buildinggadgets2-1.0.8.jar": "59efb399a4acdb69a01a970b1f1e3c5584495aabc726ff40857ab4aed9372c83",
+          "camera-forge-1.20.1-1.0.20.jar": "593f3a9c0baf09d7baf8f9ec44b882716c43fbf11d5cbff607c9f7fa3ec9aeb8",
+          "chisel-forge-2.0.0+mc1.20.1.jar": "f6ebb48de0a954349a5f0d607f7955e898a87dae45fb7cf71878f4bac56653c1",
+          "cloth-config-11.1.136-forge.jar": "1e895e85cf5b1e1905ef3178ec155c8badfe22a1577b92c09143a5aa1f4ce0f2",
+          "configuration-forge-1.20.1-3.1.0.jar": "179ca1a9928920a5d89d73d308e0e78f59083e4e44d869d5cf23a9087fd52c3d",
+          "constructionwand-1.20.1-2.11.jar": "b55ca6f0e734bad848adb06949675136f1d05cb4fb3efdde084c9842c40e1eec",
+          "Corgilib-Forge-1.20.1-4.0.3.6.jar": "6f337ceae789bd31f39c0c4e1bfa1bc094dbfcc2d8e4eee3c8b6f50750891298",
+          "coroutil-forge-1.20.1-1.3.7.jar": "11448808a42c17425cf2ea39701841008683d6ad6e2838a34eef0253251a870f",
+          "corpse-forge-1.20.1-1.0.23.jar": "8d77c5fc8dc981c750a8e66d4665f055457f748f0ce49a303d9bc50347bdbf7c",
+          "craftingtweaks-forge-1.20.1-18.2.9.jar": "1cc83c8c0bee73a2ffa3428ce28e3c17d7f95e26e1a820d8bd7270e0931f8974",
+          "CreativeCore_FORGE_v2.12.40_mc1.20.1.jar": "936de62489c0d6fbe74202486cbe2b191b8629b02bab1d480acfdb03690f33f4",
+          "cryonicconfig-forge-1.0.0+mc1.20.1.jar": "51ffc8832eec0fce716ecab9cd148ca7408b63963a1728b06df45d8cfb2eb04a",
+          "curios-forge-5.14.1+1.20.1.jar": "1e817919a35b37cf30524aaec73f0ca5130452f23f168f844854df282eb8e51f",
+          "datasynclib-forge-1.20.1-26.10.11.jar": "01f6fdcc80c00c54b8478f5ef060c5cbb7ebca26001339a0f587974a18436b04",
+          "deeperdarker-forge-1.20.1-1.3.3.jar": "d07dc6155e0b751c7d1ec26dabb7284a41798c85e48b0d809fd1254e489ed455",
+          "doespotatotick-1.20.1-5.6.3.jar": "5aa62c1b236e79136d8e4ef60544385c5ae0d6f37c34fe1a70eaaf3d179e5a66",
+          "dpanvil-1.20.1-5.0.1.jar": "e0c9d6704966e74b469dacd27b9b793ff6c3f30669e52531bd8271ad53d58f60",
+          "Dungeon Crawl-1.20.1-2.3.15.jar": "71e1b8ceaf20c3102ae42ef2761ca47f30fe4cbd20ecbb687df2ce75d1785514",
+          "DungeonsArise-1.20.x-2.1.58-release.jar": "f8f1254dbe7ed7c1d5403f20361a36f0d0587c82b71313e3f427c7f1ce7c8a90",
+          "duplicationless-1.20.1-1.2.1.jar": "9f9b14e65a7bf36a185baab24d7d236e5b39e05cb0818b4d51c49e7104b17a42",
+          "easy-villagers-forge-1.20.1-1.1.39.jar": "f2826c6f4be28df912d263f7914888f1b173c09dc99cc41998013e817d0dfb1d",
+          "effortlessbuilding-1.20.1-3.11.jar": "c40ee9a5b49fb4721e6e6a629d6236a640b6da76f95e3f636c77db8f2eb92dc2",
+          "elementalcraft-1.20.1-6.0.1.jar": "bed6f590268ec53793dd8c5cb866c78cafbb952cebb2dfb401eef4f0e703a890",
+          "elevatorid-1.20.1-1.9.1-forge.jar": "7487c091bc8e6ae7b83c61471c97258b380fab2a0f421ed84df78f92ba630f75",
+          "emi-forge-1.20.1-1.1.25.jar": "93282dbb7ef185514dfe8991910b172b0f2ef7bbb2b6f19bfd795edb892ec87a",
+          "endrem_forge-5.3.3-R-1.20.1.jar": "19295ca4a798f2e813f359fa376f586bc57fadacd78b7e32440257f9f8bf2557",
+          "eventwrapper-forge-1.20.1-1.1.4.jar": "b583db8e37efe39d14257f316ebbb20d502e3f063f21e367595e54085c1d5de1",
+          "ExplorersCompass-1.20.1-1.4.0-forge.jar": "0d9a7705f39a9eac19c33e0fbe5422280048991a341dc0d9471bff32111c502c",
+          "ExtendedAE-1.20-1.4.21-forge.jar": "30fc8abe66d4b96919f0fd7b33badd0bb2013b31e2ee57f6aeaa63ffae37df4b",
+          "extendedae_plus-1.6.3.jar": "d8634db4ca56fe725799084b3c2c67b17874db50377ea497670379221d374764",
+          "extrabotany-forge-1.20.1-1.9.2.jar": "1de99382011d71c25e708107221e70d9a2f9c815a0b847a72317e62234e0ae26",
+          "factory_blocks-forge-1.4.0+mc1.20.1.jar": "a21e9ff2f8add29e7368e933015406f8a3c91dc103bbf16783ea3a3850f23a75",
+          "FarmersDelight-1.20.1-1.3.4.jar": "34f03eb671ea1ca579b00c98e4541404cb96d1a292014aed9cc5eb45ad8afbce",
+          "farmersrespite-1.20.1-2.1.2.jar": "21c15ef71f66684cbd94080e04649741bdf2b2ea6a6d542783e8961365d090bb",
+          "FastFurnace-1.20.1-8.0.2.jar": "970c11c090e7a364e2e006aabb5e573f79901e710e97195334ee5802317776e8",
+          "fastnbt-1.20-26.9.1-forge.jar": "605dbea3452d101f9196b19e2f5caa876a9be0d10bd07c1307c779547846aa1a",
+          "fastrecipesearch-1.20.1-26.8.4-forge.jar": "6ec611bc07e3c9bcdf75ae5af5af302cb82b94be025afb12d138c1b0140a0b95",
+          "FastWorkbench-1.20.1-8.0.4.jar": "86d20c6879bf86ef76b3fd94998d3e5c3327acb5d5324b6eb0b5348354766620",
+          "ferritecore-6.0.1-forge.jar": "9c2c9396a49e796d88497758caa4637d2bcbb433c318e2dd9cebcffbaf0f6c54",
+          "findme-3.2.3-forge.jar": "e76860618564a4e7b3c44ea15e30bce9441bb04259477891633523e186ed77bb",
+          "fixexperiencebug-1.20-46.2.2.jar": "08dc722aaa1bd61b4ee867badeb830e537b8362633197dd211c772a4a002f42e",
+          "fluidium-1.20.1-1.4.0.jar": "c352872092cc970b7826f5dd1779cdf325fbdb934dc104dd3dca95440b432e21",
+          "flux-networks-248020-5234697.jar": "8d24f39b6e1b2d83426a28a62ae0b65294b7e6e925e39a26b62f8ae077f54a89",
+          "ftb-essentials-forge-2001.2.4.jar": "e0022bfe29dc10e373947701dae1bc4ce75ee15fe21f6d89269677fbb9aebf73",
+          "ftb-library-forge-2001.2.13.jar": "41810281b65336265cae2c88412022d02f2f0a3f28c66a06173d86f98acf14a7",
+          "ftb-quests-forge-2001.4.22.jar": "9ea9d159a78a2724cfe0457b024680fdb52a2126eff9cfa5280a30578f647a68",
+          "ftb-teams-forge-2001.3.2.jar": "b1cb4d82ea9f137a87e12a7aaf3329619294b56f7d70337dfd557a76e10b6e07",
+          "ftb-ultimine-forge-2001.1.8.jar": "b80dde55b2c91fd27f09f15ed2aefb0756c7bd704316e488ae8a06b179e85730",
+          "ftb-xmod-compat-forge-2.1.3.jar": "16a8eb9de88d5c33d29cb076cc39dfb337b2c54348e1ef1efe9dd60cf85e5f72",
+          "functionalstorage-1.20.1-1.2.14.jar": "b627f558ae16352ca4988834c5397d10b9de8541188ff0d99121fff0f5ecf5f7",
+          "geckolib-forge-1.20.1-4.8.4.jar": "c04abba4fd354dd8c0e8a732f1f05f4dca893d2e1d962b2ab128bbd411478747",
+          "Glodium-1.20-1.5-forge.jar": "fc419cb5bf511750c0a2da498b925f5122ac4f78617aca6630fe80abf0b6f460",
+          "gtceu-1.20.1-forge-1.20.1-26.10.70.jar": "15d10c3dce5d461d96dbbb0a03c5c74209445a8f406c24c3297fe4262bc7dc46",
+          "gto-seal-runtime-1.0.jar": "55c1969daceae8a6e7feb6e0269a1d902ecb01b99559372fcd73169599ce2f12",
+          "gtocore-forge-1.20.1-26.10.10.jar": "59a04d1873a57e944dad8edf705762cc3162d591f4d14f3701005071514b93e7",
+          "gtorenders-forge-1.20.1-26.10.2.jar": "1fe71baa42c2bf7267d3f44820cba660a64f4ea060dd4e06dcb824f612ddbf0c",
+          "gtoutils-forge-1.20.1-26.10.3.jar": "df64a31d597bcf786c592b96ecadb379a3b31ece2726e62726ea3c38847f7c28",
+          "guideme-20.1.15.jar": "cf8052ab3da121012efc59a20e731c24bfe7488dfa556c9b88809f42dea3b24a",
+          "HangGlider-v8.0.1-1.20.1-Forge.jar": "82298214aa3f7225a0ac0ed93eb2cff8283758af211029cc00a7819a0fed6a7c",
+          "immersive_aircraft-1.5.0+1.20.1-forge.jar": "7e00754f893d910f301134e0cada37dde0be36c8df15ebf98a5b6512fa664077",
+          "inventoryessentials-forge-1.20.1-8.2.19.jar": "4c2a49fd97405ce8c665660155f15b57a3de72bee00f3c93eb054280b658d804",
+          "invtweaks-1.20.1-1.2.2.jar": "54ba6fd7d5e4b9a9dadf6876153b99a94b4997f8d4ee0e46c9c58ea5c8c95802",
+          "item-filters-forge-2001.1.0-build.59.jar": "99417b1342ba51ccb9611b17ab01fc1299971aa34e8f9d2a8b3c63df5713eb49",
+          "Jade-1.20.1-Forge-11.13.3.jar": "a632c77975e5aedff6322b0072f8b0db3f5d4bf914df6bdcc87d1aea4d5f55f4",
+          "jei-1.20.1-forge-15.59.0.212.jar": "0f39187f57cadd7b27a4511038628e212b53a1b184edf53121614418ed6a7442",
+          "JustEnoughResources-1.20.1-1.4.0.247.jar": "311d3a83db489d27b96cd15deb690ce64c78cffb552c25c3dff85956a14ec09e",
+          "kotlinforforge-4.12.0-all.jar": "6a66c6a68ec09f8717cdbf06883394f0ee24d7cd826b7134a0f81839e8e720ae",
+          "KryptonReforged-0.2.3.jar": "9b281428d0e7560b7b6e74cdc808c0ffd7a8e662ba84d1a12a6616b49cedec10",
+          "ldlib-forge-1.20.1-1.0.52.a.jar": "a9b0827d264e0d15f90482de0d4783a28fc2dad9dfb477f344dc5e959168838d",
+          "leanobject-1.20-26.9.2-forge.jar": "2dca130bb7ce42dedee7cfb4ca6e24be8dbf3a33cef7e1cee07c75b240e91265",
+          "LibX-1.20.1-5.0.14.jar": "6b795bbeeb320a4fc44438bec23f7937e8c70f7b87e809e044872e37a9ac1b27",
+          "Measurements-forge-1.20.1-2.0.1.jar": "5860aa8b107d23badb9929525a0551f68618b9b9668cfa71a415021613d36005",
+          "merequester-forge-1.20.1-1.2.1.jar": "490de12be0237e5699aba8ae57d9c40a97ae7491d6ae33ecb1fc5d3b30f391ea",
+          "mobtimizations-forge-1.20.1-1.0.1.jar": "1713bbf6aba4e5cdf21854cc8daf6b4c3893bc175778367273b9b052340ae168",
+          "modernfix-forge-5.26.2+mc1.20.1.jar": "e9f00f787a78a976b8493eafeee63ff08fadb31bcb0a1e938d7b940d17ac70ae",
+          "modular-routers-12.1.1+mc1.20.1.jar": "73927003853e062806916ce6cb009203bd083d0169de7380e114835a1fb8659d",
+          "moremorelang-1.0.5.jar": "b540e9619fcaf471086cc98e1bd051312ddf858b3aad1b8f54e2538bb6327c83",
+          "morered-1.20.1-4.0.0.4.jar": "a5baa00780254a9982276a99dceea035c62d384f07926e3138cb3934f1b808a0",
+          "MythicBotany-1.20.1-4.0.4.jar": "395ccecf60321fede08a5a528087af273269f21ddce062270df6568d405a463d",
+          "nanhealthfixer-1.20.1-0.0.1.jar": "d03619bda583c0d52848d9225b781d022d406cecf02da2d5703bead81803fe1f",
+          "NaturesCompass-1.20.1-1.12.0-forge.jar": "bc3601e9e050802569647de843fe9d3160934c5f31412cba62ca2ea8c1485197",
+          "Oh-The-Biomes-Weve-Gone-Forge-1.8.2.jar": "38174a9aaf8b087f9f264d0fcd43f3c3180238d7732c7d65582e4bcedaea01d3",
+          "Oh-The-Trees-Youll-Grow-forge-1.20.1-1.7.3.jar": "5817a5ff8439515b6413ab655cc7d64ecd3d24d4ac5a8605ae34fd73ec8be4cf",
+          "open-parties-and-claims-forge-1.20.1-0.30.3.jar": "86e91ddb293025774d7229d44df8ad18389a020d1cad193f428027058c49f61c",
+          "OpenLoader-Forge-1.20.1-19.0.5.jar": "56da03448ce1c63cb0f41e99ae38c5857d663886f9249c234f18b7c0de44b151",
+          "Patchouli-1.20.1-85-FORGE.jar": "05f7b5d52f6b8f0fd7f8b4822fa07a192d1394d83a264309c9d221d6d4fd21c5",
+          "pipez-forge-1.20.1-1.2.26.jar": "f692b0a24c46c954358db8535248021deaf3399973c4e746ba1e3e115a8a48c9",
+          "Placebo-1.20.1-8.6.3.jar": "1cdf906cfbcbb5e5be2ef1bb721f79a24b01bd2ac559c8cdbfb7693f62421571",
+          "PuzzlesLib-v8.1.36-1.20.1-Forge.jar": "103f1d46c16023e346802a9b2024db885cf8dc3a43ee5106bcd5ed8165073efd",
+          "radium-mc1.20.1-0.12.4+git.26c9d8e.jar": "b42584e2672d6b5329959ec2b0f342395b19389fed0ee4d86ea71072f42f77a0",
+          "redirector-5.0.0.jar": "06f4f5ac6beb817acf0f9534f77c894b23b729d3a992a646af36c854099447a8",
+          "renderblender-1.1.1.jar": "a0c35efff951f6e669aeba0d5666566f5bad4e92f53af96b79bd968af8d74c46",
+          "resourcefulconfig-forge-1.20.1-2.1.3.jar": "c404b9e5cf8595427a72d4ca6ee5730289168762b463f169be3ae5dfe3727ded",
+          "resourcefullib-forge-1.20.1-2.1.29.jar": "b13afb95231d88e1caea5a045967e0fc291b29020b0d26ad39e6f9e9a551fee8",
+          "Shrink-1.20.1-1.4.5.jar": "a7af6dc3bc080c470a27ff691152c974bd13ce61e0c0948daf5eefece432abb1",
+          "solcarrot-1.20.1-1.15.1.jar": "629d6744c8d856c51c74c66eba4c252c6d62d392dbaf5b24ea690cd8f081e679",
+          "sophisticatedbackpacks-1.20.1-3.26.12.2206.jar": "c2138dd3be9dd228ada74331b94a5a1a7e95074de67d68028ce44229f6d2f83a",
+          "sophisticatedcore-1.20.1-1.5.11.2407.jar": "bee7759675777c77a89d688e4c430dc634af5328f118e7379e31ef806435efbe",
+          "spiceoflife_classic-forge-2.13.jar": "c7f1fe7f1d183ca69d69ae1e37284632ef997dff18bfbfce27de343f83dcc336",
+          "structure_layout_optimizer-forge-1.0.11.jar": "14bfc4b1e82ea24118402fccd90dffde45fa6d9e2238bfaa19a43b3fb88ee49c",
+          "TerraBlender-forge-1.20.1-3.0.1.10.jar": "c109016f46ca9bdae69976bf080bbf2e8e5968cb66c0a78845f8ca6af5dbbeb1",
+          "thunderbolt-eject-qa.jar": "ae010d7d8d83d4299faab6eabcd371ea11d7427df6547499131d3111a4551fbb",
+          "thunderbolt-forge-1.20.1-2.0.4-gto.5.jar": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+          "titanium-1.20.1-3.8.35.jar": "c7851205ace26b28afe332b9257f0f13d9ac52a89e4ae79a76156a8c91e7a282",
+          "toofast-1.20-0.4.3.5.jar": "5dc0fc5687c43ad9cec522ebb6eda9d9c84edc5b0c401721e91450b1ef57de5a",
+          "ToolBelt-1.20.1-1.20.03.jar": "9c1b8c52d848055d7a4c60989f5b36247431c11d84a2e2975bb1ccfca2663030",
+          "torchmaster-20.1.9.jar": "7c8984a2dc11c29147d0677958e9146a18578068bc00fbfcb1cddbaa60557682",
+          "usclb-0.0.26.jar": "e0783a0698022a99890dfa98bafa04abe1ffcba98361dcb1be333b62cdd9a105",
+          "xaerominimap-forge-1.20.1-26.4.2.jar": "8143f332ed20a61a518692b42c793e021b6bd2d0d9d61cf3938fb9cfa07eb59c",
+          "xaeroworldmap-forge-1.20.1-1.45.0.jar": "747e2f3c203f8c294887fe400184ad48c02df008e1d69ad7f7d01809853a7ba2",
+          "xtonesreworked-1.0.4-F_1.20.1-47.2.0.jar": "038d9f376ca7c49cbc2b04c831751bd64dceea936efad598a7a50667b0ab9a1a"
+        }
+      }
+    },
+    "dev25-final": {
+      "result": {
+        "profile": "dev25-final",
+        "pid": 11444,
+        "exit_code": 0,
+        "timeout": false,
+        "seconds": 46.27,
+        "tests": [
+          {
+            "name": "itemstackinterfacesuperenchantmentcallsremainvalid",
+            "status": "PASS"
+          },
+          {
+            "name": "registeredfaceforwardsitemsandfluidswhileotherfacesstaynative",
+            "status": "PASS"
+          },
+          {
+            "name": "absentofflineandnestedbypasskeepnativecapabilityownership",
+            "status": "PASS"
+          },
+          {
+            "name": "offlinerejectnevermutatesnativeinventoryorfluidtank",
+            "status": "PASS"
+          },
+          {
+            "name": "selfprojectioncannotrecurseandguardclearsafterfailure",
+            "status": "PASS"
+          },
+          {
+            "name": "stalehandlecannoteraseareplacementregistration",
+            "status": "PASS"
+          },
+          {
+            "name": "duplicatehandleskeeppersistenceuntilthelastclose",
+            "status": "PASS"
+          },
+          {
+            "name": "closingonehostpreservesanotheronthesameface",
+            "status": "PASS"
+          }
+        ],
+        "totals": [
+          [
+            "PASS",
+            "8",
+            "0"
+          ]
+        ],
+        "artifact_hashes_unchanged": true,
+        "success": true
+      },
+      "inputs": {
+        "profile": "dev25-final",
+        "core_sha256": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+        "source": "D:\\CodexTaskData\\thunderbolt-core-gto-eject-20261102\\dev25-green",
+        "excluded": [
+          "neoecoae-20.5.2-gto.1.jar",
+          "thunderbolt-eject-qa.jar",
+          "thunderbolt-forge-1.20.1-2.0.4-gto.4.jar"
+        ],
+        "platform": "Forge 47.4.20 Java 21 Minecraft 1.20.1",
+        "scope": "Core standalone EJECT/ElementalCraft; LT and NeoECO external acceptance is step 8",
+        "mods": {
+          "AdvancedBackups-forge-1.20-3.7.1.jar": "eb471fbd7de564e6b12890359546d280d5723e09867a3104ea31c7285ada6942",
+          "advancementnomore-1.20.1-1.0.1.jar": "a8cbe435db7a3c83bfb56d64e33b27d5cf44d048b3e5f156df106d6dedd8b050",
+          "ad_astra-forge-1.20.1-1.15.21.jar": "d84dc1182b4c570d955df67b80703dc058ce944c7d9b0702e3577934c96d864c",
+          "ad_astra_rocketed-forge-1.20.1-1.0.5.jar": "5c8aac1f11daf225afb2da30ed1672e944c9426bca135dc9fae20ee4b3220e80",
+          "ae2insertexportcard-1.20.1-1.3.0.jar": "329dff2184edc476e7261b073f17239015636543a22c16df1161fafe547d6b1c",
+          "AE2NetworkAnalyzer-1.20-1.0.6-forge.jar": "9c10ab288402b6a01815d58029298fc56dd482f045511ad35104b17e9b6c4393",
+          "AE2ToggleableViewCell-1.20.1-1.1.0.jar": "c08a7e4c180310a457b0b83b76863ad4017bd25b64dc07b9ad14d4293b97bb47",
+          "ae2wtlib-15.3.3-forge.jar": "39e5cede37d5c6a07592d6c1e83398791e037f3d434bc44f7460cd085a4de5f4",
+          "AI-Improvements-1.20-0.5.2.jar": "575a4a8e00f982c064d54bb3e73e5cda2d14414de054a471a3daf3f58bdf560a",
+          "alltheleaks-1.1.4+1.20.1-forge.jar": "fb72063a7d17df97740d24355444ef2f95eab97728e1256c639bb432c61b7716",
+          "alternate_current-mc1.20-1.7.0.jar": "9dfa5365ef170323612d6ada820b7cac12e05135f00f16d0f627488426f59565",
+          "Apotheosis-1.20.1-7.4.8.jar": "5ed8c17cf62837bb649d1054e3e4fe93c4d9bdec98fe9f332e2637a260da30da",
+          "ApothicAttributes-1.20.1-1.3.7.jar": "68487b11c0d4e2f67a85f2b04bf65e99ac15294f2923f4391f83e9542293187a",
+          "appliedenergistics2-forge-1.20.1-15.2610.40.jar": "b0d97544e618d73ec0c8d8e54df36351bf7f98f7e1984c6455d81658b6320b5c",
+          "architectury-9.2.14-forge.jar": "218b471d0b8a1f6cda14cfc1beb9eeb0df54304500acc6c5613d9b88ec65d9af",
+          "arsmeteorites-1.20.1-1.2.0.jar": "f61b28910cec3d703790ef5266dfe3be91da7126d7ae8f48e24189e0d4046414",
+          "ars_nouveau-1.20.1-forge-1.20.1-4.12.23.jar": "129e9015180b0c125398c513f519b11538cd9b8e65830d5d655ae436ee3e1287",
+          "async-locator-forge-1.20-1.3.0.jar": "d171fdddd8dad64cba4c8c67cd2a0bdfc2697ff35e11f9fb666b7464e1e9468b",
+          "AttributeFix-Forge-1.20.1-21.0.5.jar": "43ccfd91c1a24d1b3c9d3ccf2dd6a86e9f0c2ba442b111a2238fbff3cf88af11",
+          "balm-forge-1.20.1-7.3.44.jar": "ad11d968770bb1ce73377626b6f1dcd4ae6f8be1ef6f37cee9b872b8176aebd3",
+          "betterp2p-1.5.0-forge.jar": "af3db500145f352a21bc2cd86d1f854e5f3c1486a8659b493a5b2fbc3ba0776f",
+          "Botania-forge-1.20.1-457.2610.24.jar": "e952a9009c8779fe1b4d22951df12de37c510caf12911f2120f5ad401bc32420",
+          "botarium-forge-1.20.1-2.3.4.jar": "470810a364ff4ad4d4fcd4e55798263938fc893970eacecc58e8b741a392b1cf",
+          "buildinggadgets2-1.0.8.jar": "59efb399a4acdb69a01a970b1f1e3c5584495aabc726ff40857ab4aed9372c83",
+          "camera-forge-1.20.1-1.0.20.jar": "593f3a9c0baf09d7baf8f9ec44b882716c43fbf11d5cbff607c9f7fa3ec9aeb8",
+          "chisel-forge-2.0.0+mc1.20.1.jar": "f6ebb48de0a954349a5f0d607f7955e898a87dae45fb7cf71878f4bac56653c1",
+          "cloth-config-11.1.136-forge.jar": "1e895e85cf5b1e1905ef3178ec155c8badfe22a1577b92c09143a5aa1f4ce0f2",
+          "configuration-forge-1.20.1-3.1.0.jar": "179ca1a9928920a5d89d73d308e0e78f59083e4e44d869d5cf23a9087fd52c3d",
+          "constructionwand-1.20.1-2.11.jar": "b55ca6f0e734bad848adb06949675136f1d05cb4fb3efdde084c9842c40e1eec",
+          "Corgilib-Forge-1.20.1-4.0.3.6.jar": "6f337ceae789bd31f39c0c4e1bfa1bc094dbfcc2d8e4eee3c8b6f50750891298",
+          "coroutil-forge-1.20.1-1.3.7.jar": "11448808a42c17425cf2ea39701841008683d6ad6e2838a34eef0253251a870f",
+          "corpse-forge-1.20.1-1.0.23.jar": "8d77c5fc8dc981c750a8e66d4665f055457f748f0ce49a303d9bc50347bdbf7c",
+          "craftingtweaks-forge-1.20.1-18.2.9.jar": "1cc83c8c0bee73a2ffa3428ce28e3c17d7f95e26e1a820d8bd7270e0931f8974",
+          "CreativeCore_FORGE_v2.12.40_mc1.20.1.jar": "936de62489c0d6fbe74202486cbe2b191b8629b02bab1d480acfdb03690f33f4",
+          "cryonicconfig-forge-1.0.0+mc1.20.1.jar": "51ffc8832eec0fce716ecab9cd148ca7408b63963a1728b06df45d8cfb2eb04a",
+          "curios-forge-5.14.1+1.20.1.jar": "1e817919a35b37cf30524aaec73f0ca5130452f23f168f844854df282eb8e51f",
+          "datasynclib-forge-1.20.1-26.10.11.jar": "01f6fdcc80c00c54b8478f5ef060c5cbb7ebca26001339a0f587974a18436b04",
+          "deeperdarker-forge-1.20.1-1.3.3.jar": "d07dc6155e0b751c7d1ec26dabb7284a41798c85e48b0d809fd1254e489ed455",
+          "doespotatotick-1.20.1-5.6.3.jar": "5aa62c1b236e79136d8e4ef60544385c5ae0d6f37c34fe1a70eaaf3d179e5a66",
+          "dpanvil-1.20.1-5.0.1.jar": "e0c9d6704966e74b469dacd27b9b793ff6c3f30669e52531bd8271ad53d58f60",
+          "Dungeon Crawl-1.20.1-2.3.15.jar": "71e1b8ceaf20c3102ae42ef2761ca47f30fe4cbd20ecbb687df2ce75d1785514",
+          "DungeonsArise-1.20.x-2.1.58-release.jar": "f8f1254dbe7ed7c1d5403f20361a36f0d0587c82b71313e3f427c7f1ce7c8a90",
+          "duplicationless-1.20.1-1.2.1.jar": "9f9b14e65a7bf36a185baab24d7d236e5b39e05cb0818b4d51c49e7104b17a42",
+          "easy-villagers-forge-1.20.1-1.1.39.jar": "f2826c6f4be28df912d263f7914888f1b173c09dc99cc41998013e817d0dfb1d",
+          "effortlessbuilding-1.20.1-3.11.jar": "c40ee9a5b49fb4721e6e6a629d6236a640b6da76f95e3f636c77db8f2eb92dc2",
+          "elementalcraft-1.20.1-6.0.1.jar": "bed6f590268ec53793dd8c5cb866c78cafbb952cebb2dfb401eef4f0e703a890",
+          "elevatorid-1.20.1-1.9.1-forge.jar": "7487c091bc8e6ae7b83c61471c97258b380fab2a0f421ed84df78f92ba630f75",
+          "emi-forge-1.20.1-1.1.1027.jar": "3fcbcc12909c29ee289a94b4f32e59f8fa399b45f9d0125d0526745d7b649a40",
+          "endrem_forge-5.3.3-R-1.20.1.jar": "19295ca4a798f2e813f359fa376f586bc57fadacd78b7e32440257f9f8bf2557",
+          "eventwrapper-forge-1.20.1-1.1.4.jar": "b583db8e37efe39d14257f316ebbb20d502e3f063f21e367595e54085c1d5de1",
+          "ExplorersCompass-1.20.1-1.4.0-forge.jar": "0d9a7705f39a9eac19c33e0fbe5422280048991a341dc0d9471bff32111c502c",
+          "ExtendedAE-1.20-1.4.21-forge.jar": "30fc8abe66d4b96919f0fd7b33badd0bb2013b31e2ee57f6aeaa63ffae37df4b",
+          "extendedae_plus-1.6.3.jar": "d8634db4ca56fe725799084b3c2c67b17874db50377ea497670379221d374764",
+          "extrabotany-forge-1.20.1-1.9.2.jar": "1de99382011d71c25e708107221e70d9a2f9c815a0b847a72317e62234e0ae26",
+          "factory_blocks-forge-1.4.0+mc1.20.1.jar": "a21e9ff2f8add29e7368e933015406f8a3c91dc103bbf16783ea3a3850f23a75",
+          "FarmersDelight-1.20.1-1.3.4.jar": "34f03eb671ea1ca579b00c98e4541404cb96d1a292014aed9cc5eb45ad8afbce",
+          "farmersrespite-1.20.1-2.1.2.jar": "21c15ef71f66684cbd94080e04649741bdf2b2ea6a6d542783e8961365d090bb",
+          "FastFurnace-1.20.1-8.0.2.jar": "970c11c090e7a364e2e006aabb5e573f79901e710e97195334ee5802317776e8",
+          "fastnbt-1.20-26.9.1-forge.jar": "605dbea3452d101f9196b19e2f5caa876a9be0d10bd07c1307c779547846aa1a",
+          "fastrecipesearch-1.20.1-26.8.4-forge.jar": "6ec611bc07e3c9bcdf75ae5af5af302cb82b94be025afb12d138c1b0140a0b95",
+          "FastWorkbench-1.20.1-8.0.4.jar": "86d20c6879bf86ef76b3fd94998d3e5c3327acb5d5324b6eb0b5348354766620",
+          "ferritecore-6.0.1-forge.jar": "9c2c9396a49e796d88497758caa4637d2bcbb433c318e2dd9cebcffbaf0f6c54",
+          "findme-3.2.3-forge.jar": "e76860618564a4e7b3c44ea15e30bce9441bb04259477891633523e186ed77bb",
+          "fixexperiencebug-1.20-46.2.2.jar": "08dc722aaa1bd61b4ee867badeb830e537b8362633197dd211c772a4a002f42e",
+          "fluidium-1.20.1-1.4.0.jar": "c352872092cc970b7826f5dd1779cdf325fbdb934dc104dd3dca95440b432e21",
+          "flux-networks-248020-5234697.jar": "8d24f39b6e1b2d83426a28a62ae0b65294b7e6e925e39a26b62f8ae077f54a89",
+          "ftb-essentials-forge-2001.2.4.jar": "e0022bfe29dc10e373947701dae1bc4ce75ee15fe21f6d89269677fbb9aebf73",
+          "ftb-library-forge-2001.2.13.jar": "41810281b65336265cae2c88412022d02f2f0a3f28c66a06173d86f98acf14a7",
+          "ftb-quests-forge-2001.4.22.jar": "9ea9d159a78a2724cfe0457b024680fdb52a2126eff9cfa5280a30578f647a68",
+          "ftb-teams-forge-2001.3.2.jar": "b1cb4d82ea9f137a87e12a7aaf3329619294b56f7d70337dfd557a76e10b6e07",
+          "ftb-ultimine-forge-2001.1.8.jar": "b80dde55b2c91fd27f09f15ed2aefb0756c7bd704316e488ae8a06b179e85730",
+          "ftb-xmod-compat-forge-2.1.3.jar": "16a8eb9de88d5c33d29cb076cc39dfb337b2c54348e1ef1efe9dd60cf85e5f72",
+          "functionalstorage-1.20.1-1.2.14.jar": "b627f558ae16352ca4988834c5397d10b9de8541188ff0d99121fff0f5ecf5f7",
+          "geckolib-forge-1.20.1-4.8.4.jar": "c04abba4fd354dd8c0e8a732f1f05f4dca893d2e1d962b2ab128bbd411478747",
+          "Glodium-1.20-1.5-forge.jar": "fc419cb5bf511750c0a2da498b925f5122ac4f78617aca6630fe80abf0b6f460",
+          "gtceu-1.20.1-forge-1.20.1-26.10.80.jar": "b645a95f49e678b3587e073a1c67ba6ec73e2bfd6f468239abc6d5d4c56ecedc",
+          "gto-seal-runtime-1.0.jar": "55c1969daceae8a6e7feb6e0269a1d902ecb01b99559372fcd73169599ce2f12",
+          "gtocore-forge-1.20.1-26.10.18.jar": "f711c1490ef79b94d069fefbae5dfffd5f626a102ba423586222ef2964b11108",
+          "gtorenders-forge-1.20.1-26.10.2.jar": "1fe71baa42c2bf7267d3f44820cba660a64f4ea060dd4e06dcb824f612ddbf0c",
+          "gtoutils-forge-1.20.1-26.10.3.jar": "df64a31d597bcf786c592b96ecadb379a3b31ece2726e62726ea3c38847f7c28",
+          "guideme-20.1.15.jar": "cf8052ab3da121012efc59a20e731c24bfe7488dfa556c9b88809f42dea3b24a",
+          "HangGlider-v8.0.1-1.20.1-Forge.jar": "82298214aa3f7225a0ac0ed93eb2cff8283758af211029cc00a7819a0fed6a7c",
+          "immersive_aircraft-1.5.0+1.20.1-forge.jar": "7e00754f893d910f301134e0cada37dde0be36c8df15ebf98a5b6512fa664077",
+          "inventoryessentials-forge-1.20.1-8.2.19.jar": "4c2a49fd97405ce8c665660155f15b57a3de72bee00f3c93eb054280b658d804",
+          "invtweaks-1.20.1-1.2.2.jar": "54ba6fd7d5e4b9a9dadf6876153b99a94b4997f8d4ee0e46c9c58ea5c8c95802",
+          "item-filters-forge-2001.1.0-build.59.jar": "99417b1342ba51ccb9611b17ab01fc1299971aa34e8f9d2a8b3c63df5713eb49",
+          "Jade-1.20.1-Forge-11.13.3.jar": "a632c77975e5aedff6322b0072f8b0db3f5d4bf914df6bdcc87d1aea4d5f55f4",
+          "jei-1.20.1-forge-15.59.0.212.jar": "0f39187f57cadd7b27a4511038628e212b53a1b184edf53121614418ed6a7442",
+          "JustEnoughResources-1.20.1-1.4.0.247.jar": "311d3a83db489d27b96cd15deb690ce64c78cffb552c25c3dff85956a14ec09e",
+          "kotlinforforge-4.12.0-all.jar": "6a66c6a68ec09f8717cdbf06883394f0ee24d7cd826b7134a0f81839e8e720ae",
+          "KryptonReforged-0.2.3.jar": "9b281428d0e7560b7b6e74cdc808c0ffd7a8e662ba84d1a12a6616b49cedec10",
+          "ldlib-forge-1.20.1-1.0.52.a.jar": "a9b0827d264e0d15f90482de0d4783a28fc2dad9dfb477f344dc5e959168838d",
+          "leanobject-1.20-26.9.2-forge.jar": "2dca130bb7ce42dedee7cfb4ca6e24be8dbf3a33cef7e1cee07c75b240e91265",
+          "LibX-1.20.1-5.0.14.jar": "6b795bbeeb320a4fc44438bec23f7937e8c70f7b87e809e044872e37a9ac1b27",
+          "Measurements-forge-1.20.1-2.0.1.jar": "5860aa8b107d23badb9929525a0551f68618b9b9668cfa71a415021613d36005",
+          "merequester-forge-1.20.1-1.2.1.jar": "490de12be0237e5699aba8ae57d9c40a97ae7491d6ae33ecb1fc5d3b30f391ea",
+          "mobtimizations-forge-1.20.1-1.0.1.jar": "1713bbf6aba4e5cdf21854cc8daf6b4c3893bc175778367273b9b052340ae168",
+          "modernfix-forge-5.26.2+mc1.20.1.jar": "e9f00f787a78a976b8493eafeee63ff08fadb31bcb0a1e938d7b940d17ac70ae",
+          "modular-routers-12.1.1+mc1.20.1.jar": "73927003853e062806916ce6cb009203bd083d0169de7380e114835a1fb8659d",
+          "moremorelang-1.0.5.jar": "b540e9619fcaf471086cc98e1bd051312ddf858b3aad1b8f54e2538bb6327c83",
+          "morered-1.20.1-4.0.0.4.jar": "a5baa00780254a9982276a99dceea035c62d384f07926e3138cb3934f1b808a0",
+          "MythicBotany-1.20.1-4.0.4.jar": "395ccecf60321fede08a5a528087af273269f21ddce062270df6568d405a463d",
+          "nanhealthfixer-1.20.1-0.0.1.jar": "d03619bda583c0d52848d9225b781d022d406cecf02da2d5703bead81803fe1f",
+          "NaturesCompass-1.20.1-1.12.0-forge.jar": "bc3601e9e050802569647de843fe9d3160934c5f31412cba62ca2ea8c1485197",
+          "Oh-The-Biomes-Weve-Gone-Forge-1.8.2.jar": "38174a9aaf8b087f9f264d0fcd43f3c3180238d7732c7d65582e4bcedaea01d3",
+          "Oh-The-Trees-Youll-Grow-forge-1.20.1-1.7.3.jar": "5817a5ff8439515b6413ab655cc7d64ecd3d24d4ac5a8605ae34fd73ec8be4cf",
+          "open-parties-and-claims-forge-1.20.1-0.30.3.jar": "86e91ddb293025774d7229d44df8ad18389a020d1cad193f428027058c49f61c",
+          "OpenLoader-Forge-1.20.1-19.0.5.jar": "56da03448ce1c63cb0f41e99ae38c5857d663886f9249c234f18b7c0de44b151",
+          "Patchouli-1.20.1-85-FORGE.jar": "05f7b5d52f6b8f0fd7f8b4822fa07a192d1394d83a264309c9d221d6d4fd21c5",
+          "pipez-forge-1.20.1-1.2.26.jar": "f692b0a24c46c954358db8535248021deaf3399973c4e746ba1e3e115a8a48c9",
+          "Placebo-1.20.1-8.6.3.jar": "1cdf906cfbcbb5e5be2ef1bb721f79a24b01bd2ac559c8cdbfb7693f62421571",
+          "PuzzlesLib-v8.1.36-1.20.1-Forge.jar": "103f1d46c16023e346802a9b2024db885cf8dc3a43ee5106bcd5ed8165073efd",
+          "radium-mc1.20.1-0.12.4+git.26c9d8e.jar": "b42584e2672d6b5329959ec2b0f342395b19389fed0ee4d86ea71072f42f77a0",
+          "redirector-5.0.0.jar": "06f4f5ac6beb817acf0f9534f77c894b23b729d3a992a646af36c854099447a8",
+          "renderblender-1.1.1.jar": "a0c35efff951f6e669aeba0d5666566f5bad4e92f53af96b79bd968af8d74c46",
+          "resourcefulconfig-forge-1.20.1-2.1.3.jar": "c404b9e5cf8595427a72d4ca6ee5730289168762b463f169be3ae5dfe3727ded",
+          "resourcefullib-forge-1.20.1-2.1.29.jar": "b13afb95231d88e1caea5a045967e0fc291b29020b0d26ad39e6f9e9a551fee8",
+          "Shrink-1.20.1-1.4.5.jar": "a7af6dc3bc080c470a27ff691152c974bd13ce61e0c0948daf5eefece432abb1",
+          "solcarrot-1.20.1-1.15.1.jar": "629d6744c8d856c51c74c66eba4c252c6d62d392dbaf5b24ea690cd8f081e679",
+          "sophisticatedbackpacks-1.20.1-3.26.12.2206.jar": "c2138dd3be9dd228ada74331b94a5a1a7e95074de67d68028ce44229f6d2f83a",
+          "sophisticatedcore-1.20.1-1.5.11.2407.jar": "bee7759675777c77a89d688e4c430dc634af5328f118e7379e31ef806435efbe",
+          "spiceoflife_classic-forge-2.13.jar": "c7f1fe7f1d183ca69d69ae1e37284632ef997dff18bfbfce27de343f83dcc336",
+          "structure_layout_optimizer-forge-1.0.11.jar": "14bfc4b1e82ea24118402fccd90dffde45fa6d9e2238bfaa19a43b3fb88ee49c",
+          "TerraBlender-forge-1.20.1-3.0.1.10.jar": "c109016f46ca9bdae69976bf080bbf2e8e5968cb66c0a78845f8ca6af5dbbeb1",
+          "thunderbolt-eject-qa.jar": "ae010d7d8d83d4299faab6eabcd371ea11d7427df6547499131d3111a4551fbb",
+          "thunderbolt-forge-1.20.1-2.0.4-gto.5.jar": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+          "titanium-1.20.1-3.8.35.jar": "c7851205ace26b28afe332b9257f0f13d9ac52a89e4ae79a76156a8c91e7a282",
+          "toofast-1.20-0.4.3.5.jar": "5dc0fc5687c43ad9cec522ebb6eda9d9c84edc5b0c401721e91450b1ef57de5a",
+          "ToolBelt-1.20.1-1.20.03.jar": "9c1b8c52d848055d7a4c60989f5b36247431c11d84a2e2975bb1ccfca2663030",
+          "torchmaster-20.1.9.jar": "7c8984a2dc11c29147d0677958e9146a18578068bc00fbfcb1cddbaa60557682",
+          "usclb-0.0.26.jar": "e0783a0698022a99890dfa98bafa04abe1ffcba98361dcb1be333b62cdd9a105",
+          "xaerominimap-forge-1.20.1-26.4.2.jar": "8143f332ed20a61a518692b42c793e021b6bd2d0d9d61cf3938fb9cfa07eb59c",
+          "xaeroworldmap-forge-1.20.1-1.45.0.jar": "747e2f3c203f8c294887fe400184ad48c02df008e1d69ad7f7d01809853a7ba2",
+          "xtonesreworked-1.0.4-F_1.20.1-47.2.0.jar": "038d9f376ca7c49cbc2b04c831751bd64dceea936efad598a7a50667b0ab9a1a"
+        }
+      }
+    }
+  },
+  "lt_static_consumer_audit": {
+    "classes": 110,
+    "byte_identical_to_gto4": 108,
+    "changed_consumed_classes": [
+      "com/moakiee/thunderbolt/core/crafting/batch/ParallelBatchCpuHelper",
+      "com/moakiee/thunderbolt/core/crafting/batch/ParallelBatchCpuHelper$BulkResult"
+    ],
+    "references": 351,
+    "distinct_members": 207,
+    "reflection_constructors": 2,
+    "anchors": 7,
+    "all_shapes_equal": true,
+    "index_lf_sha256": "35023f10b5360ac67593f33eee01e778855778ebd6b3ee675849e1a7d913b669",
+    "limits": "Static check is not application of LT Mixins in Forge; step 8 remains"
+  },
+  "benchmarks": {
+    "manifests": {
+      "default": {
+        "java": "openjdk version \"21.0.10\" 2026-01-20 LTS\r\nOpenJDK Runtime Environment Microsoft-13106404 (build 21.0.10+7-LTS)\r\nOpenJDK 64-Bit Server VM Microsoft-13106404 (build 21.0.10+7-LTS, mixed mode, sharing)\r\n",
+        "java_executable": "C:\\Program Files\\Microsoft\\jdk-21.0.10.7-hotspot\\bin\\java.EXE",
+        "baseline_dev_jar_sha256": "d7c04dc8718161d3e1f2fd12564c6212d53df459006976d5b30e56700ce15ee0",
+        "after_main_classes_sha256": "7c8ac1f4b30d9fe33be0753898db6da5a5055cacaa1d360c12820e6a368d2636",
+        "agent_sha256": "142dee4f13a70bc4414261c45fcffc7c076def12e6434593919b3333f0848d38",
+        "batch_harness_sha256": "b9b797b7929f9b8226aa6cabfc48f9820a30e4ce89e3fdfcf97b945533119114",
+        "optimization_harness_sha256": "a412c471f8e63dfb59a20df0ea1cc06994751ca3226f6cfd92748063f34f7de9",
+        "compilation_mode": "default tiered/background",
+        "candidate_dev_jar": "D:\\CodexTaskData\\thunderbolt-core-gto-algorithm-20261102\\build\\algorithm-candidate\\core-gto5-dev.jar",
+        "candidate_dev_jar_sha256": "3386b0f93768609a3aeb2e59a699fe5ea9d0fa9225d43b54c8290cbc3876d88d"
+      },
+      "synchronous": {
+        "java": "openjdk version \"21.0.10\" 2026-01-20 LTS\r\nOpenJDK Runtime Environment Microsoft-13106404 (build 21.0.10+7-LTS)\r\nOpenJDK 64-Bit Server VM Microsoft-13106404 (build 21.0.10+7-LTS, mixed mode, sharing)\r\n",
+        "java_executable": "C:\\Program Files\\Microsoft\\jdk-21.0.10.7-hotspot\\bin\\java.EXE",
+        "baseline_dev_jar_sha256": "d7c04dc8718161d3e1f2fd12564c6212d53df459006976d5b30e56700ce15ee0",
+        "after_main_classes_sha256": "7c8ac1f4b30d9fe33be0753898db6da5a5055cacaa1d360c12820e6a368d2636",
+        "agent_sha256": "142dee4f13a70bc4414261c45fcffc7c076def12e6434593919b3333f0848d38",
+        "batch_harness_sha256": "b9b797b7929f9b8226aa6cabfc48f9820a30e4ce89e3fdfcf97b945533119114",
+        "optimization_harness_sha256": "a412c471f8e63dfb59a20df0ea1cc06994751ca3226f6cfd92748063f34f7de9",
+        "compilation_mode": "synchronous -Xbatch",
+        "candidate_dev_jar": "D:\\CodexTaskData\\thunderbolt-core-gto-algorithm-20261102\\build\\algorithm-candidate\\core-gto5-dev.jar",
+        "candidate_dev_jar_sha256": "3386b0f93768609a3aeb2e59a699fe5ea9d0fa9225d43b54c8290cbc3876d88d"
+      }
+    },
+    "rows": [
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "native-one-slot",
+        "before_p50_ns": [
+          998.6,
+          991.5,
+          812.5
+        ],
+        "after_p50_ns": [
+          734.2,
+          955.2,
+          970.2
+        ],
+        "before_median_p50_ns": 991.5,
+        "after_median_p50_ns": 955.2,
+        "change_percent": -3.661119515885014,
+        "before_bytes_per_op": [
+          1720.0,
+          1720.0,
+          1720.0
+        ],
+        "after_bytes_per_op": [
+          1720.0,
+          1720.0,
+          1720.0
+        ],
+        "before_first_invocation_ns": [
+          14373900,
+          15573800,
+          18551400
+        ],
+        "after_first_invocation_ns": [
+          16977800,
+          15529400,
+          15883300
+        ],
+        "before_gc_count": [
+          1,
+          1,
+          0
+        ],
+        "after_gc_count": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "native-nine-repeated",
+        "before_p50_ns": [
+          4026.9,
+          2261.6,
+          2444.5
+        ],
+        "after_p50_ns": [
+          2221.5,
+          2337.1,
+          2224.9
+        ],
+        "before_median_p50_ns": 2444.5,
+        "after_median_p50_ns": 2224.9,
+        "change_percent": -8.983432194722841,
+        "before_bytes_per_op": [
+          9049.8,
+          9144.0,
+          9144.0
+        ],
+        "after_bytes_per_op": [
+          9144.0,
+          9144.0,
+          9144.0
+        ],
+        "before_first_invocation_ns": [
+          387300,
+          585000,
+          937600
+        ],
+        "after_first_invocation_ns": [
+          815600,
+          648800,
+          481200
+        ],
+        "before_gc_count": [
+          2,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "native-nine-distinct",
+        "before_p50_ns": [
+          2365.1,
+          2360.3,
+          2297.1
+        ],
+        "after_p50_ns": [
+          2304.3,
+          2341.4,
+          2339.0
+        ],
+        "before_median_p50_ns": 2360.3,
+        "after_median_p50_ns": 2339.0,
+        "change_percent": -0.9024276575011703,
+        "before_bytes_per_op": [
+          11616.0,
+          11616.0,
+          11616.0
+        ],
+        "after_bytes_per_op": [
+          11616.0,
+          11616.0,
+          11616.0
+        ],
+        "before_first_invocation_ns": [
+          197800,
+          197400,
+          1131300
+        ],
+        "after_first_invocation_ns": [
+          224800,
+          338500,
+          253000
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "native-nine-reserved",
+        "before_p50_ns": [
+          2390.1,
+          2244.0,
+          2438.3
+        ],
+        "after_p50_ns": [
+          2329.7,
+          2346.0,
+          2395.2
+        ],
+        "before_median_p50_ns": 2390.1,
+        "after_median_p50_ns": 2346.0,
+        "change_percent": -1.845111083218276,
+        "before_bytes_per_op": [
+          11616.0,
+          11616.0,
+          11616.0
+        ],
+        "after_bytes_per_op": [
+          11616.0,
+          11616.0,
+          11616.0
+        ],
+        "before_first_invocation_ns": [
+          272200,
+          198500,
+          200800
+        ],
+        "after_first_invocation_ns": [
+          184200,
+          195100,
+          205200
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "native-shared-seed",
+        "before_p50_ns": [
+          2497.9,
+          2444.4,
+          2513.6
+        ],
+        "after_p50_ns": [
+          2392.2,
+          2478.5,
+          2450.4
+        ],
+        "before_median_p50_ns": 2497.9,
+        "after_median_p50_ns": 2450.4,
+        "change_percent": -1.9015973417670806,
+        "before_bytes_per_op": [
+          12104.0,
+          12120.0,
+          12120.0
+        ],
+        "after_bytes_per_op": [
+          12120.0,
+          12136.0,
+          12104.0
+        ],
+        "before_first_invocation_ns": [
+          1687900,
+          1378800,
+          1238000
+        ],
+        "after_first_invocation_ns": [
+          1254200,
+          1341000,
+          1580200
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          4,
+          4,
+          4
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "legacy-nine-repeated",
+        "before_p50_ns": [
+          1586.6,
+          1612.5,
+          1531.5
+        ],
+        "after_p50_ns": [
+          1618.2,
+          1535.0,
+          1556.1
+        ],
+        "before_median_p50_ns": 1586.6,
+        "after_median_p50_ns": 1556.1,
+        "change_percent": -1.922349678557922,
+        "before_bytes_per_op": [
+          7512.0,
+          7512.0,
+          7512.0
+        ],
+        "after_bytes_per_op": [
+          7512.0,
+          7512.0,
+          7512.0
+        ],
+        "before_first_invocation_ns": [
+          182300,
+          248300,
+          152600
+        ],
+        "after_first_invocation_ns": [
+          140300,
+          185200,
+          408700
+        ],
+        "before_gc_count": [
+          2,
+          2,
+          2
+        ],
+        "after_gc_count": [
+          2,
+          2,
+          1
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "legacy-nine-distinct",
+        "before_p50_ns": [
+          1291.1,
+          1897.4,
+          1154.3
+        ],
+        "after_p50_ns": [
+          1957.2,
+          1162.0,
+          1971.0
+        ],
+        "before_median_p50_ns": 1291.1,
+        "after_median_p50_ns": 1957.2,
+        "change_percent": 51.591666021222224,
+        "before_bytes_per_op": [
+          7320.0,
+          7680.0,
+          7320.0
+        ],
+        "after_bytes_per_op": [
+          7680.0,
+          7320.0,
+          7585.7
+        ],
+        "before_first_invocation_ns": [
+          18100,
+          14700,
+          15300
+        ],
+        "after_first_invocation_ns": [
+          18200,
+          8900,
+          16100
+        ],
+        "before_gc_count": [
+          2,
+          2,
+          2
+        ],
+        "after_gc_count": [
+          1,
+          1,
+          2
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "chain-500",
+        "before_p50_ns": [
+          782690.0,
+          759820.0,
+          883130.0
+        ],
+        "after_p50_ns": [
+          668910.0,
+          863270.0,
+          730510.0
+        ],
+        "before_median_p50_ns": 782690.0,
+        "after_median_p50_ns": 730510.0,
+        "change_percent": -6.666751843002972,
+        "before_bytes_per_op": [
+          437462.4,
+          437465.6,
+          437465.6
+        ],
+        "after_bytes_per_op": [
+          421462.4,
+          437462.4,
+          421465.6
+        ],
+        "before_first_invocation_ns": [
+          23929500,
+          26188500,
+          23963600
+        ],
+        "after_first_invocation_ns": [
+          26388300,
+          21545200,
+          24197200
+        ],
+        "before_gc_count": [
+          0,
+          1,
+          1
+        ],
+        "after_gc_count": [
+          0,
+          1,
+          1
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "alternatives-1",
+        "before_p50_ns": [
+          22518.0,
+          35568.0,
+          35668.0
+        ],
+        "after_p50_ns": [
+          24696.0,
+          16522.0,
+          34938.0
+        ],
+        "before_median_p50_ns": 35568.0,
+        "after_median_p50_ns": 24696.0,
+        "change_percent": -30.566801619433203,
+        "before_bytes_per_op": [
+          18414.4,
+          18452.6,
+          18422.1
+        ],
+        "after_bytes_per_op": [
+          18415.4,
+          18413.9,
+          18420.6
+        ],
+        "before_first_invocation_ns": [
+          35456300,
+          22982900,
+          18657500
+        ],
+        "after_first_invocation_ns": [
+          13349200,
+          15518700,
+          33703800
+        ],
+        "before_gc_count": [
+          0,
+          0,
+          0
+        ],
+        "after_gc_count": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "quantity-session-1",
+        "before_p50_ns": [
+          159430.0,
+          212660.0,
+          178240.0
+        ],
+        "after_p50_ns": [
+          164900.0,
+          132350.0,
+          171590.0
+        ],
+        "before_median_p50_ns": 178240.0,
+        "after_median_p50_ns": 164900.0,
+        "change_percent": -7.484290843806107,
+        "before_bytes_per_op": [
+          122332.8,
+          122288.8,
+          122318.4
+        ],
+        "after_bytes_per_op": [
+          122328.0,
+          122789.6,
+          122316.0
+        ],
+        "before_first_invocation_ns": [
+          2177700,
+          2212600,
+          2130200
+        ],
+        "after_first_invocation_ns": [
+          2874000,
+          2966300,
+          2258200
+        ],
+        "before_gc_count": [
+          1,
+          0,
+          0
+        ],
+        "after_gc_count": [
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "alternatives-1000000000000",
+        "before_p50_ns": [
+          23012.0,
+          23384.0,
+          21698.0
+        ],
+        "after_p50_ns": [
+          20790.0,
+          20724.0,
+          23242.0
+        ],
+        "before_median_p50_ns": 23012.0,
+        "after_median_p50_ns": 20790.0,
+        "change_percent": -9.655831739961762,
+        "before_bytes_per_op": [
+          19356.6,
+          19452.2,
+          19449.3
+        ],
+        "after_bytes_per_op": [
+          19479.4,
+          19477.4,
+          19482.2
+        ],
+        "before_first_invocation_ns": [
+          1914100,
+          1529500,
+          2395700
+        ],
+        "after_first_invocation_ns": [
+          1823500,
+          1336600,
+          1607700
+        ],
+        "before_gc_count": [
+          0,
+          0,
+          0
+        ],
+        "after_gc_count": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "quantity-session-1000000000000",
+        "before_p50_ns": [
+          125420.0,
+          138290.0,
+          118420.0
+        ],
+        "after_p50_ns": [
+          87340.0,
+          99400.0,
+          146760.0
+        ],
+        "before_median_p50_ns": 125420.0,
+        "after_median_p50_ns": 99400.0,
+        "change_percent": -20.74629245734333,
+        "before_bytes_per_op": [
+          129846.4,
+          130612.0,
+          130595.2
+        ],
+        "after_bytes_per_op": [
+          130624.8,
+          130622.4,
+          130682.4
+        ],
+        "before_first_invocation_ns": [
+          216300,
+          377600,
+          221300
+        ],
+        "after_first_invocation_ns": [
+          293600,
+          583200,
+          514100
+        ],
+        "before_gc_count": [
+          0,
+          0,
+          0
+        ],
+        "after_gc_count": [
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "three-route-mixed",
+        "before_p50_ns": [
+          284626.0,
+          233586.0,
+          308964.0
+        ],
+        "after_p50_ns": [
+          307636.0,
+          211320.0,
+          289674.0
+        ],
+        "before_median_p50_ns": 284626.0,
+        "after_median_p50_ns": 289674.0,
+        "change_percent": 1.7735554727958736,
+        "before_bytes_per_op": [
+          160070.1,
+          160909.4,
+          160879.5
+        ],
+        "after_bytes_per_op": [
+          160239.5,
+          160476.6,
+          160479.5
+        ],
+        "before_first_invocation_ns": [
+          116685000,
+          123810600,
+          106526300
+        ],
+        "after_first_invocation_ns": [
+          104708800,
+          122572900,
+          109771300
+        ],
+        "before_gc_count": [
+          1,
+          1,
+          1
+        ],
+        "after_gc_count": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "ordinary-bulk-extract",
+        "before_p50_ns": [
+          892.1,
+          1487.0,
+          1046.7
+        ],
+        "after_p50_ns": [
+          1101.8,
+          920.5,
+          1176.2
+        ],
+        "before_median_p50_ns": 1046.7,
+        "after_median_p50_ns": 1101.8,
+        "change_percent": 5.26416356167001,
+        "before_bytes_per_op": [
+          1528.0,
+          1528.0,
+          1528.0
+        ],
+        "after_bytes_per_op": [
+          1528.0,
+          1528.0,
+          1528.0
+        ],
+        "before_first_invocation_ns": [
+          71264700,
+          32604000,
+          76797400
+        ],
+        "after_first_invocation_ns": [
+          69593700,
+          55639800,
+          70196100
+        ],
+        "before_gc_count": [
+          1,
+          1,
+          1
+        ],
+        "after_gc_count": [
+          1,
+          1,
+          0
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "native-one-slot",
+        "before_p50_ns": [
+          264.2,
+          259.0,
+          238.8
+        ],
+        "after_p50_ns": [
+          242.4,
+          253.6,
+          260.3
+        ],
+        "before_median_p50_ns": 259.0,
+        "after_median_p50_ns": 253.6,
+        "change_percent": -2.0849420849420874,
+        "before_bytes_per_op": [
+          1504.0,
+          1504.0,
+          1504.0
+        ],
+        "after_bytes_per_op": [
+          1504.0,
+          1504.0,
+          1504.0
+        ],
+        "before_first_invocation_ns": [
+          40286300,
+          39753100,
+          54928500
+        ],
+        "after_first_invocation_ns": [
+          40139100,
+          39149700,
+          43021300
+        ],
+        "before_gc_count": [
+          0,
+          0,
+          1
+        ],
+        "after_gc_count": [
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "native-nine-repeated",
+        "before_p50_ns": [
+          1670.4,
+          1722.2,
+          1706.8
+        ],
+        "after_p50_ns": [
+          1709.4,
+          1694.6,
+          1753.6
+        ],
+        "before_median_p50_ns": 1706.8,
+        "after_median_p50_ns": 1709.4,
+        "change_percent": 0.1523318490743053,
+        "before_bytes_per_op": [
+          10296.0,
+          10296.0,
+          10296.0
+        ],
+        "after_bytes_per_op": [
+          10296.0,
+          10296.0,
+          10296.0
+        ],
+        "before_first_invocation_ns": [
+          2993000,
+          3193300,
+          3048900
+        ],
+        "after_first_invocation_ns": [
+          4195900,
+          3118700,
+          3792700
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          2,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "native-nine-distinct",
+        "before_p50_ns": [
+          2572.4,
+          2519.5,
+          2534.0
+        ],
+        "after_p50_ns": [
+          2372.3,
+          2495.1,
+          2503.7
+        ],
+        "before_median_p50_ns": 2534.0,
+        "after_median_p50_ns": 2495.1,
+        "change_percent": -1.5351223362273125,
+        "before_bytes_per_op": [
+          12192.0,
+          12192.0,
+          12192.0
+        ],
+        "after_bytes_per_op": [
+          12192.0,
+          12192.0,
+          12192.0
+        ],
+        "before_first_invocation_ns": [
+          172500,
+          174200,
+          182400
+        ],
+        "after_first_invocation_ns": [
+          165000,
+          168700,
+          159700
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          4,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "native-nine-reserved",
+        "before_p50_ns": [
+          2527.9,
+          2599.5,
+          2573.6
+        ],
+        "after_p50_ns": [
+          2415.8,
+          2384.4,
+          2563.1
+        ],
+        "before_median_p50_ns": 2573.6,
+        "after_median_p50_ns": 2415.8,
+        "change_percent": -6.131488964874099,
+        "before_bytes_per_op": [
+          12192.0,
+          12192.0,
+          12192.0
+        ],
+        "after_bytes_per_op": [
+          12192.0,
+          12192.0,
+          12192.0
+        ],
+        "before_first_invocation_ns": [
+          169300,
+          250300,
+          164400
+        ],
+        "after_first_invocation_ns": [
+          168600,
+          167300,
+          196400
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "native-shared-seed",
+        "before_p50_ns": [
+          2713.7,
+          2569.9,
+          2643.1
+        ],
+        "after_p50_ns": [
+          2652.1,
+          2678.6,
+          2703.7
+        ],
+        "before_median_p50_ns": 2643.1,
+        "after_median_p50_ns": 2678.6,
+        "change_percent": 1.343119821421812,
+        "before_bytes_per_op": [
+          12680.0,
+          12680.0,
+          12680.0
+        ],
+        "after_bytes_per_op": [
+          12680.0,
+          12680.0,
+          12680.0
+        ],
+        "before_first_invocation_ns": [
+          30982400,
+          4093200,
+          4090400
+        ],
+        "after_first_invocation_ns": [
+          4278300,
+          4597500,
+          4929700
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "legacy-nine-repeated",
+        "before_p50_ns": [
+          1060.4,
+          1023.2,
+          1063.0
+        ],
+        "after_p50_ns": [
+          1046.4,
+          1001.8,
+          1079.4
+        ],
+        "before_median_p50_ns": 1060.4,
+        "after_median_p50_ns": 1046.4,
+        "change_percent": -1.320256506978501,
+        "before_bytes_per_op": [
+          7152.0,
+          7152.0,
+          7152.0
+        ],
+        "after_bytes_per_op": [
+          7152.0,
+          7152.0,
+          7152.0
+        ],
+        "before_first_invocation_ns": [
+          164800,
+          159900,
+          201200
+        ],
+        "after_first_invocation_ns": [
+          150500,
+          161800,
+          187600
+        ],
+        "before_gc_count": [
+          2,
+          2,
+          2
+        ],
+        "after_gc_count": [
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "legacy-nine-distinct",
+        "before_p50_ns": [
+          1215.6,
+          1170.3,
+          1164.2
+        ],
+        "after_p50_ns": [
+          1235.9,
+          1171.6,
+          1226.1
+        ],
+        "before_median_p50_ns": 1170.3,
+        "after_median_p50_ns": 1226.1,
+        "change_percent": 4.768008203024854,
+        "before_bytes_per_op": [
+          7320.0,
+          7320.0,
+          7320.0
+        ],
+        "after_bytes_per_op": [
+          7320.0,
+          7320.0,
+          7320.0
+        ],
+        "before_first_invocation_ns": [
+          7300,
+          16100,
+          12500
+        ],
+        "after_first_invocation_ns": [
+          11600,
+          20200,
+          12200
+        ],
+        "before_gc_count": [
+          2,
+          2,
+          2
+        ],
+        "after_gc_count": [
+          2,
+          2,
+          2
+        ]
+      }
+    ],
+    "raw": "docs/benchmarks/core-algorithm-20261102/final-raw.jsonl",
+    "raw_sha256": "79b40e5cc91bc16497db2cbf827821390db0bad91ee024810a1ac6e11b4b850b",
+    "raw_hash_scope": "UTF-8 LF Git bytes; normalize checkout CRLF for this text hash only",
+    "independent_jvms": 18,
+    "before_original_jar_sha256": "734d9bf152a66dee5bf69397106b6808a64305969459ba60c2e8f7139c08c7cd",
+    "after_original_jar_sha256": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+    "conditions": "Same harness and fixed scenarios/warmup/iterations, Java21.0.10, G1, Xms512m/Xmx1024m; serial interleaved sides, round 2 reversed. Each kind/side has three new JVMs; separate -Xbatch cohort.",
+    "limitations": [
+      "First invocation is JVM-cold only for the first scenario in that JVM.",
+      "Background CPU/memory was observed, not strictly controlled; CPU load sometimes unavailable.",
+      "JIT transitions and mixed regression signals remain; no stable speedup or no-regression claim.",
+      "Medians of three JVM p50 values are descriptive; not causal confidence intervals."
+    ]
+  },
+  "qa_fixture": {
+    "original_version_range_rejected_gto5": true,
+    "corrected_range": "[2.0.4-gto.5]",
+    "changed_entries": [
+      "META-INF/mods.toml"
+    ],
+    "assertions_unchanged": true,
+    "core_jar_unchanged": true,
+    "failed_original_log": "step7-runtime/dev23.log"
+  },
+  "pull_request": {
+    "number": 17,
+    "base": "gto",
+    "head": "pr/core-2.0.4-gto.3",
+    "prior_head": "2670dc3f9fff738b2416ba5d14fdb2a4575b4d17",
+    "delivery": "One new summary commit continues the existing PR head; no local process branches/commits uploaded. Actual source SHA and CI are recorded by the PR."
+  },
+  "remaining": [
+    "LT step8 A1-A9 on this exact artifact, including actual external refund custody and three-JVM recovery",
+    "Step9 final cross-project summary"
+  ]
+}

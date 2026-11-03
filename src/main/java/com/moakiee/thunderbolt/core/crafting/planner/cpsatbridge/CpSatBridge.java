@@ -42,6 +42,8 @@ public final class CpSatBridge {
             int[] directUsedVariables,
             int[] directUsedDistances,
             double maxSeconds) {
+        long deadlineNanos = deadlineNanos(maxSeconds);
+        if (expired(deadlineNanos)) return new long[] {UNKNOWN, 0L};
         int variableCount = upperBounds.length;
         int stockUseCount = stockUseOffsets.length;
         if (minimums.length != coefficients.length
@@ -56,10 +58,12 @@ public final class CpSatBridge {
         var model = new CpModel();
         var variables = new IntVar[variableCount];
         for (int variable = 0; variable < variableCount; variable++) {
+            if (expired(deadlineNanos)) return new long[] {UNKNOWN, 0L};
             if (upperBounds[variable] < 0L) return new long[] {MODEL_INVALID, 0L};
             variables[variable] = model.newIntVar(0L, upperBounds[variable], "x_" + variable);
         }
         for (int row = 0; row < coefficients.length; row++) {
+            if (expired(deadlineNanos)) return new long[] {UNKNOWN, 0L};
             if (coefficients[row].length != variableCount) {
                 return new long[] {MODEL_INVALID, 0L};
             }
@@ -69,6 +73,7 @@ public final class CpSatBridge {
 
         var allUsed = new java.util.ArrayList<IntVar>();
         for (int row = 0; row < stockUseCount; row++) {
+            if (expired(deadlineNanos)) return new long[] {UNKNOWN, 0L};
             if (stockUseNetCoefficients[row].length != variableCount
                     || stockUseUpperBounds[row] < 0L
                     || stockUseDistances[row] < 0) {
@@ -95,6 +100,7 @@ public final class CpSatBridge {
             }
         }
         for (int index = 0; index < directUsedVariables.length; index++) {
+            if (expired(deadlineNanos)) return new long[] {UNKNOWN, 0L};
             int variable = directUsedVariables[index];
             if (variable < 0
                     || variable >= variableCount
@@ -109,7 +115,6 @@ public final class CpSatBridge {
             throw new IllegalArgumentException("invalid CP-SAT integer model: " + validation);
         }
 
-        long deadlineNanos = deadlineNanos(maxSeconds);
         long branches = 0L;
         IntVar[] executions = java.util.Arrays.copyOf(variables, executionVariableCount);
         model.minimize(LinearExpr.sum(executions));
@@ -1132,6 +1137,8 @@ public final class CpSatBridge {
             long[] stocks,
             long[] scoreRanks,
             double maxSeconds) {
+        long deadline = deadlineNanos(maxSeconds);
+        if (expired(deadline)) return new long[] {UNKNOWN, 0L};
         int optionCount = requirements.length;
         if (optionCount == 0 || optionCount != scoreRanks.length) {
             return new long[] {MODEL_INVALID, 0L};
@@ -1140,6 +1147,7 @@ public final class CpSatBridge {
         var model = new CpModel();
         var selected = new BoolVar[optionCount];
         for (int option = 0; option < optionCount; option++) {
+            if (expired(deadline)) return new long[] {UNKNOWN, 0L};
             if (requirements[option].length != itemCount || scoreRanks[option] < 0L) {
                 return new long[] {MODEL_INVALID, 0L};
             }
@@ -1148,9 +1156,11 @@ public final class CpSatBridge {
         model.addExactlyOne(selected);
 
         for (int item = 0; item < itemCount; item++) {
+            if (expired(deadline)) return new long[] {UNKNOWN, 0L};
             long maximum = 0L;
             long[] coefficients = new long[optionCount];
             for (int option = 0; option < optionCount; option++) {
+                if ((option & 255) == 0 && expired(deadline)) return new long[] {UNKNOWN, 0L};
                 long requirement = requirements[option][item];
                 if (requirement < 0L) return new long[] {MODEL_INVALID, 0L};
                 coefficients[option] = requirement;
@@ -1176,14 +1186,12 @@ public final class CpSatBridge {
         if (!validation.isEmpty()) {
             throw new IllegalArgumentException("invalid CP-SAT feedback model: " + validation);
         }
-        var solver = new CpSolver();
-        solver.getParameters().setMaxTimeInSeconds(maxSeconds);
-        solver.getParameters().setNumWorkers(1);
-        solver.getParameters().setRandomSeed(0);
-        CpSolverStatus status = solver.solve(model);
+        SolveAttempt attempt = solveOptimal(model, deadline);
+        var solver = attempt.solver();
+        CpSolverStatus status = attempt.status();
         long statusCode = optimalStatusCode(status);
         if (statusCode != SOLVED) {
-            return new long[] {statusCode, Math.max(0L, solver.numBranches())};
+            return new long[] {statusCode, attempt.branches()};
         }
         for (int option = 0; option < optionCount; option++) {
             if (solver.booleanValue(selected[option])) {
@@ -1211,7 +1219,7 @@ public final class CpSatBridge {
         long remaining = deadlineNanos == Long.MAX_VALUE
                 ? Long.MAX_VALUE
                 : deadlineNanos - System.nanoTime();
-        if (remaining <= 0L) {
+        if (remaining <= 0L || Thread.currentThread().isInterrupted()) {
             return new SolveAttempt(null, CpSolverStatus.UNKNOWN, 0L);
         }
         var solver = new CpSolver();
@@ -1226,6 +1234,11 @@ public final class CpSatBridge {
         solver.getParameters().setRandomSeed(0);
         CpSolverStatus status = solver.solve(model);
         return new SolveAttempt(solver, status, Math.max(0L, solver.numBranches()));
+    }
+
+    private static boolean expired(long deadline) {
+        return Thread.currentThread().isInterrupted()
+                || deadline != Long.MAX_VALUE && System.nanoTime() - deadline >= 0L;
     }
 
     private static long deadlineNanos(double maxSeconds) {

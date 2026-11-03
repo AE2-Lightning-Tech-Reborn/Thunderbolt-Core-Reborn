@@ -55,10 +55,13 @@ public final class BatchAllocationBenchmark {
         String json = String.format(Locale.ROOT,
                 "{\"java\":\"%s\",\"vm\":\"%s\",\"processors\":%d,\"max_heap\":%d,"
                         + "\"helper_sha256\":\"%s\",\"executor_sha256\":\"%s\","
+                        + "\"helper_source\":\"%s\",\"executor_source\":\"%s\","
+                        + "\"cold_definition\":\"first scenario invocation before its warmup; only the first scenario starts in a cold JVM\","
                         + "\"warmup_samples\":%d,\"measurement_samples\":%d,\"samples\":[%s]}",
                 System.getProperty("java.version"), System.getProperty("java.vm.name"),
                 Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().maxMemory(),
                 classHash(ParallelBatchCpuHelper.class), classHash(BatchExecutor.class),
+                classSource(ParallelBatchCpuHelper.class), classSource(BatchExecutor.class),
                 SAMPLES, SAMPLES, String.join(",", rows));
         var output = Path.of(args[0]);
         Files.createDirectories(output.toAbsolutePath().getParent());
@@ -70,6 +73,19 @@ public final class BatchAllocationBenchmark {
         try (var input = type.getResourceAsStream(type.getSimpleName() + ".class")) {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(input.readAllBytes()));
         }
+    }
+
+    private static String classSource(Class<?> type) {
+        return type.getProtectionDomain().getCodeSource().getLocation().toExternalForm();
+    }
+
+    private static long[] gcMetrics() {
+        long count = 0, millis = 0;
+        for (var gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+            count += Math.max(0, gc.getCollectionCount());
+            millis += Math.max(0, gc.getCollectionTime());
+        }
+        return new long[] {count, millis};
     }
 
     private static Runnable extraction(AEKey[] keys, boolean legacy, boolean reserve, boolean shared) {
@@ -121,23 +137,44 @@ public final class BatchAllocationBenchmark {
         }
         bean.setThreadAllocatedMemoryEnabled(true);
         long thread = Thread.currentThread().threadId();
+        long[] coldGc = gcMetrics();
+        long coldBefore = bean.getThreadAllocatedBytes(thread), coldStarted = System.nanoTime();
+        action.run();
+        long coldNanos = System.nanoTime() - coldStarted;
+        long coldBytes = bean.getThreadAllocatedBytes(thread) - coldBefore;
+        long[] afterColdGc = gcMetrics();
+        long[] warmupGc = gcMetrics();
         for (int w = 0; w < SAMPLES; w++) {
             for (int i = 0; i < ITERATIONS; i++) action.run();
         }
+        long[] afterWarmupGc = gcMetrics();
         var nanos = new double[SAMPLES];
         var bytes = new double[SAMPLES];
+        var gcCounts = new long[SAMPLES];
+        var gcMillis = new long[SAMPLES];
         for (int sample = 0; sample < SAMPLES; sample++) {
+            long[] gcBefore = gcMetrics();
             long before = bean.getThreadAllocatedBytes(thread);
             long started = System.nanoTime();
             for (int i = 0; i < ITERATIONS; i++) action.run();
             nanos[sample] = (System.nanoTime() - started) / (double) ITERATIONS;
             bytes[sample] = (bean.getThreadAllocatedBytes(thread) - before) / (double) ITERATIONS;
+            long[] gcAfter = gcMetrics();
+            gcCounts[sample] = gcAfter[0] - gcBefore[0];
+            gcMillis[sample] = gcAfter[1] - gcBefore[1];
         }
+        String rawNanos = Arrays.toString(nanos), rawBytes = Arrays.toString(bytes);
         Arrays.sort(nanos);
         Arrays.sort(bytes);
         return String.format(Locale.ROOT,
-                "{\"scenario\":\"%s\",\"iterations\":%d,\"p50_ns\":%.1f,\"p95_ns\":%.1f,\"bytes_per_op\":%.1f}",
-                name, ITERATIONS, nanos[9], nanos[18], bytes[9]);
+                "{\"scenario\":\"%s\",\"iterations\":%d,\"p50_ns\":%.1f,\"p95_ns\":%.1f,\"bytes_per_op\":%.1f,"
+                        + "\"cold_ns\":%d,\"cold_bytes\":%d,\"cold_gc_count\":%d,\"cold_gc_ms\":%d,"
+                        + "\"warmup_gc_count\":%d,\"warmup_gc_ms\":%d,\"raw_ns_per_op\":%s,\"raw_bytes_per_op\":%s,"
+                        + "\"sample_gc_count\":%s,\"sample_gc_ms\":%s}",
+                name, ITERATIONS, nanos[9], nanos[18], bytes[9], coldNanos, coldBytes,
+                afterColdGc[0] - coldGc[0], afterColdGc[1] - coldGc[1],
+                afterWarmupGc[0] - warmupGc[0], afterWarmupGc[1] - warmupGc[1],
+                rawNanos, rawBytes, Arrays.toString(gcCounts), Arrays.toString(gcMillis));
     }
 
     private record Input(GenericStack[] templates) implements IPatternDetails.IInput {

@@ -67,6 +67,38 @@ class BatchExtractionAccountingTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
+    void sharedSeedIsReturnedOnceAcrossPartialAndRepeatedRefunds(boolean legacy) {
+        var pattern = new Pattern(new IPatternDetails.IInput[]{input(MATERIAL, 1), input(SECOND, 2)},
+                new GenericStack[0], true);
+        var stock = inventory(MATERIAL, 1);
+        stock.insert(SECOND, 32, Actionable.MODULATE);
+        var result = extract(legacy, pattern, stock, 8, Map.of());
+        assertNotNull(result);
+        assertEquals(8, result.actualCopies);
+        assertEquals(1, held(stock, MATERIAL) + result.scaledInputs[0].get(MATERIAL));
+        assertEquals(32, held(stock, SECOND) + result.scaledInputs[1].get(SECOND));
+
+        ParallelBatchCpuHelper.reinject(result, 4, stock);
+        assertEquals(4, result.remainingCopies);
+        assertEquals(0, held(stock, MATERIAL), "the remaining batch still owns the one seed");
+        assertEquals(1, result.scaledInputs[0].get(MATERIAL));
+        assertEquals(32, held(stock, SECOND) + result.scaledInputs[1].get(SECOND));
+
+        ParallelBatchCpuHelper.reinject(result, 4, stock);
+        assertEquals(0, result.remainingCopies);
+        assertEquals(1, held(stock, MATERIAL));
+        assertEquals(32, held(stock, SECOND));
+        assertEquals(0, result.scaledInputs[0].get(MATERIAL));
+        assertEquals(0, result.scaledInputs[1].get(SECOND));
+
+        ParallelBatchCpuHelper.reinject(result, 8, stock);
+        assertEquals(1, held(stock, MATERIAL), "a repeated refund must not duplicate the shared seed");
+        assertEquals(32, held(stock, SECOND));
+        assertEquals(0, result.remainingCopies);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
     void shortExtractionRestoresEveryKeyAndCanRetry(boolean legacy) {
         var pattern = pattern(input(MATERIAL, 2), input(SECOND, 3), input(THIRD, 5));
         var stock = new ShortInventory();
