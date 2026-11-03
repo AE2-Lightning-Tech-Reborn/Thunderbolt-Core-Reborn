@@ -29,36 +29,52 @@ final class PlannerTopology {
         Vertex item(K key) { return items.computeIfAbsent(key, ignored -> node()); }
 
         void edge(Vertex from, Vertex to) {
-            from.next.add(to);
+            if (from.first == null) from.first = to;
+            else {
+                if (from.more == null) from.more = new ArrayList<>();
+                from.more.add(to);
+            }
             to.indegree++;
         }
 
         boolean isAcyclic() {
             int[] remaining = new int[nodes.size()];
-            var ready = new ArrayDeque<Vertex>();
+            var ready = new Vertex[nodes.size()];
+            int head = 0, tail = 0;
             for (var node : nodes) {
                 PlanningCancellation.check();
                 remaining[node.index] = node.indegree;
-                if (node.indegree == 0) ready.addLast(node);
+                if (node.indegree == 0) ready[tail++] = node;
             }
-            int visited = 0, edges = 0;
-            while (!ready.isEmpty()) {
+            int edges = 0;
+            while (head < tail) {
                 PlanningCancellation.check();
-                var node = ready.removeFirst();
-                visited++;
-                for (var next : node.next) {
+                var node = ready[head++];
+                var next = node.first;
+                if (next == null) continue;
+                if (--remaining[next.index] == 0) ready[tail++] = next;
+                if (node.more == null) continue;
+                for (int i = 0; i < node.more.size(); i++) {
                     if ((++edges & 255) == 0) PlanningCancellation.check();
-                    if (--remaining[next.index] == 0) ready.addLast(next);
+                    next = node.more.get(i);
+                    if (--remaining[next.index] == 0) ready[tail++] = next;
                 }
             }
-            return visited == nodes.size();
+            return head == nodes.size();
         }
 
         Map<Vertex, Integer> components() {
             var adjacency = new HashMap<Vertex, List<Vertex>>();
             for (var node : nodes) {
                 PlanningCancellation.check();
-                adjacency.put(node, node.next);
+                if (node.first == null) adjacency.put(node, List.of());
+                else if (node.more == null) adjacency.put(node, List.of(node.first));
+                else {
+                    var neighbors = new ArrayList<Vertex>(node.more.size() + 1);
+                    neighbors.add(node.first);
+                    neighbors.addAll(node.more);
+                    adjacency.put(node, neighbors);
+                }
             }
             return stronglyConnectedComponents(nodes, adjacency);
         }
@@ -67,7 +83,9 @@ final class PlannerTopology {
     static final class Vertex {
         private final int index;
         private int indegree;
-        private final List<Vertex> next = new ArrayList<>();
+        // Sparse chains need one successor without a list/backing array for every vertex.
+        private Vertex first;
+        private List<Vertex> more;
 
         private Vertex(int index) { this.index = index; }
     }
