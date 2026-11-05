@@ -110,6 +110,8 @@ public final class ByteTracker {
 
     public long computeMaxInsertable(AEKeyType type, boolean isNewKey) {
         if (isNewKey && totalTypesGetter.getAsInt() >= maxTypes) return 0;
+        if (capacityHi < usedBytesHi
+                || (capacityHi == usedBytesHi && capacityLo < usedBytesLo)) return 0;
         long freeLo = capacityLo - usedBytesLo;
         long freeHi = capacityHi - usedBytesHi;
         if (freeLo < 0) {
@@ -154,14 +156,16 @@ public final class ByteTracker {
                 + (newR > 0 ? 1L : 0L) - (oldR > 0 ? 1L : 0L);
 
         if (isNewKey) {
-            byteDelta += bytesPerType;
             channel.keyCount++;
         }
 
-        // The amount and new-key metadata can together exceed one 63-bit limb.
-        usedBytesHi += byteDelta < 0 ? 1L : 0L;
-        usedBytesLo += byteDelta & Long.MAX_VALUE;
+        // Apply amount and key metadata separately: their sum can overflow a signed long.
+        usedBytesLo += byteDelta;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
+        if (isNewKey) {
+            usedBytesLo += bytesPerType;
+            if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi++; }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -189,7 +193,6 @@ public final class ByteTracker {
 
         channel.remainder = newR;
         if (keyRemoved) {
-            bytesFreed += bytesPerType;
             if (--channel.keyCount <= 0) {
                 removeType(index);
             }
@@ -198,6 +201,10 @@ public final class ByteTracker {
         usedBytesHi -= bytesFreed < 0 ? 1L : 0L;
         usedBytesLo -= bytesFreed & Long.MAX_VALUE;
         if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi--; }
+        if (keyRemoved) {
+            usedBytesLo -= bytesPerType;
+            if (usedBytesLo < 0) { usedBytesLo &= Long.MAX_VALUE; usedBytesHi--; }
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════

@@ -132,6 +132,18 @@ public final class CraftPlannerV2<K> {
         public PlanningSession() {
         }
 
+        /** Share work limits, while rebuilding stock-dependent analysis without nested optimization. */
+        PlanningSession<K> newProbe() {
+            var probe = new PlanningSession<K>();
+            probe.refineMissing = false;
+            probe.optimizeFeasible = false;
+            probe.lowWidthWorkBudget = lowWidthWorkBudget;
+            probe.searchWorkBudget = searchWorkBudget;
+            probe.resolutionWorkBudget = resolutionWorkBudget;
+            probe.fallbackWorkBudget = fallbackWorkBudget;
+            return probe;
+        }
+
         /** Replenishment already reserves its caller's adaptation time; retain the shared cap. */
         long remainingMaterialDagNanos(long availableNanos) {
             return Math.min(100_000_000L - materialDagOrderNanos,
@@ -243,6 +255,7 @@ public final class CraftPlannerV2<K> {
     private boolean materialDagProjection;
     private List<K> activeReplayOrder = List.of();
     private Map<K, Integer> activeReplayRanks;
+    private Set<K> cachedSideOutputChoices;
     private final Set<K> cutOutputs = new LinkedHashSet<>();
     private final Map<CraftPattern<K>, Set<K>> suppressedPositiveFeedbackOutputs =
             new IdentityHashMap<>(0);
@@ -344,7 +357,7 @@ public final class CraftPlannerV2<K> {
     // Exact failure memo for speculative calls. availabilityState is restored with trail rollback,
     // so a proof is reused only when node, amount and every availability-affecting map are identical.
     private Set<SearchFailure<K>> failedSpeculativeSearches;
-    private Deque<Runnable> trail;
+    private UndoTrail trail;
     private long availabilityState;
     private long nextAvailabilityState;
     private int processed;
@@ -1004,21 +1017,22 @@ public final class CraftPlannerV2<K> {
         if (!searchBudget.tryConsume(charge)) return null;
         session.missingRefinementProbes++;
         diagnostics.missingRefinementProbes++;
-        var probeSession = new PlanningSession<K>();
-        probeSession.refineMissing = false;
-        probeSession.optimizeFeasible = false;
-        probeSession.lowWidthWorkBudget = session.lowWidthWorkBudget;
-        probeSession.searchWorkBudget = session.searchWorkBudget;
-        probeSession.resolutionWorkBudget = session.resolutionWorkBudget;
-        probeSession.fallbackWorkBudget = session.fallbackWorkBudget;
+        var suppliedGraph = graph.withAdditionalStock(supplied);
+        if (replenishment != null && !replenishment.ignoresByproducts() && cutOutputs.isEmpty()) {
+            // A leaf-route switch can spend stock the fixed policy left unused. Allocate the
+            // proposed inventory in batches before rebuilding the full graph, then certify every
+            // firing against that exact inventory. This shares the existing work/deadline limits.
+            var direct = replenishment.planBatchAware(target, amount, supplied, lowWidthWorkBudget);
+            if (direct != null && direct.feasible()) {
+                var ready = MaterialDagReplay.tryPlan(suppliedGraph, direct.firings(), target, amount);
+                if (ready != null && ready.feasible()) return ready;
+            }
+        }
+        var probeSession = session.newProbe();
         probeSession.materialDagOrderTemplates = session.materialDagOrders;
         probeSession.materialDagAdditionalStock = supplied;
-        // The stock-sensitive capacities are recompiled. Reusing PreparedGraph here would
-        // silently reuse the old stock limits. Reuse completed material-order topology only,
-        // refreshing its supply bounds and projecting stock separately for every probe.
-        // Require the supplement to survive the smallest ordinary search/visit allowance,
-        // including later quantity probes whose shared alternative budget is already spent.
-        return planDetailed(graph.withAdditionalStock(supplied), target, amount, 1,
+        // Reuse completed topology, not stock bounds; certify even with minimal search/visit limits.
+        return planDetailed(suppliedGraph, target, amount, 1,
                 1, charge, probeSession).plan();
     }
 
@@ -1801,6 +1815,47 @@ public final class CraftPlannerV2<K> {
      * A leaf shortage is retained only as a diagnosis while the normal search still tries to solve. */
     private CraftPlan<K> tryIndependentRawStock(ByproductSchedule<K> schedule, K target, long amount,
             Map<CraftPattern<K>, Long> baseline, int coupledComponents) {
+        // Partitioning is linear graph preparation, not integer search. Keep it under the
+        // inherited deadline; cold preparation must not spend the component solver's slice.
+        var relaxed = analyzeLowWidthComponents(schedule, target, amount, baseline, true);
+        if (relaxed == null || relaxed.components().size() <= coupledComponents
+                || relaxed.components().stream().anyMatch(c -> !c.exactSolverEligible()
+                        || !isPureByproductMaterialComponent(c))) return null;
+        var witnesses = new IntegerWitnessCache();
+        // A structurally bounded propagation proof is core certificate work, not optional search.
+        // It retains the shared cell-work limit and caller deadline. In particular, a portfolio of
+        // identical narrow kernels must not lose its complete proof to the local search timer.
+        var propagated = new IdentityHashMap<CraftPattern<K>, Long>(baseline);
+        boolean complete = true;
+        for (var component : relaxed.components()) {
+            PlanningCancellation.check();
+            var key = component.patterns().get(0);
+            var cached = preparedGraph.independentComponentProofs.get(key);
+            LowWidthSolve<K> result;
+            if (cached != null && cached.component().sameIndependentModel(component)) {
+                result = cached.solve();
+            } else {
+                result = solveLowWidthComponent(component, List.of(), witnesses, true);
+                if (result.firings() != null) {
+                    diagnostics.recordLowWidthAttempt();
+                    diagnostics.recordLowWidthResult(result.status(), result.integerNodes());
+                    // Propagation proves the same boundary model as optional integer search.
+                    // Reuse it across amount probes only after an exact model match below.
+                    preparedGraph.independentComponentProofs.put(key,
+                            new SolvedLowWidthComponent<>(component, result));
+                }
+            }
+            if (result.firings() == null) {
+                complete = false;
+                break;
+            }
+            for (var pattern : component.patterns()) propagated.remove(pattern);
+            propagated.putAll(result.firings());
+        }
+        if (complete) {
+            var certified = MaterialDagReplay.tryLeafMissingPlan(graph, propagated, target, amount);
+            if (certified != null) return certified;
+        }
         long available = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
         // Replenishment probes already run inside the shared 100 ms optional deadline. Dividing
         // that remaining slice again can reject the same cheap component proof during the recheck.
@@ -1817,12 +1872,7 @@ public final class CraftPlannerV2<K> {
         }
         Map<CraftPattern<K>, Long> counts;
         try (var ignored = PlanningCancellation.limitWitnessWork(limit)) {
-            var relaxed = analyzeLowWidthComponents(schedule, target, amount, baseline, true);
-            if (relaxed == null || relaxed.components().size() <= coupledComponents
-                    || relaxed.components().stream().anyMatch(c -> !c.exactSolverEligible()
-                            || !isPureByproductMaterialComponent(c))) return null;
             counts = new IdentityHashMap<CraftPattern<K>, Long>(baseline);
-            var witness = new BoundedIntegerLinearSolver.FeasibleWitness();
             for (var component : relaxed.components()) {
                 PlanningCancellation.check();
                 // PreparedGraph fixes stock and orientation. Match the entire boundary model,
@@ -1835,7 +1885,7 @@ public final class CraftPlannerV2<K> {
                     result = cached.solve();
                 } else {
                     diagnostics.recordLowWidthAttempt();
-                    result = solveLowWidthComponent(component, List.of(), witness);
+                    result = solveLowWidthComponent(component, List.of(), witnesses);
                     diagnostics.recordLowWidthResult(result.status(), result.integerNodes());
                     if (result.status() == BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED)
                         diagnostics.independentPortfolioCutoff = true;
@@ -1879,7 +1929,7 @@ public final class CraftPlannerV2<K> {
         fixedFallbackItems = new HashSet<>();
         visit = new HashMap<>();
         failedSpeculativeSearches = new HashSet<>();
-        trail = new ArrayDeque<>();
+        trail = new UndoTrail();
     }
 
     private void resetRecursiveExecution(int trailMark, int processedAtMark) {
@@ -2489,10 +2539,13 @@ public final class CraftPlannerV2<K> {
             PlanningCancellation.check();
             K output = queue.remove();
             for (CraftPattern<K> consumer : graph.patternsFor(output)) {
+                PlanningCancellation.check();
                 for (CraftInput<K> input : consumer.inputs()) {
+                    PlanningCancellation.check();
                     if (seen.add(input.key())) queue.add(input.key());
                 }
                 for (CraftOutput<K> byproduct : consumer.byproducts()) {
+                    PlanningCancellation.check();
                     if (seen.add(byproduct.key())) queue.add(byproduct.key());
                 }
 
@@ -2508,13 +2561,17 @@ public final class CraftPlannerV2<K> {
         // root quadratic, even when there is no feedback edge to inspect.
         Map<K, Long> ordinaryInputs = new LinkedHashMap<>();
         for (CraftInput<K> input : consumer.inputs()) {
+            PlanningCancellation.check();
             if (!input.returned() && input.remainder() == null)
                 ordinaryInputs.merge(input.key(), input.amount(), Sat::add);
         }
         Map<K, Long> returnedOutputs = new LinkedHashMap<>();
-        for (CraftOutput<K> outputEntry : consumer.byproducts())
+        for (CraftOutput<K> outputEntry : consumer.byproducts()) {
+            PlanningCancellation.check();
             returnedOutputs.merge(outputEntry.key(), outputEntry.amount(), Sat::add);
+        }
         for (var consumed : ordinaryInputs.entrySet()) {
+            PlanningCancellation.check();
             K consumedKey = consumed.getKey();
             long consumedAmount = consumed.getValue();
             if (consumedAmount <= 0) continue;
@@ -2527,6 +2584,7 @@ public final class CraftPlannerV2<K> {
             Set<K> possibleReturns = refills.size() < returnedOutputs.size()
                     ? refills.keySet() : returnedOutputs.keySet();
             for (K byproduct : possibleReturns) {
+                PlanningCancellation.check();
                 long returnedAmount = returnedOutputs.getOrDefault(byproduct, 0L);
                 if (returnedAmount <= 0) continue;
                 List<FeedbackRefill> candidates = refills.get(byproduct);
@@ -2537,6 +2595,7 @@ public final class CraftPlannerV2<K> {
                 if (!positiveProductGreater(bestRatio.outputAmount(), returnedAmount,
                         consumedAmount, bestRatio.inputAmount())) continue;
                 for (FeedbackRefill refill : candidates) {
+                    PlanningCancellation.check();
                     long refillInput = refill.inputAmount();
                     long common = gcd(returnedAmount, refillInput);
                     long consumerBatch = refillInput / common;
@@ -2561,6 +2620,7 @@ public final class CraftPlannerV2<K> {
             PlanningCancellation.check();
             var amounts = new HashMap<K, Long>();
             for (CraftInput<K> input : pattern.inputs()) {
+                PlanningCancellation.check();
                 if (!input.returned() && input.remainder() == null)
                     // The former per-key scan saturated from zero, including its first slot.
                     amounts.merge(input.key(), Sat.add(0L, input.amount()), Sat::add);
@@ -3586,38 +3646,37 @@ public final class CraftPlannerV2<K> {
         // Include its primary consumer ancestors below the target: a stocked wrapper may need to
         // be remade to fund that producer. Independent sibling cones then remain separate exact
         // components instead of being merged merely because each item has only one recipe.
-        Set<K> sideOutputChoices = new HashSet<>();
-        if (byproductSchedule.hasRelevantByproducts()) {
-            for (int i = analysisOrder.size() - 1; i >= 0; i--) {
-                PlanningCancellation.check();
-                K output = analysisOrder.get(i);
-                if (output.equals(target)) continue;
-                var routes = patternsByOutput.getOrDefault(output, List.of());
-                for (int p = 0; p < routes.size(); p++) {
-                    var pattern = routes.get(p);
-                    boolean choice = false;
-                    var byproducts = pattern.byproducts();
-                    for (int slot = 0; slot < byproducts.size(); slot++) {
-                        if (byproductSchedule.models(pattern, byproducts.get(slot).key())) {
-                            choice = true;
-                            break;
-                        }
-                    }
-                    if (!choice) {
-                        var inputs = pattern.inputs();
-                        for (int slot = 0; slot < inputs.size(); slot++) {
-                            if (sideOutputChoices.contains(inputs.get(slot).key())) {
+        Set<K> sideOutputChoices = cachedSideOutputChoices;
+        if (sideOutputChoices == null) {
+            sideOutputChoices = new HashSet<>();
+            if (byproductSchedule.hasRelevantByproducts()) {
+                for (int i = analysisOrder.size() - 1; i >= 0; i--) {
+                    PlanningCancellation.check();
+                    K output = analysisOrder.get(i);
+                    if (output.equals(target)) continue;
+                    for (var pattern : patternsByOutput.getOrDefault(output, List.of())) {
+                        boolean choice = false;
+                        for (var side : pattern.byproducts()) {
+                            if (byproductSchedule.models(pattern, side.key())) {
                                 choice = true;
                                 break;
                             }
                         }
-                    }
-                    if (choice) {
-                        sideOutputChoices.add(output);
-                        break;
+                        if (!choice) for (var input : pattern.inputs()) {
+                            if (sideOutputChoices.contains(input.key())) {
+                                choice = true;
+                                break;
+                            }
+                        }
+                        if (choice) {
+                            sideOutputChoices.add(output);
+                            break;
+                        }
                     }
                 }
             }
+            // Raw-stock relaxation changes coupling, not these immutable recipe ancestors.
+            cachedSideOutputChoices = sideOutputChoices = Set.copyOf(sideOutputChoices);
         }
         Map<K, Integer> decisionByOutput = new HashMap<>();
         // A bounded material-DAG candidate may need to remake a stocked ancestor to fund an
@@ -3629,11 +3688,16 @@ public final class CraftPlannerV2<K> {
             // Stock used as finished output can also be needed to start a self-returning route.
             // Keep that choice with its upstream materials: the stock-first baseline alone cannot
             // freeze their demand before ordered seed acquisition has decided whether to copy it.
-            boolean seedStockChoice = graph.stock(output) > 0L
-                    && patternsByOutput.getOrDefault(output, List.of()).stream()
-                            .anyMatch(CraftPlannerV2::hasSelfReturnedSeed);
-            if ((isContendedOutput(output) || sideOutputChoices.contains(output) || seedStockChoice)
-                    && !decisionByOutput.containsKey(output)) {
+            boolean choice = isContendedOutput(output) || sideOutputChoices.contains(output);
+            if (!choice && graph.stock(output) > 0L) {
+                for (var pattern : patternsByOutput.getOrDefault(output, List.of())) {
+                    if (hasSelfReturnedSeed(pattern)) {
+                        choice = true;
+                        break;
+                    }
+                }
+            }
+            if (choice && !decisionByOutput.containsKey(output)) {
                 decisionByOutput.put(output, decisionByOutput.size());
             }
         }
@@ -4120,8 +4184,13 @@ public final class CraftPlannerV2<K> {
 
     private LowWidthSolve<K> solveLowWidthComponent(
             LowWidthComponent<K> model,
-            List<Set<CraftPattern<K>>> noGoodSupports,
-            BoundedIntegerLinearSolver.FeasibleWitness witness) {
+            List<Set<CraftPattern<K>>> noGoodSupports, IntegerWitnessCache witnesses) {
+        return solveLowWidthComponent(model, noGoodSupports, witnesses, false);
+    }
+
+    private LowWidthSolve<K> solveLowWidthComponent(
+            LowWidthComponent<K> model, List<Set<CraftPattern<K>>> noGoodSupports,
+            IntegerWitnessCache witnesses, boolean propagationOnly) {
         int patternVariableCount = model.patterns().size();
         IdentityHashMap<CraftPattern<K>, Integer> patternVariable = new IdentityHashMap<>();
         Set<CraftPattern<K>> decisionPatterns =
@@ -4452,13 +4521,15 @@ public final class CraftPlannerV2<K> {
         int nodeBudget = Math.min(
                 MAX_LOW_WIDTH_INTEGER_NODES,
                 Math.max(16, 2 * variableCount + 4 * model.separatorWidth()));
-        BoundedIntegerLinearSolver.Result result = witness == null ? BoundedIntegerLinearSolver.solve(
+        BoundedIntegerLinearSolver.Result result = propagationOnly
+                ? witnesses.tryPropagate(variableCount, constraints, Sat.SAT, nodeBudget, lowWidthWorkBudget)
+                : witnesses == null ? BoundedIntegerLinearSolver.solve(
                 variableCount,
                 constraints,
                 Sat.SAT,
                 nodeBudget,
-                lowWidthWorkBudget) : witness.solve(
-                        variableCount, constraints, Sat.SAT, nodeBudget, lowWidthWorkBudget);
+                lowWidthWorkBudget) : witnesses.solve(variableCount, constraints, Sat.SAT, nodeBudget, lowWidthWorkBudget);
+        if (result == null) return LowWidthSolve.unsupported();
         if (!result.solved()) {
             return new LowWidthSolve<>(
                     result.status(), null, Set.of(), result.visitedNodes());
@@ -6405,16 +6476,7 @@ public final class CraftPlannerV2<K> {
         Long old = m.get(k);
         long oldAvailabilityState = availabilityState;
         boolean tracksAvailability = tracksAvailability(m);
-        trail.push(() -> {
-            if (old == null) {
-                m.remove(k);
-            } else {
-                m.put(k, old);
-            }
-            if (tracksAvailability) {
-                availabilityState = oldAvailabilityState;
-            }
-        });
+        trail.recordMap(m, k, old, tracksAvailability, oldAvailabilityState);
         if (tracksAvailability) {
             availabilityState = ++nextAvailabilityState;
         }
@@ -6451,25 +6513,109 @@ public final class CraftPlannerV2<K> {
         }
         put(missing, k, Sat.add(get(missing, k), amt));
         long old = missingTotal;
-        trail.push(() -> missingTotal = old);
+        trail.recordMissingTotal(old);
         missingTotal = Sat.add(missingTotal, amt);
     }
 
     private void bumpFiring(CraftPattern<K> r, long delta) {
         Long old = firings.get(r);
-        trail.push(() -> {
-            if (old == null) {
-                firings.remove(r);
-            } else {
-                firings.put(r, old);
-            }
-        });
+        trail.recordMap(firings, r, old, false, 0L);
         firings.put(r, Sat.add(old == null ? 0L : old, delta));
     }
 
     private void rollback(int mark) {
         while (trail.size() > mark) {
-            trail.pop().run();
+            trail.undoLast();
+        }
+    }
+
+    /** Same LIFO mutations, in reusable segments that never copy earlier undo records. */
+    private final class UndoTrail {
+        private static final byte MAP = 0;
+        private static final byte AVAILABILITY_MAP = 1;
+        private static final byte MISSING_TOTAL = 2;
+        private static final int MAX_SEGMENT_CAPACITY = 1024;
+
+        private Segment current = new Segment(16, null);
+        private int offset;
+        private int size;
+
+        int size() {
+            return size;
+        }
+
+        void recordMap(Map<?, Long> map, Object key, Long old, boolean tracksAvailability, long state) {
+            ensureCapacity();
+            current.maps[offset] = map;
+            current.keys[offset] = key;
+            current.oldValues[offset] = old;
+            current.oldStates[offset] = state;
+            current.kinds[offset] = tracksAvailability ? AVAILABILITY_MAP : MAP;
+            offset++;
+            size++;
+        }
+
+        void recordMissingTotal(long old) {
+            ensureCapacity();
+            current.oldStates[offset] = old;
+            current.kinds[offset] = MISSING_TOTAL;
+            offset++;
+            size++;
+        }
+
+        private void ensureCapacity() {
+            if (offset < current.kinds.length) return;
+            if (current.next == null) {
+                int capacity = Math.min(current.kinds.length * 2, MAX_SEGMENT_CAPACITY);
+                current.next = new Segment(capacity, current);
+            }
+            current = current.next;
+            offset = 0;
+        }
+
+        @SuppressWarnings("unchecked") // Each key is restored only to the map that recorded it.
+        void undoLast() {
+            if (offset == 0) {
+                current = current.previous;
+                offset = current.kinds.length;
+            }
+            int index = --offset;
+            size--;
+            var map = (Map<Object, Long>) current.maps[index];
+            Object key = current.keys[index];
+            Long old = current.oldValues[index];
+            long state = current.oldStates[index];
+            byte kind = current.kinds[index];
+            // Rolled-back branches must not remain reachable through reusable array capacity.
+            current.maps[index] = null;
+            current.keys[index] = null;
+            current.oldValues[index] = null;
+            if (kind == MISSING_TOTAL) {
+                missingTotal = state;
+            } else {
+                if (old == null) map.remove(key);
+                else map.put(key, old);
+                if (kind == AVAILABILITY_MAP) availabilityState = state;
+            }
+        }
+
+        private static final class Segment {
+            final Object[] maps;
+            final Object[] keys;
+            final Long[] oldValues;
+            final long[] oldStates;
+            final byte[] kinds;
+            final Segment previous;
+            Segment next;
+
+            Segment(int capacity, Segment previous) {
+                maps = new Object[capacity];
+                keys = new Object[capacity];
+                oldValues = new Long[capacity];
+                oldStates = new long[capacity];
+                kinds = new byte[capacity];
+                this.previous = previous;
+            }
         }
     }
 

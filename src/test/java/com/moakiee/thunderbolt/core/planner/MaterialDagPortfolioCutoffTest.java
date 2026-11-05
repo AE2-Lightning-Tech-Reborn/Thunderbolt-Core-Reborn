@@ -18,7 +18,7 @@ class MaterialDagPortfolioCutoffTest {
         // Its coupled width (50) exceeds the validated separator cap (36), so 48 branches
         // exercise the independent portfolio without spending its slice on observer overhead.
         int branchCount = 48;
-        var fixture = branches(branchCount);
+        var fixture = branches(branchCount, branchCount, true);
         assertNotNull(MaterialDagReplay.tryPlan(fixture.graph(), fixture.witness(), "T", 1),
                 "an independently supplied count vector proves the original inventory is sufficient");
         var session = new CraftPlannerV2.PlanningSession<String>();
@@ -85,7 +85,7 @@ class MaterialDagPortfolioCutoffTest {
 
     @Test
     void callerCancellationInsideAPartialPortfolioStillPropagates() {
-        var fixture = branches(48);
+        var fixture = branches(48, 48, true);
         var exit = new PlanningExitException("cancel inside independent material solving");
         var probe = new PortfolioProbe(exit);
         try (var ignored = PlanningCancellation.bind(probe)) {
@@ -154,6 +154,10 @@ class MaterialDagPortfolioCutoffTest {
     }
 
     private static Fixture branches(int branches, long rawStock) {
+        return branches(branches, rawStock, false);
+    }
+
+    private static Fixture branches(int branches, long rawStock, boolean requireIntegerChoice) {
         var builder = CraftGraph.<String>builder().stock("raw", rawStock);
         var inputs = new ArrayList<CraftInput<String>>();
         var witness = new IdentityHashMap<CraftPattern<String>, Long>();
@@ -167,6 +171,13 @@ class MaterialDagPortfolioCutoffTest {
                     List.of(CraftOutput.of(b, 1)), null);
             builder.stock(fuel, 3).stock(seed, 1).stock(side, 1).stock(b, 4)
                     .pattern(supply).pattern(consumer);
+            if (requireIntegerChoice) {
+                // Equivalent routes leave a real integer choice after direct propagation.
+                // The partial-portfolio tests must still exercise optional search and reuse.
+                builder.pattern(new CraftPattern<>(a, 2,
+                        List.of(CraftInput.of(seed, 1), CraftInput.of(side, 2)),
+                        List.of(CraftOutput.of(b, 1)), null));
+            }
             witness.put(supply, 1L);
             witness.put(consumer, 1L);
             inputs.add(CraftInput.of(a, 2));
@@ -182,6 +193,7 @@ class MaterialDagPortfolioCutoffTest {
         private final ThreadLocal<Long> optionalDeadline;
         private final StackWalker callers = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
         private final PlanningExitException exit;
+        private int admittedModels;
         boolean triggered;
 
         @SuppressWarnings("unchecked")
@@ -210,13 +222,16 @@ class MaterialDagPortfolioCutoffTest {
                     var frame = iterator.next();
                     if (frame.getDeclaringClass() == BoundedIntegerLinearSolver.class
                             && frame.getMethodName().equals("solve")) return false;
-                    witness |= frame.getDeclaringClass() == BoundedIntegerLinearSolver.FeasibleWitness.class;
+                    witness |= frame.getDeclaringClass() == IntegerWitnessCache.class;
                     portfolio |= frame.getDeclaringClass() == CraftPlannerV2.class
                             && frame.getMethodName().equals("tryIndependentRawStock");
                 }
                 return witness && portfolio;
             });
             if (!cachedWitness) return;
+            // The new exact-model cache charges its first model too. Expire on the next
+            // component so a completed proof is retained, as in the original witness fixture.
+            if (++admittedModels == 1) return;
             triggered = true;
             if (exit != null) throw exit;
             optionalDeadline.set(System.nanoTime() - 1L);

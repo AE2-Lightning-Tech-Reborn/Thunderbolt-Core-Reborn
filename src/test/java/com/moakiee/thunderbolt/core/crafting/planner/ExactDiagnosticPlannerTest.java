@@ -89,6 +89,20 @@ class ExactDiagnosticPlannerTest {
     }
 
     @Test
+    void byproductOnlySubstituteWinsOverMissingCapturedTemplateBeyondLong() {
+        var graph = CraftGraph.<String>builder()
+                .pattern("target", 1, List.of(CraftInput.of("a", 1), CraftInput.of("same-id", 1)))
+                .pattern("a", 1, List.of(CraftInput.of("raw", 1)), List.of(CraftOutput.of("b", 1)))
+                .pattern(CraftPattern.tagConversion("captured", "same-id", "captured-route"))
+                .pattern(CraftPattern.tagConversion("b", "same-id", "byproduct-route"))
+                .build();
+        var plan = solve(graph, "target", HUGE);
+        assertEquals(java.util.Map.of("raw", HUGE), plan.missing());
+        assertEquals(HUGE, plan.grossDemand().get("b"));
+        assertFalse(plan.grossDemand().containsKey("captured"));
+    }
+
+    @Test
     void sharedDagAggregatesBeforeRounding() {
         var graph = CraftGraph.<String>builder()
                 .pattern("target", 1, List.of(CraftInput.of("a", 1), CraftInput.of("b", 1)))

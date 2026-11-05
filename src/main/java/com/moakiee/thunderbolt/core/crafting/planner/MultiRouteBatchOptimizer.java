@@ -33,6 +33,8 @@ final class MultiRouteBatchOptimizer {
         }
         if (initial.grossDemand().values().stream().anyMatch(Sat::isSaturated))
             return BatchOptimizationResult.unsupported(initial);
+        routes = new ArrayList<>(routes);
+        OrdinaryBatchOptimizer.sortRoutes(routes);
         int slots = 0;
         for (var route : routes) if ((slots += route.inputs().size()) > 32)
             return BatchOptimizationResult.unsupported(initial);

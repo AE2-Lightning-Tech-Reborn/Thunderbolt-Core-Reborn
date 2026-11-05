@@ -39,8 +39,8 @@ jobs:
       - name: Verify planner and release JAR
         if: steps.target.outputs.forge == 'true'
         run: bash ./gradlew --no-daemon --no-parallel --max-workers=1 check assemble verifyReleaseJar
-      - name: Verify NBT copy Mixin and deep-copy behavior
+      - name: Verify Forge GameTests
         if: steps.target.outputs.forge == 'true'
         run: |
           bash ./gradlew --no-daemon --no-parallel --max-workers=1 runGameTestServer
-          grep -Fq 'All 5 required tests passed' build/nbt-game-test/logs/latest.log
+          grep -Fq 'All 14 required tests passed' build/nbt-game-test/logs/latest.log

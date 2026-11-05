@@ -71,6 +71,18 @@ public final class CompatTests {
         helper.assertTrue(summary.getUsedBytes() == 1, "native summary did not complete");
         helper.succeed();
     }
+    /** Upstream 2.0.4 composition regression, retaining the GTL fixture plan type. */
+    @GameTest(template = "runtime_empty", timeoutTicks = 100)
+    public static void customFactoryKeepsItsExistingTree(GameTestHelper helper) throws Exception {
+        var summary = ThunderboltCraftingPlanSummary.fromPlan(plan(Map.of()));
+        var api = Class.forName("com.neuvillette.ae2ct.api.ICraftingPlanSummary");
+        Object originalTree = api.getMethod("getJob").invoke(summary);
+        helper.assertTrue(originalTree != null, "test summary needs an existing tree");
+        var result = CraftingPlanSummary.fromJob(null, null, new CustomPlan(plan(Map.of()), summary));
+        helper.assertTrue(result == summary, "factory summary identity was lost");
+        helper.assertTrue(api.getMethod("getJob").invoke(result) == originalTree, "third-party tree was overwritten");
+        helper.succeed();
+    }
     @GameTest(template = "runtime_empty", timeoutTicks = 100)
     public static void customSummaryIncludesGtlExecutionCounts(GameTestHelper helper) throws Exception {
         var key = AEItemKey.of(Items.STONE);
@@ -85,6 +97,40 @@ public final class CompatTests {
         helper.assertTrue(((GtlEntry) summary.getEntries().get(0)).gtlcore$getCraftTimes() == 7,
                 "GTL execution count was absent or multiplied by the output amount");
         tree(helper, summary);
+
+        var button = AEItemKey.of(Items.STONE_BUTTON);
+        IPatternDetails oneToOne = new IPatternDetails() {
+            public AEItemKey getDefinition() { return null; }
+            public IInput[] getInputs() {
+                return new IInput[] {new IInput() {
+                    public GenericStack[] getPossibleInputs() { return new GenericStack[] {new GenericStack(key, 1)}; }
+                    public long getMultiplier() { return 1; }
+                    public boolean isValid(AEKey candidate, net.minecraft.world.level.Level level) { return key.equals(candidate); }
+                    public AEKey getRemainingKey(AEKey candidate) { return null; }
+                }};
+            }
+            public GenericStack[] getOutputs() { return new GenericStack[] {new GenericStack(button, 1)}; }
+        };
+        var planning = proxy(ICraftingService.class, (p, m, a) -> switch (m.getName()) {
+            case "getCraftingFor" -> button.equals(a[0]) ? List.of(oneToOne) : List.of();
+            case "getCraftables" -> Set.of(button);
+            case "canEmitFor" -> false;
+            case "getFuzzyCraftable" -> null;
+            default -> throw new AssertionError(m);
+        });
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(ignored -> {});
+        inventory.insert(key, Long.MAX_VALUE, appeng.api.config.Actionable.MODULATE);
+        var preview = com.moakiee.thunderbolt.core.crafting.planner.FastCraftingPlanner.tryAttempt(planning,
+                new appeng.crafting.inv.ChildCraftingSimulationState(inventory), null, button, Long.MAX_VALUE, false).plan();
+        helper.assertTrue(preview != null && preview.simulation() && ExactPlanReports.isPreview(preview)
+                && preview.patternTimes().isEmpty(), "exact preview became executable");
+        var exactSummary = ThunderboltCraftingPlanSummary.fromPlan(preview);
+        var row = exactSummary.getEntries().stream().filter(entry -> entry.getWhat().equals(button)).findFirst().orElseThrow();
+        helper.assertTrue(((GtlEntry) row).gtlcore$getCraftTimes() == Long.MAX_VALUE,
+                "exact preview lost GTL execution count");
+        helper.assertTrue(inventory.extract(key, Long.MAX_VALUE, appeng.api.config.Actionable.SIMULATE) == Long.MAX_VALUE,
+                "preview summary changed inventory");
+        tree(helper, exactSummary);
         helper.succeed();
     }
     @GameTest(template = "runtime_empty", timeoutTicks = 100)

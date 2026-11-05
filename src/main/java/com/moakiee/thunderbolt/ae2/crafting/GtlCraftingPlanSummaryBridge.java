@@ -34,13 +34,20 @@ final class GtlCraftingPlanSummaryBridge {
             return;
         }
         var times = new Object2LongOpenHashMap<AEKey>();
-        for (var pattern : plan.patternTimes().entrySet()) {
-            long copies = pattern.getValue();
-            if (copies <= 0) continue;
-            // GTL counts executions for every output, independently of its output stack size.
-            for (var output : pattern.getKey().getOutputs()) {
-                times.mergeLong(output.what(), copies,
-                        (left, right) -> left >= Long.MAX_VALUE - right ? Long.MAX_VALUE : left + right);
+        var exactTimes = ExactPlanReports.craftingTimes(plan);
+        if (exactTimes != null) {
+            // Exact previews intentionally have no executable patternTimes. Project their
+            // independent display counts only at GTL's long-valued metadata boundary.
+            exactTimes.forEach((key, copies) -> times.put(key, ExactPlanReport.project(copies)));
+        } else {
+            for (var pattern : plan.patternTimes().entrySet()) {
+                long copies = pattern.getValue();
+                if (copies <= 0) continue;
+                // GTL counts executions for every output, independently of its output stack size.
+                for (var output : pattern.getKey().getOutputs()) {
+                    times.mergeLong(output.what(), copies,
+                            (left, right) -> left >= Long.MAX_VALUE - right ? Long.MAX_VALUE : left + right);
+                }
             }
         }
         try {

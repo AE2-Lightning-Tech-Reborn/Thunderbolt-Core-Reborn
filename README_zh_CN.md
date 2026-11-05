@@ -22,7 +22,8 @@
 - 支持精确 BigInteger 存储、可认证执行程序，以及超限合成预览
 - 为合成供应器、高容量频道、索引存储单元和弹出端点提供扩展 API
 - 为兼容的高容量网络提供基于最大流的频道分配（双向树种子 + 精确残量补齐）
-- 包含 Advanced AE、AE2 Crafting Tree、ExtendedAE Plus 和 NeoECO 20.5.1 的可选兼容钩子；仅在对应模组存在时加载
+- 包含 Advanced AE、AE2 Crafting Tree、ExtendedAE Plus、Useless 和 NeoECO 20.5.1 的可选兼容钩子；仅在对应模组存在时加载
+- 移植普通 Forge `2.0.4` 的长数量/精确请求公共 API，以及预算内规划、派发和索引存储改进
 - 与 GTLCore（`gtlcore`）共存：CPU 派发让位给 GTLCore，规划器挂在 `CraftingCalculation#computePlan`，其余子系统保持启用
 
 让位边界、`-Dthunderbolt.gtlCompat` 开关与验证步骤见 `docs/gtl-core-coexistence.zh-CN.md`。
@@ -40,6 +41,7 @@ V2 会在预算内继续优化可行方案，优先减少配方执行次数，�
 - `planning.enableCpSatPlanner`：启用实验性的 OR-Tools CP-SAT 规划器（默认：`false`）。启用后，Thunderbolt 会在启动时下载并校验匹配的原生运行库；加载失败不会影响其他规划器。
 - `channel.mode`：控制最大流频道分配（默认：`MOD`）。`MOD` 在已加载的集成明确请求时启用，`DEVICE` 也会为主动接入的设备启用，`ON` 则在存在控制器时始终启用。
 - `objects.fastNbtCopies`：减少 NBT 深拷贝的临时分配（默认：`true`）。设为 `false` 可使用原有复制路径。
+  检测到 Lithium 或 Canary 时，在注入前停用 Core 的可选复制 Mixin；本 GTL 分支保留已验证的 Radium 共存路径。
 
 高级规划诊断和安全限制可通过 JVM 系统属性设置：
 
@@ -74,9 +76,9 @@ V2 会在预算内继续优化可行方案，优先减少配方执行次数，�
 .\gradlew.bat publishToMavenLocal
 ```
 
-- 版本：`2.0.0`
-- Maven 坐标：`com.moakiee.thunderbolt:thunderbolt-forge-1.20.1:2.0.0`
-- 可分发 JAR：`build/libs/thunderbolt-forge-1.20.1-2.0.0.jar`
+- 版本：`2.0.4`
+- Maven 坐标：`com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1-gtl:2.0.4`
+- 可分发 JAR：`build/libs/thunderbolt-forge-1.20.1-2.0.4.jar`
 
 带 `-slim.jar` 后缀的 JAR 不含运行时必需的 MixinExtras 内嵌依赖，只作为开发过程的中间产物。
 

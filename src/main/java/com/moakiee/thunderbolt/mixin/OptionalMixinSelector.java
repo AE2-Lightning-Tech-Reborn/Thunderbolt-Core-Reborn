@@ -29,17 +29,37 @@ public final class OptionalMixinSelector {
             "ExtendedAePlusSuperMatrixBatchMixin",
             "AppliedETransmutationModuleBatchMixin");
 
+    private static final Set<String> NBT_COPY_MIXINS = Set.of(
+            "CompoundTagCopyMixin", "ListTagCopyMixin");
+
     private OptionalMixinSelector() {
     }
 
     /** Accepts a qualified or simple Mixin name and an early mod-presence predicate. */
     public static boolean shouldApply(String mixinClassName, Predicate<String> modLoaded) {
         String simpleName = simpleName(mixinClassName);
+        if (nbtCopyOwner(simpleName, modLoaded) != null) {
+            return false;
+        }
         if (isGtlOwned(simpleName) && GtlCompat.standDown(modLoaded)) {
             return false;
         }
         String requiredMod = REQUIRED_MODS.get(simpleName);
         return requiredMod == null || modLoaded.test(requiredMod);
+    }
+
+    /**
+     * Skip optional wrappers before injection validation when another mod owns NBT copy.
+     * Radium is supported by this branch's priority-1100 compound wrapper and list hook;
+     * Lithium and Canary have no equivalent verified coexistence path here.
+     */
+    @Nullable
+    public static String nbtCopyOwner(String mixinClassName, Predicate<String> modLoaded) {
+        if (!NBT_COPY_MIXINS.contains(simpleName(mixinClassName))) return null;
+        for (String mod : new String[] {"lithium", "canary"}) {
+            if (modLoaded.test(mod)) return mod;
+        }
+        return null;
     }
 
     /** Whether GTLCore supersedes this Mixin's dispatch or accounting. */

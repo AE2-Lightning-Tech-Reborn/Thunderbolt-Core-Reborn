@@ -402,6 +402,7 @@ tasks.register('optimizationBenchmark', JavaExec) {
     dependsOn 'testClasses'
     mainClass = 'com.moakiee.thunderbolt.core.OptimizationBenchmark'
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+    jvmArgs '-Xms512m', '-Xmx512m', '-XX:+UseG1GC', '-XX:ActiveProcessorCount=2'
     def baseline = providers.gradleProperty('optimizationBaseline').getOrElse('false').toBoolean()
     classpath = baseline
             ? files(layout.buildDirectory.dir('optimization-baseline/classes')) + sourceSets.test.runtimeClasspath

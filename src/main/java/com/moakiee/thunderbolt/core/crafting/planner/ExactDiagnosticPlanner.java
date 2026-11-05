@@ -144,7 +144,11 @@ final class ExactDiagnosticPlanner<K> {
         Map<K, BigInteger> perFiring = new HashMap<>();
         for (CraftInput<K> input : pattern.inputs()) {
             if (unlimited.contains(input.key())) continue;
-            BigInteger available = get(capacity, input.key()).subtract(get(need, input.key())).max(ZERO);
+            // Earlier selected recipes can supply a substitute solely as a byproduct. Its
+            // standalone capacity is zero, but the live surplus must still win over a missing
+            // encoded template when choosing a same-id conversion route.
+            BigInteger available = get(capacity, input.key()).add(get(surplus, input.key()));
+            available = available.subtract(get(need, input.key())).max(ZERO);
             if (input.reusableStockSource() != null) {
                 for (K actual : graph.reusableStockCandidates(input.reusableStockSource(), input.key())) {
                     available = available.add(privateLeft.getOrDefault(new ReusableStockKey<>(
