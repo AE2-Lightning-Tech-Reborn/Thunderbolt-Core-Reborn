@@ -204,7 +204,7 @@ public final class CpSatRankedFlowSolver<K> {
         return refine(compilation, first);
     }
 
-    /** Produce a certified leaf-shortage plan when a tiny native search times out. */
+    /** A cheap certified direct-route incumbent for tiny graphs, including native cutoffs. */
     private CraftPlan<K> smallPartialWitness(Compilation<K> c) {
         if (c.items.size() > 12 || c.patterns.size() > 16) return null;
 
@@ -216,7 +216,9 @@ public final class CpSatRankedFlowSolver<K> {
                     Map.of(target, targetAmount), c.items.size(), false);
         }
 
+        CraftPlan<K> best = null;
         for (var pattern : graph.patternsFor(target)) {
+            PlanningCancellation.check();
             if (pattern.exactOutputAmount().signum() <= 0
                     || pattern.exactOutputAmount().compareTo(BigInteger.valueOf(Sat.SAT)) >= 0
                     || pattern.executionCost() != 1) {
@@ -247,9 +249,9 @@ public final class CpSatRankedFlowSolver<K> {
             vector.put(pattern, firings.longValueExact());
             CraftPlan<K> plan = MaterialDagReplay.tryLeafMissingPlan(
                     projected, vector, target, targetAmount);
-            if (plan != null) return plan;
+            if (plan != null && legalMissing(c, plan) && (best == null || better(c, plan, best))) best = plan;
         }
-        return null;
+        return best;
     }
 
     /** A long unit-flow graph can be certified without constructing a native model. */
@@ -519,13 +521,26 @@ public final class CpSatRankedFlowSolver<K> {
         long branches = first.branches;
         long started = System.nanoTime();
         boolean incomplete = false;
-        if (session.remainingCalls <= 0 || session.remainingNanos <= 0L) {
+        if (session.remainingNanos <= 0L) {
             session.incomplete = true;
             return new Result<>(Status.SOLVED, withBudget(best), branches);
         }
         long allowed = Math.min(session.remainingNanos,
                 PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 2L);
         try (var ignored = PlanningCancellation.limitOptionalWork(allowed)) {
+            // Certify direct target routes before native refinement spends the remaining slice.
+            // Compare the full objective: a different shortage key can have a cheaper witness.
+            // This bounded reconstruction needs no native call, but shares the same time limit.
+            CraftPlan<K> direct = smallPartialWitness(c);
+            if (direct != null && better(c, direct, best)) {
+                best = first.partial ? withBudget(direct) : direct;
+                session.improvements++;
+            }
+            if (best.feasible()) return new Result<>(Status.SOLVED, best, branches);
+            if (session.remainingCalls <= 0) {
+                session.incomplete = true;
+                return new Result<>(Status.SOLVED, withBudget(best), branches);
+            }
             // Keep one call for the exact-round block path used by amount probes. A seed witness
             // is still an optional refinement and must observe router cancellation after it is
             // admitted to the shared call budget.
