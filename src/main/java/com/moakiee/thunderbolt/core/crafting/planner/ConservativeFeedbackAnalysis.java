@@ -532,11 +532,29 @@ final class ConservativeFeedbackAnalysis<K> {
      */
     private static <K> List<RoundVector<K>> primitiveFiringVectors(
             List<Transition<K>> stableCycle) {
+        // A balanced cycle has one primitive firing vector, independent of the cut.
+        // Prove that once instead of rebuilding identical BigInteger arrays for every rotation.
+        BigInteger gainNumerator = BigInteger.ONE;
+        BigInteger gainDenominator = BigInteger.ONE;
+        for (var transition : stableCycle) {
+            PlanningCancellation.check();
+            gainNumerator = gainNumerator.multiply(BigInteger.valueOf(transition.outputAmount()));
+            gainDenominator = gainDenominator.multiply(BigInteger.valueOf(transition.inputAmount()));
+            var gcd = gainNumerator.gcd(gainDenominator);
+            gainNumerator = gainNumerator.divide(gcd);
+            gainDenominator = gainDenominator.divide(gcd);
+        }
+        if (gainNumerator.equals(gainDenominator)) {
+            var vector = primitiveFiringVector(stableCycle);
+            return vector == null ? List.of() : List.of(new RoundVector<>(vector));
+        }
         List<RoundVector<K>> result = new ArrayList<>(stableCycle.size());
         Set<Map<CraftPattern<K>, Long>> seen = new HashSet<>();
         for (int start = 0; start < stableCycle.size(); start++) {
+            PlanningCancellation.check();
             List<Transition<K>> rotated = new ArrayList<>(stableCycle.size());
             for (int offset = 0; offset < stableCycle.size(); offset++) {
+                if ((offset & 63) == 0) PlanningCancellation.check();
                 rotated.add(stableCycle.get((start + offset) % stableCycle.size()));
             }
             Map<CraftPattern<K>, Long> vector = primitiveFiringVector(rotated);
@@ -553,6 +571,7 @@ final class ConservativeFeedbackAnalysis<K> {
         numerators[0] = BigInteger.ONE;
         denominators[0] = BigInteger.ONE;
         for (int i = 1; i < size; i++) {
+            PlanningCancellation.check();
             Transition<K> previous = cycle.get(i - 1);
             Transition<K> current = cycle.get(i);
             BigInteger numerator = numerators[i - 1]
@@ -566,17 +585,22 @@ final class ConservativeFeedbackAnalysis<K> {
 
         BigInteger commonDenominator = BigInteger.ONE;
         for (BigInteger denominator : denominators) {
+            PlanningCancellation.check();
             commonDenominator = lcm(commonDenominator, denominator);
             if (commonDenominator.compareTo(BigInteger.valueOf(Sat.SAT)) > 0) return null;
         }
         BigInteger[] firings = new BigInteger[size];
         BigInteger commonGcd = BigInteger.ZERO;
         for (int i = 0; i < size; i++) {
+            PlanningCancellation.check();
             firings[i] = numerators[i].multiply(commonDenominator.divide(denominators[i]));
             commonGcd = commonGcd.signum() == 0 ? firings[i] : commonGcd.gcd(firings[i]);
         }
         if (commonGcd.signum() <= 0) return null;
-        for (int i = 0; i < size; i++) firings[i] = firings[i].divide(commonGcd);
+        for (int i = 0; i < size; i++) {
+            PlanningCancellation.check();
+            firings[i] = firings[i].divide(commonGcd);
+        }
 
         Transition<K> first = cycle.get(0);
         Transition<K> last = cycle.get(size - 1);

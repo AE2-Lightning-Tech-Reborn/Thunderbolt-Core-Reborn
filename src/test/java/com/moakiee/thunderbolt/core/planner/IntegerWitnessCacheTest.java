@@ -8,6 +8,27 @@ import org.junit.jupiter.api.Test;
 
 class IntegerWitnessCacheTest {
     @Test
+    void undecidedPropagationDoesNotPoisonSearchAndSolvedWitnessesRemainIsolated() {
+        var cache = new IntegerWitnessCache();
+        var rows = List.of(new BoundedIntegerLinearSolver.Constraint(new long[] {1, 1}, 3));
+        assertNull(cache.tryPropagate(2, rows, 10, 16,
+                BoundedIntegerLinearSolver.WorkBudget.unlimited()));
+        var searched = cache.solve(2, rows, 10, 16,
+                BoundedIntegerLinearSolver.WorkBudget.unlimited());
+        assertTrue(searched.solved());
+        var reused = cache.tryPropagate(2, rows, 10, 16,
+                BoundedIntegerLinearSolver.WorkBudget.unlimited());
+        assertArrayEquals(searched.values(), reused.values());
+        var values = reused.values();
+        values[0] = -100;
+        assertArrayEquals(searched.values(), cache.tryPropagate(2, rows, 10, 16,
+                BoundedIntegerLinearSolver.WorkBudget.unlimited()).values());
+        assertEquals(BoundedIntegerLinearSolver.Status.INFEASIBLE,
+                cache.tryPropagate(2, rows, 1, 16,
+                        BoundedIntegerLinearSolver.WorkBudget.unlimited()).status());
+    }
+
+    @Test
     void rowOrderCanReuseTheExactSolvedVectorWithoutSearchingAgain() {
         var cache = new IntegerWitnessCache();
         var lower = row(2, 3);

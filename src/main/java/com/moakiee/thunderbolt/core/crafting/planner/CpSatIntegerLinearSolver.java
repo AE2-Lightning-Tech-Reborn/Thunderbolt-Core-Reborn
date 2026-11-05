@@ -95,8 +95,7 @@ final class CpSatIntegerLinearSolver {
         // Native work consumes the same deadline as the surrounding planning attempt. Do not
         // reserve an arbitrary slice here: a cheap model returns early, while a hard model may use
         // all time that the caller still has available.
-        long remainingNanos = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
-        if (remainingNanos <= 0L) {
+        if (PlanningCancellation.remainingNanos(Long.MAX_VALUE) <= 0L) {
             return result(BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED, 0);
         }
 
@@ -108,6 +107,7 @@ final class CpSatIntegerLinearSolver {
             }
             long[] coefficients = constraint.coefficients();
             for (int variable = 0; variable < variableCount; variable++) {
+                if ((variable & 255) == 0) PlanningCancellation.check();
                 long coefficient = coefficients[variable];
                 if (coefficient == Long.MIN_VALUE) {
                     return result(BoundedIntegerLinearSolver.Status.COEFFICIENT_OVERFLOW, 0);
@@ -125,6 +125,7 @@ final class CpSatIntegerLinearSolver {
         long[] upperBounds = new long[variableCount];
         boolean domainWasCapped = false;
         for (int variable = 0; variable < variableCount; variable++) {
+            if ((variable & 255) == 0) PlanningCancellation.check();
             long coefficient = Math.max(1L, maximumAbsoluteCoefficient[variable]);
             long rowCap = SAFE_ACTIVITY / divisor / coefficient;
             long upper = Math.min(maxValue, Math.min(objectiveCap, rowCap));
@@ -135,9 +136,11 @@ final class CpSatIntegerLinearSolver {
         // Detect a row that the safety caps alone make impossible. This is an unsupported numeric
         // range, not a mathematical infeasibility proof.
         for (var constraint : constraints) {
+            PlanningCancellation.check();
             BigInteger maximum = BigInteger.ZERO;
             long[] coefficients = constraint.coefficients();
             for (int variable = 0; variable < variableCount; variable++) {
+                if ((variable & 255) == 0) PlanningCancellation.check();
                 if (coefficients[variable] > 0L) {
                     maximum = maximum.add(BigInteger.valueOf(coefficients[variable])
                             .multiply(BigInteger.valueOf(upperBounds[variable])));
@@ -152,9 +155,14 @@ final class CpSatIntegerLinearSolver {
             long[][] coefficientRows = new long[constraints.size()][];
             long[] minimums = new long[constraints.size()];
             for (int row = 0; row < constraints.size(); row++) {
+                PlanningCancellation.check();
                 coefficientRows[row] = constraints.get(row).coefficients();
                 minimums[row] = constraints.get(row).minimum();
             }
+            // Preparation consumes the caller's budget too. Sample again at the native boundary,
+            // and never enter native work after a cancellation or optional-stage expiry.
+            long remainingNanos = PlanningCancellation.remainingNanos(Long.MAX_VALUE);
+            if (remainingNanos <= 0L) return result(BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED, 0);
             long[] raw = CpSatRuntime.solve(
                     coefficientRows,
                     minimums,
@@ -190,7 +198,7 @@ final class CpSatIntegerLinearSolver {
                 return result(BoundedIntegerLinearSolver.Status.COEFFICIENT_OVERFLOW, branches);
             }
             return result(BoundedIntegerLinearSolver.Status.BUDGET_EXHAUSTED, branches);
-        } catch (PlanningExitException | CancellationException exit) {
+        } catch (PlanningExitException | CancellationException | PlanningCancellation.OptionalWorkLimit exit) {
             throw exit;
         } catch (ArithmeticException ignored) {
             return result(BoundedIntegerLinearSolver.Status.COEFFICIENT_OVERFLOW, 0);
@@ -209,9 +217,11 @@ final class CpSatIntegerLinearSolver {
             }
         }
         for (var constraint : constraints) {
+            PlanningCancellation.check();
             BigInteger activity = BigInteger.ZERO;
             long[] coefficients = constraint.coefficients();
             for (int variable = 0; variable < values.length; variable++) {
+                if ((variable & 255) == 0) PlanningCancellation.check();
                 activity = activity.add(BigInteger.valueOf(coefficients[variable])
                         .multiply(BigInteger.valueOf(values[variable])));
             }

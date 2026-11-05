@@ -59,4 +59,25 @@ class OptionalMixinSelectorTest {
         assertTrue(OptionalMixinSelector.shouldApply(
                 "ExtendedCraftingCpuInsertMixin", ignored -> false));
     }
+
+    @Test
+    void nbtCopyWrappersYieldToKnownOwnersWithoutDisablingOtherHooks() {
+        for (String mod : new String[] {"leanobject", "radium", "lithium", "canary"}) {
+            for (String mixin : new String[] {"CompoundTagCopyMixin", "ListTagCopyMixin"}) {
+                assertFalse(OptionalMixinSelector.shouldApply(mixin, mod::equals), mod);
+                assertFalse(OptionalMixinSelector.shouldApply("example." + mixin, mod::equals), mod);
+                org.junit.jupiter.api.Assertions.assertEquals(mod,
+                        OptionalMixinSelector.nbtCopyOwner(mixin, mod::equals));
+            }
+            assertTrue(OptionalMixinSelector.shouldApply("GtoCraftingPlannerMixin", mod::equals));
+        }
+    }
+
+    @Test
+    void nativeNbtWrappersStayEnabledWhenNoOtherCopyOwnerIsInstalled() {
+        assertTrue(OptionalMixinSelector.shouldApply("CompoundTagCopyMixin", ignored -> false));
+        assertTrue(OptionalMixinSelector.shouldApply("ListTagCopyMixin", "other_mod"::equals));
+        org.junit.jupiter.api.Assertions.assertNull(
+                OptionalMixinSelector.nbtCopyOwner("GtoCraftingPlannerMixin", ignored -> true));
+    }
 }

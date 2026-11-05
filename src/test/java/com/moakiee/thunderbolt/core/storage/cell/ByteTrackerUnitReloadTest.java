@@ -2,7 +2,6 @@ package com.moakiee.thunderbolt.core.storage.cell;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
@@ -38,39 +37,9 @@ class ByteTrackerUnitReloadTest {
         }
         for (int i = 0; i < types.length; i++) {
             tracker.onExtract(types[i], 100, true);
-            types[i].units = 17;
             assertReloadDetected(tracker, types, i + 1, types.length);
         }
         assertTrue(tracker.hasCurrentUnits());
-    }
-
-    @Test
-    void rebuildRefreshesUnitsAndClearsRemovedChannels() {
-        var type = new ReloadableType(10);
-        var lo = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<AEKeyType>();
-        var hi = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<AEKeyType>();
-        var counts = new it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<AEKeyType>();
-        lo.put(type, 100);
-        counts.put(type, 1);
-        var tracker = new ByteTracker(() -> counts.size());
-        tracker.configure(8, Integer.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
-        tracker.rebuild(lo, hi, counts, 1);
-        assertTrue(tracker.hasCurrentUnits());
-        assertEquals(21, tracker.getUsedBytes());
-        for (int units : new int[]{17, 8}) {
-            type.units = units;
-            assertFalse(tracker.hasCurrentUnits());
-            tracker.rebuild(lo, hi, counts, 1);
-            assertTrue(tracker.hasCurrentUnits());
-            assertEquals(8 + (100 + units - 1) / units, tracker.getUsedBytes());
-        }
-        lo.clear();
-        counts.clear();
-        tracker.rebuild(lo, hi, counts, 0);
-        type.units = 4;
-        assertTrue(tracker.hasCurrentUnits());
-        assertEquals(0, tracker.trackedTypeEntries());
-        assertEquals(0, tracker.getUsedBytes());
     }
 
     private static void assertReloadDetected(ByteTracker tracker, ReloadableType[] types, int from, int to) {

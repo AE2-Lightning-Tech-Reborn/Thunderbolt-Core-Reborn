@@ -114,10 +114,10 @@ public final class IndexedCellStorageSavedData extends SavedData {
 
     @Override
     public CompoundTag save(CompoundTag tag) {
-        return encode(tag, null, false);
+        return encode(tag, null);
     }
 
-    private CompoundTag encode(CompoundTag tag, HolderLookup.Provider registries, boolean snapshot) {
+    private CompoundTag encode(CompoundTag tag, HolderLookup.Provider registries) {
         for (var entry : storageCache.entrySet()) {
             if (entry.getValue().needsPersist()) {
                 cells.put(entry.getKey(), entry.getValue().persist(cells.get(entry.getKey()), registries));
@@ -127,10 +127,8 @@ public final class IndexedCellStorageSavedData extends SavedData {
         var storesTag = new CompoundTag();
         for (var entry : cells.entrySet()) {
             var typeTag = storesTag.getCompound(entry.getKey().type().toString());
-            var payload = snapshot
-                    ? writeSnapshots.computeIfAbsent(entry.getKey(), ignored ->
-                            snapshotEncodedCell(entry.getValue(), storageCache.get(entry.getKey())))
-                    : entry.getValue();
+            var payload = writeSnapshots.computeIfAbsent(entry.getKey(), ignored ->
+                    snapshotEncodedCell(entry.getValue(), storageCache.get(entry.getKey())));
             typeTag.put(entry.getKey().id().toString(), payload);
             storesTag.put(entry.getKey().type().toString(), typeTag);
         }
@@ -144,7 +142,7 @@ public final class IndexedCellStorageSavedData extends SavedData {
     }
 
     CompoundTag snapshotForWrite(HolderLookup.Provider registries) {
-        return encode(new CompoundTag(), registries, true);
+        return encode(new CompoundTag(), registries);
     }
 
     private void migrateLegacyIfNeeded(MinecraftServer server) {

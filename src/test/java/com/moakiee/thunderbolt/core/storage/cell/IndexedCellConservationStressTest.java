@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
@@ -41,16 +43,15 @@ class IndexedCellConservationStressTest {
     private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
     private static final IActionSource SOURCE = IActionSource.empty();
 
-    private static Object previousKeyTypes;
-
-    @BeforeAll
-    static void bootstrap() throws Exception {
-        BigIndexedStorageTest.bootstrap();
-        previousKeyTypes = IndexedCellTestFixtures.installKeyTypes();
-    }
+    private static AutoCloseable keyRegistry;
 
     @org.junit.jupiter.api.AfterAll
-    static void restoreKeyTypes() throws Exception { IndexedCellTestFixtures.restoreKeyTypes(previousKeyTypes); }
+    static void closeKeyRegistry() throws Exception { keyRegistry.close(); }
+
+    @BeforeAll
+    static void bootstrap() {
+        BigIndexedStorageTest.bootstrap(); keyRegistry = IndexedCellTestFixtures.openKeyRegistry();
+    }
 
     private static RegistryAccess registries() {
         return RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
@@ -132,7 +133,7 @@ class IndexedCellConservationStressTest {
                 assertEquals(ledgers[destination][k], cells[destination].storage().getAmountExact(key));
             } else {
                 long modCount = cell.storage().getModCount();
-                var summary = stacks[c].getTag();
+                var summary = stacks[c].getTag() == null ? null : stacks[c].getTag().copy();
                 boolean inserting = operation == 4;
                 assertEquals(inserting ? amount.min(MAX.subtract(before)) : amount.min(before),
                         transfer(cell, key, amount, exact, inserting, Actionable.SIMULATE));
@@ -180,7 +181,7 @@ class IndexedCellConservationStressTest {
     }
 
     @Test
-    void fileSavesKeepTheirOwnGenerationThroughCompactionAndIdReuse(@TempDir Path directory) throws Exception {
+    void forgeFileSavesAndDelayedSnapshotsKeepTheirGenerationThroughCompactionAndIdReuse(@TempDir Path directory) throws Exception {
         int keyCount = 16_384;
         int generations = 12;
         var type = new ResourceLocation("ae2lt:infinite_cell");
@@ -196,9 +197,25 @@ class IndexedCellConservationStressTest {
             expected.put(key, amount);
         }
         var savedLedgers = new java.util.ArrayList<Map<AEKey, BigInteger>>();
+        var releaseWorker = new CountDownLatch(1);
+        // Forge saves synchronously. This worker belongs only to the test and deliberately
+        // delays detached payload compression until every subsequent live mutation is done.
+        var worker = java.util.concurrent.Executors.newSingleThreadExecutor();
+        var writes = new java.util.ArrayList<java.util.concurrent.Future<?>>();
+        try {
             for (int generation = 0; generation < generations; generation++) {
                 data.markStorageDirty(type, id, store);
                 data.save(directory.resolve("generation-" + generation + ".dat").toFile());
+                var detachedRoot = new CompoundTag();
+                detachedRoot.put("data", data.snapshotForWrite(registries()));
+                net.minecraft.nbt.NbtUtils.addCurrentDataVersion(detachedRoot);
+                var detachedFile = directory.resolve("detached-" + generation + ".dat").toFile();
+                writes.add(worker.submit(() -> {
+                    if (!releaseWorker.await(60, TimeUnit.SECONDS)) throw new AssertionError("Save producer timed out");
+                    NbtIo.writeCompressed(detachedRoot, detachedFile);
+                    NbtIo.writeCompressed(detachedRoot, directory.resolve("detached-latest.dat").toFile());
+                    return null;
+                }));
                 savedLedgers.add(Map.copyOf(expected));
                 // Queue the same target repeatedly as well: final file must be the final generation.
                 data.setDirty();
@@ -225,12 +242,20 @@ class IndexedCellConservationStressTest {
                     }
                 }
             }
+        } finally {
+            releaseWorker.countDown();
+            worker.shutdown();
+            assertTrue(worker.awaitTermination(60, TimeUnit.SECONDS), "Detached file writer did not finish");
+        }
+        for (var write : writes) write.get(60, TimeUnit.SECONDS);
         for (int generation = 0; generation < generations; generation++) {
+            assertFileLedger(directory.resolve("detached-" + generation + ".dat"), type, id, savedLedgers.get(generation));
             assertFileLedger(directory.resolve("generation-" + generation + ".dat"), type, id, savedLedgers.get(generation));
         }
         assertFileLedger(directory.resolve("latest.dat"), type, id, savedLedgers.get(savedLedgers.size() - 1));
-        System.out.printf("CELL_FILE_STRESS keys=%d generations=%d orderedWrites=%d%n",
-                keyCount, generations, generations * 2);
+        assertFileLedger(directory.resolve("detached-latest.dat"), type, id, savedLedgers.get(savedLedgers.size() - 1));
+        System.out.printf("CELL_FILE_STRESS keys=%d generations=%d forgeWrites=%d detachedWrites=%d%n",
+                keyCount, generations, generations * 2, generations * 2);
     }
 
     private static void assertFileLedger(Path path, ResourceLocation type, UUID id,

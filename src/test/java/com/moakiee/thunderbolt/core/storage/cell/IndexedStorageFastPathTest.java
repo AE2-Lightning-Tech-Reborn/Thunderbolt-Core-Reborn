@@ -202,7 +202,7 @@ class IndexedStorageFastPathTest {
         var b = variant(2);
         inv.insert(a, 64, Actionable.MODULATE, SOURCE);
         inv.storage().insert(b, 16, Actionable.MODULATE);
-        var summary = stack.getTag();
+        var summary = stack.getTag() == null ? null : stack.getTag().copy();
         assertEquals(32, inv.insert(b, 32, Actionable.SIMULATE, SOURCE));
         assertEquals(32, inv.extract(a, 32, Actionable.SIMULATE, SOURCE));
         assertEquals(summary, stack.getTag());

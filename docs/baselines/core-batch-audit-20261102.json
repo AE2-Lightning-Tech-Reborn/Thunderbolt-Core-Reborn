@@ -1,0 +1,1128 @@
+{
+  "schema_version": 1,
+  "step": 5,
+  "base_commit": "5289c39c6409598367ee6fa6ecad89da91b21419",
+  "baseline_product_commit": "bd510967eb1f9a376d80e74695bef27bafbaa5dd",
+  "baseline_release_sha256": "734d9bf152a66dee5bf69397106b6808a64305969459ba60c2e8f7139c08c7cd",
+  "baseline_dev_copy_sha256": "d7c04dc8718161d3e1f2fd12564c6212d53df459006976d5b30e56700ce15ee0",
+  "mapping": "ForgeGradle RenameJarSrg2Mcp, official_1.20.1; benchmark input only, not a formal release loading test",
+  "source_sha256_lf": {
+    "src/main/java/com/moakiee/thunderbolt/core/crafting/batch/ParallelBatchCpuHelper.java": "554e0625ad26b55b742220f821b506cb27c3e9155ce2158f89a9bd54dfe52056",
+    "src/test/java/com/moakiee/thunderbolt/core/crafting/batch/BatchExtractionAccountingTest.java": "3dba6876a767589d60d96b411fad06f9567869389bdd2a3a1ed7cb551430ce2b",
+    "src/test/java/com/moakiee/thunderbolt/core/crafting/batch/BatchAllocationBenchmark.java": "b593074f7509f4fd3f9a8c0cb112ac61c1ee78fc5a712355cb0c77c021ea269e",
+    "src/test/java/com/moakiee/thunderbolt/core/OptimizationBenchmark.java": "7f1f935405d2da6551046f1d457c3e3742dd234d9cf31dcda17e848dcf8469fb"
+  },
+  "defect": "A stale repeated refund releases the one shared seed again after remainingCopies reaches zero.",
+  "original_red": {
+    "tests": 2,
+    "failures": 2,
+    "reason": "seed count 1 -> 2, both extraction overloads"
+  },
+  "fixture_failure_retained": "Initial isEmpty assertion failed on zero-count AE2 entries; corrected to actual quantity before reproducing seed duplication.",
+  "batch_regression": {
+    "tests": 94,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "final_full_junit": {
+    "tests": 1688,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "passed": 1686
+  },
+  "actual_ae2_development_abi": {
+    "15.2610.31": {
+      "tests": {
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "original_sha256": "f63917bf5a2ca0692c0550ad2d045991f7a493d89021bfb30b51026d4ad31a3d",
+      "mapped_jar_sha256": "67547e0aa0464d91502140c155ccef33b1f86d424b398a8aa35e67942eef98ab",
+      "mapping": "ForgeGradle RenameJarSrg2Mcp official_1.20.1"
+    },
+    "15.2610.40": {
+      "tests": {
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "original_sha256": "b0d97544e618d73ec0c8d8e54df36351bf7f98f7e1984c6455d81658b6320b5c",
+      "mapped_jar_sha256": "2060438d145d2d70cfe0f576e0eb983200e57daaac7291ca79df7c53538ecfb9",
+      "mapping": "ForgeGradle RenameJarSrg2Mcp official_1.20.1"
+    }
+  },
+  "reflected_type_descriptors_sha256": {
+    "BulkResult": "1ef3c80f544e47f9fca9662a82a94561bc91c744a4fcaa1297480b0c93a0796b",
+    "RemainderSpec": "8e2f3d0c18d245adbba1da5bd3fbd0598adde6092b092f20a41d235d906f5520"
+  },
+  "shared_frozen_files_unchanged": 82,
+  "batch_executor_and_reflective_bulk_constructor_shapes_unchanged": true,
+  "benchmarks": {
+    "manifests": {
+      "default": {
+        "inputs": {
+          "java": "openjdk version \"21.0.10\" 2026-01-20 LTS\r\nOpenJDK Runtime Environment Microsoft-13106404 (build 21.0.10+7-LTS)\r\nOpenJDK 64-Bit Server VM Microsoft-13106404 (build 21.0.10+7-LTS, mixed mode, sharing)\r\n",
+          "java_executable": "C:\\Program Files\\Microsoft\\jdk-21.0.10.7-hotspot\\bin\\java.EXE",
+          "baseline_dev_jar_sha256": "d7c04dc8718161d3e1f2fd12564c6212d53df459006976d5b30e56700ce15ee0",
+          "after_main_classes_sha256": "f37e01247475cb853d5abfce937f5f54f3598bc8c5e8af6fec337516af5b0398",
+          "agent_sha256": "a056b8a95fa2d19eae864c78e942b109c9ed51b2c7d6803a2653d19e2c2c9c83",
+          "batch_harness_sha256": "b9b797b7929f9b8226aa6cabfc48f9820a30e4ce89e3fdfcf97b945533119114",
+          "optimization_harness_sha256": "a412c471f8e63dfb59a20df0ea1cc06994751ca3226f6cfd92748063f34f7de9"
+        },
+        "independent_jvms": 12
+      },
+      "synchronous": {
+        "inputs": {
+          "java": "openjdk version \"21.0.10\" 2026-01-20 LTS\r\nOpenJDK Runtime Environment Microsoft-13106404 (build 21.0.10+7-LTS)\r\nOpenJDK 64-Bit Server VM Microsoft-13106404 (build 21.0.10+7-LTS, mixed mode, sharing)\r\n",
+          "java_executable": "C:\\Program Files\\Microsoft\\jdk-21.0.10.7-hotspot\\bin\\java.EXE",
+          "baseline_dev_jar_sha256": "d7c04dc8718161d3e1f2fd12564c6212d53df459006976d5b30e56700ce15ee0",
+          "after_main_classes_sha256": "f37e01247475cb853d5abfce937f5f54f3598bc8c5e8af6fec337516af5b0398",
+          "agent_sha256": "a056b8a95fa2d19eae864c78e942b109c9ed51b2c7d6803a2653d19e2c2c9c83",
+          "batch_harness_sha256": "b9b797b7929f9b8226aa6cabfc48f9820a30e4ce89e3fdfcf97b945533119114",
+          "optimization_harness_sha256": "a412c471f8e63dfb59a20df0ea1cc06994751ca3226f6cfd92748063f34f7de9",
+          "compilation_mode": "synchronous -Xbatch"
+        },
+        "independent_jvms": 6
+      }
+    },
+    "rows": [
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "native-one-slot",
+        "before_p50_ns": [
+          763.8,
+          685.1,
+          694.8
+        ],
+        "after_p50_ns": [
+          713.1,
+          732.9,
+          813.4
+        ],
+        "before_median_p50_ns": 694.8,
+        "after_median_p50_ns": 732.9,
+        "change_percent": 5.483592400690851,
+        "before_bytes_per_op": [
+          1720.0,
+          1720.0,
+          1720.0
+        ],
+        "after_bytes_per_op": [
+          1720.0,
+          1720.0,
+          1720.0
+        ],
+        "before_first_invocation_ns": [
+          16070800,
+          14333100,
+          13707800
+        ],
+        "after_first_invocation_ns": [
+          15879500,
+          19912000,
+          17036100
+        ],
+        "before_gc_count": [
+          1,
+          1,
+          0
+        ],
+        "after_gc_count": [
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "native-nine-repeated",
+        "before_p50_ns": [
+          6016.7,
+          2324.7,
+          2208.7
+        ],
+        "after_p50_ns": [
+          6033.9,
+          6039.3,
+          5874.3
+        ],
+        "before_median_p50_ns": 2324.7,
+        "after_median_p50_ns": 6033.9,
+        "change_percent": 159.55607175119374,
+        "before_bytes_per_op": [
+          9142.8,
+          9144.0,
+          9144.0
+        ],
+        "after_bytes_per_op": [
+          9144.0,
+          9144.0,
+          9144.0
+        ],
+        "before_first_invocation_ns": [
+          232000,
+          424000,
+          689400
+        ],
+        "after_first_invocation_ns": [
+          419500,
+          244900,
+          271300
+        ],
+        "before_gc_count": [
+          2,
+          2,
+          3
+        ],
+        "after_gc_count": [
+          2,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "native-nine-distinct",
+        "before_p50_ns": [
+          2353.6,
+          2240.2,
+          2385.2
+        ],
+        "after_p50_ns": [
+          2328.3,
+          2386.1,
+          2402.7
+        ],
+        "before_median_p50_ns": 2353.6,
+        "after_median_p50_ns": 2386.1,
+        "change_percent": 1.3808633582596874,
+        "before_bytes_per_op": [
+          11616.0,
+          11616.0,
+          11616.0
+        ],
+        "after_bytes_per_op": [
+          11616.0,
+          11688.0,
+          11616.0
+        ],
+        "before_first_invocation_ns": [
+          184300,
+          224700,
+          318500
+        ],
+        "after_first_invocation_ns": [
+          703300,
+          392100,
+          304600
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "native-nine-reserved",
+        "before_p50_ns": [
+          2470.1,
+          2371.8,
+          2555.4
+        ],
+        "after_p50_ns": [
+          2568.4,
+          2454.0,
+          2549.7
+        ],
+        "before_median_p50_ns": 2470.1,
+        "after_median_p50_ns": 2549.7,
+        "change_percent": 3.2225415975061678,
+        "before_bytes_per_op": [
+          11616.0,
+          11616.0,
+          11616.0
+        ],
+        "after_bytes_per_op": [
+          11616.0,
+          11616.0,
+          11616.0
+        ],
+        "before_first_invocation_ns": [
+          222000,
+          202000,
+          198800
+        ],
+        "after_first_invocation_ns": [
+          189700,
+          282200,
+          199200
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "native-shared-seed",
+        "before_p50_ns": [
+          2529.6,
+          2533.6,
+          2513.6
+        ],
+        "after_p50_ns": [
+          2551.1,
+          2634.9,
+          2613.0
+        ],
+        "before_median_p50_ns": 2529.6,
+        "after_median_p50_ns": 2613.0,
+        "change_percent": 3.2969639468690692,
+        "before_bytes_per_op": [
+          12104.0,
+          12120.0,
+          12104.0
+        ],
+        "after_bytes_per_op": [
+          12104.0,
+          12104.0,
+          12104.0
+        ],
+        "before_first_invocation_ns": [
+          11384800,
+          1586500,
+          1933800
+        ],
+        "after_first_invocation_ns": [
+          1394500,
+          1428900,
+          1435400
+        ],
+        "before_gc_count": [
+          4,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "legacy-nine-repeated",
+        "before_p50_ns": [
+          1721.4,
+          1514.1,
+          1543.4
+        ],
+        "after_p50_ns": [
+          1534.2,
+          1573.9,
+          1507.1
+        ],
+        "before_median_p50_ns": 1543.4,
+        "after_median_p50_ns": 1534.2,
+        "change_percent": -0.5960865621355449,
+        "before_bytes_per_op": [
+          7512.0,
+          7512.0,
+          7512.0
+        ],
+        "after_bytes_per_op": [
+          7512.0,
+          7512.0,
+          7512.0
+        ],
+        "before_first_invocation_ns": [
+          167800,
+          191200,
+          363200
+        ],
+        "after_first_invocation_ns": [
+          146800,
+          295000,
+          144200
+        ],
+        "before_gc_count": [
+          2,
+          2,
+          2
+        ],
+        "after_gc_count": [
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "batch",
+        "scenario": "legacy-nine-distinct",
+        "before_p50_ns": [
+          1281.3,
+          1174.6,
+          1180.5
+        ],
+        "after_p50_ns": [
+          1527.1,
+          1599.1,
+          1303.8
+        ],
+        "before_median_p50_ns": 1180.5,
+        "after_median_p50_ns": 1527.1,
+        "change_percent": 29.36044049131723,
+        "before_bytes_per_op": [
+          7320.0,
+          7320.0,
+          7320.0
+        ],
+        "after_bytes_per_op": [
+          7423.0,
+          7392.0,
+          7392.0
+        ],
+        "before_first_invocation_ns": [
+          12700,
+          11500,
+          9800
+        ],
+        "after_first_invocation_ns": [
+          13100,
+          14400,
+          15400
+        ],
+        "before_gc_count": [
+          1,
+          2,
+          2
+        ],
+        "after_gc_count": [
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "chain-500",
+        "before_p50_ns": [
+          582870.0,
+          612710.0,
+          638440.0
+        ],
+        "after_p50_ns": [
+          473110.0,
+          525110.0,
+          435590.0
+        ],
+        "before_median_p50_ns": 612710.0,
+        "after_median_p50_ns": 473110.0,
+        "change_percent": -22.78402506895595,
+        "before_bytes_per_op": [
+          421465.6,
+          437465.6,
+          432528.0
+        ],
+        "after_bytes_per_op": [
+          421576.0,
+          421462.4,
+          421563.2
+        ],
+        "before_first_invocation_ns": [
+          24996800,
+          23761700,
+          22573100
+        ],
+        "after_first_invocation_ns": [
+          27170600,
+          23382600,
+          23679300
+        ],
+        "before_gc_count": [
+          1,
+          1,
+          0
+        ],
+        "after_gc_count": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "alternatives-1",
+        "before_p50_ns": [
+          18054.0,
+          28742.0,
+          28262.0
+        ],
+        "after_p50_ns": [
+          25478.0,
+          27764.0,
+          24420.0
+        ],
+        "before_median_p50_ns": 28262.0,
+        "after_median_p50_ns": 25478.0,
+        "change_percent": -9.850682895761098,
+        "before_bytes_per_op": [
+          18413.4,
+          18385.3,
+          18415.8
+        ],
+        "after_bytes_per_op": [
+          18414.9,
+          18414.4,
+          18414.9
+        ],
+        "before_first_invocation_ns": [
+          26285400,
+          27379100,
+          29211400
+        ],
+        "after_first_invocation_ns": [
+          11652500,
+          10714500,
+          11466600
+        ],
+        "before_gc_count": [
+          0,
+          0,
+          0
+        ],
+        "after_gc_count": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "quantity-session-1",
+        "before_p50_ns": [
+          117730.0,
+          136950.0,
+          111800.0
+        ],
+        "after_p50_ns": [
+          119480.0,
+          155890.0,
+          155560.0
+        ],
+        "before_median_p50_ns": 117730.0,
+        "after_median_p50_ns": 155560.0,
+        "change_percent": 32.132846343327955,
+        "before_bytes_per_op": [
+          122777.6,
+          122755.2,
+          122782.4
+        ],
+        "after_bytes_per_op": [
+          122780.0,
+          122299.2,
+          122272.8
+        ],
+        "before_first_invocation_ns": [
+          1685800,
+          1480800,
+          1939700
+        ],
+        "after_first_invocation_ns": [
+          1994800,
+          2138500,
+          2240800
+        ],
+        "before_gc_count": [
+          0,
+          0,
+          1
+        ],
+        "after_gc_count": [
+          1,
+          1,
+          0
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "alternatives-1000000000000",
+        "before_p50_ns": [
+          14224.0,
+          16128.0,
+          16314.0
+        ],
+        "after_p50_ns": [
+          19434.0,
+          16276.0,
+          23606.0
+        ],
+        "before_median_p50_ns": 16128.0,
+        "after_median_p50_ns": 19434.0,
+        "change_percent": 20.498511904761905,
+        "before_bytes_per_op": [
+          19477.0,
+          19447.8,
+          19541.4
+        ],
+        "after_bytes_per_op": [
+          19542.4,
+          19347.5,
+          19477.9
+        ],
+        "before_first_invocation_ns": [
+          984200,
+          451000,
+          1647900
+        ],
+        "after_first_invocation_ns": [
+          1797100,
+          1529000,
+          1435200
+        ],
+        "before_gc_count": [
+          0,
+          0,
+          0
+        ],
+        "after_gc_count": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "quantity-session-1000000000000",
+        "before_p50_ns": [
+          122340.0,
+          95040.0,
+          99560.0
+        ],
+        "after_p50_ns": [
+          127190.0,
+          72940.0,
+          97300.0
+        ],
+        "before_median_p50_ns": 99560.0,
+        "after_median_p50_ns": 97300.0,
+        "change_percent": -2.269987946966656,
+        "before_bytes_per_op": [
+          130629.6,
+          130590.4,
+          130624.8
+        ],
+        "after_bytes_per_op": [
+          131132.0,
+          127193.6,
+          130176.8
+        ],
+        "before_first_invocation_ns": [
+          189200,
+          214200,
+          198100
+        ],
+        "after_first_invocation_ns": [
+          291900,
+          149300,
+          311800
+        ],
+        "before_gc_count": [
+          0,
+          0,
+          0
+        ],
+        "after_gc_count": [
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "three-route-mixed",
+        "before_p50_ns": [
+          233810.0,
+          210778.0,
+          207406.0
+        ],
+        "after_p50_ns": [
+          196958.0,
+          208268.0,
+          204430.0
+        ],
+        "before_median_p50_ns": 210778.0,
+        "after_median_p50_ns": 204430.0,
+        "change_percent": -3.0116995132319357,
+        "before_bytes_per_op": [
+          160903.8,
+          160988.2,
+          160476.6
+        ],
+        "after_bytes_per_op": [
+          160342.7,
+          159774.1,
+          160292.6
+        ],
+        "before_first_invocation_ns": [
+          90466800,
+          87475900,
+          88834100
+        ],
+        "after_first_invocation_ns": [
+          92375400,
+          97805500,
+          91970900
+        ],
+        "before_gc_count": [
+          2,
+          2,
+          1
+        ],
+        "after_gc_count": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "mode": "default",
+        "kind": "optimization",
+        "scenario": "ordinary-bulk-extract",
+        "before_p50_ns": [
+          1281.8,
+          1250.1,
+          1088.4
+        ],
+        "after_p50_ns": [
+          1083.3,
+          1011.4,
+          851.0
+        ],
+        "before_median_p50_ns": 1250.1,
+        "after_median_p50_ns": 1011.4,
+        "change_percent": -19.094472442204623,
+        "before_bytes_per_op": [
+          1528.0,
+          1528.0,
+          1528.0
+        ],
+        "after_bytes_per_op": [
+          1528.0,
+          1632.0,
+          1528.0
+        ],
+        "before_first_invocation_ns": [
+          65980200,
+          71398100,
+          38287800
+        ],
+        "after_first_invocation_ns": [
+          50405900,
+          39104100,
+          67012800
+        ],
+        "before_gc_count": [
+          0,
+          0,
+          1
+        ],
+        "after_gc_count": [
+          1,
+          1,
+          0
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "native-one-slot",
+        "before_p50_ns": [
+          264.0,
+          257.5,
+          253.3
+        ],
+        "after_p50_ns": [
+          259.5,
+          270.6,
+          261.6
+        ],
+        "before_median_p50_ns": 257.5,
+        "after_median_p50_ns": 261.6,
+        "change_percent": 1.5922330097087434,
+        "before_bytes_per_op": [
+          1504.0,
+          1504.0,
+          1504.0
+        ],
+        "after_bytes_per_op": [
+          1504.0,
+          1504.0,
+          1504.0
+        ],
+        "before_first_invocation_ns": [
+          41797900,
+          40289100,
+          40133200
+        ],
+        "after_first_invocation_ns": [
+          41188600,
+          42565200,
+          40873300
+        ],
+        "before_gc_count": [
+          0,
+          0,
+          0
+        ],
+        "after_gc_count": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "native-nine-repeated",
+        "before_p50_ns": [
+          1653.9,
+          1741.2,
+          1720.0
+        ],
+        "after_p50_ns": [
+          1777.1,
+          1618.1,
+          1618.2
+        ],
+        "before_median_p50_ns": 1720.0,
+        "after_median_p50_ns": 1618.2,
+        "change_percent": -5.918604651162784,
+        "before_bytes_per_op": [
+          10296.0,
+          10296.0,
+          10296.0
+        ],
+        "after_bytes_per_op": [
+          10296.0,
+          10296.0,
+          10296.0
+        ],
+        "before_first_invocation_ns": [
+          3066600,
+          3177300,
+          3226600
+        ],
+        "after_first_invocation_ns": [
+          3032500,
+          3124300,
+          3205000
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "native-nine-distinct",
+        "before_p50_ns": [
+          2643.8,
+          2589.0,
+          2631.7
+        ],
+        "after_p50_ns": [
+          2890.2,
+          2810.9,
+          2849.4
+        ],
+        "before_median_p50_ns": 2631.7,
+        "after_median_p50_ns": 2849.4,
+        "change_percent": 8.27221947790402,
+        "before_bytes_per_op": [
+          12192.0,
+          12192.0,
+          12192.0
+        ],
+        "after_bytes_per_op": [
+          12192.0,
+          12192.0,
+          12192.0
+        ],
+        "before_first_invocation_ns": [
+          152000,
+          185300,
+          171200
+        ],
+        "after_first_invocation_ns": [
+          232700,
+          250400,
+          215000
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "native-nine-reserved",
+        "before_p50_ns": [
+          2497.6,
+          2578.4,
+          2661.2
+        ],
+        "after_p50_ns": [
+          2967.9,
+          2989.3,
+          2892.3
+        ],
+        "before_median_p50_ns": 2578.4,
+        "after_median_p50_ns": 2967.9,
+        "change_percent": 15.106267452683841,
+        "before_bytes_per_op": [
+          12192.0,
+          12192.0,
+          12192.0
+        ],
+        "after_bytes_per_op": [
+          12192.0,
+          12192.0,
+          12192.0
+        ],
+        "before_first_invocation_ns": [
+          144500,
+          391400,
+          185900
+        ],
+        "after_first_invocation_ns": [
+          155100,
+          217700,
+          169200
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "native-shared-seed",
+        "before_p50_ns": [
+          2752.1,
+          2694.9,
+          2627.0
+        ],
+        "after_p50_ns": [
+          2969.5,
+          2991.1,
+          3020.0
+        ],
+        "before_median_p50_ns": 2694.9,
+        "after_median_p50_ns": 2991.1,
+        "change_percent": 10.991131396341224,
+        "before_bytes_per_op": [
+          12680.0,
+          12680.0,
+          12680.0
+        ],
+        "after_bytes_per_op": [
+          12680.0,
+          12680.0,
+          12680.0
+        ],
+        "before_first_invocation_ns": [
+          33329700,
+          4671100,
+          4675500
+        ],
+        "after_first_invocation_ns": [
+          22649700,
+          23283600,
+          22719200
+        ],
+        "before_gc_count": [
+          3,
+          3,
+          3
+        ],
+        "after_gc_count": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "legacy-nine-repeated",
+        "before_p50_ns": [
+          1055.4,
+          1052.6,
+          1064.2
+        ],
+        "after_p50_ns": [
+          1044.0,
+          1062.3,
+          1095.5
+        ],
+        "before_median_p50_ns": 1055.4,
+        "after_median_p50_ns": 1062.3,
+        "change_percent": 0.6537805571347199,
+        "before_bytes_per_op": [
+          7152.0,
+          7152.0,
+          7152.0
+        ],
+        "after_bytes_per_op": [
+          7152.0,
+          7152.0,
+          7152.0
+        ],
+        "before_first_invocation_ns": [
+          213900,
+          167900,
+          154600
+        ],
+        "after_first_invocation_ns": [
+          173500,
+          175000,
+          196100
+        ],
+        "before_gc_count": [
+          2,
+          2,
+          2
+        ],
+        "after_gc_count": [
+          2,
+          2,
+          2
+        ]
+      },
+      {
+        "mode": "synchronous",
+        "kind": "batch",
+        "scenario": "legacy-nine-distinct",
+        "before_p50_ns": [
+          1194.6,
+          1211.7,
+          1182.9
+        ],
+        "after_p50_ns": [
+          1254.2,
+          1295.4,
+          1290.3
+        ],
+        "before_median_p50_ns": 1194.6,
+        "after_median_p50_ns": 1290.3,
+        "change_percent": 8.011049723756901,
+        "before_bytes_per_op": [
+          7320.0,
+          7320.0,
+          7320.0
+        ],
+        "after_bytes_per_op": [
+          7320.0,
+          7320.0,
+          7320.0
+        ],
+        "before_first_invocation_ns": [
+          12800,
+          11600,
+          12900
+        ],
+        "after_first_invocation_ns": [
+          14900,
+          13400,
+          12900
+        ],
+        "before_gc_count": [
+          2,
+          2,
+          2
+        ],
+        "after_gc_count": [
+          2,
+          2,
+          2
+        ]
+      }
+    ],
+    "raw": "docs/benchmarks/core-algorithm-20261102/raw.jsonl",
+    "raw_sha256": "1edd44dd9bbc4c3ef8fc0a9cd5f1ee896aaba8dd8b49c00dd4f449892be6c028",
+    "independent_jvms": 18,
+    "conditions": "Same machine/Java21.0.10/G1/512m initial and 1024m max heap/dependencies/harness. Sequential; order reversed in round 2. Both sides use unchanged scenario inputs/warmup/iterations.",
+    "limitations": [
+      "Default-tiered repeated-slot samples show strong within-run transitions; no stable speedup or regression attribution claimed.",
+      "Additional -Xbatch cohort is separate; must not pool it with default-tiered values.",
+      "Only first scenario in a fresh JVM is JVM-cold; each later cold_ns is the first call before that scenario warmup.",
+      "Host CPU percentage was unavailable for some samples; background load was observed, not strictly controlled. No performance optimization claim."
+    ]
+  },
+  "lt_step2": {
+    "commit": "093d71d950220b71463ab514d86b4a1f42014b2c",
+    "evidence": "Channel handoff e2e19d6a-1878-4ea0-8919-9e4382959290; Core has not opened the LT project directory.",
+    "reported_only": "Byte audit6/6; actual .4 API/protocol22/22; targeted102/102. Not new Core release/LT acceptance."
+  },
+  "receipt_boundary": "Internal ListCraftingInventory.insert is void and promises insertion; generic external refund rejection is not an acceptance receipt of this method. Real external refund/unknown cases remain in LT incremental acceptance.",
+  "not_run": [
+    "independent read-only pass for steps 4 and 6",
+    "final reobfuscated jar loading/EJECT/GameTest",
+    "version allocation/new artifact publication/PR update",
+    "LT acceptance on the new artifact including external refund rejection"
+  ],
+  "raw_runtime_evidence": "D:/CodexTaskData/thunderbolt-core-gto-algorithm-20261102",
+  "remote_pushed": false
+}

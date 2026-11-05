@@ -159,6 +159,11 @@ final class ConservativeReplenishment<K> {
         return plan(target, amount, Map.of(), true, budget);
     }
 
+    CraftPlan<K> planBatchAware(K target, long amount, Map<K, Long> additionalStock,
+            BoundedIntegerLinearSolver.WorkBudget budget) {
+        return plan(target, amount, additionalStock, true, budget);
+    }
+
     private CraftPlan<K> plan(K target, long amount, Map<K, Long> additionalStock, boolean batchAware,
             BoundedIntegerLinearSolver.WorkBudget budget) {
         if (amount >= Sat.SAT) return null;
@@ -201,6 +206,7 @@ final class ConservativeReplenishment<K> {
                         BigInteger times = ceilDivide(demand, alternative.outputAmount());
                         for (var input : merged.entrySet()) {
                             BigInteger availableInput = BigInteger.valueOf(graph.stock(input.getKey()))
+                                    .add(BigInteger.valueOf(additionalStock.getOrDefault(input.getKey(), 0L)))
                                     .subtract(need.getOrDefault(input.getKey(), BigInteger.ZERO)).max(BigInteger.ZERO);
                             times = times.min(availableInput.divide(input.getValue()));
                         }

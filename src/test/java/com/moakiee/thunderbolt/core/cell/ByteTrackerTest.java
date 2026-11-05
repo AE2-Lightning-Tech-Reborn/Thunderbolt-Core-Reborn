@@ -298,4 +298,46 @@ class ByteTrackerTest {
             }
         }
     }
+    @Test
+    void capacityChecksMatchAnExactOracleAcrossWideAndPartialByteBoundaries() {
+        var random = new Random(0xB17E);
+        var maximum = java.math.BigInteger.valueOf(Long.MAX_VALUE);
+        var mask = maximum;
+        var gaps = new java.math.BigInteger[] {
+                java.math.BigInteger.valueOf(-1), java.math.BigInteger.ZERO,
+                java.math.BigInteger.ONE, java.math.BigInteger.valueOf(8),
+                maximum, maximum.add(java.math.BigInteger.ONE)
+        };
+        for (int run = 0; run < 2000; run++) {
+            int apb = new int[] {1, 8, 8000}[random.nextInt(3)];
+            var type = new TestKeyType("oracle", apb);
+            var amount = new java.math.BigInteger(70, random).add(java.math.BigInteger.ONE);
+            var divisor = java.math.BigInteger.valueOf(apb);
+            var used = amount.add(divisor).subtract(java.math.BigInteger.ONE).divide(divisor)
+                    .add(java.math.BigInteger.valueOf(BYTES_PER_TYPE));
+            var capacity = used.add(gaps[random.nextInt(gaps.length)]);
+            boolean newKey = random.nextBoolean();
+            int maxTypes = random.nextBoolean() ? 1 : 63;
+            var tracker = new ByteTracker(() -> 1);
+            tracker.configure(BYTES_PER_TYPE, maxTypes,
+                    capacity.and(mask).longValueExact(), capacity.shiftRight(63).longValueExact());
+            var low = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<AEKeyType>();
+            var high = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<AEKeyType>();
+            var counts = new it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<AEKeyType>();
+            low.put(type, amount.and(mask).longValueExact());
+            high.put(type, amount.shiftRight(63).longValueExact());
+            counts.put(type, 1);
+            tracker.rebuild(low, high, counts, 1);
+
+            var free = capacity.subtract(used)
+                    .subtract(java.math.BigInteger.valueOf(newKey ? BYTES_PER_TYPE : 0));
+            long partial = amount.mod(divisor).signum() == 0 ? 0
+                    : apb - amount.mod(divisor).longValueExact();
+            long expected = (newKey && maxTypes == 1) || free.signum() < 0 ? 0
+                    : free.multiply(divisor).add(java.math.BigInteger.valueOf(partial))
+                            .min(maximum).longValueExact();
+            assertEquals(expected, tracker.computeMaxInsertable(type, newKey), "oracle case " + run);
+        }
+    }
+
 }

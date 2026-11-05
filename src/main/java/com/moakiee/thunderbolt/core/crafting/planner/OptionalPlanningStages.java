@@ -21,42 +21,52 @@ final class OptionalPlanningStages {
         PlanningResult<K> initial = planCore(graph, target, amount, visitCap, searchWorkBudget, reachableWork, session);
         boolean terminalRecovery = TerminalBatchRecovery.hasBoundedFootprint(graph, target, initial.diagnostics());
         if (session.refineMissing && !initial.plan().feasible()
-                && session.searchWorkBudget.remaining > 0
                 && (reachableWork <= SmallConservativeSearch.MAX_WORK || terminalRecovery)) {
             long recoveryLimit = terminalRecovery
                     ? TerminalBatchRecovery.MAX_NANOS : SmallConservativeSearch.MAX_NANOS;
             long allowance = Math.min(recoveryLimit - session.conservativeSearchNanos,
                     PlanningCancellation.remainingNanos(Long.MAX_VALUE) / 8L);
-            if (allowance > 0) {
+            if (allowance > 0 && session.searchWorkBudget.remaining > 0) {
                 long recoveryStarted = System.nanoTime();
                 int workBefore = session.searchWorkBudget.remaining;
-                boolean[] recoveryWorkRejected = {false};
+                boolean[] recoveryIncomplete = {false};
                 CraftPlan<K> recovered = null;
                 try (var ignored = PlanningCancellation.limitOptionalWork(allowance)) {
                     IntPredicate recoveryWork = work -> {
                         if (session.searchWorkBudget.tryConsume(work)) return true;
-                        recoveryWorkRejected[0] = true;
+                        recoveryIncomplete[0] = true;
                         return false;
                     };
                     if (reachableWork <= SmallConservativeSearch.MAX_WORK)
                         recovered = SmallConservativeSearch.tryPlan(graph, target, amount,
-                                SmallConservativeSearch.MAX_STATES, () -> recoveryWork.test(1));
-                    if (recovered == null && terminalRecovery && !recoveryWorkRejected[0]
+                                SmallConservativeSearch.MAX_STATES, () -> recoveryWork.test(1),
+                                () -> recoveryIncomplete[0] = true);
+                    if (recovered == null && terminalRecovery && !recoveryIncomplete[0]
                             && session.searchWorkBudget.remaining > 0)
                         recovered = TerminalBatchRecovery.tryPlan(graph, target, amount,
-                                SmallConservativeSearch.MAX_STATES, recoveryWork);
+                                SmallConservativeSearch.MAX_STATES, recoveryWork,
+                                () -> recoveryIncomplete[0] = true);
                 } catch (PlanningCancellation.OptionalWorkLimit exhausted) {
-                    // Optional recovery never invalidates the already-verified missing plan.
+                    // Retain diagnostic materials, but expiry cannot certify their necessity.
+                    recoveryIncomplete[0] = true;
                 } finally {
                     session.conservativeSearchNanos += Math.max(0L, System.nanoTime() - recoveryStarted);
                 }
                 CraftPlan<K> selected = recovered == null ? initial.plan() : recovered;
-                if (recovered == null && recoveryWorkRejected[0])
+                if (recovered == null && recoveryIncomplete[0])
                     selected = CraftPlannerV2.markBudgetExhausted(selected);
                 initial = new PlanningResult<>(selected,
                         initial.diagnostics().withAdditionalSearchWork(
                                 workBefore - session.searchWorkBudget.remaining, System.nanoTime() - started,
-                                recoveryWorkRejected[0]));
+                                recoveryIncomplete[0]));
+            } else if (initial.diagnostics().contendedOutputs() > 0
+                    || initial.diagnostics().cycleCuts() > 0 || initial.diagnostics().seedOrdered()
+                    || graph.hasByproducts()) {
+                // A previous quantity probe can spend the remaining recovery allowance. The
+                // core's ambiguous missing route still needs recovery; skipping it is UNKNOWN.
+                // An unambiguous acyclic raw shortage needs no such optional proof.
+                initial = new PlanningResult<>(CraftPlannerV2.markBudgetExhausted(initial.plan()),
+                        initial.diagnostics().withAdditionalSearchWork(0, System.nanoTime() - started, true));
             }
         }
         int probeLimit = FeasibleConsumptionOptimizer.MAX_PROBES;

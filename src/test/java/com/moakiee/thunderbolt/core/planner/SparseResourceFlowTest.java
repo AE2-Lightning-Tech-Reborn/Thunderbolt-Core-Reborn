@@ -50,6 +50,9 @@ class SparseResourceFlowTest {
                         assertTrue(result.diagnostics().lowWidthSolved() <= 1);
                         if (!reverse) assertEquals(1, result.diagnostics().lowWidthSolved());
                         assertEquals(0, result.diagnostics().consumedFallbackBudget());
+                        // Exact integral dual bounds certify both objectives even when floating
+                        // safety margins grow to thousands of apparent units at large quantities.
+                        assertEquals(0, result.diagnostics().consumptionOptimizationProbes());
                         assertTrue(result.diagnostics().lowWidthIntegerNodes() <= 2);
                         assertExecutable(graph, result.plan(), depth, quantity);
                     }

@@ -1,0 +1,270 @@
+{
+  "schema_version": 1,
+  "workflow": "Core算法续办与制品验收",
+  "step": "9_cross_project_summary",
+  "assembled_utc": "2026-11-03T06:54:19.203782+00:00",
+  "core_run": {
+    "label": "direct-joint-20261103-core",
+    "completed_utc": "2026-11-03T04:46:17.468064+00:00",
+    "source_commit": "1d6abc80c2f39a7c77c0d875a8e1489ce3c2d76e",
+    "original_release_source_commit": "19e1e6fa3f9b93330f038b2d4d76f1d4fc3f9afb",
+    "production_tests_build_equal_to_original_release_source": true
+  },
+  "fixed_core": {
+    "version": "2.0.4-gto.5",
+    "coordinate": "com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1:2.0.4-gto.5",
+    "filename": "thunderbolt-forge-1.20.1-2.0.4-gto.5.jar",
+    "size_bytes": 5472513,
+    "sha256": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+    "frozen_project_mavenlocal_copies_match_before_and_after": true,
+    "rebuilt_for_this_PR_update": false
+  },
+  "environment": {
+    "minecraft": "1.20.1",
+    "forge": "47.4.20",
+    "java": "21.0.10"
+  },
+  "core_fresh_tasks": {
+    "test": {
+      "tests": 1695,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "passed": 1693,
+      "xml_files": 223
+    },
+    "referenceCapabilityTest": {
+      "tests": 82,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 82,
+      "xml_files": 4
+    },
+    "cpSatColdRefinementTest": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 1,
+      "xml_files": 1
+    },
+    "materialDagColdReplayTest": {
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 20,
+      "xml_files": 1
+    },
+    "materialDagColdReplenishmentTest": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 2,
+      "xml_files": 2
+    },
+    "ae2AbiTest-31": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 14,
+      "xml_files": 2
+    },
+    "ae2AbiTest-40": {
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 14,
+      "xml_files": 2
+    }
+  },
+  "core_focused_subsets": {
+    "SmallRecoveryBudgetStatusTest": 13,
+    "FastPlannerUnknownOutcomeTest": 4,
+    "CpSatBudgetBoundaryTest": 6,
+    "BatchAccountingOverloadsTest": 2,
+    "BatchCpuAccountingTest": 4
+  },
+  "core_original_jar_runtime": {
+    "dev23": {
+      "ae2_version": "15.2610.31",
+      "original_core_sha256": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+      "original_ae2_jar": true,
+      "tests": [
+        {
+          "name": "offlinerejectnevermutatesnativeinventoryorfluidtank",
+          "status": "PASS"
+        },
+        {
+          "name": "absentofflineandnestedbypasskeepnativecapabilityownership",
+          "status": "PASS"
+        },
+        {
+          "name": "selfprojectioncannotrecurseandguardclearsafterfailure",
+          "status": "PASS"
+        },
+        {
+          "name": "itemstackinterfacesuperenchantmentcallsremainvalid",
+          "status": "PASS"
+        },
+        {
+          "name": "registeredfaceforwardsitemsandfluidswhileotherfacesstaynative",
+          "status": "PASS"
+        },
+        {
+          "name": "duplicatehandleskeeppersistenceuntilthelastclose",
+          "status": "PASS"
+        },
+        {
+          "name": "closingonehostpreservesanotheronthesameface",
+          "status": "PASS"
+        },
+        {
+          "name": "stalehandlecannoteraseareplacementregistration",
+          "status": "PASS"
+        }
+      ],
+      "passed": 8,
+      "exit_code": 0,
+      "timeout": false,
+      "all_mod_hashes_unchanged": true
+    },
+    "dev25": {
+      "ae2_version": "15.2610.40",
+      "original_core_sha256": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+      "original_ae2_jar": true,
+      "tests": [
+        {
+          "name": "registeredfaceforwardsitemsandfluidswhileotherfacesstaynative",
+          "status": "PASS"
+        },
+        {
+          "name": "itemstackinterfacesuperenchantmentcallsremainvalid",
+          "status": "PASS"
+        },
+        {
+          "name": "selfprojectioncannotrecurseandguardclearsafterfailure",
+          "status": "PASS"
+        },
+        {
+          "name": "offlinerejectnevermutatesnativeinventoryorfluidtank",
+          "status": "PASS"
+        },
+        {
+          "name": "absentofflineandnestedbypasskeepnativecapabilityownership",
+          "status": "PASS"
+        },
+        {
+          "name": "closingonehostpreservesanotheronthesameface",
+          "status": "PASS"
+        },
+        {
+          "name": "stalehandlecannoteraseareplacementregistration",
+          "status": "PASS"
+        },
+        {
+          "name": "duplicatehandleskeeppersistenceuntilthelastclose",
+          "status": "PASS"
+        }
+      ],
+      "passed": 8,
+      "exit_code": 0,
+      "timeout": false,
+      "all_mod_hashes_unchanged": true
+    }
+  },
+  "ae2_original_sha256": {
+    "15.2610.31": "f63917bf5a2ca0692c0550ad2d045991f7a493d89021bfb30b51026d4ad31a3d",
+    "15.2610.40": "b0d97544e618d73ec0c8d8e54df36351bf7f98f7e1984c6455d81658b6320b5c"
+  },
+  "qa_sha256": "ae010d7d8d83d4299faab6eabcd371ea11d7427df6547499131d3111a4551fbb",
+  "skipped_optional_artifacts": [
+    "ExtendedAE Plus runtime artifact",
+    "Useless public API runtime artifact"
+  ],
+  "local_evidence_sha256": {
+    "direct-joint-20261103-core/results.json": "3188090aeea0bac9bc76eac221fb41637bde81f13f0fbbada91d74d54fcaebf6",
+    "direct-joint-20261103-core/input-manifest.json": "82e1f202b89a11c434b1c81e8d4dcc040c7d0852e684d3baa3bc672fe383443e",
+    "direct-joint-20261103-core/source-tests.log": "e58b10503905fc325d84671125f679070a1572948ae2d6cc28c970cfd0ce2441",
+    "direct-joint-20261103-core/abi-31.log": "8a2aad47958556851ef162cef961378a1f1b778df5111ce557e05d639f175cb5",
+    "direct-joint-20261103-core/abi-40.log": "8afa1a39ff8c2278a1938403289ba5c92e266362a5d5bd8c2af851d4b8564e2c",
+    "step7-runtime/dev23-direct-joint-20261103-core-result.json": "0340ac76f53fe480620e4ae59a2fe52e93a596f3853fbd7da8f24e348cba1178",
+    "step7-runtime/dev23-direct-joint-20261103-core-staged.json": "fd4552d3d62360d030155e9e1ddbdb5a5ed9e4bf7f43016e145b0f4d9002e6b2",
+    "step7-runtime/dev23-direct-joint-20261103-core.log": "8c97c56421700b8b8d0f0d09d8f13ad827214055649d3632ff8b7596f44f3e9f",
+    "step7-runtime/dev25-direct-joint-20261103-core-result.json": "745de597db1bdf04b199473319322a4f4db755be625071040a5c7d22ddffca07",
+    "step7-runtime/dev25-direct-joint-20261103-core-staged.json": "79cc07383ef794fc86f22dc84dd678948e76b7f93d6f0175d6bdb984b98856ff",
+    "step7-runtime/dev25-direct-joint-20261103-core.log": "11cd2231687e0a9cf89a2dac6cbfe0d86e50d6bbe48ca71b382331c1a9517844"
+  },
+  "lt_reported": {
+    "provenance": "LT completed channel thread 73c0929c-2ff2-4d61-abcb-530d2b64985d and PR54 description; not run by this Core process",
+    "pr": "https://github.com/AE2-Lightning-Tech-Reborn/AE2-Lightning-Tech-Reborn/pull/54",
+    "batch": "joint1103r1",
+    "reported_source_commit": "1d1cf9d8ef8e87bf5b325de8ccdc5c548f325fac",
+    "final_R6_lt_sha256": "4d3cec2c987f8511fb427b495f92bb65319ebad225f044502f621660b714e8ae",
+    "fixed_core_sha256": "902c439f64c13ca776fb28c4c9c29aca70fe3083b0b65b5e744cad399f1bb2a1",
+    "game_tests": {
+      "dev23": 25,
+      "dev25": 44,
+      "total": 69,
+      "failures": 0
+    },
+    "graphics_multiplayer": {
+      "passed": 6,
+      "screenshots_hashed": 28,
+      "panels_visually_reviewed": 12,
+      "real_gui_acks": 16,
+      "actual_reconnect_logins": 32
+    },
+    "real_FX_versions": 2,
+    "independent_prepare_resume_verify_JVMs_per_version": 3,
+    "preview_original_deadline_cancel_normal_controls": 3,
+    "unknown_saveddata": {
+      "physical": 2,
+      "spendable": 0,
+      "unresolved": 10,
+      "stable_owner_job_UUID": true,
+      "no_replay_on_restore_cancel_removal": true
+    },
+    "joint_manifest_sha256": "6746d10be12633b625d9fed9c1020dead2d032d5b64d8415f23067ed2b520227",
+    "core_xml_log_index_sha256": "0b02a8651138e9c1ebeaa03a6ffe85a375b81c53f9c69f37f421f1f00d7c6ef1"
+  },
+  "independent_lt_core_source_run": {
+    "initial": {
+      "total": 93,
+      "passed": 92,
+      "failed": 1,
+      "skipped": 0
+    },
+    "test": "PlanningAttemptMonitorTest.unmanagedInterruptStillReportsNativeCancellation",
+    "failure": "timeout at outcome.get(2, SECONDS), line 43",
+    "reported_initial_test_elapsed_seconds": 2.105,
+    "diagnostic_rerun": {
+      "new_JVM": true,
+      "unchanged_assertions": true,
+      "unchanged_timeout_seconds": 2,
+      "passed": 1,
+      "failed": 0,
+      "reported_test_elapsed_seconds": 1.292
+    },
+    "initial_failure_retained": true,
+    "root_cause": "unestablished",
+    "issue_resolved": false,
+    "P1_passing_subset": 17,
+    "remapped_ABI_passed_per_version": 14,
+    "separate_from_Core_own_full_passing_run": true
+  },
+  "limits": {
+    "arbitrary_crash_atomicity_proven": false,
+    "automatic_exactly_once_refund_guaranteed": false,
+    "UNKNOWN_exposure_is_inventory": false,
+    "new_performance_measurement": false,
+    "previous_performance_regression_signals_retained": true,
+    "core_standalone_runtime_excludes_neoecoae": true
+  },
+  "no_machine_logs_or_personal_paths_in_this_summary": true,
+  "report": "docs/GTO_CORE_JOINT_ACCEPTANCE_20261103.zh-CN.md"
+}
