@@ -1,8 +1,14 @@
 # Thunderbolt Core 变更日志
 
-## 未发布 — Forge 1.20.1
+## 2.0.5 — Forge 1.20.1
 
-- 修复与 ElementalCraft 同时安装时加载世界报 `IncompatibleClassChangeError: ... must be Methodref constant` 的问题：EJECT 能力拦截改为只作用于方块实体，不再注入 Forge 的公共父类 `CapabilityProvider`，避免触发 Mixin 0.8.5 改写其他模组 ItemStack 接口调用的缺陷（SpongePowered/Mixin#504）。
+对比版本：`1.20.1-2.0.4`
+
+- 修复与 ElementalCraft 同时安装时，进入世界出现 `IncompatibleClassChangeError: ... must be Methodref constant` 的崩溃；调整 EJECT 能力拦截范围，避免 Forge 公共父类上的 Mixin 冲突。
+- 改善小型合成图的补料兜底方案选择，在规划预算内比较可认证的直接路线，保留取消与时间预算约束。
+- 优化库存快照查询和稀疏合成图拓扑分析，减少哈希碰撞查询开销与临时对象分配。
+
+Minecraft 1.20.1 / Forge；配套 AE2 Lightning Tech 2.1.4。
 
 ## 2.0.4 — Forge 1.20.1
 
