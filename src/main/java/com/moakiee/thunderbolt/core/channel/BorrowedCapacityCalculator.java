@@ -219,9 +219,19 @@ public final class BorrowedCapacityCalculator {
                 if (other.getOwner() instanceof ControllerBlockEntity) continue;
                 int oi = idx.getInt(other);
                 if (oi >= 0) {
+                    int sourceCap = faceCap;
+                    if (gc.getDirection(node) == null) {
+                        // A virtual controller link (e.g. an AE2CS frequency receiver) has no
+                        // physical face. Its supply follows the receiver's actual quota, not
+                        // nodeCap's unbounded high-capacity relay allowance.
+                        if (other instanceof GridNode receiver && !receiver.hasFlag(GridFlags.CANNOT_CARRY)) {
+                            sourceCap = Math.max(0, receiver.getMaxChannels());
+                        }
+                        sourceCap = Math.min(sourceCap, getConnectionCap(gc, node, other, mode));
+                    }
                     int feIdx = flowNetwork.edgeCount();
-                    flowNetwork.addEdge(S, 2 * oi, faceCap);
-                    faceEdges.add(new FaceEdge(gc, feIdx, faceCap));
+                    flowNetwork.addEdge(S, 2 * oi, sourceCap);
+                    faceEdges.add(new FaceEdge(gc, feIdx, sourceCap));
                 }
             }
         }
