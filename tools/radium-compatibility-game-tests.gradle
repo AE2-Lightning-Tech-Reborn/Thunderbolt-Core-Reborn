@@ -40,7 +40,7 @@ allprojects {
                 def world = rootProject.file(providers.gradleProperty('thunderboltDevGameDirectory')
                         .getOrElse('build/radium-game-test'))
                 def log = new File(world, 'logs/latest.log').getText('UTF-8')
-                def expectedTests = namespace == 'thunderbolt_radium' ? 5 : 14
+                def expectedTests = namespace == 'thunderbolt_radium' ? 5 : 20
                 if (!log.contains('All ' + expectedTests + ' required tests passed') || !log.contains('All dimensions are saved')
                         || !log.contains('Game test server shutting down')) {
                     throw new GradleException('Expected ' + expectedTests + ' tests, normal world save and server shutdown')

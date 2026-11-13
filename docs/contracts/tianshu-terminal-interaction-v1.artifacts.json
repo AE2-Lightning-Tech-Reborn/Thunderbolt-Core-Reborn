@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "contractId": "tianshu-terminal-interaction-v1",
+  "stage": "step-1-delivery-awaiting-step-2-read-only-review",
+  "generatedAtUtc": "2026-11-12T14:38:16.513353+00:00",
+  "source": {
+    "coreBranch": "1.20.1_GTL",
+    "coreCommit": "5926ab84eab951beb74480fbf4a17f7b0d3444b9",
+    "coreTree": "d5830827f55a67a0128d99eda371ac4adf38d838",
+    "ae2ltBranch": "1.20.1_GTL",
+    "ae2ltReadOnlyCommit": "6a7683bcf38841d53a9559cc2cf0f0551706340d",
+    "runtimeSourceChanged": false,
+    "newSharedJavaTypes": [],
+    "newRuntimeDependencies": [],
+    "preexistingUntrackedTestIncluded": "src/test/java/com/moakiee/thunderbolt/core/planner/TianshuReusableStockOracleTest.java"
+  },
+  "baseline": {
+    "minecraft": "1.20.1",
+    "mapping": "official-1.20.1",
+    "java": "17.0.20+8",
+    "gradle": "8.14",
+    "coreForge": "47.1.3",
+    "ae2ltForge": "47.1.47",
+    "ae2": "15.4.10",
+    "ae2wtlib": "15.3.3-forge",
+    "coreModVersion": "2.0.4",
+    "referenceJars": [
+      {
+        "artifact": "appeng:appliedenergistics2-forge:15.4.10",
+        "sha256": "6dcc2b2c827be6b8a6958e2f859577b466dbaaef327fffa5f0206f252909bc7c"
+      },
+      {
+        "artifact": "maven.modrinth:applied-energistics-2-wireless-terminals:15.3.3-forge",
+        "sha256": "39e5cede37d5c6a07592d6c1e83398791e037f3d434bc44f7460cd085a4de5f4"
+      },
+      {
+        "artifact": "gtlcore-1.2.3.2-fix1.jar",
+        "sha256": "f2ae810818b73e09d4f10e209d7ce755dee5755e339bfcc43d675d33c27db59e",
+        "role": "historical-entry-reference-only-not-target-runtime-confirmation"
+      }
+    ]
+  },
+  "contractDocument": {
+    "path": "docs/contracts/tianshu-terminal-interaction-v1.zh-CN.md",
+    "sha256": "a1d39efdd8fe0ea60ce6970bfc72be716affb2ecda6115e75bca4e059d9ba0a8"
+  },
+  "maven": {
+    "coordinate": "com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1-gtl-tianshu-contract-v1-5926ab84:2.0.4",
+    "repository": "build/tianshu-terminal-contract-v1/maven",
+    "jar": "build/tianshu-terminal-contract-v1/maven/com/moakiee/thunderbolt/thunderbolt-reborn-forge-1.20.1-gtl-tianshu-contract-v1-5926ab84/2.0.4/thunderbolt-reborn-forge-1.20.1-gtl-tianshu-contract-v1-5926ab84-2.0.4.jar",
+    "jarSha256": "45aef6aa6106ff5fde47857a3cce2da3b144aa8ef17a93e6928a18fc094994f1",
+    "pom": "build/tianshu-terminal-contract-v1/maven/com/moakiee/thunderbolt/thunderbolt-reborn-forge-1.20.1-gtl-tianshu-contract-v1-5926ab84/2.0.4/thunderbolt-reborn-forge-1.20.1-gtl-tianshu-contract-v1-5926ab84-2.0.4.pom",
+    "pomSha256": "efc9c9bf7a8f18e11f89b1195cd98912be39c8b65b897be64a9c766dc2b34021",
+    "artifactOnlyPom": true,
+    "mavenLocalPublished": false,
+    "remotePublished": false
+  },
+  "release": {
+    "jar": "build/tianshu-terminal-contract-v1/delivery/thunderbolt-forge-1.20.1-2.0.4.jar",
+    "sha256": "45aef6aa6106ff5fde47857a3cce2da3b144aa8ef17a93e6928a18fc094994f1",
+    "jarMatchesMavenArtifact": true,
+    "nestedJars": [
+      {
+        "entry": "thunderbolt-forge-1.20.1-2.0.4.jar!META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+        "sha256": "9d48cb0a40299d283248fdad8b02c6d175c45b27f9bec48ef63d7ee8a4ee3066"
+      },
+      {
+        "entry": "thunderbolt-forge-1.20.1-2.0.4.jar!META-INF/jarjar/mixinextras-forge-0.4.1.jar!META-INF/jars/MixinExtras-0.4.1.jar",
+        "sha256": "d13c480d4e84128e76e8f509346f8137ceaa195091b3cfeaf4ebba584ca68374"
+      },
+      {
+        "entry": "thunderbolt-forge-1.20.1-2.0.4.jar!META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar",
+        "sha256": "483f27408386fd1ab718aa72244beead10756e1be6d25c7ab7fcb83eb1788d9a"
+      },
+      {
+        "entry": "thunderbolt-forge-1.20.1-2.0.4.jar!META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar",
+        "sha256": "fd5cf3d55bc2c3ddb2a8640c9d4c69daa9a5b326fb6e05bae0e56b3f4f85e0f7"
+      }
+    ],
+    "java17ApplicableClassMajorCounts": {
+      "50": 8,
+      "52": 1723,
+      "61": 559
+    },
+    "publicApiClassCount": 50,
+    "frozenBinarySignatures": {
+      "com.moakiee.thunderbolt.api.crafting.CraftingRequestMenu": [
+        "boolean thunderbolt$planRequest(appeng.api.stacks.AEKey, java.math.BigInteger, appeng.api.networking.crafting.CalculationStrategy)",
+        "boolean thunderbolt$isExactRequest()",
+        "net.minecraft.network.chat.Component thunderbolt$getRequestError()"
+      ],
+      "com.moakiee.thunderbolt.api.crafting.CraftingAmountMenu": [
+        "void thunderbolt$setInitialAmount(java.math.BigInteger)"
+      ]
+    },
+    "mixinAndGeneratedRefmapVerified": true,
+    "licensePresent": true,
+    "mandatoryModIds": [
+      "ae2",
+      "forge",
+      "minecraft"
+    ]
+  },
+  "verification": {
+    "compileJava": "passed-from-gradle-cache-no-runtime-source-change",
+    "gradleTasks": [
+      "check",
+      "build",
+      "verifyReleaseJar (via build)",
+      "publishMavenJavaPublicationToMavenRepository"
+    ],
+    "buildCacheForFullVerification": false,
+    "attempts": [
+      {
+        "result": "failed-infrastructure",
+        "reason": "E-volume-full-XML-results-and-Gradle-state-could-not-be-written",
+        "log": "build/tianshu-terminal-contract-v1/verification-disk-full.log",
+        "countedAsPass": false
+      },
+      {
+        "result": "passed",
+        "reason": "rerun-after-moving-only-task-owned-work-output-to-system-temporary-directory",
+        "log": "build/tianshu-terminal-contract-v1/verification.log"
+      }
+    ],
+    "testTasks": [
+      {
+        "task": "cpSatColdRefinementTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 1
+      },
+      {
+        "task": "externalPlannerBoundaryTest",
+        "tests": 38,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 38
+      },
+      {
+        "task": "materialDagColdReplayTest",
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 20
+      },
+      {
+        "task": "materialDagColdReplenishmentTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 2
+      },
+      {
+        "task": "materialDagLargeGraphTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 1
+      },
+      {
+        "task": "planningLifecycleTimingTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 5
+      },
+      {
+        "task": "test",
+        "tests": 1665,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 2,
+        "passed": 1663
+      }
+    ],
+    "testTotals": {
+      "tests": 1732,
+      "passed": 1730,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2
+    },
+    "skippedTests": [
+      {
+        "task": "test",
+        "class": "com.moakiee.thunderbolt.compat.extendedaeplus.ExtendedAePlusSuperMatrixBatchBridgeTest",
+        "name": "realScaledPatternPreservesNestedCopiesAndPropagatesSubmissionFailure()"
+      },
+      {
+        "task": "test",
+        "class": "com.moakiee.thunderbolt.compat.useless.UselessBatchAdapterTest",
+        "name": "installedPublicApiMatchesBridgeSignatures()"
+      }
+    ],
+    "consumerResolution": {
+      "result": "passed",
+      "method": "isolated-Gradle-consumer-using-delivered-init-script-and-exclusive-local-module-repository",
+      "resolvedCoordinate": "com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1-gtl-tianshu-contract-v1-5926ab84:2.0.4",
+      "resolvedSha256": "45aef6aa6106ff5fde47857a3cce2da3b144aa8ef17a93e6928a18fc094994f1",
+      "ae2ltProjectNotModifiedOrBuilt": true,
+      "log": "build/tianshu-terminal-contract-v1/consumer-resolution.log",
+      "earlierSetupAttempts": [
+        {
+          "result": "failed-before-dependency-resolution",
+          "reason": "relative-init-script-path-was-resolved-under-consumer-project",
+          "resolution": "used-absolute-init-script-path",
+          "countedAsPass": false,
+          "log": "build/tianshu-terminal-contract-v1/consumer-init-path-error.log"
+        },
+        {
+          "result": "failed-before-dependency-resolution",
+          "reason": "init-script-repository-closure-delegate",
+          "resolution": "created-project-repository-explicitly-and-used-forRepositories",
+          "countedAsPass": false,
+          "log": "build/tianshu-terminal-contract-v1/consumer-script-error.log"
+        }
+      ]
+    },
+    "ae2ltBuild": "not-run-step-3-owner",
+    "realClientDedicatedServer": "not-run-step-7-gate",
+    "interactionBehavior": "not-run-no-fix-claim",
+    "actualGtlcoreAndJeiRuntimeBaseline": "not-confirmed-step-4-prerequisite",
+    "runtimeLoadingWithoutOptionalMods": "not-run-no-runtime-change-in-step-1-step-4-and-6-gate",
+    "ae2ltWorkspaceReadOnlyDiffVerified": true
+  },
+  "filesChangedByStep1": [
+    "docs/contracts/tianshu-terminal-interaction-v1.zh-CN.md",
+    "docs/contracts/tianshu-terminal-interaction-v1.artifacts.json"
+  ],
+  "consumerInitScript": {
+    "path": "build/tianshu-terminal-contract-v1/delivery/use-contract.init.gradle",
+    "sha256": "ccdb3d08a4d5c5bd9ff4a7a980c05b6495a52a3ddea6051a46ad55ef57d44fa8"
+  }
+}

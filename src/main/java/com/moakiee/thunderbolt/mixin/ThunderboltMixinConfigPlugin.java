@@ -36,6 +36,25 @@ public final class ThunderboltMixinConfigPlugin implements IMixinConfigPlugin {
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         boolean apply = OptionalMixinSelector.shouldApply(
                 mixinClassName, ThunderboltMixinConfigPlugin::isModLoaded);
+        if (apply && mixinClassName.endsWith(".GtlJeiOrderMixin")) {
+            try {
+                // ModLauncher's Mixin bytecode provider rejects runTransformers=false.
+                // Read the discovered mod's resource directly, without starting transformers
+                // recursively or linking any GTLCore/client classes during Mixin selection.
+                var loading = LoadingModList.get();
+                var owner = loading == null ? null : loading.getModFileById("gtlcore");
+                apply = owner != null;
+                if (apply) {
+                    var path = owner.getFile().findResource(targetClassName.replace('.', '/') + ".class");
+                    try (var bytes = java.nio.file.Files.newInputStream(path)) {
+                        apply = com.moakiee.thunderbolt.integration.jei.GtlJeiOrderCapability.supports(bytes);
+                    }
+                }
+            } catch (java.io.IOException unavailable) {
+                apply = false;
+            }
+            if (!apply) LOGGER.warn("GTLCore JEI terminal adapter disabled: unsupported input handler shape");
+        }
         String requiredMod = OptionalMixinSelector.requiredMod(mixinClassName);
         boolean requiredPresent = requiredMod == null || isModLoaded(requiredMod);
         String nbtOwner = OptionalMixinSelector.nbtCopyOwner(

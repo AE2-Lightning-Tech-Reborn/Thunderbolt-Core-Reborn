@@ -7,6 +7,9 @@ import java.util.concurrent.CancellationException;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.moakiee.thunderbolt.core.terminal.TerminalOrderMenu;
+import com.moakiee.thunderbolt.core.terminal.TerminalOrderBinding;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -82,6 +85,7 @@ public abstract class CraftConfirmMenuMixin extends AEBaseMenu
     @Override
     public boolean thunderbolt$planRequest(AEKey key, BigInteger requested, CalculationStrategy strategy) {
         BigAmounts.nonNegative(requested);
+        if (!thunderbolt$validateTerminalOrder()) return false;
         if (isClientSide() || requested.signum() <= 0 || getGrid() == null) return false;
         if (requested.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0)
             return thunderbolt$planExact(key, requested);
@@ -103,6 +107,7 @@ public abstract class CraftConfirmMenuMixin extends AEBaseMenu
 
     @Unique
     private boolean thunderbolt$planExact(AEKey key, BigInteger requested) {
+        if (!thunderbolt$validateTerminalOrder()) return false;
         var grid = getGrid();
         if (grid == null) return false;
         var backend = CraftingPlanningEngines.selectedExactBackend(grid);
@@ -148,6 +153,10 @@ public abstract class CraftConfirmMenuMixin extends AEBaseMenu
 
     @Inject(method = "goBack", at = @At("HEAD"), cancellable = true)
     private void thunderbolt$restoreExtendedAmount(CallbackInfo ci) {
+        if (!thunderbolt$validateTerminalOrder()) {
+            ci.cancel();
+            return;
+        }
         // AE2 owns continuation of queued crafting-list requests.
         if (autoCraftingQueue != null && !autoCraftingQueue.isEmpty()) return;
         if (thunderbolt$requestAmount != null && getPlayer() instanceof ServerPlayer player) {
@@ -169,9 +178,13 @@ public abstract class CraftConfirmMenuMixin extends AEBaseMenu
     @GuiSync(30_000)
     public Component thunderbolt$craftingAlgorithmName = Component.empty();
 
-    @Inject(method = {"planJob", "data_energistics$planJob", "gtlcore$planLongAmountJob"}, at = @At("HEAD"))
+    @Inject(method = {"planJob", "data_energistics$planJob", "gtlcore$planLongAmountJob"}, at = @At("HEAD"), cancellable = true)
     private void thunderbolt$resetAlgorithmName(
             CallbackInfoReturnable<Boolean> cir) {
+        if (!thunderbolt$validateTerminalOrder()) {
+            cir.setReturnValue(false);
+            return;
+        }
         CraftingAlgorithmCalculationStatus.forget(job);
         thunderbolt$craftingAlgorithmName = Component.empty();
         if (!thunderbolt$planningLong) {
@@ -179,6 +192,46 @@ public abstract class CraftConfirmMenuMixin extends AEBaseMenu
             thunderbolt$exactRequest = false;
             thunderbolt$exactBackend = null;
             thunderbolt$requestError = Component.empty();
+        }
+    }
+
+    @Unique
+    private boolean thunderbolt$validateTerminalOrder() {
+        var state = (TerminalOrderMenu) this;
+        if (!isClientSide() && state.thunderbolt$orderRetired()) return false;
+        var binding = state.thunderbolt$orderBinding();
+        if (isClientSide() || binding == null || binding.valid(this)) return true;
+        TerminalOrderBinding.reject(this);
+        return false;
+    }
+
+    @Inject(method = "getActionSrc", at = @At("HEAD"), cancellable = true)
+    private void thunderbolt$retainTerminalActionSource(CallbackInfoReturnable<IActionSource> cir) {
+        var binding = ((TerminalOrderMenu) this).thunderbolt$orderBinding();
+        if (!isClientSide() && binding != null) cir.setReturnValue(binding.source());
+    }
+
+    @WrapMethod(method = "startJob")
+    private void thunderbolt$submitBoundTerminalOrder(Operation<Void> original) {
+        var state = (TerminalOrderMenu) this;
+        if (!isClientSide() && state.thunderbolt$orderRetired()) return;
+        var binding = state.thunderbolt$orderBinding();
+        if (isClientSide() || binding == null) {
+            original.call();
+            return;
+        }
+        if (!binding.beginSubmit(this)) {
+            TerminalOrderBinding.reject(this);
+            return;
+        }
+        try {
+            original.call();
+            // Native/GTLCore confirmation retains its success/error behavior. A proven
+            // rejection permits another explicit confirmation; an exception never retries.
+            binding.finishSubmit(this);
+        } catch (RuntimeException | Error failure) {
+            binding.invalidate();
+            throw failure;
         }
     }
 

@@ -43,4 +43,4 @@ jobs:
         if: steps.target.outputs.forge == 'true'
         run: |
           bash ./gradlew --no-daemon --no-parallel --max-workers=1 runGameTestServer
-          grep -Fq 'All 14 required tests passed' build/nbt-game-test/logs/latest.log
+          grep -Fq 'All 20 required tests passed' build/nbt-game-test/logs/latest.log
