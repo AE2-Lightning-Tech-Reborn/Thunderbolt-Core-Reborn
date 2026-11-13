@@ -1,4 +1,7 @@
 {
+  "gui.thunderbolt.terminal_order.invalid": "The terminal or network changed or is unavailable. Reopen the terminal and try again.",
+  "gui.thunderbolt.terminal_order.not_craftable": "This item cannot be crafted on the current terminal's network.",
+  "gui.thunderbolt.terminal_order.wait": "The terminal is still synchronizing. Please try again.",
   "gui.thunderbolt.algorithm_provider.title": "Crafting Algorithm",
   "gui.thunderbolt.algorithm_provider.algorithm": "Selected algorithm",
   "gui.thunderbolt.algorithm_provider.previous": "Switch to previous algorithm",

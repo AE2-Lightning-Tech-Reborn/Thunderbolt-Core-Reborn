@@ -1,4 +1,7 @@
 {
+  "gui.thunderbolt.terminal_order.invalid": "终端或网络已变更或不可用，请重新打开终端后再试。",
+  "gui.thunderbolt.terminal_order.not_craftable": "当前终端的网络无法合成此物品。",
+  "gui.thunderbolt.terminal_order.wait": "终端仍在同步，请稍后重试。",
   "gui.thunderbolt.algorithm_provider.title": "合成算法",
   "gui.thunderbolt.algorithm_provider.algorithm": "当前选择的算法",
   "gui.thunderbolt.algorithm_provider.previous": "切换到上一个算法",

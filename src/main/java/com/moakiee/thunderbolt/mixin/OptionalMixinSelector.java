@@ -38,6 +38,7 @@ public final class OptionalMixinSelector {
     /** Accepts a qualified or simple Mixin name and an early mod-presence predicate. */
     public static boolean shouldApply(String mixinClassName, Predicate<String> modLoaded) {
         String simpleName = simpleName(mixinClassName);
+        if (simpleName.equals("GtlJeiOrderMixin")) return modLoaded.test("gtlcore") && modLoaded.test("jei");
         if (nbtCopyOwner(simpleName, modLoaded) != null) {
             return false;
         }

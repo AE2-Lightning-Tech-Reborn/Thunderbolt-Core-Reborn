@@ -6,6 +6,9 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "thunderbolt.refmap.json",
   "mixins": [
+    "ae2.crafting.TerminalOrderMenuStateMixin",
+    "ae2.crafting.TerminalOrderAmountMixin",
+    "ae2.crafting.TerminalOrderMenuOpenerMixin",
     "ae2.crafting.CraftingCalculationMixin",
     "ae2.crafting.CraftConfirmMenuMixin",
     "ae2.crafting.MenuTypeBuilderMixin",
@@ -40,6 +43,7 @@
     "ae2.storage.DriveBigStorageMixin"
   ],
   "client": [
+    "compat.gtl.GtlJeiOrderMixin",
     "ae2.client.CraftConfirmScreenMixin",
     "ae2.client.ExactCraftConfirmTableMixin",
     "ae2.client.CPUSelectionListStorageMixin",

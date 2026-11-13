@@ -263,6 +263,8 @@ def planningLifecycleTimingCases = [
 
 test {
     useJUnitPlatform()
+    def terminalOrderTarget = providers.gradleProperty('terminalOrderTargetJar').getOrElse('').trim()
+    if (!terminalOrderTarget.isEmpty()) systemProperty 'thunderbolt.terminalOrderTargetJar', terminalOrderTarget
     exclude 'com/moakiee/thunderbolt/core/crafting/planner/ExternalPlannerBoundaryCompatibilityTest.class'
     filter {
         excludeTestsMatching 'com.moakiee.thunderbolt.core.crafting.planner.MaterialDagSupplyTest.linearSideOutputSchedulingCoversGraphsBeyondTheFormerSixteenThousandWorkCap'
