@@ -1,0 +1,296 @@
+{
+  "status": "core-client-six-scenarios-passed-awaiting-review-and-joint-gates",
+  "contract": "tianshu-terminal-interaction-v1",
+  "baseCommit": "5926ab84eab951beb74480fbf4a17f7b0d3444b9",
+  "supersedes": {
+    "step4V1Sha256": "3ab9d9a9526102dd55e2bc721cd8273797b608f07170f9ddaf36fc3ea63696f6",
+    "reason": "actual client loading failure and native return/input-routing defects; do not use for client integration"
+  },
+  "sourceFingerprint": "7033472c9159fbbfa9c82a2ed6c11e4a13cba2b52613541fd41806e158cb43f9",
+  "sourceFiles": {
+    "build.gradle": "69a80e21cbc154f9cca2f81e1939c6c366492de6e06b4a29c8ea47d76bca9e12",
+    "src/gameTest/java/com/moakiee/thunderbolt/gametest/TerminalOrderGameTests.java": "369436a846b0d0f849a5f78ba670b63a370f42d5ac6184c747a5f54b2fc13b99",
+    "src/main/java/com/moakiee/thunderbolt/core/terminal/OrderRequestGate.java": "6fe66f350455a53a563c611aed63811c72258dda6fe02d92fb848451280d856b",
+    "src/main/java/com/moakiee/thunderbolt/core/terminal/TerminalOrderBinding.java": "ddcf177f31ffef0a67b6579763170ca078a2620103f1e1e52403a881800f14c2",
+    "src/main/java/com/moakiee/thunderbolt/core/terminal/TerminalOrderMenu.java": "60666db13829b10fd1dc39cec2586a66eb7c9a8af3d3029fa57018776d19ca7a",
+    "src/main/java/com/moakiee/thunderbolt/integration/jei/GtlJeiOrderCapability.java": "329990814ca6b0e6d1ee09e96c91e3af1b68a65fe3da61881c9a12ed39708444",
+    "src/main/java/com/moakiee/thunderbolt/integration/jei/TerminalJeiOrderClient.java": "d65ab0b5330ceddd32ab746df83c0dcb811c4e2af297ababff14d3e5216fa9de",
+    "src/main/java/com/moakiee/thunderbolt/integration/jei/TerminalJeiOrderEvents.java": "de3a536da53146c4e5029b7f1b3e76e39336f95abf8a1e26c6d988d949e0c582",
+    "src/main/java/com/moakiee/thunderbolt/mixin/OptionalMixinSelector.java": "ccf16a7f1a928dac0cb941d18e3c2701e67f0fad0f6a0de7b8d4e4cce5c253fa",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ThunderboltMixinConfigPlugin.java": "2449ec09cb07ec3f662fc745d49d2a988b448a4d40fece37a3735f99bb87c4e5",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/CraftConfirmMenuMixin.java": "86a0e5a42cf6677f164136a5696b99465e2f6d052ff6dcac5e51435bc5739067",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/TerminalOrderAmountMixin.java": "7a9cb447413cd09bbf53de0e7eb9459df73645fb0b22af7e7669d96b04bca6ab",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/TerminalOrderMenuOpenerMixin.java": "753ce219a71bc83d93b5bca43e66d446829458c97fb217965ef66c1f834672a1",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/TerminalOrderMenuStateMixin.java": "67009c5fcb297e488e4c39d4e46cfee4d885194e766d1c4d19ce050f7b677f51",
+    "src/main/java/com/moakiee/thunderbolt/mixin/compat/gtl/GtlJeiOrderMixin.java": "d90dd862577da4e98abd60410ae9bc2cd7c771ab5725f65b773733d60759a701",
+    "src/main/java/com/moakiee/thunderbolt/network/terminal/TerminalOrderPackets.java": "9a3c02f05abf34fb834c4a85dcf5439a6101acace1735fb36743c80129f9d3fa",
+    "src/main/resources/META-INF/mods.toml": "3b250edb3561ff71807ad9b08096700b0cc9afd70b3d461e6e51a39297db2e35",
+    "src/main/resources/assets/thunderbolt/lang/en_us.json": "7fd8e54925559db2a23e91c9527835a6ea31191d83f688f783c543485cd1c252",
+    "src/main/resources/assets/thunderbolt/lang/zh_cn.json": "9cac2cc2a1b749e6f00f69254799aff69550af693bbf4d9e7905942fe0409f63",
+    "src/main/resources/thunderbolt.mixins.json": "47a3a6906cab6188755e3c9fa9d228fc35382b05919dc654e151be4dd44553f5",
+    "src/test/java/com/moakiee/thunderbolt/core/terminal/OrderRequestGateTest.java": "399c9c21d05e3fae4fa5eed0b1aedfb80f12f936f6d1219a70c4042ad10ab650",
+    "src/test/java/com/moakiee/thunderbolt/integration/jei/GtlJeiOrderTargetTest.java": "afea95f6ad74065cfa1982366b45a7f849e0d14cd6282745e4da4e5dfeeef26c",
+    "src/test/java/com/moakiee/thunderbolt/network/terminal/TerminalOrderCodecTest.java": "240d915f1d14adc6d8c853e93da8dc80d9390c56405f1dc7fec5e2d3375d1e35"
+  },
+  "changedThisTurn": [
+    "src/main/java/com/moakiee/thunderbolt/integration/jei/GtlJeiOrderCapability.java",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ThunderboltMixinConfigPlugin.java",
+    "src/main/java/com/moakiee/thunderbolt/core/terminal/TerminalOrderBinding.java",
+    "src/main/java/com/moakiee/thunderbolt/mixin/ae2/crafting/TerminalOrderMenuOpenerMixin.java",
+    "src/gameTest/java/com/moakiee/thunderbolt/gametest/TerminalOrderGameTests.java",
+    "src/test/java/com/moakiee/thunderbolt/integration/jei/GtlJeiOrderTargetTest.java",
+    "src/main/java/com/moakiee/thunderbolt/integration/jei/TerminalJeiOrderEvents.java",
+    "src/main/resources/META-INF/mods.toml",
+    "docs/tianshu-jei-client-20261113.zh-CN.md",
+    "docs/tianshu-jei-client-20261113.artifacts.json"
+  ],
+  "release": {
+    "coordinate": "com.moakiee.thunderbolt:thunderbolt-reborn-forge-1.20.1-gtl-tianshu-jei-v2-7033472c:2.0.4",
+    "jar": "build/tianshu-jei-client-20261113/delivery/thunderbolt-forge-1.20.1-2.0.4.jar",
+    "sha256": "cef3f52d382fcc21ecfacc1348721199ffc7def395222174b4360e12b335ff03",
+    "repository": "build/tianshu-jei-client-20261113/maven",
+    "mavenJar": "build/tianshu-jei-client-20261113/maven/com/moakiee/thunderbolt/thunderbolt-reborn-forge-1.20.1-gtl-tianshu-jei-v2-7033472c/2.0.4/thunderbolt-reborn-forge-1.20.1-gtl-tianshu-jei-v2-7033472c-2.0.4.jar",
+    "pomSha256": "2fb37771450ad9e17cf21a2e90454af659abadfea92a66c62a2f9aaea9a9927b",
+    "fullReleaseEqualsTestedClientAndMavenJar": true,
+    "consumerResolution": "passed-isolated-Gradle-Maven-resolution-and-exact-tested-client-SHA256",
+    "mandatoryMods": [
+      "forge",
+      "minecraft",
+      "ae2"
+    ],
+    "optionalClientOrder": [
+      {
+        "modId": "ae2lt",
+        "mandatory": false,
+        "versionRange": "[0,)",
+        "ordering": "BEFORE",
+        "side": "CLIENT"
+      },
+      {
+        "modId": "invtweaks",
+        "mandatory": false,
+        "versionRange": "[0,)",
+        "ordering": "BEFORE",
+        "side": "CLIENT"
+      }
+    ],
+    "publicApiClassesByteIdenticalToContract": 50,
+    "java17ApplicableClassMajorCounts": {
+      "61": 571,
+      "52": 1723,
+      "50": 8
+    },
+    "generatedRefmapMatchesRelease": true,
+    "nestedJarsUnchanged": [
+      {
+        "path": "META-INF/jarjar/mixinextras-forge-0.4.1.jar",
+        "sha256": "9d48cb0a40299d283248fdad8b02c6d175c45b27f9bec48ef63d7ee8a4ee3066"
+      },
+      {
+        "path": "META-INF/thunderbolt/cp-sat/ortools-java-9.15.6755.jar",
+        "sha256": "483f27408386fd1ab718aa72244beead10756e1be6d25c7ab7fcb83eb1788d9a"
+      },
+      {
+        "path": "META-INF/thunderbolt/cp-sat/protobuf-java-4.33.1.jar",
+        "sha256": "fd5cf3d55bc2c3ddb2a8640c9d4c69daa9a5b326fb6e05bae0e56b3f4f85e0f7"
+      }
+    ],
+    "licensePresent": true,
+    "contractAndStep1AndStep4V1FixedBytesUnchanged": true
+  },
+  "verification": {
+    "compileEnvironment": {
+      "java": 17,
+      "forge": "47.1.3",
+      "minecraft": "1.20.1",
+      "gradle": "8.14"
+    },
+    "clientEnvironment": {
+      "java": "17.0.20",
+      "forge": "47.4.16",
+      "production": true,
+      "integratedServer": true,
+      "independentDedicatedServer": false,
+      "manualHardwareInput": false,
+      "input": "programmatic MouseHandler movement/press/release through real Forge and JEI handlers; not manual hardware input",
+      "runId": "20261113T005804572020Z"
+    },
+    "checkBuildVerifyReleaseJar": "passed",
+    "junitTasks": [
+      {
+        "task": "cpSatColdRefinementTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 1
+      },
+      {
+        "task": "externalPlannerBoundaryTest",
+        "tests": 38,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 38
+      },
+      {
+        "task": "materialDagColdReplayTest",
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 20
+      },
+      {
+        "task": "materialDagColdReplenishmentTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 2
+      },
+      {
+        "task": "materialDagLargeGraphTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 1
+      },
+      {
+        "task": "planningLifecycleTimingTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 5
+      },
+      {
+        "task": "test",
+        "tests": 1675,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 2,
+        "passed": 1673
+      }
+    ],
+    "junitTotals": {
+      "tests": 1742,
+      "passed": 1740,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2
+    },
+    "forgeGameTests": {
+      "passed": 20,
+      "failed": 0
+    },
+    "clientScenarios": [
+      {
+        "case": "standalone-crafting",
+        "production": {
+          "logs": 63,
+          "menu": "com.moakiee.ae2lt.integration.ae2wtlib.TianshuEnhancedWirelessCraftingMenu",
+          "planks": 4,
+          "validMenu": true
+        },
+        "status": "PASS"
+      },
+      {
+        "case": "standalone-pattern",
+        "production": {
+          "logs": 62,
+          "menu": "com.moakiee.ae2lt.menu.TianshuWirelessPatternEncodingTermMenu",
+          "planks": 8,
+          "validMenu": true
+        },
+        "status": "PASS"
+      },
+      {
+        "case": "wut-only-tianshu-crafting",
+        "production": {
+          "logs": 61,
+          "menu": "com.moakiee.ae2lt.integration.ae2wtlib.TianshuEnhancedWirelessCraftingMenu",
+          "planks": 12,
+          "validMenu": true
+        },
+        "status": "PASS"
+      },
+      {
+        "case": "wut-only-tianshu-pattern",
+        "production": {
+          "logs": 60,
+          "menu": "com.moakiee.ae2lt.menu.TianshuWirelessPatternEncodingTermMenu",
+          "planks": 16,
+          "validMenu": true
+        },
+        "status": "PASS"
+      },
+      {
+        "case": "wut-dual-crafting",
+        "production": {
+          "logs": 59,
+          "menu": "com.moakiee.ae2lt.integration.ae2wtlib.TianshuEnhancedWirelessCraftingMenu",
+          "planks": 20,
+          "validMenu": true
+        },
+        "status": "PASS"
+      },
+      {
+        "case": "wut-dual-pattern-switch",
+        "production": {
+          "logs": 58,
+          "menu": "com.moakiee.ae2lt.menu.TianshuWirelessPatternEncodingTermMenu",
+          "planks": 24,
+          "validMenu": true
+        },
+        "status": "PASS"
+      }
+    ],
+    "clientCounters": {
+      "middleEvents": 6,
+      "core": 6,
+      "legacy": 0,
+      "canceledEvents": 6
+    },
+    "finalNetworkStock": {
+      "logs": 58,
+      "menu": "com.moakiee.ae2lt.menu.TianshuWirelessPatternEncodingTermMenu",
+      "planks": 24,
+      "validMenu": true
+    },
+    "controlGroup": {
+      "inventoryTweaksAbsent": true,
+      "sameSixScenarios": "passed-on-intermediate-locator-fixed-core",
+      "countAsAdditionalDistinctFunctionality": false
+    },
+    "normalSavedExit": true,
+    "preservedFailures": [
+      "client-console-attempt1.log",
+      "client-console-attempt2-core-v1-failed.log",
+      "client-console-attempt3-probe-package-failed.log",
+      "client-console-attempt4-global-audit-emi-absent.log",
+      "client-result-attempt5-donor-fixture-unformed.json",
+      "client-result-attempt6-wap-orientation.json",
+      "client-result-attempt7-fixture-inventory-sync.json",
+      "client-result-attempt9-default-invtweaks-canceled.json",
+      "client-result-attempt10-core-old-locator.json",
+      "client-result-default-cancel-owner.json"
+    ]
+  },
+  "notExecuted": [
+    "independent-client-connected-to-dedicated-server",
+    "manual-hardware-input",
+    "client-Curios-multiple-terminals-and-networks",
+    "client-power-range-permission-and-delayed-replay-matrix",
+    "actual-Shift-Ctrl-and-JEI-edit-cheat-combinations",
+    "client-big-integer-quantity",
+    "non-Tianshu-terminal-specialized-regression",
+    "TimeWheel-multiblock-production",
+    "world-pick-terminal-stock-pick-magnet-and-nonempty-module-merge-persistence"
+  ],
+  "remotePublished": false,
+  "mavenLocalPublished": false,
+  "committed": false,
+  "otherRepositoryModified": false
+}

@@ -11,6 +11,7 @@ import com.moakiee.thunderbolt.compat.gtl.GtlCompat;
 /** Early selection by addon presence and GTL batch ownership. */
 public final class OptionalMixinSelector {
     private static final Map<String, String> REQUIRED_MODS = Map.ofEntries(
+            Map.entry("TerminalOrderBigQuantityPacketMixin", "ae2lt"),
             Map.entry("Ae2CraftingTreeCompatibilityMixin", "ae2ct"),
             Map.entry("AdvCraftingCpuLogicBatchMixin", "advanced_ae"),
             Map.entry("AdvCraftingCpuAccessor", "advanced_ae"),
@@ -38,6 +39,7 @@ public final class OptionalMixinSelector {
     /** Accepts a qualified or simple Mixin name and an early mod-presence predicate. */
     public static boolean shouldApply(String mixinClassName, Predicate<String> modLoaded) {
         String simpleName = simpleName(mixinClassName);
+        if (simpleName.equals("GtlJeiOrderMixin")) return modLoaded.test("gtlcore") && modLoaded.test("jei");
         if (nbtCopyOwner(simpleName, modLoaded) != null) {
             return false;
         }
